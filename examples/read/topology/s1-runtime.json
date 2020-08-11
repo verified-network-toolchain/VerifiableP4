@@ -1,0 +1,23 @@
+{
+  "target": "bmv2",
+  "p4info": "build/basic.p4.p4info.txt",
+  "bmv2_json": "build/basic.json",
+  "table_entries": [
+    {
+      "table": "MyIngress.forward",
+      "default_action": true,
+      "action_name": "MyIngress.drop",
+      "action_params": { }
+    },
+    {
+      "table": "MyIngress.forward",
+      "match": {
+        "hdr.myHeader.firstBit": 1
+      },
+      "action_name": "MyIngress.do_forward",
+      "action_params": {
+        "port": 2
+      }
+    }
+  ]
+}
