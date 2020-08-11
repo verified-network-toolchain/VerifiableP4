@@ -6,17 +6,12 @@
 *********************** H E A D E R S  ***********************************
 *************************************************************************/
 
-header myHeader_t {
-    bit firstBit;
-    bit<7> padding;
-}
-
 struct metadata {
     /* empty */
 }
 
 struct headers {
-    myHeader_t myHeader;
+    /* empty */
 }
 
 /*************************************************************************
@@ -29,8 +24,7 @@ parser MyParser(packet_in packet,
                 inout standard_metadata_t standard_metadata) {
 
     state start {
-	packet.extract(hdr.myHeader);
-        transition accept;
+	   transition accept;
     }
 }
 
@@ -68,9 +62,8 @@ control MyEgress(inout headers hdr,
 *************************************************************************/
 
 control MyDeparser(packet_out packet, in headers hdr) {
-    apply {
-        packet.emit(hdr.myHeader);
-    }
+    /* empty */
+    apply {  }
 }
 
 
@@ -78,11 +71,13 @@ control MyDeparser(packet_out packet, in headers hdr) {
 ************************  C H E C K S U M ********************************
 *************************************************************************/
 
-control MyVerifyChecksum(inout headers hdr, inout metadata meta) {   
+control MyVerifyChecksum(inout headers hdr, inout metadata meta) { 
+    /* empty */  
     apply {  }
 }
 
 control MyComputeChecksum(inout headers  hdr, inout metadata meta) {
+    /* empty */
     apply {  }
 }
 
@@ -91,10 +86,10 @@ control MyComputeChecksum(inout headers  hdr, inout metadata meta) {
 *************************************************************************/
 
 V1Switch(
-MyParser(),
-MyVerifyChecksum(),
-MyIngress(),
-MyEgress(),
-MyComputeChecksum(),
-MyDeparser()
+    MyParser(),
+    MyVerifyChecksum(),
+    MyIngress(),
+    MyEgress(),
+    MyComputeChecksum(),
+    MyDeparser()
 ) main;

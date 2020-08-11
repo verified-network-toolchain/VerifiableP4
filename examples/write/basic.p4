@@ -99,11 +99,13 @@ control MyDeparser(packet_out packet, in headers hdr) {
 ************************  C H E C K S U M ********************************
 *************************************************************************/
 
-control MyVerifyChecksum(inout headers hdr, inout metadata meta) {   
+control MyVerifyChecksum(inout headers hdr, inout metadata meta) {  
+    /* empty */ 
     apply {  }
 }
 
 control MyComputeChecksum(inout headers  hdr, inout metadata meta) {
+    /* empty */
     apply {  }
 }
 
@@ -112,10 +114,10 @@ control MyComputeChecksum(inout headers  hdr, inout metadata meta) {
 *************************************************************************/
 
 V1Switch(
-MyParser(),
-MyVerifyChecksum(),
-MyIngress(),
-MyEgress(),
-MyComputeChecksum(),
-MyDeparser()
+    MyParser(),
+    MyVerifyChecksum(),
+    MyIngress(),
+    MyEgress(),
+    MyComputeChecksum(),
+    MyDeparser()
 ) main;
