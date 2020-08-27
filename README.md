@@ -1,9 +1,29 @@
 # ProD3
-## Environment set-up
+## Running P4 code in Petr4
+### Environment set-up
+You can follow the instructions from the link below to **install Petr4 from source**.
+https://github.com/cornell-netlab/petr4/#installing-from-source
+
+### Running examples
+Run the parser to generate AST in JSON format:
+```sh
+petr4 typecheck basic.p4 -I ../../includes -json > AST.json
+```
+Run the parser to generate AST in a pretty format:
+```sh
+petr4 typecheck basic.p4 -I ../../includes -pretty -v > AST
+```
+Run the interpreter:
+```sh
+petr4 run basic.p4 -ctrl-json ctrl.json -pkt-str <a packet in hex, e.g. 2A2A2A2A2A2A2A2A2A2A2A2A21> -I ../../includes/ -T v1 > eval_result
+```
+
+## Running P4 code on v1model target
+### Environment set-up
 Current examples adopts the environment set-up of the P4 tutorials. You can follow the instructions from the link below to set up the virtual machine, and then clone this repository to the vm.
 https://github.com/p4lang/tutorials
 
-# How to run examples?
+### Running examples
 In your shell, run:
 ```sh
 make run
