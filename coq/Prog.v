@@ -76,8 +76,12 @@ Inductive Statement_pre_switch_label :=
 | Name' (_: Types.P4String).
 Definition Statement_switch_label := info Statement_pre_switch_label.
 
+Inductive Declaration_pre_field :=
+  MkDeclaration_pre_field (_: list Annotation) (_: Type') (_: Types.P4String).
+Definition Declaration_field := info Declaration_pre_field.
+
 Inductive Statement_pre_switch_case :=
-| Action (_: Statement_switch_label) (_: Block)
+| Action' (_: Statement_switch_label) (_: Block)
 | FallThrough (_: Statement_switch_label)
 with Statement_switch_case :=
   MkStatement_switch_case (_: info Statement_pre_switch_case)
@@ -96,7 +100,66 @@ with Statement_typed_t :=
   MkStatement_typed_t (_: Statement_pre_t) (_: StmType)
 with Statement :=
   MkStatement (_: info Statement_typed_t)
+with Block_pre_t :=
+  MkBlock_pre_t (_: list Annotation) (_: list Statement)
 with Block :=
-  MkBlock (_: unit)
+  MkBlock (_: info Block_pre_t)
+with Parser_pre_case :=
+  MkParser_pre_case (_: list Match) (_: Types.P4String)
+with Parser_case :=
+  MkParser_case (_: info Parser_pre_case)
+with Parser_pre_transition :=
+| Direct (_: Types.P4String)
+| Select (_: list Expression) (_: list Parser_case)
+with Parser_transition :=
+  MkParser_transition (_: info Parser_pre_transition)
+with Parser_pre_state :=
+  MkParser_pre_state (_: list Annotation) (_: Types.P4String) (_: list Statement)
+                     (_: Parser_transition)
+with Parser_state :=
+  MkParser_state (_: info Parser_pre_state)
+with Declaration_pre_t :=
+  | Constant (_: list Annotation) (_: Type') (_: Types.P4String) (_: Value_value)
+  | Instantiation (_: list Annotation) (_: Type') (_: list Expression)
+                  (_: Types.P4String) (_: option Block)
+  | Parser (_: list Annotation) (_ : Types.P4String) (_: list Types.P4String)
+           (_: list Parameter') (_: list Parameter') (_: list Declaration)
+           (_: list Parser_state)
+  | Control (_: list Annotation) (_: Types.P4String) (_: list Types.P4String)
+            (_: list Parameter') (_: list Parameter') (_: list Declaration)
+            (_: Block)
+  | Function' (_: Type') (_: Types.P4String) (_: list Types.P4String)
+             (_: list Parameter') (_: Block)
+  | ExternFunction (_: list Annotation) (_: Type') (_: Types.P4String)
+                   (_: list Types.P4String) (_: list Parameter')
+  | Variable' (_: list Annotation) (_: Type') (_: Types.P4String)
+              (_: option Expression)
+  | ValueSet (_: list Annotation) (_: Type') (_: Expression) (_: Types.P4String)
+  | Action (_: list Annotation) (_: Types.P4String) (_: list Parameter')
+           (_: list Parameter') (_: Block)
+  | Table (_: list Annotation) (_: Types.P4String) (_: list Table_key)
+          (_: list Table_action_ref) (_: option (list Table_entry))
+          (_: option Table_action_ref) (_: option Types.P4Int)
+          (_: list Table_property)
+  | Header (_: list Annotation) (_: Types.P4String) (_: list Declaration_field)
+  | HeaderUnion (_: list Annotation) (_: Types.P4String) (_: list Declaration_field)
+  | Struct (_: list Annotation) (_: Types.P4String) (_: list Declaration_field)
+  | Error (_: list Types.P4String)
+  | MatchKind (_: list Types.P4String)
+  | Enum (_: list Annotation) (_: Types.P4String) (_: list Types.P4String)
+  | SerializableEnum (_: list Annotation) (_: Type') (_: Types.P4String)
+                     (_: list (Types.P4String * Expression))
+  | ExternObject (_: list Annotation) (_: Types.P4String) (_: list Types.P4String)
+                 (_: list MethodPrototype)
+  | TypeDef (_: list Annotation) (_: Types.P4String) (_: (Type' + Declaration))
+  | NewType (_: list Annotation) (_: Types.P4String) (_: (Type' + Declaration))
+  | ControlType (_: list Annotation) (_: Types.P4String) (_: list Types.P4String)
+                (_: list Parameter')
+  | ParserType (_: list Annotation) (_: Types.P4String) (_: list Types.P4String)
+               (_: list Parameter')
+  | PackageType (_: list Annotation) (_: Types.P4String) (_: list Types.P4String)
+                (_: list Parameter')
 with Declaration :=
-  MkDeclaration (_: unit).
+  MkDeclaration (_: info Declaration_pre_t)
+with Value_value :=
+    MkValue_value (_: unit).
