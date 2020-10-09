@@ -33,7 +33,7 @@ COQLIB=$(shell $(COQC) -where | tr -d '\r' | tr '\\' '/')
 # ########## File Lists ##########
 
 FILES = \
-  Info.v Types.v
+  Info.v Types.v Typed.v Prog.v
 
 
 # ########## Rules ##########
