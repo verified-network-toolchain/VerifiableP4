@@ -41,6 +41,34 @@ and name_only n =
   | QualifiedName (_, (_, s)) -> s
 *)
 
+Inductive Op_uni : Type :=
+  | Not
+  | BitNot
+  | UMinus.
+
+Inductive Op_bin : Type :=
+  | Plus
+  | PlusSat
+  | Minus
+  | MinusSat
+  | Mul
+  | Div
+  | Mod
+  | Shl
+  | Shr
+  | Le
+  | Ge
+  | Lt
+  | Gt
+  | Eq
+  | NotEq
+  | BitAnd
+  | BitXor
+  | BitOr
+  | PlusPlus
+  | And
+  | Or.
+
 Inductive KeyValue :=
   | MkKeyValue : Info -> P4String -> Expression -> KeyValue
 with Annotation_body :=
@@ -59,8 +87,6 @@ with Parameter' :=
       P4String -> (* variable *)
       option Expression -> (* opt_value *)
       Parameter'
-with Op_uni :=
-with Op_bin :=
 
 (* and Op : sig
   type pre_uni =
