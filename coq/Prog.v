@@ -86,6 +86,11 @@ Inductive Value_vtable :=
   ValVTable: string -> list Table_pre_key -> list Table_action_ref ->
              Table_action_ref -> list Table_pre_entry -> Value_vtable.
 
+Definition Env_env binding := list (list (string * binding)).
+
+Inductive Env_EvalEnv :=
+  MkEnv_EvalEnv (_: Env_env Value_loc) (_: Env_env Type') (_: string).
+
 Inductive Statement_pre_switch_case :=
 | Action' (_: Statement_switch_label) (_: Block)
 | FallThrough (_: Statement_switch_label)
@@ -217,6 +222,16 @@ with Value_vparser :=
                   (_: list Declaration) (_: list Parser_state)
 with Value_vcontrol :=
   MkValue_vcontrol (_: Env_EvalEnv) (_: list Parameter') (_: list Parameter')
-                   (_: list Declaration) (_: Block)
-with Env_EvalEnv :=
-  MkEnv_EvalEvn (_: unit).
+                   (_: list Declaration) (_: Block).
+
+Inductive Env_Renamer_state :=
+  MkEnv_Renamer_state: Z -> list string -> Env_Renamer_state.
+
+(** * TODO Here the definition of Env_Renamer is just a placeholder *)
+Inductive Env_Renamer := MkEnv_Renamer (_: Env_Renamer_state).
+
+Inductive Env_CheckerEnv :=
+  MkEnv_CheckerEnv (_: Env_env Type') (_: Env_env (Type' * direction))
+                   (_: Env_env Value_value) (_: Env_Renamer).
+
+Inductive program := Program (_: list Declaration).
