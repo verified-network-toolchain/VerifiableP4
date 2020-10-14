@@ -1,7 +1,10 @@
 Require Import Coq.Strings.String.
 Require Import Coq.ZArith.ZArith.
 Require Import Info.
-Require Import Types.
+Require Types.
+
+Definition P4String := Types.P4String.
+Definition Annotation := Types.Annotation.
 
 Inductive direction :=
 | In
@@ -32,7 +35,7 @@ Inductive FunctionType_kind :=
 
 Inductive Parameter' :=
   MkParameter: list Annotation -> direction -> Type' -> P4String ->
-               option Expression -> Parameter'
+               option Types.Expression -> Parameter'
 with PackageType :=
   MkPackageType: list string -> list string -> list Parameter' -> PackageType
 with ControlType :=
