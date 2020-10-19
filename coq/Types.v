@@ -1,9 +1,8 @@
 Require Import Coq.Strings.String.
 Require Import Coq.ZArith.ZArith.
 Require Import Info.
-Require Import Coq.extraction.Extraction.
 
-(* Open Scope type_scope. *)
+Open Scope type_scope.
 
 Definition info (A : Type) := Info * A.
 
