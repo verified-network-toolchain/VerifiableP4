@@ -21,114 +21,137 @@ Definition eq_dir (d1 d2: direction) :=
   | _, _ => false
   end.
 
-Inductive IntType := Int: Z -> IntType.
-Inductive TableType := MkTableType: string -> TableType.
+Inductive IntType := 
+  (* MkIntType : width [int] -> IntType *)
+  | MkIntType : Z -> IntType.
+
+Inductive TableType := 
+  | MkTableType: string -> TableType.
 
 Inductive FunctionType_kind :=
-| Parser
-| Control
-| Extern
-| Table
-| Action
-| Function'
-| Builtin.
+  | Fun_Parser
+  | Fun_Control
+  | Fun_Extern
+  | Fun_Table
+  | Fun_Action
+  | Fun_Function
+  | Fun_Builtin.
 
 Inductive Parameter' :=
-  MkParameter: list Annotation -> direction -> Type' -> P4String ->
-               option Types.Expression -> Parameter'
+  (* MkParameter: annotations -> direction -> type -> variable ->
+                  opt_value -> Parameter' *)
+  | MkParameter: list Annotation -> direction -> Type' -> P4String ->
+                 option Types.Expression -> Parameter'
 with PackageType :=
-  MkPackageType: list string -> list string -> list Parameter' -> PackageType
+  (* MkPackageType : type_params -> wildcard_params -> parameters ->
+                     PackageType *)
+  | MkPackageType: list string -> list string -> list Parameter' ->
+                   PackageType
 with ControlType :=
-  MkControlType: list string -> list Parameter' -> ControlType
-with extern_method :=
-  Mkextern_method: string -> FunctionType -> extern_method
+  (* MkControlType : type_params -> parameters -> ControlType *)
+  | MkControlType: list string -> list Parameter' -> ControlType
+with ExternType_extern_method :=
+  (* MkExternType_extern_method : name -> type -> 
+                                  ExternType_extern_method *)
+  | MkExternType_extern_method: string -> FunctionType ->
+                                ExternType_extern_method
 with ExternType :=
-  MkExternType: list string -> list extern_method -> ExternType
+  (* MkExternType : type_params -> methods -> ExternType *)
+  | MkExternType: list string -> list ExternType_extern_method ->
+                  ExternType
 with ArrayType :=
-  MkArrayType: Type' -> Z -> ArrayType
+  (* MkArrayType : type -> size [int] -> ArrayType *)
+  | MkArrayType: Type' -> Z -> ArrayType
 with TupleType :=
-  MkTupleType: list Type' -> TupleType
+  | MkTupleType: list Type' -> TupleType
 with NewType :=
-  MkNewType: string -> Type' -> NewType
+  | MkNewType: string -> Type' -> NewType
 with RecordType_field :=
-  MkRecordType_field: string -> Type' -> RecordType_field
+  | MkRecordType_field: string -> Type' -> RecordType_field
 with RecordType :=
-  MkRecordType: list RecordType_field -> RecordType
+  | MkRecordType: list RecordType_field -> RecordType
 with EnumType :=
-  MkEnumType: string -> option Type' -> list string -> EnumType
+  (* MkEnumType : name -> type -> members -> EnumType *)
+  | MkEnumType: string -> option Type' -> list string -> EnumType
 with FunctionType :=
-  MkFunctionType: list string -> list Parameter' -> FunctionType_kind ->
-                  Type' -> FunctionType
+  (* MkFunctionType : type_params -> parameters -> kind -> 
+                      return -> FunctionType *)
+  | MkFunctionType: list string -> list Parameter' -> FunctionType_kind ->
+                    Type' -> FunctionType
 with SpecializedType :=
-  MkSpecializedType: Type' -> list Type' -> SpecializedType
+  (* MkSpecializedType : base -> args -> SpecializedType *)
+  | MkSpecializedType: Type' -> list Type' -> SpecializedType
 with ActionType :=
-  MkActionType: list Parameter' -> list Parameter' -> ActionType
+  (* MkActionType : data_params -> ctrl_params -> ActionType *)
+  | MkActionType: list Parameter' -> list Parameter' -> ActionType
 with ConstructorType :=
-  MkConstructorType: list string -> list string -> list Parameter' ->
-                     Type' -> ConstructorType
+  (* MkConstructorType : type_params -> wildcard_params -> parameters
+                         return -> ConstructorType *)
+  | MkConstructorType: list string -> list string -> list Parameter' ->
+                       Type' -> ConstructorType
 with Type' :=
-| Bool'
-| String'
-| Integer
-| Int' (_: IntType)
-| Bit (_: IntType)
-| VarBit (_: IntType)
-| Array (_: ArrayType)
-| Tuple (_: TupleType)
-| List' (_: TupleType)
-| Record' (_: RecordType)
-| Set' (_: Type')
-| Error
-| MatchKind
-| TypeName (_: Types.name)
-| NewType' (_: NewType)
-| Void
-| Header (_: RecordType)
-| HeaderUnion (_: RecordType)
-| Struct (_: RecordType)
-| Enum (_: EnumType)
-| SpecializedType' (_: SpecializedType)
-| Package (_: PackageType)
-| Control' (_: ControlType)
-| Parser' (_: ControlType)
-| Extern' (_: ExternType)
-| Function'' (_: FunctionType)
-| Action' (_: ActionType)
-| Constructor (_: ConstructorType)
-| Table' (_: TableType).
+| Typ_Bool
+| Typ_String
+| Typ_Integer
+| Typ_Int (_: IntType)
+| Typ_Bit (_: IntType)
+| Typ_VarBit (_: IntType)
+| Typ_Array (_: ArrayType)
+| Typ_Tuple (_: TupleType)
+| Typ_List (_: TupleType)
+| Typ_Record (_: RecordType)
+| Typ_Set (_: Type')
+| Typ_Error
+| Typ_MatchKind
+| Typ_TypeName (_: Types.name)
+| Typ_NewType (_: NewType)
+| Typ_Void
+| Typ_Header (_: RecordType)
+| Typ_HeaderUnion (_: RecordType)
+| Typ_Struct (_: RecordType)
+| Typ_Enum (_: EnumType)
+| Typ_SpecializedType (_: SpecializedType)
+| Typ_Package (_: PackageType)
+| Typ_Control (_: ControlType)
+| Typ_Parser (_: ControlType)
+| Typ_Extern (_: ExternType)
+| Typ_Function (_: FunctionType)
+| Typ_Action (_: ActionType)
+| Typ_Constructor (_: ConstructorType)
+| Typ_Table (_: TableType).
 
 Inductive StmType :=
-| Unit
-| Void'.
+| Stm_Unit
+| Stm_Void.
 
 Inductive StmtContext :=
-| Function''' (_: Type')
-| Action''
-| ParserState
-| ApplyBlock.
+| StmtCx_Function (_: Type')
+| StmtCx_Action
+| StmtCx_ParserState
+| StmtCx_ApplyBlock.
 
 Inductive DeclContext :=
-| TopLevel
-| Nested
-| Statement' (_: StmtContext).
+| DeclCx_TopLevel
+| DeclCx_Nested
+| DeclCx_Statement (_: StmtContext).
 
 Inductive ParamContext_decl :=
-| Parser''
-| Control''
-| Method
-| Action'''
-| Function''''
-| Package'.
+| ParamCxDecl_Parser
+| ParamCxDecl_Control
+| ParamCxDecl_Method
+| ParamCxDecl_Action
+| ParamCxDecl_Function
+| ParamCxDecl_Package.
 
 Inductive ParamContext :=
-| Runtime (_: ParamContext_decl)
-| Constructor' (_: ParamContext_decl).
+| ParamCx_Runtime (_: ParamContext_decl)
+| ParamCx_Constructor (_: ParamContext_decl).
 
 Inductive ExprContext :=
-| ParserState'
-| ApplyBlock'
-| DeclLocals
-| TableAction
-| Action''''
-| Function'''''
-| Constant.
+| ExprCx_ParserState
+| ExprCx_ApplyBlock
+| ExprCx_DeclLocals
+| ExprCx_TableAction
+| ExprCx_Action
+| ExprCx_Function
+| ExprCx_Constant.

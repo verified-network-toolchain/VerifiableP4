@@ -1,18 +1,161 @@
 Require Import Coq.Strings.String.
 Require Import Coq.ZArith.ZArith.
 Require Import Info.
+Require Import Coq.extraction.Extraction.
 
-Open Scope type_scope.
+(* Open Scope type_scope. *)
 
 Definition info (A : Type) := Info * A.
 
+(* P4Int = info (value [bigint] * (width [int] * signed) option) *)
 Definition P4Int := info (Z * option (Z * bool)).
 
 Definition P4String := info string.
 
 Inductive name :=
   | BareName : P4String -> name
+  (* QualifiedName : list namespaces -> name -> name *)
   | QualifiedName : list P4String -> P4String -> name.
+
+Inductive Op_pre_uni : Type :=
+  | Not
+  | BitNot
+  | UMinus.
+Definition Op_uni := info Op_pre_uni.
+
+Inductive Op_pre_bin : Type :=
+  | Plus
+  | PlusSat
+  | Minus
+  | MinusSat
+  | Mul
+  | Div
+  | Mod
+  | Shl
+  | Shr
+  | Le
+  | Ge
+  | Lt
+  | Gt
+  | Eq
+  | NotEq
+  | BitAnd
+  | BitXor
+  | BitOr
+  | PlusPlus
+  | And
+  | Or.
+Definition Op_bin := info Op_pre_bin.
+
+Inductive Direction_pre_t :=
+  | In
+  | Out
+  | InOut.
+Definition Direction := info Direction_pre_t.
+
+Inductive KeyValue_pre_t :=
+  | MkKeyValue_pre_t : P4String -> Expression -> KeyValue_pre_t
+with KeyValue :=
+  | MkKeyValue: info KeyValue_pre_t -> KeyValue
+with Type'_pre_t :=
+  | Typ_Bool
+  | Typ_Error 
+  | Typ_Integer
+  | Typ_IntType : Expression -> Type'_pre_t
+  | Typ_BitType : Expression -> Type'_pre_t
+  | Typ_VarBit : Expression -> Type'_pre_t
+  (* this could be a typename or a type variable. *)
+  | Typ_TypeName : name -> Type'_pre_t
+  (* SpecializedType : base -> args -> Type'_pre_t *)
+  | Typ_SpecializedType : Type' -> list Type' -> Type'_pre_t
+  (* HeaderStack : header_type -> header_size -> Type'_pre_t *)
+  | Typ_HeaderStack : Type' -> Expression -> Type'_pre_t
+  | Typ_Tuple : list Type' -> Type'_pre_t
+  | Typ_String
+  | Typ_Void
+  | Typ_DontCare
+with Type' :=
+  | MkType' : info Type'_pre_t -> Type'
+with Argument_pre_t :=
+  | Arg_Expression : Expression -> Argument_pre_t
+  (* Arg_KeyValue : key -> value -> Argument_pre_t *)
+  | Arg_KeyValue : P4String -> Expression -> Argument_pre_t
+  | Arg_Missing
+with Argument :=
+  | MkArgument : info Argument_pre_t -> Argument
+with Expression_pre_t :=
+  | Exp_True
+  | Exp_False
+  | Exp_Int : P4Int -> Expression_pre_t
+  | Exp_String : P4String -> Expression_pre_t
+  | Exp_Name : name -> Expression_pre_t
+  (* | ArrayAccess of
+      { array: t;
+        index: t } *)
+  (* | BitStringAccess of
+      { bits: t;
+        lo: t;
+        hi: t } *)
+  (* | List of
+      { values: t list } *)
+  (* | Record of
+      { entries: KeyValue.t list } *)
+  | Exp_UnaryOp : Op_uni -> Expression -> Expression_pre_t
+  | Exp_BinaryOp : Op_bin -> (Expression * Expression) -> Expression_pre_t
+  (* | Cast of
+      { typ: Type.t;
+        expr: t } *)
+  (* | TypeMember of
+      { typ: name;
+        name: P4String.t } *)
+  (* | ErrorMember of P4String.t *)
+  (* | ExpressionMember of
+      { expr: t;
+        name: P4String.t } *)
+  (* | Ternary of
+      { cond: t;
+        tru: t;
+        fls: t } *)
+  (* FunctionCall func type_args args *)
+  | Exp_FunctionCall : Expression -> list Type' -> list Argument ->
+                       Expression_pre_t
+  (* | NamelessInstantiation of
+      { typ: Type.t [@key "type"];
+        args: Argument.t list } *)
+  (* | Mask of
+      { expr: t;
+        mask: t } *)
+  (* | Range of
+      { lo: t;
+        hi: t } *)
+with Expression :=
+  | MkExpression : info Expression_pre_t -> Expression.
+
+Inductive Annotation_pre_body :=
+  | Anno_Empty
+  | Anno_Unparsed : list P4String -> Annotation_pre_body
+  | Anno_Expression : list Expression -> Annotation_pre_body
+  | Anno_KeyValue : list KeyValue -> Annotation_pre_body.
+Definition Annotation_body := info Annotation_pre_body.
+Inductive Annotation_pre_t :=
+  | MkAnnotation_pre_t : P4String -> Annotation_body -> Annotation_pre_t.
+Definition Annotation := info Annotation_pre_t.
+
+
+(* Molly: Types.Parameter' Seems not needed.
+
+with Parameter' :=
+  | MkParameter :
+      Info ->
+      list Annotation -> (* annotations *)
+      option Direction -> (* direction *)
+      Type' -> (* typ *)
+      P4String -> (* variable *)
+      option Expression -> (* opt_value *)
+      Parameter'
+*)
+
+
 
 (* let to_bare : name -> name = function
   | BareName n
@@ -41,109 +184,8 @@ and name_only n =
   | QualifiedName (_, (_, s)) -> s
 *)
 
-Inductive Op_uni : Type :=
-  | Not
-  | BitNot
-  | UMinus.
 
-Inductive Op_bin : Type :=
-  | Plus
-  | PlusSat
-  | Minus
-  | MinusSat
-  | Mul
-  | Div
-  | Mod
-  | Shl
-  | Shr
-  | Le
-  | Ge
-  | Lt
-  | Gt
-  | Eq
-  | NotEq
-  | BitAnd
-  | BitXor
-  | BitOr
-  | PlusPlus
-  | And
-  | Or.
 
-Inductive KeyValue :=
-  | MkKeyValue : Info -> P4String -> Expression -> KeyValue
-with Annotation_body :=
-  | AnnoEmpty : Annotation_body
-  | AnnoUnparsed : list P4String -> Annotation_body
-  | AnnoExpression : list Expression -> Annotation_body
-  | AnnoKeyValue : list KeyValue -> Annotation_body
-with Annotation :=
-  | MkAnnotation : Info -> P4String -> Annotation_body -> Annotation
-with Parameter' :=
-  | MkParameter :
-      Info ->
-      list Annotation -> (* annotations *)
-      option Direction -> (* direction *)
-      Type' -> (* typ *)
-      P4String -> (* variable *)
-      option Expression -> (* opt_value *)
-      Parameter'
-
-(* and Op : sig
-  type pre_uni =
-      Not
-    | BitNot
-    | UMinus
-  [@@deriving sexp,show,yojson]
-
-  type uni = pre_uni info [@@deriving sexp,show,yojson]
-
-  val eq_uni : uni -> uni -> bool
-
-  type pre_bin =
-      Plus
-    | PlusSat
-    | Minus
-    | MinusSat
-    | Mul
-    | Div
-    | Mod
-    | Shl
-    | Shr
-    | Le
-    | Ge
-    | Lt
-    | Gt
-    | Eq
-    | NotEq
-    | BitAnd
-    | BitXor
-    | BitOr
-    | PlusPlus
-    | And
-    | Or
-  [@@deriving sexp,show,yojson]
-
-  type bin = pre_bin info [@@deriving sexp,show,yojson]
-
-  val eq_bin : bin -> bin -> bool
-end *)
-with Type' :=
-  | Bool : Info -> Type'
-  | Error : Info -> Type'
-  | Integer : Info -> Type'
-  | IntType : Info -> Expression -> Type'
-  | BitType : Info -> Expression -> Type'
-  | VarBit : Info -> Expression -> Type'
-  (* this could be a typename or a type variable. *)
-  | TypeName : Info -> name -> Type'
-  (* SpecializedType base args *)
-  | SpecializedType : Info -> Type' -> list Type' -> Type'
-  (* HeaderStack header size *)
-  | HeaderStack : Info -> Type' -> Expression -> Type'
-  | Tuple : Info -> list Type' -> Type'
-  | String : Info -> Type'
-  | Void : Info -> Type'
-  | DontCare : Info -> Type'
 (* and MethodPrototype : sig
   type pre_t =
     Constructor of
@@ -187,58 +229,7 @@ end = struct
 
   type t = pre_t info [@@deriving sexp,show,yojson]
 end *)
-with Argument :=
-  | AExpression : Info -> Expression -> Argument
-  | AKeyValue : Info -> P4String -> Expression -> Argument
-  | AMissing : Info -> Argument
-with Direction :=
-  | In : Info -> Direction
-  | Out : Info -> Direction
-  | InOut : Info -> Direction
-with Expression :=
-  | ETrue : Info -> Expression
-  | EFalse : Info -> Expression
-  | EInt : Info -> P4Int -> Expression
-  | EString : Info -> P4String -> Expression
-  | EName : Info -> name -> Expression
-  (* | ArrayAccess of
-      { array: t;
-        index: t } *)
-  (* | BitStringAccess of
-      { bits: t;
-        lo: t;
-        hi: t } *)
-  (* | List of
-      { values: t list } *)
-  (* | Record of
-      { entries: KeyValue.t list } *)
-  | EUnaryOp : Info -> Op_uni -> Expression -> Expression
-  | EBinaryOp : Info -> Op_bin -> Expression -> Expression -> Expression
-  (* | Cast of
-      { typ: Type.t;
-        expr: t } *)
-  (* | TypeMember of
-      { typ: name;
-        name: P4String.t } *)
-  (* | ErrorMember of P4String.t *)
-  (* | ExpressionMember of
-      { expr: t;
-        name: P4String.t } *)
-  (* | Ternary of
-      { cond: t;
-        tru: t;
-        fls: t } *)
-  (* FunctionCall func type_args args *)
-  | EFunctionCall : Info -> Expression -> list Type' -> list Argument -> Expression
-  (* | NamelessInstantiation of
-      { typ: Type.t [@key "type"];
-        args: Argument.t list } *)
-  (* | Mask of
-      { expr: t;
-        mask: t } *)
-  (* | Range of
-      { lo: t;
-        hi: t } *).
+
 
 (* and Table : sig
       type pre_action_ref =
