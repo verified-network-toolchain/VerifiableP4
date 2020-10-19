@@ -38,6 +38,8 @@ FILES = \
 
 # ########## Rules ##########
 
+COQFLAGS=-R . ProD3
+
 %.vo: COQF=$(COQFLAGS)
 
 %.vo: %.v
@@ -63,12 +65,23 @@ endif
 
 # ########## Targets ##########
 
-default_target: _CoqProject files
+default_target: extraction
+
+extraction: extraction/STAMP
+
+extraction/STAMP: files extraction/extraction.v
+	@rm -f extraction/*.ml extraction/*.mli
+	@$(COQBIN)coqtop $(COQFLAGS) -batch -load-vernac-source extraction/extraction.v
+#	@$(COQC) $(COQFLAGS) extraction/extraction.v
+	@touch extraction/STAMP
 
 files: _CoqProject $(FILES:.v=.vo)
 
+clean:
+	@rm *.vo *.vos *.vok .*.aux _CoqProject
+
 _CoqProject: Makefile
-	echo $(COQFLAGS) > _CoqProject
+	@echo $(COQFLAGS) > _CoqProject
 
 .depend depend:
 	@echo 'coqdep ... >.depend'

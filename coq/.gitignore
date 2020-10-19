@@ -29,3 +29,6 @@ coqide
 .#*
 *.aux
 _CoqProject
+extraction/*.ml
+extraction/*.mli
+extraction/STAMP
