@@ -1,6 +1,7 @@
 Require Import Coq.Strings.String.
 Require Import Coq.ZArith.ZArith.
 Require Import Info.
+Require Import Coq.extraction.Extraction.
 
 Open Scope type_scope.
 
@@ -141,7 +142,7 @@ Inductive Annotation_pre_t :=
 Definition Annotation := info Annotation_pre_t.
 
 
-(* Molly: Types.Parameter' Seems not needed.
+(* Molly: Types.Parameter' seems not needed.
 
 with Parameter' :=
   | MkParameter :
@@ -152,6 +153,7 @@ with Parameter' :=
       P4String -> (* variable *)
       option Expression -> (* opt_value *)
       Parameter'
+
 *)
 
 

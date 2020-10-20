@@ -50,12 +50,12 @@ with Expression_pre_t :=
   | Exp_FunctionCall (_: Expression) (_: list Type')
                      (_: list (option Expression))
   (* type, args *)
-  | NamelessInstantiation (_: Type') (_: list Expression)
-  | DontCare
+  | Exp_NamelessInstantiation (_: Type') (_: list Expression)
+  | Exp_DontCare
   (* expr, mask *)
-  | Mask (_: Expression) (_: Expression)
+  | Exp_Mask (_: Expression) (_: Expression)
   (* lo, hi *)
-  | Range (_: Expression) (_: Expression)
+  | Exp_Range (_: Expression) (_: Expression)
 with Expression_typed_t :=
   (* expr, typ, dir*)
   | MkExpression_typed_t (_: Expression_pre_t) (_: Type') (_: direction)
