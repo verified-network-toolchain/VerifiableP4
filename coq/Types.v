@@ -6,15 +6,17 @@ Open Scope type_scope.
 
 Definition info (A : Type) := Info * A.
 
+Inductive P4Int_pre_t :=
+| MkP4Int_pre_t (value: Z) (width_signed: option (Z * bool)).
+
 (* P4Int = info (value [bigint] * (width [int] * signed) option) *)
-Definition P4Int := info (Z * option (Z * bool)).
+Definition P4Int := info P4Int_pre_t.
 
 Definition P4String := info string.
 
 Inductive name :=
   | BareName : P4String -> name
-  (* QualifiedName : list namespaces -> name -> name *)
-  | QualifiedName : list P4String -> P4String -> name.
+  | QualifiedName (namespaces: list P4String) (name: P4String).
 
 Inductive Op_pre_uni : Type :=
   | Not
@@ -53,12 +55,12 @@ Inductive Direction_pre_t :=
 Definition Direction := info Direction_pre_t.
 
 Inductive KeyValue_pre_t :=
-  | MkKeyValue_pre_t : P4String -> Expression -> KeyValue_pre_t
+  | MkKeyValue_pre_t (key: P4String) (value: Expression)
 with KeyValue :=
   | MkKeyValue: info KeyValue_pre_t -> KeyValue
 with Type'_pre_t :=
   | Typ_Bool
-  | Typ_Error 
+  | Typ_Error
   | Typ_Integer
   | Typ_IntType : Expression -> Type'_pre_t
   | Typ_BitType : Expression -> Type'_pre_t
@@ -66,9 +68,9 @@ with Type'_pre_t :=
   (* this could be a typename or a type variable. *)
   | Typ_TypeName : name -> Type'_pre_t
   (* SpecializedType : base -> args -> Type'_pre_t *)
-  | Typ_SpecializedType : Type' -> list Type' -> Type'_pre_t
+  | Typ_SpecializedType (bese: Type') (args: list Type')
   (* HeaderStack : header_type -> header_size -> Type'_pre_t *)
-  | Typ_HeaderStack : Type' -> Expression -> Type'_pre_t
+  | Typ_HeaderStack (header: Type') (size: Expression)
   | Typ_Tuple : list Type' -> Type'_pre_t
   | Typ_String
   | Typ_Void
@@ -76,9 +78,9 @@ with Type'_pre_t :=
 with Type' :=
   | MkType' : info Type'_pre_t -> Type'
 with Argument_pre_t :=
-  | Arg_Expression : Expression -> Argument_pre_t
+  | Arg_Expression (value: Expression)
   (* Arg_KeyValue : key -> value -> Argument_pre_t *)
-  | Arg_KeyValue : P4String -> Expression -> Argument_pre_t
+  | Arg_KeyValue (key: P4String) (value: Expression)
   | Arg_Missing
 with Argument :=
   | MkArgument : info Argument_pre_t -> Argument
@@ -99,8 +101,8 @@ with Expression_pre_t :=
       { values: t list } *)
   (* | Record of
       { entries: KeyValue.t list } *)
-  | Exp_UnaryOp : Op_uni -> Expression -> Expression_pre_t
-  | Exp_BinaryOp : Op_bin -> (Expression * Expression) -> Expression_pre_t
+  | Exp_UnaryOp (op: Op_uni) (arg: Expression)
+  | Exp_BinaryOp (op: Op_bin) (args: (Expression * Expression))
   (* | Cast of
       { typ: Type.t;
         expr: t } *)
@@ -116,8 +118,7 @@ with Expression_pre_t :=
         tru: t;
         fls: t } *)
   (* FunctionCall func type_args args *)
-  | Exp_FunctionCall : Expression -> list Type' -> list Argument ->
-                       Expression_pre_t
+  | Exp_FunctionCall (func: Expression) (type_args: list Type') (args: list Argument)
   (* | NamelessInstantiation of
       { typ: Type.t [@key "type"];
         args: Argument.t list } *)
@@ -137,7 +138,7 @@ Inductive Annotation_pre_body :=
   | Anno_KeyValue : list KeyValue -> Annotation_pre_body.
 Definition Annotation_body := info Annotation_pre_body.
 Inductive Annotation_pre_t :=
-  | MkAnnotation_pre_t : P4String -> Annotation_body -> Annotation_pre_t.
+  | MkAnnotation_pre_t (name: P4String) (body: Annotation_body).
 Definition Annotation := info Annotation_pre_t.
 
 
