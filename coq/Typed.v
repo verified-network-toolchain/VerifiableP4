@@ -21,82 +21,80 @@ Definition eq_dir (d1 d2: direction) :=
   | _, _ => false
   end.
 
-Inductive IntType := 
-  (* MkIntType : width [int] -> IntType *)
-  | MkIntType : Z -> IntType.
+Inductive IntType :=
+(* MkIntType : width [int] -> IntType *)
+| MkIntType (width: Z).
 
-Inductive TableType := 
-  | MkTableType: string -> TableType.
+Inductive TableType :=
+| MkTableType (result_typ_name: string).
 
 Inductive FunctionType_kind :=
-  | Fun_Parser
-  | Fun_Control
-  | Fun_Extern
-  | Fun_Table
-  | Fun_Action
-  | Fun_Function
-  | Fun_Builtin.
+| Fun_Parser
+| Fun_Control
+| Fun_Extern
+| Fun_Table
+| Fun_Action
+| Fun_Function
+| Fun_Builtin.
 
 Inductive Parameter' :=
-  (* MkParameter: annotations -> direction -> type -> variable ->
+(* MkParameter: annotations -> direction -> type -> variable ->
                   opt_value -> Parameter' *)
-  | MkParameter: list Annotation -> direction -> Type' -> P4String ->
-                 option Types.Expression -> Parameter'
+| MkParameter (annotations: list Annotation) (direction: direction) (typ: Type')
+              (variable: P4String) (opt_value: option Types.Expression)
 with PackageType :=
-  (* MkPackageType : type_params -> wildcard_params -> parameters ->
+(* MkPackageType : type_params -> wildcard_params -> parameters ->
                      PackageType *)
-  | MkPackageType: list string -> list string -> list Parameter' ->
-                   PackageType
+| MkPackageType (type_params: list string) (wildcard_params: list string)
+                (parameters: list Parameter')
 with ControlType :=
-  (* MkControlType : type_params -> parameters -> ControlType *)
-  | MkControlType: list string -> list Parameter' -> ControlType
+(* MkControlType : type_params -> parameters -> ControlType *)
+| MkControlType (type_params: list string) (parameters: list Parameter')
 with ExternType_extern_method :=
-  (* MkExternType_extern_method : name -> type -> 
+(* MkExternType_extern_method : name -> type ->
                                   ExternType_extern_method *)
-  | MkExternType_extern_method: string -> FunctionType ->
-                                ExternType_extern_method
+| MkExternType_extern_method (name: string) (typ: FunctionType)
 with ExternType :=
-  (* MkExternType : type_params -> methods -> ExternType *)
-  | MkExternType: list string -> list ExternType_extern_method ->
-                  ExternType
+(* MkExternType : type_params -> methods -> ExternType *)
+| MkExternType (type_params: list string) (methods: list ExternType_extern_method)
 with ArrayType :=
-  (* MkArrayType : type -> size [int] -> ArrayType *)
-  | MkArrayType: Type' -> Z -> ArrayType
+(* MkArrayType : type -> size [int] -> ArrayType *)
+| MkArrayType (typ: Type') (size: Z)
 with TupleType :=
-  | MkTupleType: list Type' -> TupleType
+| MkTupleType (types: list Type')
 with NewType :=
-  | MkNewType: string -> Type' -> NewType
+| MkNewType (name: string) (typ: Type')
 with RecordType_field :=
-  | MkRecordType_field: string -> Type' -> RecordType_field
+| MkRecordType_field (name: string) (typ: Type')
 with RecordType :=
-  | MkRecordType: list RecordType_field -> RecordType
+| MkRecordType (fields: list RecordType_field)
 with EnumType :=
-  (* MkEnumType : name -> type -> members -> EnumType *)
-  | MkEnumType: string -> option Type' -> list string -> EnumType
+(* MkEnumType : name -> type -> members -> EnumType *)
+| MkEnumType (name: string) (typ: option Type') (members: list string)
 with FunctionType :=
-  (* MkFunctionType : type_params -> parameters -> kind -> 
+(* MkFunctionType : type_params -> parameters -> kind ->
                       return -> FunctionType *)
-  | MkFunctionType: list string -> list Parameter' -> FunctionType_kind ->
-                    Type' -> FunctionType
+| MkFunctionType (type_params: list string) (parameters: list Parameter')
+                 (kind: FunctionType_kind) (ret: Type')
 with SpecializedType :=
-  (* MkSpecializedType : base -> args -> SpecializedType *)
-  | MkSpecializedType: Type' -> list Type' -> SpecializedType
+(* MkSpecializedType : base -> args -> SpecializedType *)
+| MkSpecializedType (base: Type') (args: list Type')
 with ActionType :=
-  (* MkActionType : data_params -> ctrl_params -> ActionType *)
-  | MkActionType: list Parameter' -> list Parameter' -> ActionType
+(* MkActionType : data_params -> ctrl_params -> ActionType *)
+| MkActionType (data_params: list Parameter') (ctrl_params: list Parameter')
 with ConstructorType :=
-  (* MkConstructorType : type_params -> wildcard_params -> parameters
+(* MkConstructorType : type_params -> wildcard_params -> parameters
                          return -> ConstructorType *)
-  | MkConstructorType: list string -> list string -> list Parameter' ->
-                       Type' -> ConstructorType
+| MkConstructorType (type_params: list string) (wildcard_params: list string)
+                    (parameters: list Parameter') (ret: Type')
 with Type' :=
 | Typ_Bool
 | Typ_String
 | Typ_Integer
-| Typ_Int (_: IntType)
-| Typ_Bit (_: IntType)
-| Typ_VarBit (_: IntType)
-| Typ_Array (_: ArrayType)
+| Typ_Int (width: IntType)
+| Typ_Bit (width: IntType)
+| Typ_VarBit (width: IntType)
+| Typ_Array (size: ArrayType)
 | Typ_Tuple (_: TupleType)
 | Typ_List (_: TupleType)
 | Typ_Record (_: RecordType)
