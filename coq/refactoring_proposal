@@ -15,14 +15,15 @@ always in sync with the Coq development.
 We found that since Types.Annotation and Typed.Parameter are defined with 
 Types.Expression, the type system of the typed ASTs are overlapped with the type
 system of the parsed ASTs, and the current Ocaml code structures do not reflect
-that. In our proposal, we want to create a separate file to store the types 
+that. In our proposal, we want to use a separate file to store the types 
 shared by the two type systems, namely the basic types (info, P4Int, P4String, 
 name and Op) and three modules (Types.Annotation, Types.Type and 
 Types.Expression with their dependencies Types.Argument and Types.KeyValue).
 
 2.
-The data structures to define types and the functions of Env are all
-defined in Prog.ml, adding more complexity to the code structures. 
+The data structures and functions are all defined in Prog.ml, adding more
+complexity to the code infrastructure. We propose to separate them into two 
+files.
 
 3.
 We found that there is a lot of mutual recursiveness in the current Ocaml code,
