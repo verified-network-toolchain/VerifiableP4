@@ -55,10 +55,8 @@ Inductive Direction_pre_t :=
   | InOut.
 Definition Direction := info Direction_pre_t.
 
-Inductive KeyValue_pre_t :=
-  | MkKeyValue_pre_t (key: P4String) (value: Expression)
-with KeyValue :=
-  | MkKeyValue: info KeyValue_pre_t -> KeyValue
+Inductive KeyValue :=
+  | MkKeyValue (info: Info) (key: P4String) (value: Expression)
 with Type'_pre_t :=
   | Typ_Bool
   | Typ_Error
@@ -78,13 +76,11 @@ with Type'_pre_t :=
   | Typ_DontCare
 with Type' :=
   | MkType' : info Type'_pre_t -> Type'
-with Argument_pre_t :=
-  | Arg_Expression (value: Expression)
-  (* Arg_KeyValue : key -> value -> Argument_pre_t *)
-  | Arg_KeyValue (key: P4String) (value: Expression)
-  | Arg_Missing
 with Argument :=
-  | MkArgument : info Argument_pre_t -> Argument
+  | Arg_Expression (info: Info) (value: Expression)
+  (* Arg_KeyValue : key -> value -> Argument_pre_t *)
+  | Arg_KeyValue (info: Info) (key: P4String) (value: Expression)
+  | Arg_Missing (info: Info)
 with Expression_pre_t :=
   | Exp_True
   | Exp_False
@@ -132,16 +128,13 @@ with Expression_pre_t :=
 with Expression :=
   | MkExpression : info Expression_pre_t -> Expression.
 
-Inductive Annotation_pre_body :=
-  | Anno_Empty
-  | Anno_Unparsed : list P4String -> Annotation_pre_body
-  | Anno_Expression : list Expression -> Annotation_pre_body
-  | Anno_KeyValue : list KeyValue -> Annotation_pre_body.
-Definition Annotation_body := info Annotation_pre_body.
-Inductive Annotation_pre_t :=
-  | MkAnnotation_pre_t (name: P4String) (body: Annotation_body).
-Definition Annotation := info Annotation_pre_t.
-
+Inductive Annotation_body :=
+  | Anno_Empty (info: Info)
+  | Anno_Unparsed : Info -> list P4String -> Annotation_body
+  | Anno_Expression : Info -> list Expression -> Annotation_body
+  | Anno_KeyValue : Info -> list KeyValue -> Annotation_body.
+Inductive Annotation :=
+  | MkAnnotation (info: Info) (name: P4String) (body: Annotation_body).
 
 (* Molly: Types.Parameter' seems not needed.
 
