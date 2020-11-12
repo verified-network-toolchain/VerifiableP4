@@ -1,0 +1,35 @@
+#+TITLE: Notes for the P4 Specification
+#+AUTHOR: Shengyi Wang
+* Expression
+** Precedence of operators and evaluation order could be represented in AST.
+** Special evaluation rule: short-circuit evaluation for booleans and conditional operators.
+** enum type allows "unnamed value" whose behavior is complicated.
+** bit type (unsigned integers)
+*** may optionally support saturating arithmetic |+| and |-|
+*** exact type and width
+** fixed-width signed integers: similar as unsigned
+** arbitrary-precision integers
+*** all expressions of type int must be compiletime known values
+*** concrete representation of int values is not specified
+** variable-size bit types
+*** must not exceed the static bound
+*** two special method
+**** extract method of a packet_in extern object
+**** emit method of a packet_out extern object
+** Casts
+*** Only a few explicit casts are legal
+*** Implicit casts can be done in type checking phase
+** List expressions can be assigned to expressions of type tuple
+   , struct or header, and can also be passed as arguments to methods.
+** sets
+*** Singleton sets
+*** universal set
+*** Masks
+*** Ranges
+*** Products
+** Headers contains "validity" bits
+*** It looks like a specitial struct with additional methods
+** Fuctions
+*** Functions can only be declared at the top-level and all parameters must have a direction.
+*** default value problem
+
