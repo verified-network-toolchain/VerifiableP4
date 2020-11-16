@@ -29,7 +29,41 @@
 *** Products
 ** Headers contains "validity" bits
 *** It looks like a specitial struct with additional methods
-** Fuctions
-*** Functions can only be declared at the top-level and all parameters must have a direction.
+** fuctions calls
 *** default value problem
-
+*** Function arguments are evaluated in the order they appear, 
+    left to right, before the function invocation takes place.
+** Constructor invocations
+*** all constructor arguments must also be expressions that can be evaluated at compilation time
+** Reading uninitialized values and writing fields of invalid headers
+*** reading will cause unspecified/undefined value
+* Functions
+** Functions can only be declared at the top-level and all parameters must have a direction
+** the language does not permit recursive functions
+* Constants and variable declarations
+** Instantiations
+*** reserved for the types with constructors (extern objects, control blocks, parsers, and packages)
+*** always executed at compilation-time
+*** A P4 program may not instantiate controls and parsers at the top-level package.
+* Statements
+** conditionals are not supported in parsers
+** switch statements are only supported in control blocks
+* Packet parsing
+** A P4 parser describes a state machine with one start state and two final states.
+** P93 confused with the grammar
+** parsers are responsible for extracting bits from a packet into headers.
+* Control blocks
+** These headers (and other metadata) can be manipulated and transformed within control blocks
+** match-action units can be invoked to perform data transformations
+** No switch statements are allowed within an action
+** table is not the same as match-action units
+** table entries are typically installed by the control plane
+* Parameterization
+* Deparsing
+** deparsing is done in a control block that has at least one parameter of type packet_out.
+* Architecture description
+* P4 abstract machine: Evaluation
+** static evaluation: at compile time the P4 program is analyzed and all stateful blocks are instantiated.
+** dynamic evaluation: at runtime each P4 functional block is executed to completion, in isolation, 
+   when it receives control from the architecture
+  
