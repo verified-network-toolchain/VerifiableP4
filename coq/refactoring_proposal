@@ -8,7 +8,10 @@ to replace the Ocaml code with the Ocaml code auto-extracted from Coq.
 
 [Benefits]
 The Ocaml code extracted from Coq is more organzied, easier to maintain, and
-always in sync with the Coq development. 
+always in sync with the Coq development. While we are optimizing the Coq code,
+we try to stay close to the original Ocaml codebase, introducing as little
+change as possible to minimize the effort to switch to the extract Ocaml code
+in the future.
 
 [Issues and proposed solutions]
 1.
@@ -21,7 +24,7 @@ name and Op) and three modules (Types.Annotation, Types.Type and
 Types.Expression with their dependencies Types.Argument and Types.KeyValue).
 
 2.
-The data structures and functions are all defined in Prog.ml, adding more
+Both data structures and functions are defined in Prog.ml, adding more
 complexity to the code infrastructure. We propose to separate them into two 
 files.
 
