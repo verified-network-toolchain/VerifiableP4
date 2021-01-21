@@ -27,7 +27,6 @@ match_kind {
     test4
 }
 
-
 control c(out bit<16> b) {
 // Not allowed
 //    error {
