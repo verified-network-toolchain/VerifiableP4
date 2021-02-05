@@ -34,9 +34,9 @@ Definition _var := {| stags := NoInfo; str := "var" |}.
 
 Definition myEnv := IdentMap.set IdentMap.empty _var (Instance (BareName _var)).
 
-(* Instance external : External := Build_External unit.
-Hint Resolve external : typeclass_instances. *)
+Instance external : External := Build_External unit.
+
 Lemma property1: forall ge this decls m m' exts,
-    @exec_stmt _ unit ge this decls myEnv (m, exts) myStatement (m', exts) Out_normal ->
+    exec_stmt ge this decls myEnv (m, exts) myStatement (m', exts) Out_normal ->
     PathMap.get m (name_cons this _var) = Some (MVal (VInt 2)) ->
     PathMap.get m' (name_cons this _var) = Some (MVal (VInt 3)).
