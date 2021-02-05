@@ -38,12 +38,20 @@ parser MyParser(packet_in packet,
 **************  I N G R E S S   P R O C E S S I N G   *******************
 *************************************************************************/
 
+
+control Increment(inout bit<8> var) {
+    apply {
+        var = var + 1;
+    }
+}
+
 control MyIngress(inout headers hdr,
                   inout metadata meta,
                   inout standard_metadata_t standard_metadata) {
-    
+    bit<8> x = 2;
     apply {
         hdr.myHeader.firstBit = 1;
+        Increment.apply(x);
     }
 }
 
@@ -64,8 +72,9 @@ control MyEgress(inout headers hdr,
 *************************************************************************/
 
 control MyDeparser(packet_out packet, in headers hdr) {
-    /* empty */
-    apply {  }
+    apply {
+        packet.emit(hdr.myHeader);
+    }
 }
 
 

@@ -598,6 +598,35 @@ Definition MyParser := DeclParser NoInfo
                                    (TypBit 1))]) Directionless))]) StmUnit)]
           (ParserDirect NoInfo {| stags := NoInfo; str := "accept" |}))].
 
+Definition Increment := DeclControl NoInfo
+    {| stags := NoInfo; str := "Increment" |} nil
+    [(MkParameter false InOut (TypBit 8) None
+          {| stags := NoInfo; str := "var" |})] nil nil
+    (BlockCons
+         (MkStatement NoInfo
+              (StatAssignment
+                   (MkExpression NoInfo
+                        (ExpName
+                         (BareName {| stags := NoInfo; str := "var" |}))
+                        (TypBit 8) InOut)
+                   (MkExpression NoInfo
+                        (ExpBinaryOp Plus
+                             ( (MkExpression NoInfo
+                                    (ExpName
+                                     (BareName
+                                      {| stags := NoInfo; str := "var" |}))
+                                    (TypBit 8) InOut),
+                               (MkExpression NoInfo
+                                    (ExpCast (TypBit 8)
+                                         (MkExpression NoInfo
+                                              (ExpInt
+                                               {| itags := NoInfo;
+                                                  value := 1;
+                                                  width_signed := None |})
+                                              TypInteger Directionless))
+                                    (TypBit 8) Directionless) )) (TypBit 8)
+                        Directionless)) StmUnit) (BlockEmpty NoInfo)).
+
 Definition MyIngress := DeclControl NoInfo
     {| stags := NoInfo; str := "MyIngress" |} nil
     [(MkParameter false InOut
@@ -609,7 +638,16 @@ Definition MyIngress := DeclControl NoInfo
      (MkParameter false InOut
           (TypTypeName
            (BareName {| stags := NoInfo; str := "standard_metadata_t" |}))
-          None {| stags := NoInfo; str := "standard_metadata" |})] nil nil
+          None {| stags := NoInfo; str := "standard_metadata" |})] nil
+    [(DeclVariable NoInfo (TypBit 8) {| stags := NoInfo; str := "x" |}
+          (Some
+           (MkExpression NoInfo
+                (ExpCast (TypBit 8)
+                     (MkExpression NoInfo
+                          (ExpInt
+                           {| itags := NoInfo; value := 2;
+                              width_signed := None |}) TypInteger
+                          Directionless)) (TypBit 8) Directionless)))]
     (BlockCons
          (MkStatement NoInfo
               (StatAssignment
@@ -642,7 +680,17 @@ Definition MyIngress := DeclControl NoInfo
                                    {| itags := NoInfo; value := 1;
                                       width_signed := None |}) TypInteger
                                   Directionless)) (TypBit 1) Directionless))
-              StmUnit) (BlockEmpty NoInfo)).
+              StmUnit)
+         (BlockCons
+              (MkStatement NoInfo
+                   (StatDirectApplication
+                        (TypTypeName
+                         (BareName {| stags := NoInfo; str := "Increment" |}))
+                        [(MkExpression NoInfo
+                              (ExpName
+                               (BareName {| stags := NoInfo; str := "x" |}))
+                              (TypBit 8) InOut)]) StmUnit)
+              (BlockEmpty NoInfo))).
 
 Definition MyEgress := DeclControl NoInfo
     {| stags := NoInfo; str := "MyEgress" |} nil
@@ -666,7 +714,49 @@ Definition MyDeparser := DeclControl NoInfo
      (MkParameter false In
           (TypTypeName (BareName {| stags := NoInfo; str := "headers" |}))
           None {| stags := NoInfo; str := "hdr" |})] nil nil
-    (BlockEmpty NoInfo).
+    (BlockCons
+         (MkStatement NoInfo
+              (StatMethodCall
+                   (MkExpression NoInfo
+                        (ExpExpressionMember
+                             (MkExpression NoInfo
+                                  (ExpName
+                                   (BareName
+                                    {| stags := NoInfo; str := "packet" |}))
+                                  (TypTypeName
+                                   (BareName
+                                    {| stags := NoInfo;
+                                       str := "packet_out" |}))
+                                  Directionless)
+                             {| stags := NoInfo; str := "emit" |})
+                        (TypFunction
+                         (MkFunctionType [{| stags := NoInfo; str := "T2" |}]
+                              [(MkParameter false In
+                                    (TypTypeName
+                                     (BareName
+                                      {| stags := NoInfo; str := "T2" |}))
+                                    None {| stags := NoInfo; str := "hdr" |})]
+                              FunExtern TypVoid)) Directionless)
+                   [(TypHeader
+                     [(MkFieldType {| stags := NoInfo; str := "firstBit" |}
+                           (TypBit 1))])]
+                   [(Some
+                     (MkExpression NoInfo
+                          (ExpExpressionMember
+                               (MkExpression NoInfo
+                                    (ExpName
+                                     (BareName
+                                      {| stags := NoInfo; str := "hdr" |}))
+                                    (TypTypeName
+                                     (BareName
+                                      {| stags := NoInfo; str := "headers" |}))
+                                    In)
+                               {| stags := NoInfo; str := "myHeader" |})
+                          (TypHeader
+                           [(MkFieldType
+                                 {| stags := NoInfo; str := "firstBit" |}
+                                 (TypBit 1))]) Directionless))]) StmUnit)
+         (BlockEmpty NoInfo)).
 
 Definition MyVerifyChecksum := DeclControl NoInfo
     {| stags := NoInfo; str := "MyVerifyChecksum" |} nil
@@ -981,7 +1071,7 @@ Definition prog := Program
      resubmit'data; recirculate'data; clone'type'session;
      clone3'type'session'data; truncate'length; assert'check; assume'check;
      Parser; VerifyChecksum; Ingress; Egress; ComputeChecksum; Deparser;
-     V1Switch; myHeader_t; metadata; headers; MyParser; MyIngress; MyEgress;
-     MyDeparser; MyVerifyChecksum; MyComputeChecksum; main].
+     V1Switch; myHeader_t; metadata; headers; MyParser; Increment; MyIngress;
+     MyEgress; MyDeparser; MyVerifyChecksum; MyComputeChecksum; main].
 
 
