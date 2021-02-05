@@ -6,9 +6,6 @@ Require Import p4ast.
 
 Require Import Petr4.Semantics.
 
-Check exec_instantiation.
-Print packet_in.
-
 Definition myStatement := MkStatement NoInfo
               (StatAssignment
                    (MkExpression NoInfo
@@ -33,10 +30,13 @@ Definition myStatement := MkStatement NoInfo
                                     (TypBit 8) Directionless) )) (TypBit 8)
                         Directionless)) StmUnit.
 
-Lemma property1: forall env this decls s ,
-    exec_stmt env this decls s myStatement s' ->
-    env (var) = Instantce ->
-    s = 2 ->
-    s' = 3.
+Definition _var := {| stags := NoInfo; str := "var" |}.
 
-    
+Definition myEnv := IdentMap.set IdentMap.empty _var (Instance (BareName _var)).
+
+(* Instance external : External := Build_External unit.
+Hint Resolve external : typeclass_instances. *)
+Lemma property1: forall ge this decls m m' exts,
+    @exec_stmt _ unit ge this decls myEnv (m, exts) myStatement (m', exts) Out_normal ->
+    PathMap.get m (name_cons this _var) = Some (MVal (VInt 2)) ->
+    PathMap.get m' (name_cons this _var) = Some (MVal (VInt 3)).
