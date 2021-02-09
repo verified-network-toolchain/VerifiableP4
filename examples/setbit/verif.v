@@ -6,6 +6,14 @@ Require Import p4ast.
 
 Require Import Petr4.Semantics.
 
+Opaque IdentMap.empty IdentMap.set PathMap.empty PathMap.set.
+
+Definition ge := ltac:(let x := eval compute in (load_prog prog) in exact x).
+
+Definition init_mem := ltac:(let x := eval compute in (instantiate_prog prog) in exact x).
+
+Transparent IdentMap.empty IdentMap.set PathMap.empty PathMap.set.
+
 Definition myStatement := MkStatement NoInfo
               (StatAssignment
                    (MkExpression NoInfo
