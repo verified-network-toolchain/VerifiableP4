@@ -40,6 +40,24 @@ parser MyParser(packet_in packet,
 /*************************************************************************
 **************  I N G R E S S   P R O C E S S I N G   *******************
 *************************************************************************/
+control c (inout headers hdr) {
+    action hello() {
+	hdr.myHeader.firstByte = hdr.myHeader.firstByte + 1;
+    }
+
+    table t {
+	key = {
+	    hdr.myHeader.firstByte: exact;
+	}
+	actions = {
+	    hello;
+	}
+    }
+    apply {
+	t.apply();
+	//hello();
+    }
+}
 
 control MyIngress(inout headers hdr,
                   inout metadata meta,
@@ -64,11 +82,14 @@ control MyIngress(inout headers hdr,
         size = 256;
         default_action = drop();
     }
-    
+
+    //c() c1;
     apply {
         if (hdr.myHeader.isValid()) {
             forward.apply();
         }
+	{c.apply(hdr);}
+	{c.apply(hdr);}
     }
 }
 

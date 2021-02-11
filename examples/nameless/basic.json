@@ -114,7 +114,7 @@
       "id" : 0,
       "source_info" : {
         "filename" : "basic.p4",
-        "line" : 91,
+        "line" : 112,
         "column" : 8,
         "source_fragment" : "MyDeparser"
       },
@@ -128,8 +128,118 @@
   "learn_lists" : [],
   "actions" : [
     {
-      "name" : "MyIngress.drop",
+      "name" : "NoAction",
       "id" : 0,
+      "runtime_data" : [],
+      "primitives" : []
+    },
+    {
+      "name" : "NoAction",
+      "id" : 1,
+      "runtime_data" : [],
+      "primitives" : []
+    },
+    {
+      "name" : "MyIngress.c.hello",
+      "id" : 2,
+      "runtime_data" : [],
+      "primitives" : [
+        {
+          "op" : "assign",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["myHeader", "firstByte"]
+            },
+            {
+              "type" : "expression",
+              "value" : {
+                "type" : "expression",
+                "value" : {
+                  "op" : "&",
+                  "left" : {
+                    "type" : "expression",
+                    "value" : {
+                      "op" : "+",
+                      "left" : {
+                        "type" : "field",
+                        "value" : ["myHeader", "firstByte"]
+                      },
+                      "right" : {
+                        "type" : "hexstr",
+                        "value" : "0x01"
+                      }
+                    }
+                  },
+                  "right" : {
+                    "type" : "hexstr",
+                    "value" : "0xff"
+                  }
+                }
+              }
+            }
+          ],
+          "source_info" : {
+            "filename" : "basic.p4",
+            "line" : 45,
+            "column" : 1,
+            "source_fragment" : "hdr.myHeader.firstByte = hdr.myHeader.firstByte + 1"
+          }
+        }
+      ]
+    },
+    {
+      "name" : "MyIngress.c.hello",
+      "id" : 3,
+      "runtime_data" : [],
+      "primitives" : [
+        {
+          "op" : "assign",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["myHeader", "firstByte"]
+            },
+            {
+              "type" : "expression",
+              "value" : {
+                "type" : "expression",
+                "value" : {
+                  "op" : "&",
+                  "left" : {
+                    "type" : "expression",
+                    "value" : {
+                      "op" : "+",
+                      "left" : {
+                        "type" : "field",
+                        "value" : ["myHeader", "firstByte"]
+                      },
+                      "right" : {
+                        "type" : "hexstr",
+                        "value" : "0x01"
+                      }
+                    }
+                  },
+                  "right" : {
+                    "type" : "hexstr",
+                    "value" : "0xff"
+                  }
+                }
+              }
+            }
+          ],
+          "source_info" : {
+            "filename" : "basic.p4",
+            "line" : 45,
+            "column" : 1,
+            "source_fragment" : "hdr.myHeader.firstByte = hdr.myHeader.firstByte + 1"
+          }
+        }
+      ]
+    },
+    {
+      "name" : "MyIngress.drop",
+      "id" : 4,
       "runtime_data" : [],
       "primitives" : [
         {
@@ -142,7 +252,7 @@
           ],
           "source_info" : {
             "filename" : "basic.p4",
-            "line" : 48,
+            "line" : 66,
             "column" : 8,
             "source_fragment" : "mark_to_drop(standard_metadata)"
           }
@@ -151,7 +261,7 @@
     },
     {
       "name" : "MyIngress.do_forward",
-      "id" : 1,
+      "id" : 5,
       "runtime_data" : [
         {
           "name" : "port",
@@ -177,7 +287,7 @@
           ],
           "source_info" : {
             "filename" : "basic.p4",
-            "line" : 52,
+            "line" : 70,
             "column" : 8,
             "source_fragment" : "standard_metadata.egress_spec = port"
           }
@@ -196,7 +306,7 @@
           ],
           "source_info" : {
             "filename" : "basic.p4",
-            "line" : 53,
+            "line" : 71,
             "column" : 8,
             "source_fragment" : "hdr.myHeader.secondByte = newByte"
           }
@@ -210,7 +320,7 @@
       "id" : 0,
       "source_info" : {
         "filename" : "basic.p4",
-        "line" : 44,
+        "line" : 62,
         "column" : 8,
         "source_fragment" : "MyIngress"
       },
@@ -221,7 +331,7 @@
           "id" : 0,
           "source_info" : {
             "filename" : "basic.p4",
-            "line" : 56,
+            "line" : 74,
             "column" : 10,
             "source_fragment" : "forward"
           },
@@ -239,15 +349,89 @@
           "with_counters" : false,
           "support_timeout" : false,
           "direct_meters" : null,
-          "action_ids" : [1, 0],
+          "action_ids" : [5, 4],
           "actions" : ["MyIngress.do_forward", "MyIngress.drop"],
-          "base_default_next" : null,
+          "base_default_next" : "MyIngress.c.t",
           "next_tables" : {
-            "MyIngress.do_forward" : null,
-            "MyIngress.drop" : null
+            "MyIngress.do_forward" : "MyIngress.c.t",
+            "MyIngress.drop" : "MyIngress.c.t"
+          },
+          "default_entry" : {
+            "action_id" : 4,
+            "action_const" : false,
+            "action_data" : [],
+            "action_entry_const" : false
+          }
+        },
+        {
+          "name" : "MyIngress.c.t",
+          "id" : 1,
+          "source_info" : {
+            "filename" : "basic.p4",
+            "line" : 48,
+            "column" : 10,
+            "source_fragment" : "t"
+          },
+          "key" : [
+            {
+              "match_type" : "exact",
+              "name" : "hdr.myHeader.firstByte",
+              "target" : ["myHeader", "firstByte"],
+              "mask" : null
+            }
+          ],
+          "match_type" : "exact",
+          "type" : "simple",
+          "max_size" : 1024,
+          "with_counters" : false,
+          "support_timeout" : false,
+          "direct_meters" : null,
+          "action_ids" : [2, 0],
+          "actions" : ["MyIngress.c.hello", "NoAction"],
+          "base_default_next" : "MyIngress.c.t",
+          "next_tables" : {
+            "MyIngress.c.hello" : "MyIngress.c.t",
+            "NoAction" : "MyIngress.c.t"
           },
           "default_entry" : {
             "action_id" : 0,
+            "action_const" : false,
+            "action_data" : [],
+            "action_entry_const" : false
+          }
+        },
+        {
+          "name" : "MyIngress.c.t",
+          "id" : 2,
+          "source_info" : {
+            "filename" : "basic.p4",
+            "line" : 48,
+            "column" : 10,
+            "source_fragment" : "t"
+          },
+          "key" : [
+            {
+              "match_type" : "exact",
+              "name" : "hdr.myHeader.firstByte",
+              "target" : ["myHeader", "firstByte"],
+              "mask" : null
+            }
+          ],
+          "match_type" : "exact",
+          "type" : "simple",
+          "max_size" : 1024,
+          "with_counters" : false,
+          "support_timeout" : false,
+          "direct_meters" : null,
+          "action_ids" : [3, 1],
+          "actions" : ["MyIngress.c.hello", "NoAction"],
+          "base_default_next" : null,
+          "next_tables" : {
+            "MyIngress.c.hello" : null,
+            "NoAction" : null
+          },
+          "default_entry" : {
+            "action_id" : 1,
             "action_const" : false,
             "action_data" : [],
             "action_entry_const" : false
@@ -261,7 +445,7 @@
           "id" : 0,
           "source_info" : {
             "filename" : "basic.p4",
-            "line" : 69,
+            "line" : 88,
             "column" : 12,
             "source_fragment" : "hdr.myHeader.isValid()"
           },
@@ -276,8 +460,8 @@
               }
             }
           },
-          "false_next" : null,
-          "true_next" : "MyIngress.forward"
+          "true_next" : "MyIngress.forward",
+          "false_next" : "MyIngress.c.t"
         }
       ]
     },
@@ -286,18 +470,18 @@
       "id" : 1,
       "source_info" : {
         "filename" : "basic.p4",
-        "line" : 44,
+        "line" : 62,
         "column" : 8,
         "source_fragment" : "MyIngress"
       },
-      "init_table" : "node_6",
+      "init_table" : "node_8",
       "tables" : [
         {
           "name" : "MyIngress.forward",
-          "id" : 1,
+          "id" : 3,
           "source_info" : {
             "filename" : "basic.p4",
-            "line" : 56,
+            "line" : 74,
             "column" : 10,
             "source_fragment" : "forward"
           },
@@ -315,15 +499,89 @@
           "with_counters" : false,
           "support_timeout" : false,
           "direct_meters" : null,
-          "action_ids" : [1, 0],
+          "action_ids" : [5, 4],
           "actions" : ["MyIngress.do_forward", "MyIngress.drop"],
-          "base_default_next" : null,
+          "base_default_next" : "MyIngress.c.t",
           "next_tables" : {
-            "MyIngress.do_forward" : null,
-            "MyIngress.drop" : null
+            "MyIngress.do_forward" : "MyIngress.c.t",
+            "MyIngress.drop" : "MyIngress.c.t"
+          },
+          "default_entry" : {
+            "action_id" : 4,
+            "action_const" : false,
+            "action_data" : [],
+            "action_entry_const" : false
+          }
+        },
+        {
+          "name" : "MyIngress.c.t",
+          "id" : 4,
+          "source_info" : {
+            "filename" : "basic.p4",
+            "line" : 48,
+            "column" : 10,
+            "source_fragment" : "t"
+          },
+          "key" : [
+            {
+              "match_type" : "exact",
+              "name" : "hdr.myHeader.firstByte",
+              "target" : ["myHeader", "firstByte"],
+              "mask" : null
+            }
+          ],
+          "match_type" : "exact",
+          "type" : "simple",
+          "max_size" : 1024,
+          "with_counters" : false,
+          "support_timeout" : false,
+          "direct_meters" : null,
+          "action_ids" : [2, 0],
+          "actions" : ["MyIngress.c.hello", "NoAction"],
+          "base_default_next" : "MyIngress.c.t",
+          "next_tables" : {
+            "MyIngress.c.hello" : "MyIngress.c.t",
+            "NoAction" : "MyIngress.c.t"
           },
           "default_entry" : {
             "action_id" : 0,
+            "action_const" : false,
+            "action_data" : [],
+            "action_entry_const" : false
+          }
+        },
+        {
+          "name" : "MyIngress.c.t",
+          "id" : 5,
+          "source_info" : {
+            "filename" : "basic.p4",
+            "line" : 48,
+            "column" : 10,
+            "source_fragment" : "t"
+          },
+          "key" : [
+            {
+              "match_type" : "exact",
+              "name" : "hdr.myHeader.firstByte",
+              "target" : ["myHeader", "firstByte"],
+              "mask" : null
+            }
+          ],
+          "match_type" : "exact",
+          "type" : "simple",
+          "max_size" : 1024,
+          "with_counters" : false,
+          "support_timeout" : false,
+          "direct_meters" : null,
+          "action_ids" : [3, 1],
+          "actions" : ["MyIngress.c.hello", "NoAction"],
+          "base_default_next" : null,
+          "next_tables" : {
+            "MyIngress.c.hello" : null,
+            "NoAction" : null
+          },
+          "default_entry" : {
+            "action_id" : 1,
             "action_const" : false,
             "action_data" : [],
             "action_entry_const" : false
@@ -333,11 +591,11 @@
       "action_profiles" : [],
       "conditionals" : [
         {
-          "name" : "node_6",
+          "name" : "node_8",
           "id" : 1,
           "source_info" : {
             "filename" : "basic.p4",
-            "line" : 69,
+            "line" : 88,
             "column" : 12,
             "source_fragment" : "hdr.myHeader.isValid()"
           },
@@ -352,8 +610,8 @@
               }
             }
           },
-          "false_next" : null,
-          "true_next" : "MyIngress.forward"
+          "true_next" : "MyIngress.forward",
+          "false_next" : "MyIngress.c.t"
         }
       ]
     }
