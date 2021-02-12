@@ -3,101 +3,183 @@ Open Scope string_scope.
 
 Import ListNotations.
 
-Definition C := DeclControl NoInfo {| stags := NoInfo; str := "C" |} nil nil
-    nil nil (BlockEmpty NoInfo).
-
-Definition Cctrl := DeclControlType NoInfo
-    {| stags := NoInfo; str := "Cctrl" |} nil nil.
-
-Definition D := DeclControl NoInfo {| stags := NoInfo; str := "D" |} nil nil
-    [(MkParameter false Directionless
-          (TypTypeName (BareName {| stags := NoInfo; str := "Cctrl" |})) 
-          None {| stags := NoInfo; str := "c1" |});
-     (MkParameter false Directionless
-          (TypTypeName (BareName {| stags := NoInfo; str := "Cctrl" |})) 
-          None {| stags := NoInfo; str := "c2" |})] nil
+Definition max'left'right := DeclFunction NoInfo (TypBit 16)
+    {| stags := NoInfo; str := "max" |} nil
+    [(MkParameter false In (TypBit 16) None
+          {| stags := NoInfo; str := "left" |});
+     (MkParameter false In (TypBit 16) None
+          {| stags := NoInfo; str := "right" |})]
     (BlockCons
          (MkStatement NoInfo
-              (StatMethodCall
+              (StatConditional
                    (MkExpression NoInfo
-                        (ExpExpressionMember
+                        (ExpBinaryOp Gt
+                             ( (MkExpression NoInfo
+                                    (ExpName
+                                     (BareName
+                                      {| stags := NoInfo; str := "left" |}))
+                                    (TypBit 16) In),
+                               (MkExpression NoInfo
+                                    (ExpName
+                                     (BareName
+                                      {| stags := NoInfo; str := "right" |}))
+                                    (TypBit 16) In) )) TypBool In)
+                   (MkStatement NoInfo
+                        (StatReturn
+                         (Some
+                          (MkExpression NoInfo
+                               (ExpName
+                                (BareName
+                                 {| stags := NoInfo; str := "left" |}))
+                               (TypBit 16) In))) StmVoid) None) StmUnit)
+         (BlockCons
+              (MkStatement NoInfo
+                   (StatReturn
+                    (Some
+                     (MkExpression NoInfo
+                          (ExpName
+                           (BareName {| stags := NoInfo; str := "right" |}))
+                          (TypBit 16) In))) StmVoid) (BlockEmpty NoInfo))).
+
+Definition max'left := DeclFunction NoInfo (TypBit 16)
+    {| stags := NoInfo; str := "max" |} nil
+    [(MkParameter false In (TypBit 16) None
+          {| stags := NoInfo; str := "left" |})]
+    (BlockCons
+         (MkStatement NoInfo
+              (StatConditional
+                   (MkExpression NoInfo
+                        (ExpBinaryOp Gt
+                             ( (MkExpression NoInfo
+                                    (ExpName
+                                     (BareName
+                                      {| stags := NoInfo; str := "left" |}))
+                                    (TypBit 16) In),
+                               (MkExpression NoInfo
+                                    (ExpCast (TypBit 16)
+                                         (MkExpression NoInfo
+                                              (ExpInt
+                                               {| itags := NoInfo;
+                                                  value := 256;
+                                                  width_signed := None |})
+                                              TypInteger Directionless))
+                                    (TypBit 16) Directionless) )) TypBool
+                        Directionless)
+                   (MkStatement NoInfo
+                        (StatReturn
+                         (Some
+                          (MkExpression NoInfo
+                               (ExpName
+                                (BareName
+                                 {| stags := NoInfo; str := "left" |}))
+                               (TypBit 16) In))) StmVoid) None) StmUnit)
+         (BlockCons
+              (MkStatement NoInfo
+                   (StatReturn
+                    (Some
+                     (MkExpression NoInfo
+                          (ExpCast (TypBit 16)
+                               (MkExpression NoInfo
+                                    (ExpInt
+                                     {| itags := NoInfo; value := 256;
+                                        width_signed := None |}) TypInteger
+                                    Directionless)) (TypBit 16)
+                          Directionless))) StmVoid) (BlockEmpty NoInfo))).
+
+Definition c := DeclControl NoInfo {| stags := NoInfo; str := "c" |} nil
+    [(MkParameter false Out (TypBit 16) None
+          {| stags := NoInfo; str := "b" |})] nil nil
+    (BlockCons
+         (MkStatement NoInfo
+              (StatAssignment
+                   (MkExpression NoInfo
+                        (ExpName
+                         (BareName {| stags := NoInfo; str := "b" |}))
+                        (TypBit 16) Out)
+                   (MkExpression NoInfo
+                        (ExpFunctionCall
                              (MkExpression NoInfo
                                   (ExpName
                                    (BareName
-                                    {| stags := NoInfo; str := "c1" |}))
-                                  (TypTypeName
-                                   (BareName
-                                    {| stags := NoInfo; str := "Cctrl" |}))
-                                  Directionless)
-                             {| stags := NoInfo; str := "apply" |})
-                        (TypFunction
-                         (MkFunctionType nil nil FunControl TypVoid))
-                        Directionless) nil nil) StmUnit)
+                                    {| stags := NoInfo; str := "max" |}))
+                                  (TypFunction
+                                   (MkFunctionType nil
+                                        [(MkParameter false In (TypBit 16)
+                                              None
+                                              {| stags := NoInfo;
+                                                 str := "left" |});
+                                         (MkParameter false In (TypBit 16)
+                                              None
+                                              {| stags := NoInfo;
+                                                 str := "right" |})]
+                                        FunFunction (TypBit 16)))
+                                  Directionless) nil
+                             [(Some
+                               (MkExpression NoInfo
+                                    (ExpCast (TypBit 16)
+                                         (MkExpression NoInfo
+                                              (ExpInt
+                                               {| itags := NoInfo;
+                                                  value := 10;
+                                                  width_signed := None |})
+                                              TypInteger Directionless))
+                                    (TypBit 16) Directionless));
+                              (Some
+                               (MkExpression NoInfo
+                                    (ExpCast (TypBit 16)
+                                         (MkExpression NoInfo
+                                              (ExpInt
+                                               {| itags := NoInfo;
+                                                  value := 12;
+                                                  width_signed := None |})
+                                              TypInteger Directionless))
+                                    (TypBit 16) Directionless))]) (TypBit 16)
+                        Directionless)) StmUnit)
          (BlockCons
               (MkStatement NoInfo
-                   (StatMethodCall
+                   (StatAssignment
                         (MkExpression NoInfo
-                             (ExpExpressionMember
+                             (ExpName
+                              (BareName {| stags := NoInfo; str := "b" |}))
+                             (TypBit 16) Out)
+                        (MkExpression NoInfo
+                             (ExpFunctionCall
                                   (MkExpression NoInfo
                                        (ExpName
                                         (BareName
-                                         {| stags := NoInfo; str := "c2" |}))
-                                       (TypTypeName
-                                        (BareName
-                                         {| stags := NoInfo;
-                                            str := "Cctrl" |}))
-                                       Directionless)
-                                  {| stags := NoInfo; str := "apply" |})
-                             (TypFunction
-                              (MkFunctionType nil nil FunControl TypVoid))
-                             Directionless) nil nil) StmUnit)
+                                         {| stags := NoInfo; str := "max" |}))
+                                       (TypFunction
+                                        (MkFunctionType nil
+                                             [(MkParameter false In
+                                                   (TypBit 16) None
+                                                   {| stags := NoInfo;
+                                                      str := "left" |})]
+                                             FunFunction (TypBit 16)))
+                                       Directionless) nil
+                                  [(Some
+                                    (MkExpression NoInfo
+                                         (ExpCast (TypBit 16)
+                                              (MkExpression NoInfo
+                                                   (ExpInt
+                                                    {| itags := NoInfo;
+                                                       value := 10;
+                                                       width_signed := 
+                                                       None |}) TypInteger
+                                                   Directionless))
+                                         (TypBit 16) Directionless))])
+                             (TypBit 16) Directionless)) StmUnit)
               (BlockEmpty NoInfo))).
 
-Definition E := DeclControl NoInfo {| stags := NoInfo; str := "E" |} nil nil
+Definition ctr := DeclControlType NoInfo {| stags := NoInfo; str := "ctr" |}
     nil
-    [(DeclInstantiation NoInfo
-          (TypSpecializedType
-               (TypTypeName (BareName {| stags := NoInfo; str := "C" |}))
-               nil) nil {| stags := NoInfo; str := "c1" |} None);
-     (DeclInstantiation NoInfo
-          (TypSpecializedType
-               (TypTypeName (BareName {| stags := NoInfo; str := "C" |}))
-               nil) nil {| stags := NoInfo; str := "c2" |} None);
-     (DeclInstantiation NoInfo
-          (TypSpecializedType
-               (TypTypeName (BareName {| stags := NoInfo; str := "D" |}))
-               nil)
-          [(MkExpression NoInfo
-                (ExpName (BareName {| stags := NoInfo; str := "c1" |}))
-                (TypControl (MkControlType nil nil)) Directionless);
-           (MkExpression NoInfo
-                (ExpName (BareName {| stags := NoInfo; str := "c2" |}))
-                (TypControl (MkControlType nil nil)) Directionless)]
-          {| stags := NoInfo; str := "d" |} None)]
-    (BlockCons
-         (MkStatement NoInfo
-              (StatMethodCall
-                   (MkExpression NoInfo
-                        (ExpExpressionMember
-                             (MkExpression NoInfo
-                                  (ExpName
-                                   (BareName
-                                    {| stags := NoInfo; str := "d" |}))
-                                  (TypControl (MkControlType nil nil))
-                                  Directionless)
-                             {| stags := NoInfo; str := "apply" |})
-                        (TypFunction
-                         (MkFunctionType nil nil FunControl TypVoid))
-                        Directionless) nil nil) StmUnit) (BlockEmpty NoInfo)).
-
-Definition Ectrl := DeclControlType NoInfo
-    {| stags := NoInfo; str := "Ectrl" |} nil nil.
+    [(MkParameter false Out (TypBit 16) None
+          {| stags := NoInfo; str := "b" |})].
 
 Definition top := DeclPackageType NoInfo {| stags := NoInfo; str := "top" |}
     nil
     [(MkParameter false Directionless
-          (TypTypeName (BareName {| stags := NoInfo; str := "Ectrl" |})) 
-          None {| stags := NoInfo; str := "_e" |})].
+          (TypTypeName (BareName {| stags := NoInfo; str := "ctr" |})) 
+          None {| stags := NoInfo; str := "_c" |})].
 
 Definition main := DeclInstantiation NoInfo
     (TypSpecializedType
@@ -106,9 +188,13 @@ Definition main := DeclInstantiation NoInfo
           (ExpNamelessInstantiation
                (TypSpecializedType
                     (TypTypeName
-                     (BareName {| stags := NoInfo; str := "E" |})) nil) nil)
-          (TypControl (MkControlType nil nil)) Directionless)]
+                     (BareName {| stags := NoInfo; str := "c" |})) nil) nil)
+          (TypControl
+           (MkControlType nil
+                [(MkParameter false Out (TypBit 16) None
+                      {| stags := NoInfo; str := "b" |})])) Directionless)]
     {| stags := NoInfo; str := "main" |} None.
 
-Definition prog := Program [C; Cctrl; D; E; Ectrl; top; main].
+Definition prog := Program [max'left'right; max'left; c; ctr; top; main].
+
 

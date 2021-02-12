@@ -7,7 +7,7 @@
 *************************************************************************/
 
 header myHeader_t {
-    bit<1> firstBit;
+    bit<8> firstByte;
 }
 
 struct metadata {
@@ -49,9 +49,10 @@ control MyIngress(inout headers hdr,
                   inout metadata meta,
                   inout standard_metadata_t standard_metadata) {
     bit<8> x = 2;
+    Increment() incr;
     apply {
-        hdr.myHeader.firstBit = 1;
-        Increment.apply(x);
+        incr.apply(x);
+        hdr.myHeader.firstByte = x;
     }
 }
 
