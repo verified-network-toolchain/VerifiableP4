@@ -524,8 +524,8 @@ Definition V1Switch := DeclPackageType NoInfo
 
 Definition myHeader_t := DeclHeader NoInfo
     {| stags := NoInfo; str := "myHeader_t" |}
-    [(MkDeclarationField NoInfo (TypBit 1)
-          {| stags := NoInfo; str := "firstBit" |})].
+    [(MkDeclarationField NoInfo (TypBit 8)
+          {| stags := NoInfo; str := "firstByte" |})].
 
 Definition metadata := DeclStruct NoInfo
     {| stags := NoInfo; str := "metadata" |} nil.
@@ -534,8 +534,8 @@ Definition headers := DeclStruct NoInfo
     {| stags := NoInfo; str := "headers" |}
     [(MkDeclarationField NoInfo
           (TypHeader
-           [(MkFieldType {| stags := NoInfo; str := "firstBit" |} (TypBit 1))])
-          {| stags := NoInfo; str := "myHeader" |})].
+           [(MkFieldType {| stags := NoInfo; str := "firstByte" |}
+                 (TypBit 8))]) {| stags := NoInfo; str := "myHeader" |})].
 
 Definition MyParser := DeclParser NoInfo
     {| stags := NoInfo; str := "MyParser" |} nil
@@ -578,8 +578,9 @@ Definition MyParser := DeclParser NoInfo
                                       {| stags := NoInfo; str := "hdr" |})]
                                 FunExtern TypVoid)) Directionless)
                      [(TypHeader
-                       [(MkFieldType {| stags := NoInfo; str := "firstBit" |}
-                             (TypBit 1))])]
+                       [(MkFieldType
+                             {| stags := NoInfo; str := "firstByte" |}
+                             (TypBit 8))])]
                      [(Some
                        (MkExpression NoInfo
                             (ExpExpressionMember
@@ -594,8 +595,8 @@ Definition MyParser := DeclParser NoInfo
                                  {| stags := NoInfo; str := "myHeader" |})
                             (TypHeader
                              [(MkFieldType
-                                   {| stags := NoInfo; str := "firstBit" |}
-                                   (TypBit 1))]) Directionless))]) StmUnit)]
+                                   {| stags := NoInfo; str := "firstByte" |}
+                                   (TypBit 8))]) Directionless))]) StmUnit)]
           (ParserDirect NoInfo {| stags := NoInfo; str := "accept" |}))].
 
 Definition Increment := DeclControl NoInfo
@@ -647,50 +648,69 @@ Definition MyIngress := DeclControl NoInfo
                           (ExpInt
                            {| itags := NoInfo; value := 2;
                               width_signed := None |}) TypInteger
-                          Directionless)) (TypBit 8) Directionless)))]
+                          Directionless)) (TypBit 8) Directionless)));
+     (DeclInstantiation NoInfo
+          (TypSpecializedType
+               (TypTypeName
+                (BareName {| stags := NoInfo; str := "Increment" |})) nil)
+          nil {| stags := NoInfo; str := "incr" |} None)]
     (BlockCons
          (MkStatement NoInfo
-              (StatAssignment
+              (StatMethodCall
                    (MkExpression NoInfo
                         (ExpExpressionMember
                              (MkExpression NoInfo
-                                  (ExpExpressionMember
-                                       (MkExpression NoInfo
-                                            (ExpName
-                                             (BareName
+                                  (ExpName
+                                   (BareName
+                                    {| stags := NoInfo; str := "incr" |}))
+                                  (TypControl
+                                   (MkControlType nil
+                                        [(MkParameter false InOut (TypBit 8)
+                                              None
                                               {| stags := NoInfo;
-                                                 str := "hdr" |}))
-                                            (TypTypeName
-                                             (BareName
-                                              {| stags := NoInfo;
-                                                 str := "headers" |})) InOut)
-                                       {| stags := NoInfo;
-                                          str := "myHeader" |})
-                                  (TypHeader
-                                   [(MkFieldType
-                                         {| stags := NoInfo;
-                                            str := "firstBit" |} (TypBit 1))])
+                                                 str := "var" |})]))
                                   Directionless)
-                             {| stags := NoInfo; str := "firstBit" |})
-                        (TypBit 1) Directionless)
-                   (MkExpression NoInfo
-                        (ExpCast (TypBit 1)
-                             (MkExpression NoInfo
-                                  (ExpInt
-                                   {| itags := NoInfo; value := 1;
-                                      width_signed := None |}) TypInteger
-                                  Directionless)) (TypBit 1) Directionless))
-              StmUnit)
+                             {| stags := NoInfo; str := "apply" |})
+                        (TypFunction
+                         (MkFunctionType nil
+                              [(MkParameter false InOut (TypBit 8) None
+                                    {| stags := NoInfo; str := "var" |})]
+                              FunControl TypVoid)) Directionless) nil
+                   [(Some
+                     (MkExpression NoInfo
+                          (ExpName
+                           (BareName {| stags := NoInfo; str := "x" |}))
+                          (TypBit 8) InOut))]) StmUnit)
          (BlockCons
               (MkStatement NoInfo
-                   (StatDirectApplication
-                        (TypTypeName
-                         (BareName {| stags := NoInfo; str := "Increment" |}))
-                        [(MkExpression NoInfo
-                              (ExpName
-                               (BareName {| stags := NoInfo; str := "x" |}))
-                              (TypBit 8) InOut)]) StmUnit)
-              (BlockEmpty NoInfo))).
+                   (StatAssignment
+                        (MkExpression NoInfo
+                             (ExpExpressionMember
+                                  (MkExpression NoInfo
+                                       (ExpExpressionMember
+                                            (MkExpression NoInfo
+                                                 (ExpName
+                                                  (BareName
+                                                   {| stags := NoInfo;
+                                                      str := "hdr" |}))
+                                                 (TypTypeName
+                                                  (BareName
+                                                   {| stags := NoInfo;
+                                                      str := "headers" |}))
+                                                 InOut)
+                                            {| stags := NoInfo;
+                                               str := "myHeader" |})
+                                       (TypHeader
+                                        [(MkFieldType
+                                              {| stags := NoInfo;
+                                                 str := "firstByte" |}
+                                              (TypBit 8))]) Directionless)
+                                  {| stags := NoInfo; str := "firstByte" |})
+                             (TypBit 8) Directionless)
+                        (MkExpression NoInfo
+                             (ExpName
+                              (BareName {| stags := NoInfo; str := "x" |}))
+                             (TypBit 8) InOut)) StmUnit) (BlockEmpty NoInfo))).
 
 Definition MyEgress := DeclControl NoInfo
     {| stags := NoInfo; str := "MyEgress" |} nil
@@ -738,8 +758,8 @@ Definition MyDeparser := DeclControl NoInfo
                                     None {| stags := NoInfo; str := "hdr" |})]
                               FunExtern TypVoid)) Directionless)
                    [(TypHeader
-                     [(MkFieldType {| stags := NoInfo; str := "firstBit" |}
-                           (TypBit 1))])]
+                     [(MkFieldType {| stags := NoInfo; str := "firstByte" |}
+                           (TypBit 8))])]
                    [(Some
                      (MkExpression NoInfo
                           (ExpExpressionMember
@@ -754,8 +774,8 @@ Definition MyDeparser := DeclControl NoInfo
                                {| stags := NoInfo; str := "myHeader" |})
                           (TypHeader
                            [(MkFieldType
-                                 {| stags := NoInfo; str := "firstBit" |}
-                                 (TypBit 1))]) Directionless))]) StmUnit)
+                                 {| stags := NoInfo; str := "firstByte" |}
+                                 (TypBit 8))]) Directionless))]) StmUnit)
          (BlockEmpty NoInfo)).
 
 Definition MyVerifyChecksum := DeclControl NoInfo
@@ -798,8 +818,8 @@ Definition main := DeclInstantiation NoInfo
                        [(MkFieldType {| stags := NoInfo; str := "myHeader" |}
                              (TypHeader
                               [(MkFieldType
-                                    {| stags := NoInfo; str := "firstBit" |}
-                                    (TypBit 1))]))]) None
+                                    {| stags := NoInfo; str := "firstByte" |}
+                                    (TypBit 8))]))]) None
                       {| stags := NoInfo; str := "hdr" |});
                  (MkParameter false InOut (TypStruct nil) None
                       {| stags := NoInfo; str := "meta" |});
@@ -870,8 +890,8 @@ Definition main := DeclInstantiation NoInfo
                        [(MkFieldType {| stags := NoInfo; str := "myHeader" |}
                              (TypHeader
                               [(MkFieldType
-                                    {| stags := NoInfo; str := "firstBit" |}
-                                    (TypBit 1))]))]) None
+                                    {| stags := NoInfo; str := "firstByte" |}
+                                    (TypBit 8))]))]) None
                       {| stags := NoInfo; str := "hdr" |});
                  (MkParameter false InOut (TypStruct nil) None
                       {| stags := NoInfo; str := "meta" |})])) Directionless);
@@ -888,8 +908,8 @@ Definition main := DeclInstantiation NoInfo
                        [(MkFieldType {| stags := NoInfo; str := "myHeader" |}
                              (TypHeader
                               [(MkFieldType
-                                    {| stags := NoInfo; str := "firstBit" |}
-                                    (TypBit 1))]))]) None
+                                    {| stags := NoInfo; str := "firstByte" |}
+                                    (TypBit 8))]))]) None
                       {| stags := NoInfo; str := "hdr" |});
                  (MkParameter false InOut (TypStruct nil) None
                       {| stags := NoInfo; str := "meta" |});
@@ -959,8 +979,8 @@ Definition main := DeclInstantiation NoInfo
                        [(MkFieldType {| stags := NoInfo; str := "myHeader" |}
                              (TypHeader
                               [(MkFieldType
-                                    {| stags := NoInfo; str := "firstBit" |}
-                                    (TypBit 1))]))]) None
+                                    {| stags := NoInfo; str := "firstByte" |}
+                                    (TypBit 8))]))]) None
                       {| stags := NoInfo; str := "hdr" |});
                  (MkParameter false InOut (TypStruct nil) None
                       {| stags := NoInfo; str := "meta" |});
@@ -1031,8 +1051,8 @@ Definition main := DeclInstantiation NoInfo
                        [(MkFieldType {| stags := NoInfo; str := "myHeader" |}
                              (TypHeader
                               [(MkFieldType
-                                    {| stags := NoInfo; str := "firstBit" |}
-                                    (TypBit 1))]))]) None
+                                    {| stags := NoInfo; str := "firstByte" |}
+                                    (TypBit 8))]))]) None
                       {| stags := NoInfo; str := "hdr" |});
                  (MkParameter false InOut (TypStruct nil) None
                       {| stags := NoInfo; str := "meta" |})])) Directionless);
@@ -1052,8 +1072,8 @@ Definition main := DeclInstantiation NoInfo
                        [(MkFieldType {| stags := NoInfo; str := "myHeader" |}
                              (TypHeader
                               [(MkFieldType
-                                    {| stags := NoInfo; str := "firstBit" |}
-                                    (TypBit 1))]))]) None
+                                    {| stags := NoInfo; str := "firstByte" |}
+                                    (TypBit 8))]))]) None
                       {| stags := NoInfo; str := "hdr" |})])) Directionless)]
     {| stags := NoInfo; str := "main" |} None.
 
