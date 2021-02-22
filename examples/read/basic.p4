@@ -31,7 +31,7 @@ parser MyParser(packet_in packet,
                 inout standard_metadata_t standard_metadata) {
 
     state start {
-	packet.extract(hdr.myHeader);
+	    packet.extract(hdr.myHeader);
         transition accept;
     }
 }
