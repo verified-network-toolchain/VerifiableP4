@@ -1,0 +1,13 @@
+{
+  "program": "bitstring-bmv2.p4",
+  "language": "p4-16",
+  "targets": {
+    "stf": {
+      "test": "bitstring-bmv2.stf"
+    },
+    "compile-bmv2": {
+      "compiler-flags": ["--p4runtime-files out.json"],
+      "run-after-compile": ["cat bitstring-bmv2.json"]
+    }
+  }
+}
