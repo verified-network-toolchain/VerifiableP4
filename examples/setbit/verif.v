@@ -2,7 +2,7 @@ Require Import Petr4.P4defs.
 Open Scope string_scope.
 
 Import ListNotations.
-Require Import p4ast.
+Require Import ProD3.setbit.p4ast.
 
 Require Import Petr4.Semantics.
 Require Import Petr4.Trans.
@@ -11,36 +11,47 @@ Definition prog2 := ltac:(let x := eval compute in (transform_prog NoInfo prog) 
 
 Opaque IdentMap.empty IdentMap.set PathMap.empty PathMap.set.
 
-Definition ge := ltac:(let x := eval compute in (load_prog prog2) in exact x).
+Definition ge := ltac:(let x := eval compute in (load_prog prog) in exact x).
 
-Definition init_mem := ltac:(let x := eval compute in (instantiate_prog prog2) in exact x).
+Definition init_mem := ltac:(let x := eval compute in (instantiate_prog prog) in exact x).
 
 Transparent IdentMap.empty IdentMap.set PathMap.empty PathMap.set.
 
 (* Definition standard_init_mem :=
   PathMap.set [{| P4String.tags := NoInfo; str := "main" |}; {| P4String.tags := NoInfo; str := "dep" |}]
-    (MClass {| P4String.tags := NoInfo; str := "MyDeparser" |})
-    (PathMap.set
-       [{| P4String.tags := NoInfo; str := "main" |}; {| P4String.tags := NoInfo; str := "ck" |}]
-       (MClass {| P4String.tags := NoInfo; str := "MyComputeChecksum" |})
-       (PathMap.set
-          [{| P4String.tags := NoInfo; str := "main" |}; {| P4String.tags := NoInfo; str := "eg" |}]
-          (MClass {| P4String.tags := NoInfo; str := "MyEgress" |})
-          (PathMap.set
-             [{| P4String.tags := NoInfo; str := "main" |}; {| P4String.tags := NoInfo; str := "ig" |}]
-             (MClass {| P4String.tags := NoInfo; str := "MyIngress" |})
-             (PathMap.set
-                [{| P4String.tags := NoInfo; str := "main" |}; {| P4String.tags := NoInfo; str := "ig" |};
-                {| P4String.tags := NoInfo; str := "incr" |}]
-                (MClass {| P4String.tags := NoInfo; str := "Increment" |})
-                (PathMap.set
-                   [{| P4String.tags := NoInfo; str := "main" |};
-                   {| P4String.tags := NoInfo; str := "vr" |}]
-                   (MClass {| P4String.tags := NoInfo; str := "MyVerifyChecksum" |})
-                   (PathMap.set
-                      [{| P4String.tags := NoInfo; str := "main" |};
-                      {| P4String.tags := NoInfo; str := "p" |}]
-                      (MClass {| P4String.tags := NoInfo; str := "MyParser" |}) PathMap.empty)))))).
+  (MInstance {| P4String.tags := NoInfo; str := "MyDeparser" |}
+     [{| P4String.tags := NoInfo; str := "main" |}; {| P4String.tags := NoInfo; str := "dep" |}])
+  (PathMap.set
+     [{| P4String.tags := NoInfo; str := "main" |}; {| P4String.tags := NoInfo; str := "ck" |}]
+     (MInstance {| P4String.tags := NoInfo; str := "MyComputeChecksum" |}
+        [{| P4String.tags := NoInfo; str := "main" |}; {| P4String.tags := NoInfo; str := "ck" |}])
+     (PathMap.set
+        [{| P4String.tags := NoInfo; str := "main" |}; {| P4String.tags := NoInfo; str := "eg" |}]
+        (MInstance {| P4String.tags := NoInfo; str := "MyEgress" |}
+           [{| P4String.tags := NoInfo; str := "main" |}; {| P4String.tags := NoInfo; str := "eg" |}])
+        (PathMap.set
+           [{| P4String.tags := NoInfo; str := "main" |}; {| P4String.tags := NoInfo; str := "ig" |}]
+           (MInstance {| P4String.tags := NoInfo; str := "MyIngress" |}
+              [{| P4String.tags := NoInfo; str := "main" |}; {| P4String.tags := NoInfo; str := "ig" |}])
+           (PathMap.set
+              [{| P4String.tags := NoInfo; str := "main" |}; {| P4String.tags := NoInfo; str := "ig" |};
+              {| P4String.tags := NoInfo; str := "incr" |}]
+              (MInstance {| P4String.tags := NoInfo; str := "Increment" |}
+                 [{| P4String.tags := NoInfo; str := "main" |};
+                 {| P4String.tags := NoInfo; str := "ig" |};
+                 {| P4String.tags := NoInfo; str := "incr" |}])
+              (PathMap.set
+                 [{| P4String.tags := NoInfo; str := "main" |};
+                 {| P4String.tags := NoInfo; str := "vr" |}]
+                 (MInstance {| P4String.tags := NoInfo; str := "MyVerifyChecksum" |}
+                    [{| P4String.tags := NoInfo; str := "main" |};
+                    {| P4String.tags := NoInfo; str := "vr" |}])
+                 (PathMap.set
+                    [{| P4String.tags := NoInfo; str := "main" |};
+                    {| P4String.tags := NoInfo; str := "p" |}]
+                    (MInstance {| P4String.tags := NoInfo; str := "MyParser" |}
+                       [{| P4String.tags := NoInfo; str := "main" |};
+                       {| P4String.tags := NoInfo; str := "p" |}]) PathMap.empty)))))).
 
 Goal init_mem = standard_init_mem.
 reflexivity.
@@ -111,21 +122,19 @@ Proof.
         replace rargv with (@ValBaseBit Info 8 1) in *.
         2 : { inversion H11. subst. clear H11.
               replace oldv with (@ValBaseInteger Info 1) in *.
-              2 : { inversion H9. subst. clear H9. 
+              2 : { inversion H9. subst. clear H9.
                     unfold eval_p4int. reflexivity. }
               inversion H13. reflexivity. }
         2 : { clear H11. inversion H10. subst. clear H10.
-              unfold name_to_val in H8. inversion H8. 
+              unfold name_to_val in H8. inversion H8.
               unfold name_cons in H0. rewrite H0 in H1. inversion H1.
               reflexivity. }
         inversion H12. subst. clear H12. reflexivity. }
   clear H13. unfold assign_lvalue in H14. unfold update_val_by_name in H14.
   unfold update_memory in H14. unfold PathMap.set in H14.
-  rewrite Heqname in H14. 
+  rewrite Heqname in H14.
   inversion H14. subst. clear H14.
   unfold name_cons in *. unfold PathMap.get.
   rewrite path_equivb_reflexivity.
   reflexivity.
 Qed.
-
-
