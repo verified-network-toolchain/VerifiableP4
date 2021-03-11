@@ -1,1 +1,2 @@
--Q ../petr4/deps/poulet4/lib Petr4
+-Q ./examples ProD3
+-Q ../petr4/deps/coq-poulet4/lib Petr4
