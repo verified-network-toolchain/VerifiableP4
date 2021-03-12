@@ -1,0 +1,11 @@
+{
+    "program": "basic.p4",
+    "language": "p4-16",
+    "targets": {
+        "compile-bmv2": {
+              "compiler-flags": ["-v"],
+              "run-before-compile": ["date"],
+              "run-after-compile": ["date"]
+        }
+    }
+}
