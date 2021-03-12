@@ -9,53 +9,59 @@ Require Import Petr4.Trans.
 
 Definition prog2 := ltac:(let x := eval compute in (transform_prog NoInfo prog) in exact x).
 
+Instance external : @External Info. Admitted. (*  := Build_External unit. *)
+
 Opaque IdentMap.empty IdentMap.set PathMap.empty PathMap.set.
 
 Definition ge := ltac:(let x := eval compute in (load_prog prog) in exact x).
 
-Definition init_mem := ltac:(let x := eval compute in (instantiate_prog prog) in exact x).
+Definition init_ms := ltac:(let x := eval compute in (instantiate_prog prog) in exact x).
+
+Definition init_mem := ltac:(let x := eval compute in (fst init_ms) in exact x).
+
+Definition init_es := ltac:(let x := eval compute in (snd init_ms) in exact x).
 
 Transparent IdentMap.empty IdentMap.set PathMap.empty PathMap.set.
 
-(* Definition standard_init_mem :=
+Definition standard_init_mem :=
   PathMap.set [{| P4String.tags := NoInfo; str := "main" |}; {| P4String.tags := NoInfo; str := "dep" |}]
-  (MInstance {| P4String.tags := NoInfo; str := "MyDeparser" |}
+  (IMInst {| P4String.tags := NoInfo; str := "MyDeparser" |}
      [{| P4String.tags := NoInfo; str := "main" |}; {| P4String.tags := NoInfo; str := "dep" |}])
   (PathMap.set
      [{| P4String.tags := NoInfo; str := "main" |}; {| P4String.tags := NoInfo; str := "ck" |}]
-     (MInstance {| P4String.tags := NoInfo; str := "MyComputeChecksum" |}
+     (IMInst {| P4String.tags := NoInfo; str := "MyComputeChecksum" |}
         [{| P4String.tags := NoInfo; str := "main" |}; {| P4String.tags := NoInfo; str := "ck" |}])
      (PathMap.set
         [{| P4String.tags := NoInfo; str := "main" |}; {| P4String.tags := NoInfo; str := "eg" |}]
-        (MInstance {| P4String.tags := NoInfo; str := "MyEgress" |}
+        (IMInst {| P4String.tags := NoInfo; str := "MyEgress" |}
            [{| P4String.tags := NoInfo; str := "main" |}; {| P4String.tags := NoInfo; str := "eg" |}])
         (PathMap.set
            [{| P4String.tags := NoInfo; str := "main" |}; {| P4String.tags := NoInfo; str := "ig" |}]
-           (MInstance {| P4String.tags := NoInfo; str := "MyIngress" |}
+           (IMInst {| P4String.tags := NoInfo; str := "MyIngress" |}
               [{| P4String.tags := NoInfo; str := "main" |}; {| P4String.tags := NoInfo; str := "ig" |}])
            (PathMap.set
               [{| P4String.tags := NoInfo; str := "main" |}; {| P4String.tags := NoInfo; str := "ig" |};
               {| P4String.tags := NoInfo; str := "incr" |}]
-              (MInstance {| P4String.tags := NoInfo; str := "Increment" |}
+              (IMInst {| P4String.tags := NoInfo; str := "Increment" |}
                  [{| P4String.tags := NoInfo; str := "main" |};
                  {| P4String.tags := NoInfo; str := "ig" |};
                  {| P4String.tags := NoInfo; str := "incr" |}])
               (PathMap.set
                  [{| P4String.tags := NoInfo; str := "main" |};
                  {| P4String.tags := NoInfo; str := "vr" |}]
-                 (MInstance {| P4String.tags := NoInfo; str := "MyVerifyChecksum" |}
+                 (IMInst {| P4String.tags := NoInfo; str := "MyVerifyChecksum" |}
                     [{| P4String.tags := NoInfo; str := "main" |};
                     {| P4String.tags := NoInfo; str := "vr" |}])
                  (PathMap.set
                     [{| P4String.tags := NoInfo; str := "main" |};
                     {| P4String.tags := NoInfo; str := "p" |}]
-                    (MInstance {| P4String.tags := NoInfo; str := "MyParser" |}
+                    (IMInst {| P4String.tags := NoInfo; str := "MyParser" |}
                        [{| P4String.tags := NoInfo; str := "main" |};
                        {| P4String.tags := NoInfo; str := "p" |}]) PathMap.empty)))))).
 
 Goal init_mem = standard_init_mem.
 reflexivity.
-Admitted.  *)
+Admitted. 
 
 Definition myStatement := MkStatement NoInfo
               (StatAssignment
@@ -84,8 +90,6 @@ Definition myStatement := MkStatement NoInfo
 Definition _var := {| stags := NoInfo; str := "var" |}.
 
 Definition myEnv := IdentMap.set _var (Instance [_var]) IdentMap.empty.
-
-Instance external : @External Info. Admitted. (*  := Build_External unit. *)
 
 Compute (Ops.Ops.eval_binary_op Plus (ValBaseInteger 2)
         (ValBaseBit 8 1)).
