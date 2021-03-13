@@ -9,7 +9,7 @@ Require Import Petr4.Trans.
 
 Definition prog2 := ltac:(let x := eval compute in (transform_prog NoInfo prog) in exact x).
 
-Instance external : @External Info. Admitted. (*  := Build_External unit. *)
+Instance target : @Target Info (@Expression Info). Admitted. (*  := Build_External unit. *)
 
 Opaque IdentMap.empty IdentMap.set PathMap.empty PathMap.set.
 
