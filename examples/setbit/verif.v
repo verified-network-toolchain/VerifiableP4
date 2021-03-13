@@ -4,12 +4,14 @@ Open Scope string_scope.
 Import ListNotations.
 Require Import ProD3.setbit.p4ast.
 
+Require Import Petr4.Maps.
 Require Import Petr4.Semantics.
 Require Import Petr4.Trans.
+Require Import Petr4.V1Model.
 
 Definition prog2 := ltac:(let x := eval compute in (transform_prog NoInfo prog) in exact x).
 
-Instance target : @Target Info (@Expression Info). Admitted. (*  := Build_External unit. *)
+Instance target : @Target Info (@Expression Info) := V1Model.
 
 Opaque IdentMap.empty IdentMap.set PathMap.empty PathMap.set.
 
