@@ -112,35 +112,33 @@ Proof.
     apply IHx.
 Qed.
 
-Lemma property1: forall ge this decls m m' exts,
-    exec_stmt ge this decls myEnv init_mem (m, exts) myStatement (m', exts) SContinue ->
-    PathMap.get (name_cons this _var) m = Some (ValBaseBit 8 2) ->
-    PathMap.get (name_cons this _var) m' = Some (ValBaseBit 8 3).
+Ltac inv H := inversion H; subst; clear H.
+
+
+Lemma property1: forall ge this decls m exts,    PathMap.get (name_cons this _var) m = Some (ValBaseBit 8 2) ->    exists m',    exec_stmt ge this decls myEnv init_mem (m, exts) myStatement (m', exts) SContinue /\    PathMap.get (name_cons this _var) m' = Some (ValBaseBit 8 3).
 Proof.
-  intros. inversion H. subst. clear H.
-  remember (BareName {| P4String.tags := NoInfo; str := "var" |}) as name.
-  replace lv with (MkValueLvalue (ValLeftName name) (TypBit 8)) in *.
-  2 : { inversion H12. reflexivity. }
-  clear H12.
-  replace v with (@ValBaseBit Info 8 3) in *.
-  2 : { inversion H13. subst. clear H13.
-        replace largv with (@ValBaseBit Info 8 2) in *.
-        replace rargv with (@ValBaseBit Info 8 1) in *.
-        2 : { inversion H11. subst. clear H11.
-              replace oldv with (@ValBaseInteger Info 1) in *.
-              2 : { inversion H9. subst. clear H9.
-                    unfold eval_p4int. reflexivity. }
-              inversion H13. reflexivity. }
-        2 : { clear H11. inversion H10. subst. clear H10.
-              unfold name_to_val in H8. inversion H8.
-              unfold name_cons in H0. rewrite H0 in H1. inversion H1.
-              reflexivity. }
-        inversion H12. subst. clear H12. reflexivity. }
-  clear H13. unfold assign_lvalue in H14. unfold update_val_by_name in H14.
-  unfold update_memory in H14. unfold PathMap.set in H14.
-  rewrite Heqname in H14.
-  inversion H14. subst. clear H14.
-  unfold name_cons in *. unfold PathMap.get.
-  rewrite path_equivb_reflexivity.
-  reflexivity.
+  intros. 
+  remember (PathMap.set (this ++ [_var]) (ValBaseBit 8 3) m) as m'.
+  exists m'. split.
+  - unfold myStatement. 
+    remember (BareName {| P4String.tags := NoInfo; str := "var" |}) as name.
+    apply eval_stmt_assignment with 
+      (lv := (MkValueLvalue (ValLeftName name) (TypBit 8))) 
+      (v := (@ValBaseBit Info 8 3)).
+    + apply exec_lvalue_expr_name.
+    + apply exec_expr_binary_op with 
+        (largv := (@ValBaseBit Info 8 2))
+        (rargv := (@ValBaseBit Info 8 1)).
+      { apply exec_expr_name. unfold name_cons in H.
+        unfold name_to_val. rewrite Heqname. simpl. rewrite H. reflexivity. }
+      { apply exec_expr_cast with
+          (oldv := (@ValBaseInteger Info 1)).
+        { apply exec_expr_int. unfold eval_p4int. reflexivity. }
+        { reflexivity. } }
+      { reflexivity. }
+    + unfold assign_lvalue, update_val_by_name. rewrite Heqname.
+      unfold ident_to_path, update_memory. simpl.
+      rewrite Heqm'. reflexivity.
+  - rewrite Heqm'. unfold PathMap.get, PathMap.set, name_cons.
+    rewrite path_equivb_reflexivity. reflexivity.
 Qed.
