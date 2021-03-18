@@ -6,7 +6,7 @@ Require Import ProD3.setbit.p4ast.
 
 Require Import Petr4.Maps.
 Require Import Petr4.Semantics.
-Require Import Petr4.Trans.
+Require Import Petr4.SimplExpr.
 Require Import Petr4.V1Model.
 
 Definition prog2 := ltac:(let x := eval compute in (transform_prog NoInfo prog) in exact x).
