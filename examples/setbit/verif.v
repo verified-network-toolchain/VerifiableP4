@@ -29,33 +29,15 @@ Definition init_es := ltac:(let x := eval compute in (snd instantiation) in exac
 
 Transparent IdentMap.empty IdentMap.set PathMap.empty PathMap.set.
 
-Definition myStatement := MkStatement NoInfo
-              (StatAssignment
-                   (MkExpression NoInfo
-                        (ExpName
-                         (BareName {| stags := NoInfo; str := "var" |}))
-                        (TypBit 8) InOut)
-                   (MkExpression NoInfo
-                        (ExpBinaryOp Plus
-                             ( (MkExpression NoInfo
-                                    (ExpName
-                                     (BareName
-                                      {| stags := NoInfo; str := "var" |}))
-                                    (TypBit 8) InOut),
-                               (MkExpression NoInfo
-                                    (ExpCast (TypBit 8)
-                                         (MkExpression NoInfo
-                                              (ExpInt
-                                               {| itags := NoInfo;
-                                                  value := 1;
-                                                  width_signed := None |})
-                                              TypInteger Directionless))
-                                    (TypBit 8) Directionless) )) (TypBit 8)
-                        Directionless)) StmUnit.
+Definition myBlock' :=
+  match Increment with
+  | DeclControl _ _ _ _ _ _ block => block
+  | _ => BlockNil
+  end.
+
+Definition myBlock := ltac:(let x := eval compute in myBlock' in exact x).
 
 Definition _var := {| stags := NoInfo; str := "var" |}.
-
-Definition myEnv := IdentMap.set _var (Instance [_var]) IdentMap.empty.
 
 Compute (Ops.Ops.eval_binary_op Plus (ValBaseInteger 2)
         (ValBaseBit 8 1)).
