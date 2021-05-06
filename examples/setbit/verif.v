@@ -39,6 +39,8 @@ Definition init_st : state := (PathMap.set (this ++ [_var]) (ValBaseBit 8 2) Pat
 
 Transparent IdentMap.empty IdentMap.set PathMap.empty PathMap.set.
 
+Module Experiment1.
+
 Definition myBlock' :=
   match Increment with
   | DeclControl _ _ _ _ _ _ block => block
@@ -64,17 +66,38 @@ Definition st' :=
                {| tags := NoInfo; value := 1; width_signed := None |})))))
 init_st).
 Definition st'' := ltac:(let x := eval compute in st' in exact x).
-Definition x := ltac:(exact true).
-(* Goal True.
-  exact I. *)
+Transparent IdentMap.empty IdentMap.set PathMap.empty PathMap.set.
 
+End Experiment1.
 
+Module Experiment2.
+
+Definition main_string : ident := {| P4String.tags := NoInfo; P4String.str := "main" |}.
 Definition ig_string : ident := {| P4String.tags := NoInfo; P4String.str := "ig" |}.
-Definition this2 : path := [ig_string].
-Definition init_st2 : state := (PathMap.set (this ++ [_var]) (ValBaseBit 8 2) PathMap.empty, init_es).
-Definition igress_string : ident := {| P4String.tags := NoInfo; P4String.str := "Ingress" |}.
+Definition this : path := [main_string; ig_string].
+Definition init_st : state := (PathMap.empty, init_es).
+Definition MyIngress_string : ident := {| P4String.tags := NoInfo; P4String.str := "MyIngress" |}.
 
-Definition myFundef := PathMap.get [igress_string] ge.
+Definition myFundef' :=
+  match PathMap.get [MyIngress_string] ge with
+  | Some x => x
+  | None => dummy_fundef
+  end.
+
+Definition myFundef := ltac:(let x := eval compute in myFundef' in exact x).
+
+(* {st' signal | exec_block [] inst_mem init_st myBlock st' signal }. *)
+Lemma eval_block: { signal | exists st', exec_func ge ge_typ ge_senum this inst_m init_st myFundef
+    [ValBaseNull; ValBaseNull; ValBaseNull] st' [ValBaseNull; ValBaseNull; ValBaseNull] signal}.
+Proof.
+  eexists. eexists.
+  econstructor.
+  econstructor.
+  simpl. repeat econstructor.
+  simpl. unfold P4Arith.BitArith.mod_bound, P4Arith.BitArith.upper_bound. simpl. unfold Z.pow_pos, Z.modulo. simpl.
+  econstructor. econstructor. econstructor. admit.
+  econstructor.
+Defined.
 
 
 Definition myBlock'2 :=
