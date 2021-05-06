@@ -19,6 +19,8 @@ Definition ge := ltac:(let x := eval compute in (load_prog prog) in exact x).
 (* Global environment for types *)
 Definition ge_typ := ltac:(let x := eval compute in (gen_ge_typ prog) in exact x).
 
+Axiom ge_senum : @genv_senum Info.
+
 Definition instantiation := ltac:(let x := eval compute in (instantiate_prog prog) in exact x).
 
 (* inst_mem *)
