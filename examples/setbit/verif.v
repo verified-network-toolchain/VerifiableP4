@@ -17,17 +17,25 @@ Opaque IdentMap.empty IdentMap.set PathMap.empty PathMap.set.
 Definition ge := ltac:(let x := eval compute in (load_prog prog) in exact x).
 
 (* Global environment for types *)
-Definition ge_typ := ltac:(let x := eval compute in (gen_ge_typ prog) in exact x).
-
+(* Definition ge_typ := ltac:(let x := eval compute in (gen_ge_typ prog) in exact x). *)
+Axiom ge_typ : @genv_typ Info.
 Axiom ge_senum : @genv_senum Info.
 
 Definition instantiation := ltac:(let x := eval compute in (instantiate_prog prog) in exact x).
 
-(* inst_mem *)
-Definition inst_mem := ltac:(let x := eval compute in (fst instantiation) in exact x).
+(* inst_m *)
+Definition inst_m := ltac:(let x := eval compute in (fst instantiation) in exact x).
+
+Definition _var := {| stags := NoInfo; str := "var" |}.
 
 (* Initial extern state *)
 Definition init_es := ltac:(let x := eval compute in (snd instantiation) in exact x).
+
+Notation ident := (P4String.t Info).
+Notation path := (list ident).
+Definition this : path := [].
+
+Definition init_st : state := (PathMap.set (this ++ [_var]) (ValBaseBit 8 2) PathMap.empty, init_es).
 
 Transparent IdentMap.empty IdentMap.set PathMap.empty PathMap.set.
 
@@ -39,7 +47,49 @@ Definition myBlock' :=
 
 Definition myBlock := ltac:(let x := eval compute in myBlock' in exact x).
 
-Definition _var := {| stags := NoInfo; str := "var" |}.
+(* {st' signal | exec_block [] inst_mem init_st myBlock st' signal }. *)
+Lemma eval_block: { signal | exists st', exec_block ge ge_typ ge_senum this inst_m init_st myBlock st' signal} .
+Proof.
+  eexists. eexists. repeat econstructor.
+Defined.
+
+Opaque IdentMap.empty IdentMap.set PathMap.empty PathMap.set.
+Definition st' :=
+(update_memory
+(PathMap.set (this ++ [{| P4String.tags := NoInfo; str := "var" |}])
+   (ValBaseBit 8
+      (P4Arith.BitArith.plus_mod (Pos.of_nat 8) 2
+         (P4Arith.BitArith.mod_bound (Pos.of_nat 8)
+            (value
+               {| tags := NoInfo; value := 1; width_signed := None |})))))
+init_st).
+Definition st'' := ltac:(let x := eval compute in st' in exact x).
+Definition x := ltac:(exact true).
+(* Goal True.
+  exact I. *)
+
+
+Definition ig_string : ident := {| P4String.tags := NoInfo; P4String.str := "ig" |}.
+Definition this2 : path := [ig_string].
+Definition init_st2 : state := (PathMap.set (this ++ [_var]) (ValBaseBit 8 2) PathMap.empty, init_es).
+Definition igress_string : ident := {| P4String.tags := NoInfo; P4String.str := "Ingress" |}.
+
+Definition myFundef := PathMap.get [igress_string] ge.
+
+
+Definition myBlock'2 :=
+  match MyIngress with
+  | DeclControl _ _ _ _ _ _ block => block
+  | _ => BlockNil
+  end.
+
+Definition myBlock2 := ltac:(let x := eval compute in myBlock' in exact x).
+
+(* {st' signal | exec_block [] inst_mem init_st myBlock st' signal }. *)
+(* Lemma eval_block: { signal | exists st', exec_block ge ge_typ ge_senum this inst_mem init_st myBlock st' signal} .
+Proof.
+  eexists. eexists. repeat econstructor.
+Defined. *)
 
 Compute (Ops.Ops.eval_binary_op Plus (ValBaseInteger 2)
         (ValBaseBit 8 1)).
