@@ -86,11 +86,30 @@ Definition myFundef' :=
 
 Definition myFundef := ltac:(let x := eval compute in myFundef' in exact x).
 
+Definition firstByte_string : ident := {| P4String.tags := NoInfo; P4String.str := "firstByte" |}.
+Definition v1 : @ValueBase Info := ValBaseHeader [(firstByte_string, ValBaseBit 8%nat 0)] true.
+Definition myHeader_string : ident := {| P4String.tags := NoInfo; P4String.str := "myHeader" |}.
+Definition v2 : @ValueBase Info := ValBaseStruct [(myHeader_string, v1)].
+
 (* {st' signal | exec_block [] inst_mem init_st myBlock st' signal }. *)
 Lemma eval_block: { signal | exists st', exec_func ge ge_typ ge_senum this inst_m init_st myFundef
-    [ValBaseNull; ValBaseNull; ValBaseNull] st' [ValBaseNull; ValBaseNull; ValBaseNull] signal}.
+    [v2; ValBaseNull; ValBaseNull] st' [ValBaseNull; ValBaseNull; ValBaseNull] signal}.
 Proof.
   eexists. eexists.
+  (* repeat econstructor. *)
+  econstructor. econstructor. repeat econstructor.
+  econstructor.
+  econstructor.
+  econstructor.
+  repeat econstructor.
+  econstructor.
+  repeat econstructor.
+  2 : { repeat econstructor. }
+  repeat econstructor.
+  econstructor.
+  econstructor.
+  repeat econstructor.
+  repeat econstructor. Opaque assign_lvalue. simpl.
   econstructor.
   econstructor.
   simpl. repeat econstructor.
