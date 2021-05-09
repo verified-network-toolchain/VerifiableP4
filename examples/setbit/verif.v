@@ -105,8 +105,11 @@ Proof.
   econstructor.
   repeat econstructor.
   econstructor.
+  econstructor. econstructor. econstructor. econstructor. econstructor. econstructor.
+  econstructor. econstructor. econstructor. econstructor. econstructor. econstructor.
+  econstructor. econstructor. econstructor. econstructor. econstructor. econstructor.
+  econstructor. 
   repeat econstructor.
-  admit.
   repeat econstructor.
   econstructor. simpl.
   (* Must be slow to eapply. *)
@@ -132,7 +135,7 @@ Proof.
   unfold P4Arith.BitArith.mod_bound, P4Arith.BitArith.upper_bound. simpl. unfold Z.pow_pos, Z.modulo. simpl.
   unfold P4Arith.BitArith.plus_mod.
   reflexivity.
-Admitted.
+Defined.
 
 
 Compute (Ops.Ops.eval_binary_op Plus (ValBaseInteger 2)
