@@ -90,10 +90,12 @@ Definition firstByte_string : ident := {| P4String.tags := NoInfo; P4String.str 
 Definition v1 : @ValueBase Info := ValBaseHeader [(firstByte_string, ValBaseBit 8%nat 0)] true.
 Definition myHeader_string : ident := {| P4String.tags := NoInfo; P4String.str := "myHeader" |}.
 Definition v2 : @ValueBase Info := ValBaseStruct [(myHeader_string, v1)].
+Definition v3 : @ValueBase Info := ValBaseHeader [(firstByte_string, ValBaseBit 8%nat 3)] true.
+Definition v4 : @ValueBase Info := ValBaseStruct [(myHeader_string, v3)].
 
 (* {st' signal | exec_block [] inst_mem init_st myBlock st' signal }. *)
-Lemma eval_block: { signal | exists st', exec_func ge ge_typ ge_senum this inst_m init_st myFundef
-    [v2; ValBaseNull; ValBaseNull] st' [ValBaseNull; ValBaseNull; ValBaseNull] signal}.
+Lemma eval_block: { st' | exists signal, exec_func ge ge_typ ge_senum this inst_m init_st myFundef
+    [] [v2; ValBaseNull; ValBaseNull] st' [v4; ValBaseNull; ValBaseNull] signal}.
 Proof.
   eexists. eexists.
   (* repeat econstructor. *)
@@ -104,34 +106,34 @@ Proof.
   repeat econstructor.
   econstructor.
   repeat econstructor.
-  2 : { repeat econstructor. }
+  admit.
+  repeat econstructor.
+  econstructor. simpl.
+  (* Must be slow to eapply. *)
+  econstructor.
+  econstructor.
+  econstructor.
+  econstructor.
+  econstructor.
+  econstructor.
+  econstructor.
+  econstructor.
+  econstructor.
+  econstructor.
+  econstructor.
+  eapply read_lmember_struct.
   repeat econstructor.
   econstructor.
-  econstructor.
   repeat econstructor.
-  repeat econstructor. Opaque assign_lvalue. simpl.
+  repeat econstructor.
+  repeat econstructor.
   econstructor.
-  econstructor.
-  simpl. repeat econstructor.
-  simpl. unfold P4Arith.BitArith.mod_bound, P4Arith.BitArith.upper_bound. simpl. unfold Z.pow_pos, Z.modulo. simpl.
-  econstructor. econstructor. econstructor. admit.
-  econstructor.
-Defined.
+  simpl.
+  unfold P4Arith.BitArith.mod_bound, P4Arith.BitArith.upper_bound. simpl. unfold Z.pow_pos, Z.modulo. simpl.
+  unfold P4Arith.BitArith.plus_mod.
+  reflexivity.
+Admitted.
 
-
-Definition myBlock'2 :=
-  match MyIngress with
-  | DeclControl _ _ _ _ _ _ block => block
-  | _ => BlockNil
-  end.
-
-Definition myBlock2 := ltac:(let x := eval compute in myBlock' in exact x).
-
-(* {st' signal | exec_block [] inst_mem init_st myBlock st' signal }. *)
-(* Lemma eval_block: { signal | exists st', exec_block ge ge_typ ge_senum this inst_mem init_st myBlock st' signal} .
-Proof.
-  eexists. eexists. repeat econstructor.
-Defined. *)
 
 Compute (Ops.Ops.eval_binary_op Plus (ValBaseInteger 2)
         (ValBaseBit 8 1)).
