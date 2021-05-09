@@ -50,7 +50,7 @@ Definition myBlock' :=
 Definition myBlock := ltac:(let x := eval compute in myBlock' in exact x).
 
 (* {st' signal | exec_block [] inst_mem init_st myBlock st' signal }. *)
-Lemma eval_block: { signal | exists st', exec_block ge ge_typ ge_senum this inst_m init_st myBlock st' signal} .
+Lemma eval_block: {signal & { st' | exec_block ge ge_typ ge_senum this inst_m init_st myBlock st' signal } }.
 Proof.
   eexists. eexists. repeat econstructor.
 Defined.
@@ -94,8 +94,8 @@ Definition v3 : @ValueBase Info := ValBaseHeader [(firstByte_string, ValBaseBit 
 Definition v4 : @ValueBase Info := ValBaseStruct [(myHeader_string, v3)].
 
 (* {st' signal | exec_block [] inst_mem init_st myBlock st' signal }. *)
-Lemma eval_block: { st' | exists signal, exec_func ge ge_typ ge_senum this inst_m init_st myFundef
-    [] [v2; ValBaseNull; ValBaseNull] st' [v4; ValBaseNull; ValBaseNull] signal}.
+Lemma eval_block: { st' & { signal | exec_func ge ge_typ ge_senum this inst_m init_st myFundef
+    [] [v2; ValBaseNull; ValBaseNull] st' [v4; ValBaseNull; ValBaseNull] signal} }.
 Proof.
   eexists. eexists.
   (* repeat econstructor. *)
