@@ -98,7 +98,6 @@ Lemma eval_block: { st' & { signal | exec_func ge ge_typ ge_senum this inst_m in
     [] [v2; ValBaseNull; ValBaseNull] st' [v4; ValBaseNull; ValBaseNull] signal} }.
 Proof.
   eexists. eexists.
-  (* repeat econstructor. *)
   econstructor. econstructor. 
   repeat econstructor.
   econstructor.
@@ -130,6 +129,51 @@ Proof.
   unfold P4Arith.BitArith.plus_mod.
   reflexivity.
 Defined.
+
+Opaque IdentMap.empty IdentMap.set PathMap.empty PathMap.set PathMap.sets.
+Definition st' :=   (update_val_by_loc this
+(PathMap.set
+   [main_string; ig_string; {| P4String.tags := NoInfo; str := "x" |}]
+   (ValBaseBit 8
+      (P4Arith.BitArith.plus_mod 8 (P4Arith.BitArith.mod_bound 8 2)
+         (P4Arith.BitArith.mod_bound 8 1)))
+   (PathMap.set
+      [{| P4String.tags := NoInfo; str := "main" |};
+      {| P4String.tags := NoInfo; str := "ig" |};
+      {| P4String.tags := NoInfo; str := "incr" |};
+      {| P4String.tags := NoInfo; str := "var" |}]
+      (ValBaseBit 8
+         (P4Arith.BitArith.plus_mod 8 (P4Arith.BitArith.mod_bound 8 2)
+            (P4Arith.BitArith.mod_bound 8 1)))
+      (PathMap.sets
+         [[{| P4String.tags := NoInfo; str := "main" |};
+          {| P4String.tags := NoInfo; str := "ig" |};
+          {| P4String.tags := NoInfo; str := "incr" |};
+          {| P4String.tags := NoInfo; str := "var" |}]]
+         [ValBaseBit 8 (P4Arith.BitArith.mod_bound 8 2)]
+         (PathMap.set
+            [main_string; ig_string;
+            {| P4String.tags := NoInfo; str := "x" |}]
+            (ValBaseBit 8 (P4Arith.BitArith.mod_bound 8 2))
+            (PathMap.sets
+               [[main_string; ig_string;
+                {| P4String.tags := NoInfo; str := "hdr" |}];
+               [main_string; ig_string;
+               {| P4String.tags := NoInfo; str := "meta" |}];
+               [main_string; ig_string;
+               {| P4String.tags := NoInfo; str := "standard_metadata" |}]]
+               [v2; ValBaseNull; ValBaseNull] PathMap.empty)))),
+init_es) (LInstance [{| P4String.tags := NoInfo; str := "hdr" |}])
+(ValBaseStruct
+   [({| P4String.tags := NoInfo; str := "myHeader" |},
+    ValBaseHeader
+      [({| P4String.tags := NoInfo; str := "firstByte" |},
+       ValBaseBit 8
+         (P4Arith.BitArith.plus_mod 8 (P4Arith.BitArith.mod_bound 8 2)
+            (P4Arith.BitArith.mod_bound 8 1)))] true)])).
+Definition st'' := ltac:(let x := eval compute in st' in exact x).
+Print st''.
+
 
 
 Compute (Ops.Ops.eval_binary_op Plus (ValBaseInteger 2)
