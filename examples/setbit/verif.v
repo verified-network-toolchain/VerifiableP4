@@ -99,18 +99,12 @@ Lemma eval_block: { st' & { signal | exec_func ge ge_typ ge_senum this inst_m in
 Proof.
   eexists. eexists.
   (* repeat econstructor. *)
-  econstructor. econstructor. repeat econstructor.
-  econstructor.
+  econstructor. econstructor. 
+  repeat econstructor.
   econstructor.
   econstructor.
   repeat econstructor.
   econstructor.
-  econstructor. econstructor. econstructor. econstructor. econstructor. econstructor.
-  econstructor. econstructor. econstructor. econstructor. econstructor. econstructor.
-  econstructor. econstructor. econstructor. econstructor. econstructor. econstructor.
-  econstructor. 
-  repeat econstructor.
-  repeat econstructor.
   econstructor. simpl.
   (* Must be slow to eapply. *)
   econstructor.
@@ -123,16 +117,16 @@ Proof.
   econstructor.
   econstructor.
   econstructor.
-  econstructor.
   eapply read_lmember_struct.
   repeat econstructor.
-  econstructor.
   repeat econstructor.
   repeat econstructor.
   repeat econstructor.
-  econstructor.
+  repeat econstructor.
+  repeat econstructor.
   simpl.
-  unfold P4Arith.BitArith.mod_bound, P4Arith.BitArith.upper_bound. simpl. unfold Z.pow_pos, Z.modulo. simpl.
+  unfold P4Arith.BitArith.mod_bound, P4Arith.BitArith.upper_bound.
+  simpl. unfold Z.pow_pos, Z.modulo. simpl.
   unfold P4Arith.BitArith.plus_mod.
   reflexivity.
 Defined.
