@@ -1,0 +1,6 @@
+(coq.theory
+ (name ProD3)
+ (package prod3)
+ (modules (:standard)))
+
+(include_subdirs qualified)

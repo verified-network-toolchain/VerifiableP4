@@ -2,7 +2,7 @@ Require Import Poulet4.P4defs.
 Open Scope string_scope.
 
 Import ListNotations.
-Require Import ProD3.setbit.p4ast.
+Require Import ProD3.examples.setbit.p4ast.
 
 Require Import Poulet4.Maps.
 Require Import Poulet4.Semantics.
@@ -123,14 +123,12 @@ Proof.
   repeat econstructor.
   repeat econstructor.
   repeat econstructor.
-  simpl.
-  unfold P4Arith.BitArith.mod_bound, P4Arith.BitArith.upper_bound.
-  simpl. unfold Z.pow_pos, Z.modulo. simpl.
-  unfold P4Arith.BitArith.plus_mod.
-  reflexivity.
+  simpl. reflexivity.
 Defined.
 
 Opaque IdentMap.empty IdentMap.set PathMap.empty PathMap.set PathMap.sets.
+Definition st3 := Eval compute in (projT1 eval_block).
+
 Definition st' :=   (update_val_by_loc this
 (PathMap.set
    [main_string; ig_string; {| P4String.tags := NoInfo; str := "x" |}]
@@ -171,12 +169,14 @@ init_es) (LInstance [{| P4String.tags := NoInfo; str := "hdr" |}])
        ValBaseBit 8
          (P4Arith.BitArith.plus_mod 8 (P4Arith.BitArith.mod_bound 8 2)
             (P4Arith.BitArith.mod_bound 8 1)))] true)])).
+
 Definition st'' := ltac:(let x := eval compute in st' in exact x).
-Print st''.
+(* Print st''. *)
+
+Goal st3 = st'. reflexivity.
 
 
-
-Compute (Ops.Ops.eval_binary_op Plus (ValBaseInteger 2)
+(* Compute (Ops.Ops.eval_binary_op Plus (ValBaseInteger 2)
         (ValBaseBit 8 1)).
 
 Lemma path_equivb_reflexivity :
@@ -224,4 +224,4 @@ Proof.
       rewrite Heqm'. reflexivity.
   - rewrite Heqm'. unfold PathMap.get, PathMap.set, name_cons.
     rewrite path_equivb_reflexivity. reflexivity.
-Qed.
+Qed. *)

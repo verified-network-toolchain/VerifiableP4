@@ -1,2 +1,1 @@
--Q ./examples ProD3
--Q ../petr4/deps/poulet4/_build/default/lib Poulet4
+-Q _build/default ProD3
