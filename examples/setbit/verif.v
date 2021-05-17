@@ -14,22 +14,22 @@ Instance target : @Target Info (@Expression Info) := V1Model.
 Opaque IdentMap.empty IdentMap.set PathMap.empty PathMap.set.
 
 (* Global environment *)
-Definition ge := ltac:(let x := eval compute in (load_prog prog) in exact x).
+Definition ge := Eval compute in load_prog prog.
 
 (* Global environment for types *)
-(* Definition ge_typ := ltac:(let x := eval compute in (gen_ge_typ prog) in exact x). *)
-Axiom ge_typ : @genv_typ Info.
+Definition ge_typ := Eval compute in match gen_ge_typ prog with Some ge_typ => ge_typ | None => IdentMap.empty end.
+
 Axiom ge_senum : @genv_senum Info.
 
-Definition instantiation := ltac:(let x := eval compute in (instantiate_prog prog) in exact x).
+Definition instantiation := Eval compute in instantiate_prog prog.
 
 (* inst_m *)
-Definition inst_m := ltac:(let x := eval compute in (fst instantiation) in exact x).
+Definition inst_m := Eval compute in fst instantiation.
 
 Definition _var := {| stags := NoInfo; str := "var" |}.
 
 (* Initial extern state *)
-Definition init_es := ltac:(let x := eval compute in (snd instantiation) in exact x).
+Definition init_es := Eval compute in snd instantiation.
 
 Notation ident := (P4String.t Info).
 Notation path := (list ident).
@@ -47,7 +47,7 @@ Definition myBlock' :=
   | _ => BlockNil
   end.
 
-Definition myBlock := ltac:(let x := eval compute in myBlock' in exact x).
+Definition myBlock := Eval compute in myBlock'.
 
 (* {st' signal | exec_block [] inst_mem init_st myBlock st' signal }. *)
 Lemma eval_block: {signal & { st' | exec_block ge ge_typ ge_senum this inst_m init_st myBlock st' signal } }.
@@ -97,33 +97,7 @@ Definition v4 : @ValueBase Info := ValBaseStruct [(myHeader_string, v3)].
 Lemma eval_block: { st' & { signal | exec_func ge ge_typ ge_senum this inst_m init_st myFundef
     [] [v2; ValBaseNull; ValBaseNull] st' [v4; ValBaseNull; ValBaseNull] signal} }.
 Proof.
-  eexists. eexists.
-  econstructor. econstructor. 
-  repeat econstructor.
-  econstructor.
-  econstructor.
-  repeat econstructor.
-  econstructor.
-  econstructor. simpl.
-  (* Must be slow to eapply. *)
-  econstructor.
-  econstructor.
-  econstructor.
-  econstructor.
-  econstructor.
-  econstructor.
-  econstructor.
-  econstructor.
-  econstructor.
-  econstructor.
-  eapply read_lmember_struct.
-  repeat econstructor.
-  repeat econstructor.
-  repeat econstructor.
-  repeat econstructor.
-  repeat econstructor.
-  repeat econstructor.
-  simpl. reflexivity.
+  solve [repeat econstructor].
 Defined.
 
 Opaque IdentMap.empty IdentMap.set PathMap.empty PathMap.set PathMap.sets.
