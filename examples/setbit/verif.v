@@ -1,4 +1,5 @@
 Require Import Poulet4.P4defs.
+Require Import Poulet4.P4Notations.
 Open Scope string_scope.
 
 Import ListNotations.
@@ -26,8 +27,6 @@ Definition instantiation := Eval compute in instantiate_prog prog.
 (* inst_m *)
 Definition inst_m := Eval compute in fst instantiation.
 
-Definition _var := {| stags := NoInfo; str := "var" |}.
-
 (* Initial extern state *)
 Definition init_es := Eval compute in snd instantiation.
 
@@ -35,7 +34,7 @@ Notation ident := (P4String.t Info).
 Notation path := (list ident).
 Definition this : path := [].
 
-Definition init_st : state := (PathMap.set (this ++ [_var]) (ValBaseBit 8 2) PathMap.empty, init_es).
+Definition init_st : state := (PathMap.set (this ++ !["var"]) (ValBaseBit 8 2) PathMap.empty, init_es).
 
 Transparent IdentMap.empty IdentMap.set PathMap.empty PathMap.set.
 
@@ -72,26 +71,19 @@ End Experiment1.
 
 Module Experiment2.
 
-Definition main_string : ident := {| P4String.tags := NoInfo; P4String.str := "main" |}.
-Definition ig_string : ident := {| P4String.tags := NoInfo; P4String.str := "ig" |}.
-Definition this : path := [main_string; ig_string].
+Definition this : path := [!"main"; !"ig"].
 Definition init_st : state := (PathMap.empty, init_es).
-Definition MyIngress_string : ident := {| P4String.tags := NoInfo; P4String.str := "MyIngress" |}.
 
-Definition myFundef' :=
-  match PathMap.get [MyIngress_string] ge with
+Definition myFundef := Eval compute in
+  match PathMap.get [!"MyIngress"] ge with
   | Some x => x
   | None => dummy_fundef
   end.
 
-Definition myFundef := ltac:(let x := eval compute in myFundef' in exact x).
-
-Definition firstByte_string : ident := {| P4String.tags := NoInfo; P4String.str := "firstByte" |}.
-Definition v1 : @ValueBase Info := ValBaseHeader [(firstByte_string, ValBaseBit 8%nat 0)] true.
-Definition myHeader_string : ident := {| P4String.tags := NoInfo; P4String.str := "myHeader" |}.
-Definition v2 : @ValueBase Info := ValBaseStruct [(myHeader_string, v1)].
-Definition v3 : @ValueBase Info := ValBaseHeader [(firstByte_string, ValBaseBit 8%nat 3)] true.
-Definition v4 : @ValueBase Info := ValBaseStruct [(myHeader_string, v3)].
+Definition v1 : @ValueBase Info := ValBaseHeader [(!"firstByte", ValBaseBit 8%nat 0)] true.
+Definition v2 : @ValueBase Info := ValBaseStruct [(!"myHeader", v1)].
+Definition v3 : @ValueBase Info := ValBaseHeader [(!"firstByte", ValBaseBit 8%nat 3)] true.
+Definition v4 : @ValueBase Info := ValBaseStruct [(!"myHeader", v3)].
 
 (* {st' signal | exec_block [] inst_mem init_st myBlock st' signal }. *)
 Lemma eval_block: { st' & { signal | exec_func ge ge_typ ge_senum this inst_m init_st myFundef
@@ -105,7 +97,7 @@ Definition st3 := Eval compute in (projT1 eval_block).
 
 Definition st' :=   (update_val_by_loc this
 (PathMap.set
-   [main_string; ig_string; {| P4String.tags := NoInfo; str := "x" |}]
+   [!"main"; !"ig"; {| P4String.tags := NoInfo; str := "x" |}]
    (ValBaseBit 8
       (P4Arith.BitArith.plus_mod 8 (P4Arith.BitArith.mod_bound 8 2)
          (P4Arith.BitArith.mod_bound 8 1)))
@@ -124,15 +116,15 @@ Definition st' :=   (update_val_by_loc this
           {| P4String.tags := NoInfo; str := "var" |}]]
          [ValBaseBit 8 (P4Arith.BitArith.mod_bound 8 2)]
          (PathMap.set
-            [main_string; ig_string;
+            [!"main"; !"ig";
             {| P4String.tags := NoInfo; str := "x" |}]
             (ValBaseBit 8 (P4Arith.BitArith.mod_bound 8 2))
             (PathMap.sets
-               [[main_string; ig_string;
+               [[!"main"; !"ig";
                 {| P4String.tags := NoInfo; str := "hdr" |}];
-               [main_string; ig_string;
+               [!"main"; !"ig";
                {| P4String.tags := NoInfo; str := "meta" |}];
-               [main_string; ig_string;
+               [!"main"; !"ig";
                {| P4String.tags := NoInfo; str := "standard_metadata" |}]]
                [v2; ValBaseNull; ValBaseNull] PathMap.empty)))),
 init_es) (LInstance [{| P4String.tags := NoInfo; str := "hdr" |}])
@@ -147,7 +139,9 @@ init_es) (LInstance [{| P4String.tags := NoInfo; str := "hdr" |}])
 Definition st'' := ltac:(let x := eval compute in st' in exact x).
 (* Print st''. *)
 
-Goal st3 = st'. reflexivity.
+Goal st3 = st'. reflexivity. Qed.
+
+End Experiment2.
 
 
 (* Compute (Ops.Ops.eval_binary_op Plus (ValBaseInteger 2)
