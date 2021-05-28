@@ -9,6 +9,8 @@ Require Import Poulet4.Maps.
 Require Import Poulet4.Semantics.
 Require Import Poulet4.SimplExpr.
 Require Import Poulet4.V1Model.
+Require Import ProD3.core.Hoare.
+Require Import ProD3.core.AssertionLang.
 
 Instance target : @Target Info (@Expression Info) := V1Model.
 
@@ -86,16 +88,16 @@ Definition v3 : @ValueBase Info := ValBaseHeader [(!"firstByte", ValBaseBit 8%na
 Definition v4 : @ValueBase Info := ValBaseStruct [(!"myHeader", v3)].
 
 (* {st' signal | exec_block [] inst_mem init_st myBlock st' signal }. *)
-Lemma eval_block: { st' & { signal | exec_func ge ge_typ ge_senum this inst_m init_st myFundef
+Lemma eval_func: { st' & { signal | exec_func ge ge_typ ge_senum this inst_m init_st myFundef
     [] [v2; ValBaseNull; ValBaseNull] st' [v4; ValBaseNull; ValBaseNull] signal} }.
 Proof.
   solve [repeat econstructor].
 Defined.
 
 Opaque IdentMap.empty IdentMap.set PathMap.empty PathMap.set PathMap.sets.
-Definition st3 := Eval compute in (projT1 eval_block).
+Definition st3 := Eval compute in (projT1 eval_func).
 
-Definition st' :=   (update_val_by_loc this
+Definition st' :=   (Semantics.update_val_by_loc this
 (PathMap.set
    [!"main"; !"ig"; {| P4String.tags := NoInfo; str := "x" |}]
    (ValBaseBit 8
@@ -143,6 +145,100 @@ Goal st3 = st'. reflexivity. Qed.
 
 End Experiment2.
 
+Module Experiment3.
+
+Section Experiment3.
+
+Variable this : path.
+Variable x : Z.
+Hypothesis range_x : 0 <= x < 1.
+
+Definition myBlock := Eval compute in
+  match Increment with
+  | DeclControl _ _ _ _ _ _ block => block
+  | _ => BlockNil
+  end.
+
+Definition myStmt := Eval compute in
+  match myBlock with
+  | BlockCons stmt _ => stmt
+  | _ => MkStatement (default (* Info *)) StatEmpty StmUnit
+  end.
+
+Ltac inv H := inversion H; clear H; subst.
+
+Lemma eval_block: hoare_block ge ge_typ ge_senum inst_m this
+  (* pre: *) (to_shallow_assertion this [(LInstance !["var"], ValBaseBit 8%nat x)])
+  myBlock
+  (* post: *) (to_shallow_assertion this [(LInstance !["var"], ValBaseBit 8%nat (x+1))]).
+Proof.
+  assert (hoare_stmt ge ge_typ ge_senum inst_m this
+    (* pre: *) (to_shallow_assertion this [(LInstance !["var"], ValBaseBit 8%nat x)])
+    myStmt
+    (* post: *) (to_shallow_assertion this [(LInstance !["var"], ValBaseBit 8%nat (x+1))])).
+  { intro; intros.
+    repeat lazymatch goal with
+    | H : exec_stmt _ _ _ _ _ _ _ _ _ |- _ => inv H
+    | H : exec_lvalue_expr _ _ _ _ _ _ _ |- _ => inv H
+    | H : exec_expr _ _ _ _ _ _ |- _ => inv H
+    end.
+    { inv H11.
+      replace (loc_to_val this (LInstance !!["var"]) st) with (Some (@ValBaseBit Info 8 x)) in H8. 2 : {
+        symmetry. apply H.
+      }
+      inv H8. inv H14. inv H13.
+      assert (P4Arith.BitArith.plus_mod 8 x (P4Arith.BitArith.mod_bound 8 1) = x + 1) by admit.
+      rewrite H0 in H12.
+      inv H12. repeat split.
+      simpl. 
+Abort.
+  (* intro; intros.
+  inversion H0.
+  2 : {
+  eexists. eexists. repeat econstructor.
+Defined. *)
+
+End Experiment3.
+
+End Experiment3.
+
+
+(* Module Experiment3.
+
+Section Experiment3.
+
+Definition this : path := [!"main"; !"ig"].
+Definition init_st : state := (PathMap.empty, init_es).
+
+Definition myFundef := Eval compute in
+  match PathMap.get [!"MyIngress"] ge with
+  | Some x => x
+  | None => dummy_fundef
+  end.
+
+Variable x : Z.
+
+Definition v1 : @ValueBase Info := ValBaseHeader [(!"firstByte", ValBaseBit 8%nat x)] true.
+Definition v2 : @ValueBase Info := ValBaseStruct [(!"myHeader", v1)].
+Definition v3 : @ValueBase Info := ValBaseHeader [(!"firstByte", ValBaseBit 8%nat 3)] true.
+Definition v4 : @ValueBase Info := ValBaseStruct [(!"myHeader", v3)].
+
+Definition pre : arg_assertion := fun args st => args = [v2; ValBaseNull; ValBaseNull].
+Definition post : arg_assertion := fun args st => args = [v4; ValBaseNull; ValBaseNull].
+
+Lemma eval_func : hoare_func ge ge_typ ge_senum inst_m this pre myFundef nil post.
+Proof.
+  intro. intros.
+  
+  assert (inargs = [v2; ValBaseNull; ValBaseNull]) by auto; subst inargs.
+  inversion H0.
+    auto.
+  solve [repeat econstructor].
+Defined.
+
+End Experiment3.
+
+End Experiment3. *)
 
 (* Compute (Ops.Ops.eval_binary_op Plus (ValBaseInteger 2)
         (ValBaseBit 8 1)).
