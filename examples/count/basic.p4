@@ -14,7 +14,7 @@ header myHeader_t {
 }
 
 struct metadata {
-    /* empty */
+    bit<4> counter;
 }
 
 struct headers {
@@ -45,18 +45,24 @@ control MyIngress(inout headers hdr,
                   inout metadata meta,
                   inout standard_metadata_t standard_metadata) {
 
-    counter(2, CounterType.packets_and_bytes) myCounter;
+    // counter(32w1, CounterType.packets_and_bytes) myCounter;
+    
+    register<bit<4>>(32w1) myCounter;
 
     action drop() {
-        mark_to_drop(standard_metadata);
-        myCounter.count((bit<32>) hdr.myHeader.firstBit);
+        // mark_to_drop(standard_metadata);
+
+        standard_metadata.egress_spec = 0;
+        myCounter.read(meta.counter, 1);
+        myCounter.write(1, meta.counter+1);
     }
-    
+
     action do_forward(egressSpec_t port) {
         standard_metadata.egress_spec = port;
-        myCounter.count((bit<32>) hdr.myHeader.firstBit);
+        myCounter.read(meta.counter, 1);
+        myCounter.write(1, meta.counter+1);
     }
-    
+
     table forward {
         key = {
             hdr.myHeader.firstBit: exact;
@@ -67,8 +73,11 @@ control MyIngress(inout headers hdr,
         }
         size = 2;
         default_action = drop();
+        const entries = {
+            (1) : do_forward(48);
+        }
     }
-    
+
     apply {
         if (hdr.myHeader.isValid()) {
             forward.apply();
