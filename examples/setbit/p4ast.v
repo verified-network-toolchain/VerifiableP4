@@ -116,7 +116,7 @@ Definition counter := DeclExternObject NoInfo
                 {| stags := NoInfo; str := "size" |});
            (MkParameter false Directionless
                 (TypTypeName
-                 (BareName {| stags := NoInfo; str := "CounterType" |}))
+                 (BareName {| stags := NoInfo; str := "CounterType" |})) 
                 None {| stags := NoInfo; str := "type" |})]);
      (ProtoMethod NoInfo TypVoid {| stags := NoInfo; str := "count" |} nil
           [(MkParameter false In (TypBit 32) None
@@ -127,7 +127,7 @@ Definition direct_counter := DeclExternObject NoInfo
     [(ProtoConstructor NoInfo {| stags := NoInfo; str := "direct_counter" |}
           [(MkParameter false Directionless
                 (TypTypeName
-                 (BareName {| stags := NoInfo; str := "CounterType" |}))
+                 (BareName {| stags := NoInfo; str := "CounterType" |})) 
                 None {| stags := NoInfo; str := "type" |})]);
      (ProtoMethod NoInfo TypVoid {| stags := NoInfo; str := "count" |} nil
           nil)].
@@ -139,7 +139,7 @@ Definition meter := DeclExternObject NoInfo
                 {| stags := NoInfo; str := "size" |});
            (MkParameter false Directionless
                 (TypTypeName
-                 (BareName {| stags := NoInfo; str := "MeterType" |}))
+                 (BareName {| stags := NoInfo; str := "MeterType" |})) 
                 None {| stags := NoInfo; str := "type" |})]);
      (ProtoMethod NoInfo TypVoid
           {| stags := NoInfo; str := "execute_meter" |}
@@ -156,7 +156,7 @@ Definition direct_meter := DeclExternObject NoInfo
     [(ProtoConstructor NoInfo {| stags := NoInfo; str := "direct_meter" |}
           [(MkParameter false Directionless
                 (TypTypeName
-                 (BareName {| stags := NoInfo; str := "MeterType" |}))
+                 (BareName {| stags := NoInfo; str := "MeterType" |})) 
                 None {| stags := NoInfo; str := "type" |})]);
      (ProtoMethod NoInfo TypVoid {| stags := NoInfo; str := "read" |} nil
           [(MkParameter false Out
@@ -192,13 +192,13 @@ Definition random'result'lo'hi := DeclExternFunction NoInfo TypVoid
     {| stags := NoInfo; str := "random" |}
     [{| stags := NoInfo; str := "T6" |}]
     [(MkParameter false Out
-          (TypTypeName (BareName {| stags := NoInfo; str := "T6" |}))
+          (TypTypeName (BareName {| stags := NoInfo; str := "T6" |})) 
           None {| stags := NoInfo; str := "result" |});
      (MkParameter false In
-          (TypTypeName (BareName {| stags := NoInfo; str := "T6" |}))
+          (TypTypeName (BareName {| stags := NoInfo; str := "T6" |})) 
           None {| stags := NoInfo; str := "lo" |});
      (MkParameter false In
-          (TypTypeName (BareName {| stags := NoInfo; str := "T6" |}))
+          (TypTypeName (BareName {| stags := NoInfo; str := "T6" |})) 
           None {| stags := NoInfo; str := "hi" |})].
 
 Definition digest'receiver'data := DeclExternFunction NoInfo TypVoid
@@ -207,7 +207,7 @@ Definition digest'receiver'data := DeclExternFunction NoInfo TypVoid
     [(MkParameter false In (TypBit 32) None
           {| stags := NoInfo; str := "receiver" |});
      (MkParameter false In
-          (TypTypeName (BareName {| stags := NoInfo; str := "T7" |}))
+          (TypTypeName (BareName {| stags := NoInfo; str := "T7" |})) 
           None {| stags := NoInfo; str := "data" |})].
 
 Definition HashAlgorithm := DeclEnum NoInfo
@@ -236,20 +236,20 @@ Definition hash'result'algo'base'data'max := DeclExternFunction NoInfo
     [{| stags := NoInfo; str := "O" |}; {| stags := NoInfo; str := "T8" |};
      {| stags := NoInfo; str := "D" |}; {| stags := NoInfo; str := "M" |}]
     [(MkParameter false Out
-          (TypTypeName (BareName {| stags := NoInfo; str := "O" |}))
+          (TypTypeName (BareName {| stags := NoInfo; str := "O" |})) 
           None {| stags := NoInfo; str := "result" |});
      (MkParameter false In
           (TypTypeName
-           (BareName {| stags := NoInfo; str := "HashAlgorithm" |}))
+           (BareName {| stags := NoInfo; str := "HashAlgorithm" |})) 
           None {| stags := NoInfo; str := "algo" |});
      (MkParameter false In
-          (TypTypeName (BareName {| stags := NoInfo; str := "T8" |}))
+          (TypTypeName (BareName {| stags := NoInfo; str := "T8" |})) 
           None {| stags := NoInfo; str := "base" |});
      (MkParameter false In
-          (TypTypeName (BareName {| stags := NoInfo; str := "D" |}))
+          (TypTypeName (BareName {| stags := NoInfo; str := "D" |})) 
           None {| stags := NoInfo; str := "data" |});
      (MkParameter false In
-          (TypTypeName (BareName {| stags := NoInfo; str := "M" |}))
+          (TypTypeName (BareName {| stags := NoInfo; str := "M" |})) 
           None {| stags := NoInfo; str := "max" |})].
 
 Definition action_selector := DeclExternObject NoInfo
@@ -285,14 +285,14 @@ Definition verify_checksum'condition'data'checksum'algo := DeclExternFunction
     [(MkParameter false In TypBool None
           {| stags := NoInfo; str := "condition" |});
      (MkParameter false In
-          (TypTypeName (BareName {| stags := NoInfo; str := "T10" |}))
+          (TypTypeName (BareName {| stags := NoInfo; str := "T10" |})) 
           None {| stags := NoInfo; str := "data" |});
      (MkParameter false InOut
-          (TypTypeName (BareName {| stags := NoInfo; str := "O11" |}))
+          (TypTypeName (BareName {| stags := NoInfo; str := "O11" |})) 
           None {| stags := NoInfo; str := "checksum" |});
      (MkParameter false Directionless
           (TypTypeName
-           (BareName {| stags := NoInfo; str := "HashAlgorithm" |}))
+           (BareName {| stags := NoInfo; str := "HashAlgorithm" |})) 
           None {| stags := NoInfo; str := "algo" |})].
 
 Definition update_checksum'condition'data'checksum'algo := DeclExternFunction
@@ -302,14 +302,14 @@ Definition update_checksum'condition'data'checksum'algo := DeclExternFunction
     [(MkParameter false In TypBool None
           {| stags := NoInfo; str := "condition" |});
      (MkParameter false In
-          (TypTypeName (BareName {| stags := NoInfo; str := "T12" |}))
+          (TypTypeName (BareName {| stags := NoInfo; str := "T12" |})) 
           None {| stags := NoInfo; str := "data" |});
      (MkParameter false InOut
-          (TypTypeName (BareName {| stags := NoInfo; str := "O13" |}))
+          (TypTypeName (BareName {| stags := NoInfo; str := "O13" |})) 
           None {| stags := NoInfo; str := "checksum" |});
      (MkParameter false Directionless
           (TypTypeName
-           (BareName {| stags := NoInfo; str := "HashAlgorithm" |}))
+           (BareName {| stags := NoInfo; str := "HashAlgorithm" |})) 
           None {| stags := NoInfo; str := "algo" |})].
 
 Definition verify_checksum_with_payload'condition'data'checksum'algo := DeclExternFunction
@@ -320,14 +320,14 @@ Definition verify_checksum_with_payload'condition'data'checksum'algo := DeclExte
     [(MkParameter false In TypBool None
           {| stags := NoInfo; str := "condition" |});
      (MkParameter false In
-          (TypTypeName (BareName {| stags := NoInfo; str := "T14" |}))
+          (TypTypeName (BareName {| stags := NoInfo; str := "T14" |})) 
           None {| stags := NoInfo; str := "data" |});
      (MkParameter false InOut
-          (TypTypeName (BareName {| stags := NoInfo; str := "O15" |}))
+          (TypTypeName (BareName {| stags := NoInfo; str := "O15" |})) 
           None {| stags := NoInfo; str := "checksum" |});
      (MkParameter false Directionless
           (TypTypeName
-           (BareName {| stags := NoInfo; str := "HashAlgorithm" |}))
+           (BareName {| stags := NoInfo; str := "HashAlgorithm" |})) 
           None {| stags := NoInfo; str := "algo" |})].
 
 Definition update_checksum_with_payload'condition'data'checksum'algo := DeclExternFunction
@@ -338,28 +338,28 @@ Definition update_checksum_with_payload'condition'data'checksum'algo := DeclExte
     [(MkParameter false In TypBool None
           {| stags := NoInfo; str := "condition" |});
      (MkParameter false In
-          (TypTypeName (BareName {| stags := NoInfo; str := "T16" |}))
+          (TypTypeName (BareName {| stags := NoInfo; str := "T16" |})) 
           None {| stags := NoInfo; str := "data" |});
      (MkParameter false InOut
-          (TypTypeName (BareName {| stags := NoInfo; str := "O17" |}))
+          (TypTypeName (BareName {| stags := NoInfo; str := "O17" |})) 
           None {| stags := NoInfo; str := "checksum" |});
      (MkParameter false Directionless
           (TypTypeName
-           (BareName {| stags := NoInfo; str := "HashAlgorithm" |}))
+           (BareName {| stags := NoInfo; str := "HashAlgorithm" |})) 
           None {| stags := NoInfo; str := "algo" |})].
 
 Definition resubmit'data := DeclExternFunction NoInfo TypVoid
     {| stags := NoInfo; str := "resubmit" |}
     [{| stags := NoInfo; str := "T18" |}]
     [(MkParameter false In
-          (TypTypeName (BareName {| stags := NoInfo; str := "T18" |}))
+          (TypTypeName (BareName {| stags := NoInfo; str := "T18" |})) 
           None {| stags := NoInfo; str := "data" |})].
 
 Definition recirculate'data := DeclExternFunction NoInfo TypVoid
     {| stags := NoInfo; str := "recirculate" |}
     [{| stags := NoInfo; str := "T19" |}]
     [(MkParameter false In
-          (TypTypeName (BareName {| stags := NoInfo; str := "T19" |}))
+          (TypTypeName (BareName {| stags := NoInfo; str := "T19" |})) 
           None {| stags := NoInfo; str := "data" |})].
 
 Definition clone'type'session := DeclExternFunction NoInfo TypVoid
@@ -379,7 +379,7 @@ Definition clone3'type'session'data := DeclExternFunction NoInfo TypVoid
      (MkParameter false In (TypBit 32) None
           {| stags := NoInfo; str := "session" |});
      (MkParameter false In
-          (TypTypeName (BareName {| stags := NoInfo; str := "T20" |}))
+          (TypTypeName (BareName {| stags := NoInfo; str := "T20" |})) 
           None {| stags := NoInfo; str := "data" |})].
 
 Definition truncate'length := DeclExternFunction NoInfo TypVoid
@@ -404,10 +404,10 @@ Definition Parser := DeclParserType NoInfo
           (TypTypeName (BareName {| stags := NoInfo; str := "packet_in" |}))
           None {| stags := NoInfo; str := "b" |});
      (MkParameter false Out
-          (TypTypeName (BareName {| stags := NoInfo; str := "H" |}))
+          (TypTypeName (BareName {| stags := NoInfo; str := "H" |})) 
           None {| stags := NoInfo; str := "parsedHdr" |});
      (MkParameter false InOut
-          (TypTypeName (BareName {| stags := NoInfo; str := "M21" |}))
+          (TypTypeName (BareName {| stags := NoInfo; str := "M21" |})) 
           None {| stags := NoInfo; str := "meta" |});
      (MkParameter false InOut
           (TypTypeName
@@ -419,10 +419,10 @@ Definition VerifyChecksum := DeclControlType NoInfo
     [{| stags := NoInfo; str := "H22" |};
      {| stags := NoInfo; str := "M23" |}]
     [(MkParameter false InOut
-          (TypTypeName (BareName {| stags := NoInfo; str := "H22" |}))
+          (TypTypeName (BareName {| stags := NoInfo; str := "H22" |})) 
           None {| stags := NoInfo; str := "hdr" |});
      (MkParameter false InOut
-          (TypTypeName (BareName {| stags := NoInfo; str := "M23" |}))
+          (TypTypeName (BareName {| stags := NoInfo; str := "M23" |})) 
           None {| stags := NoInfo; str := "meta" |})].
 
 Definition Ingress := DeclControlType NoInfo
@@ -430,10 +430,10 @@ Definition Ingress := DeclControlType NoInfo
     [{| stags := NoInfo; str := "H24" |};
      {| stags := NoInfo; str := "M25" |}]
     [(MkParameter false InOut
-          (TypTypeName (BareName {| stags := NoInfo; str := "H24" |}))
+          (TypTypeName (BareName {| stags := NoInfo; str := "H24" |})) 
           None {| stags := NoInfo; str := "hdr" |});
      (MkParameter false InOut
-          (TypTypeName (BareName {| stags := NoInfo; str := "M25" |}))
+          (TypTypeName (BareName {| stags := NoInfo; str := "M25" |})) 
           None {| stags := NoInfo; str := "meta" |});
      (MkParameter false InOut
           (TypTypeName
@@ -445,10 +445,10 @@ Definition Egress := DeclControlType NoInfo
     [{| stags := NoInfo; str := "H26" |};
      {| stags := NoInfo; str := "M27" |}]
     [(MkParameter false InOut
-          (TypTypeName (BareName {| stags := NoInfo; str := "H26" |}))
+          (TypTypeName (BareName {| stags := NoInfo; str := "H26" |})) 
           None {| stags := NoInfo; str := "hdr" |});
      (MkParameter false InOut
-          (TypTypeName (BareName {| stags := NoInfo; str := "M27" |}))
+          (TypTypeName (BareName {| stags := NoInfo; str := "M27" |})) 
           None {| stags := NoInfo; str := "meta" |});
      (MkParameter false InOut
           (TypTypeName
@@ -460,10 +460,10 @@ Definition ComputeChecksum := DeclControlType NoInfo
     [{| stags := NoInfo; str := "H28" |};
      {| stags := NoInfo; str := "M29" |}]
     [(MkParameter false InOut
-          (TypTypeName (BareName {| stags := NoInfo; str := "H28" |}))
+          (TypTypeName (BareName {| stags := NoInfo; str := "H28" |})) 
           None {| stags := NoInfo; str := "hdr" |});
      (MkParameter false InOut
-          (TypTypeName (BareName {| stags := NoInfo; str := "M29" |}))
+          (TypTypeName (BareName {| stags := NoInfo; str := "M29" |})) 
           None {| stags := NoInfo; str := "meta" |})].
 
 Definition Deparser := DeclControlType NoInfo
@@ -473,7 +473,7 @@ Definition Deparser := DeclControlType NoInfo
           (TypTypeName (BareName {| stags := NoInfo; str := "packet_out" |}))
           None {| stags := NoInfo; str := "b" |});
      (MkParameter false In
-          (TypTypeName (BareName {| stags := NoInfo; str := "H30" |}))
+          (TypTypeName (BareName {| stags := NoInfo; str := "H30" |})) 
           None {| stags := NoInfo; str := "hdr" |})].
 
 Definition V1Switch := DeclPackageType NoInfo
@@ -1057,3 +1057,5 @@ Definition prog := Program
      Parser; VerifyChecksum; Ingress; Egress; ComputeChecksum; Deparser;
      V1Switch; myHeader_t; metadata; headers; MyParser; Increment; MyIngress;
      MyEgress; MyDeparser; MyVerifyChecksum; MyComputeChecksum; main].
+
+
