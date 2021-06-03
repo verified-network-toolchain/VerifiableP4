@@ -1,4 +1,4 @@
-Require Import Petr4.P4defs.
+Require Import Poulet4.P4defs.
 Open Scope string_scope.
 
 Import ListNotations.
@@ -551,8 +551,8 @@ Definition headers := DeclStruct NoInfo
     {| stags := NoInfo; str := "headers" |}
     [(MkDeclarationField NoInfo
           (TypHeader
-           [(MkFieldType {| stags := NoInfo; str := "rw" |} (TypBit 8));
-            (MkFieldType {| stags := NoInfo; str := "data" |} (TypBit 16))])
+           [( {| stags := NoInfo; str := "rw" |}, (TypBit 8) );
+            ( {| stags := NoInfo; str := "data" |}, (TypBit 16) )])
           {| stags := NoInfo; str := "myHeader" |})].
 
 Definition MyParser := DeclParser NoInfo
@@ -579,7 +579,8 @@ Definition MyParser := DeclParser NoInfo
                                (MkExpression NoInfo
                                     (ExpName
                                      (BareName
-                                      {| stags := NoInfo; str := "packet" |}))
+                                      {| stags := NoInfo; str := "packet" |})
+                                     NoLocator)
                                     (TypTypeName
                                      (BareName
                                       {| stags := NoInfo;
@@ -597,28 +598,26 @@ Definition MyParser := DeclParser NoInfo
                                       {| stags := NoInfo; str := "hdr" |})]
                                 FunExtern TypVoid)) Directionless)
                      [(TypHeader
-                       [(MkFieldType {| stags := NoInfo; str := "rw" |}
-                             (TypBit 8));
-                        (MkFieldType {| stags := NoInfo; str := "data" |}
-                             (TypBit 16))])]
+                       [( {| stags := NoInfo; str := "rw" |}, (TypBit 8) );
+                        ( {| stags := NoInfo; str := "data" |}, (TypBit 16) )])]
                      [(Some
                        (MkExpression NoInfo
                             (ExpExpressionMember
                                  (MkExpression NoInfo
                                       (ExpName
                                        (BareName
-                                        {| stags := NoInfo; str := "hdr" |}))
+                                        {| stags := NoInfo; str := "hdr" |})
+                                       NoLocator)
                                       (TypTypeName
                                        (BareName
                                         {| stags := NoInfo;
                                            str := "headers" |})) Out)
                                  {| stags := NoInfo; str := "myHeader" |})
                             (TypHeader
-                             [(MkFieldType {| stags := NoInfo; str := "rw" |}
-                                   (TypBit 8));
-                              (MkFieldType
-                                   {| stags := NoInfo; str := "data" |}
-                                   (TypBit 16))]) Directionless))]) StmUnit)]
+                             [( {| stags := NoInfo; str := "rw" |},
+                                (TypBit 8) );
+                              ( {| stags := NoInfo; str := "data" |},
+                                (TypBit 16) )]) Directionless))]) StmUnit)]
           (ParserDirect NoInfo {| stags := NoInfo; str := "accept" |}))].
 
 Definition bloom0 := DeclInstantiation NoInfo
@@ -626,39 +625,30 @@ Definition bloom0 := DeclInstantiation NoInfo
          (TypTypeName (BareName {| stags := NoInfo; str := "register" |}))
          [(TypBit 1)])
     [(MkExpression NoInfo
-          (ExpCast (TypBit 32)
-               (MkExpression NoInfo
-                    (ExpInt
-                     {| itags := NoInfo; value := 1024;
-                        width_signed := None |}) TypInteger Directionless))
-          (TypBit 32) Directionless)] {| stags := NoInfo; str := "bloom0" |}
-    None.
+          (ExpInt
+           {| itags := NoInfo; value := 1024;
+              width_signed := (Some ( 32, false )) |}) (TypBit 32)
+          Directionless)] {| stags := NoInfo; str := "bloom0" |} None.
 
 Definition bloom1 := DeclInstantiation NoInfo
     (TypSpecializedType
          (TypTypeName (BareName {| stags := NoInfo; str := "register" |}))
          [(TypBit 1)])
     [(MkExpression NoInfo
-          (ExpCast (TypBit 32)
-               (MkExpression NoInfo
-                    (ExpInt
-                     {| itags := NoInfo; value := 1024;
-                        width_signed := None |}) TypInteger Directionless))
-          (TypBit 32) Directionless)] {| stags := NoInfo; str := "bloom1" |}
-    None.
+          (ExpInt
+           {| itags := NoInfo; value := 1024;
+              width_signed := (Some ( 32, false )) |}) (TypBit 32)
+          Directionless)] {| stags := NoInfo; str := "bloom1" |} None.
 
 Definition bloom2 := DeclInstantiation NoInfo
     (TypSpecializedType
          (TypTypeName (BareName {| stags := NoInfo; str := "register" |}))
          [(TypBit 1)])
     [(MkExpression NoInfo
-          (ExpCast (TypBit 32)
-               (MkExpression NoInfo
-                    (ExpInt
-                     {| itags := NoInfo; value := 1024;
-                        width_signed := None |}) TypInteger Directionless))
-          (TypBit 32) Directionless)] {| stags := NoInfo; str := "bloom2" |}
-    None.
+          (ExpInt
+           {| itags := NoInfo; value := 1024;
+              width_signed := (Some ( 32, false )) |}) (TypBit 32)
+          Directionless)] {| stags := NoInfo; str := "bloom2" |} None.
 
 Definition Add := DeclControl NoInfo {| stags := NoInfo; str := "Add" |} nil
     [(MkParameter false InOut
@@ -673,7 +663,8 @@ Definition Add := DeclControl NoInfo {| stags := NoInfo; str := "Add" |} nil
               (StatMethodCall
                    (MkExpression NoInfo
                         (ExpName
-                         (BareName {| stags := NoInfo; str := "hash" |}))
+                         (BareName {| stags := NoInfo; str := "hash" |})
+                         NoLocator)
                         (TypFunction
                          (MkFunctionType
                               [{| stags := NoInfo; str := "O" |};
@@ -719,7 +710,10 @@ Definition Add := DeclControl NoInfo {| stags := NoInfo; str := "Add" |} nil
                                (MkExpression NoInfo
                                     (ExpName
                                      (BareName
-                                      {| stags := NoInfo; str := "meta" |}))
+                                      {| stags := NoInfo; str := "meta" |})
+                                     (LInstance
+                                          [{| stags := NoInfo;
+                                              str := "meta" |}]))
                                     (TypTypeName
                                      (BareName
                                       {| stags := NoInfo;
@@ -762,7 +756,10 @@ Definition Add := DeclControl NoInfo {| stags := NoInfo; str := "Add" |} nil
                                                      (ExpName
                                                       (BareName
                                                        {| stags := NoInfo;
-                                                          str := "hdr" |}))
+                                                          str := "hdr" |})
+                                                      (LInstance
+                                                           [{| stags := NoInfo;
+                                                               str := "hdr" |}]))
                                                      (TypTypeName
                                                       (BareName
                                                        {| stags := NoInfo;
@@ -771,15 +768,12 @@ Definition Add := DeclControl NoInfo {| stags := NoInfo; str := "Add" |} nil
                                                 {| stags := NoInfo;
                                                    str := "myHeader" |})
                                            (TypHeader
-                                            [(MkFieldType
-                                                  {| stags := NoInfo;
-                                                     str := "rw" |}
-                                                  (TypBit 8));
-                                             (MkFieldType
-                                                  {| stags := NoInfo;
-                                                     str := "data" |}
-                                                  (TypBit 16))])
-                                           Directionless)
+                                            [( {| stags := NoInfo;
+                                                  str := "rw" |},
+                                               (TypBit 8) );
+                                             ( {| stags := NoInfo;
+                                                  str := "data" |},
+                                               (TypBit 16) )]) Directionless)
                                       {| stags := NoInfo; str := "data" |})
                                  (TypBit 16) Directionless);
                             (MkExpression NoInfo
@@ -799,7 +793,8 @@ Definition Add := DeclControl NoInfo {| stags := NoInfo; str := "Add" |} nil
                    (StatMethodCall
                         (MkExpression NoInfo
                              (ExpName
-                              (BareName {| stags := NoInfo; str := "hash" |}))
+                              (BareName {| stags := NoInfo; str := "hash" |})
+                              NoLocator)
                              (TypFunction
                               (MkFunctionType
                                    [{| stags := NoInfo; str := "O" |};
@@ -848,7 +843,10 @@ Definition Add := DeclControl NoInfo {| stags := NoInfo; str := "Add" |} nil
                                          (ExpName
                                           (BareName
                                            {| stags := NoInfo;
-                                              str := "meta" |}))
+                                              str := "meta" |})
+                                          (LInstance
+                                               [{| stags := NoInfo;
+                                                   str := "meta" |}]))
                                          (TypTypeName
                                           (BareName
                                            {| stags := NoInfo;
@@ -894,7 +892,10 @@ Definition Add := DeclControl NoInfo {| stags := NoInfo; str := "Add" |} nil
                                                           (ExpName
                                                            (BareName
                                                             {| stags := NoInfo;
-                                                               str := "hdr" |}))
+                                                               str := "hdr" |})
+                                                           (LInstance
+                                                                [{| stags := NoInfo;
+                                                                    str := "hdr" |}]))
                                                           (TypTypeName
                                                            (BareName
                                                             {| stags := NoInfo;
@@ -903,14 +904,12 @@ Definition Add := DeclControl NoInfo {| stags := NoInfo; str := "Add" |} nil
                                                      {| stags := NoInfo;
                                                         str := "myHeader" |})
                                                 (TypHeader
-                                                 [(MkFieldType
-                                                       {| stags := NoInfo;
-                                                          str := "rw" |}
-                                                       (TypBit 8));
-                                                  (MkFieldType
-                                                       {| stags := NoInfo;
-                                                          str := "data" |}
-                                                       (TypBit 16))])
+                                                 [( {| stags := NoInfo;
+                                                       str := "rw" |},
+                                                    (TypBit 8) );
+                                                  ( {| stags := NoInfo;
+                                                       str := "data" |},
+                                                    (TypBit 16) )])
                                                 Directionless)
                                            {| stags := NoInfo;
                                               str := "data" |}) (TypBit 16)
@@ -934,7 +933,8 @@ Definition Add := DeclControl NoInfo {| stags := NoInfo; str := "Add" |} nil
                              (MkExpression NoInfo
                                   (ExpName
                                    (BareName
-                                    {| stags := NoInfo; str := "hash" |}))
+                                    {| stags := NoInfo; str := "hash" |})
+                                   NoLocator)
                                   (TypFunction
                                    (MkFunctionType
                                         [{| stags := NoInfo; str := "O" |};
@@ -988,7 +988,10 @@ Definition Add := DeclControl NoInfo {| stags := NoInfo; str := "Add" |} nil
                                               (ExpName
                                                (BareName
                                                 {| stags := NoInfo;
-                                                   str := "meta" |}))
+                                                   str := "meta" |})
+                                               (LInstance
+                                                    [{| stags := NoInfo;
+                                                        str := "meta" |}]))
                                               (TypTypeName
                                                (BareName
                                                 {| stags := NoInfo;
@@ -1044,7 +1047,11 @@ Definition Add := DeclControl NoInfo {| stags := NoInfo; str := "Add" |} nil
                                                                (ExpName
                                                                 (BareName
                                                                  {| stags := NoInfo;
-                                                                    str := "hdr" |}))
+                                                                    str := "hdr" |})
+                                                                (LInstance
+                                                                    [{| 
+                                                                    stags := NoInfo;
+                                                                    str := "hdr" |}]))
                                                                (TypTypeName
                                                                 (BareName
                                                                  {| stags := NoInfo;
@@ -1053,14 +1060,12 @@ Definition Add := DeclControl NoInfo {| stags := NoInfo; str := "Add" |} nil
                                                           {| stags := NoInfo;
                                                              str := "myHeader" |})
                                                      (TypHeader
-                                                      [(MkFieldType
-                                                            {| stags := NoInfo;
-                                                               str := "rw" |}
-                                                            (TypBit 8));
-                                                       (MkFieldType
-                                                            {| stags := NoInfo;
-                                                               str := "data" |}
-                                                            (TypBit 16))])
+                                                      [( {| stags := NoInfo;
+                                                            str := "rw" |},
+                                                         (TypBit 8) );
+                                                       ( {| stags := NoInfo;
+                                                            str := "data" |},
+                                                         (TypBit 16) )])
                                                      Directionless)
                                                 {| stags := NoInfo;
                                                    str := "data" |})
@@ -1088,7 +1093,8 @@ Definition Add := DeclControl NoInfo {| stags := NoInfo; str := "Add" |} nil
                                                  (ExpName
                                                   (BareName
                                                    {| stags := NoInfo;
-                                                      str := "bloom0" |}))
+                                                      str := "bloom0" |})
+                                                  NoLocator)
                                                  (TypSpecializedType
                                                       (TypExtern
                                                        {| stags := NoInfo;
@@ -1116,7 +1122,10 @@ Definition Add := DeclControl NoInfo {| stags := NoInfo; str := "Add" |} nil
                                                    (ExpName
                                                     (BareName
                                                      {| stags := NoInfo;
-                                                        str := "meta" |}))
+                                                        str := "meta" |})
+                                                    (LInstance
+                                                         [{| stags := NoInfo;
+                                                             str := "meta" |}]))
                                                    (TypTypeName
                                                     (BareName
                                                      {| stags := NoInfo;
@@ -1145,7 +1154,8 @@ Definition Add := DeclControl NoInfo {| stags := NoInfo; str := "Add" |} nil
                                                       (ExpName
                                                        (BareName
                                                         {| stags := NoInfo;
-                                                           str := "bloom0" |}))
+                                                           str := "bloom0" |})
+                                                       NoLocator)
                                                       (TypSpecializedType
                                                            (TypExtern
                                                             {| stags := NoInfo;
@@ -1173,7 +1183,10 @@ Definition Add := DeclControl NoInfo {| stags := NoInfo; str := "Add" |} nil
                                                         (ExpName
                                                          (BareName
                                                           {| stags := NoInfo;
-                                                             str := "meta" |}))
+                                                             str := "meta" |})
+                                                         (LInstance
+                                                              [{| stags := NoInfo;
+                                                                  str := "meta" |}]))
                                                         (TypTypeName
                                                          (BareName
                                                           {| stags := NoInfo;
@@ -1204,7 +1217,8 @@ Definition Add := DeclControl NoInfo {| stags := NoInfo; str := "Add" |} nil
                                                            (ExpName
                                                             (BareName
                                                              {| stags := NoInfo;
-                                                                str := "bloom0" |}))
+                                                                str := "bloom0" |})
+                                                            NoLocator)
                                                            (TypSpecializedType
                                                                 (TypExtern
                                                                  {| stags := NoInfo;
@@ -1234,7 +1248,11 @@ Definition Add := DeclControl NoInfo {| stags := NoInfo; str := "Add" |} nil
                                                              (ExpName
                                                               (BareName
                                                                {| stags := NoInfo;
-                                                                  str := "meta" |}))
+                                                                  str := "meta" |})
+                                                              (LInstance
+                                                                   [{| 
+                                                                    stags := NoInfo;
+                                                                    str := "meta" |}]))
                                                              (TypTypeName
                                                               (BareName
                                                                {| stags := NoInfo;
@@ -1271,7 +1289,8 @@ Definition Query := DeclControl NoInfo {| stags := NoInfo; str := "Query" |}
               (StatMethodCall
                    (MkExpression NoInfo
                         (ExpName
-                         (BareName {| stags := NoInfo; str := "hash" |}))
+                         (BareName {| stags := NoInfo; str := "hash" |})
+                         NoLocator)
                         (TypFunction
                          (MkFunctionType
                               [{| stags := NoInfo; str := "O" |};
@@ -1317,7 +1336,10 @@ Definition Query := DeclControl NoInfo {| stags := NoInfo; str := "Query" |}
                                (MkExpression NoInfo
                                     (ExpName
                                      (BareName
-                                      {| stags := NoInfo; str := "meta" |}))
+                                      {| stags := NoInfo; str := "meta" |})
+                                     (LInstance
+                                          [{| stags := NoInfo;
+                                              str := "meta" |}]))
                                     (TypTypeName
                                      (BareName
                                       {| stags := NoInfo;
@@ -1360,7 +1382,10 @@ Definition Query := DeclControl NoInfo {| stags := NoInfo; str := "Query" |}
                                                      (ExpName
                                                       (BareName
                                                        {| stags := NoInfo;
-                                                          str := "hdr" |}))
+                                                          str := "hdr" |})
+                                                      (LInstance
+                                                           [{| stags := NoInfo;
+                                                               str := "hdr" |}]))
                                                      (TypTypeName
                                                       (BareName
                                                        {| stags := NoInfo;
@@ -1369,15 +1394,12 @@ Definition Query := DeclControl NoInfo {| stags := NoInfo; str := "Query" |}
                                                 {| stags := NoInfo;
                                                    str := "myHeader" |})
                                            (TypHeader
-                                            [(MkFieldType
-                                                  {| stags := NoInfo;
-                                                     str := "rw" |}
-                                                  (TypBit 8));
-                                             (MkFieldType
-                                                  {| stags := NoInfo;
-                                                     str := "data" |}
-                                                  (TypBit 16))])
-                                           Directionless)
+                                            [( {| stags := NoInfo;
+                                                  str := "rw" |},
+                                               (TypBit 8) );
+                                             ( {| stags := NoInfo;
+                                                  str := "data" |},
+                                               (TypBit 16) )]) Directionless)
                                       {| stags := NoInfo; str := "data" |})
                                  (TypBit 16) Directionless);
                             (MkExpression NoInfo
@@ -1397,7 +1419,8 @@ Definition Query := DeclControl NoInfo {| stags := NoInfo; str := "Query" |}
                    (StatMethodCall
                         (MkExpression NoInfo
                              (ExpName
-                              (BareName {| stags := NoInfo; str := "hash" |}))
+                              (BareName {| stags := NoInfo; str := "hash" |})
+                              NoLocator)
                              (TypFunction
                               (MkFunctionType
                                    [{| stags := NoInfo; str := "O" |};
@@ -1446,7 +1469,10 @@ Definition Query := DeclControl NoInfo {| stags := NoInfo; str := "Query" |}
                                          (ExpName
                                           (BareName
                                            {| stags := NoInfo;
-                                              str := "meta" |}))
+                                              str := "meta" |})
+                                          (LInstance
+                                               [{| stags := NoInfo;
+                                                   str := "meta" |}]))
                                          (TypTypeName
                                           (BareName
                                            {| stags := NoInfo;
@@ -1492,7 +1518,10 @@ Definition Query := DeclControl NoInfo {| stags := NoInfo; str := "Query" |}
                                                           (ExpName
                                                            (BareName
                                                             {| stags := NoInfo;
-                                                               str := "hdr" |}))
+                                                               str := "hdr" |})
+                                                           (LInstance
+                                                                [{| stags := NoInfo;
+                                                                    str := "hdr" |}]))
                                                           (TypTypeName
                                                            (BareName
                                                             {| stags := NoInfo;
@@ -1501,14 +1530,12 @@ Definition Query := DeclControl NoInfo {| stags := NoInfo; str := "Query" |}
                                                      {| stags := NoInfo;
                                                         str := "myHeader" |})
                                                 (TypHeader
-                                                 [(MkFieldType
-                                                       {| stags := NoInfo;
-                                                          str := "rw" |}
-                                                       (TypBit 8));
-                                                  (MkFieldType
-                                                       {| stags := NoInfo;
-                                                          str := "data" |}
-                                                       (TypBit 16))])
+                                                 [( {| stags := NoInfo;
+                                                       str := "rw" |},
+                                                    (TypBit 8) );
+                                                  ( {| stags := NoInfo;
+                                                       str := "data" |},
+                                                    (TypBit 16) )])
                                                 Directionless)
                                            {| stags := NoInfo;
                                               str := "data" |}) (TypBit 16)
@@ -1532,7 +1559,8 @@ Definition Query := DeclControl NoInfo {| stags := NoInfo; str := "Query" |}
                              (MkExpression NoInfo
                                   (ExpName
                                    (BareName
-                                    {| stags := NoInfo; str := "hash" |}))
+                                    {| stags := NoInfo; str := "hash" |})
+                                   NoLocator)
                                   (TypFunction
                                    (MkFunctionType
                                         [{| stags := NoInfo; str := "O" |};
@@ -1586,7 +1614,10 @@ Definition Query := DeclControl NoInfo {| stags := NoInfo; str := "Query" |}
                                               (ExpName
                                                (BareName
                                                 {| stags := NoInfo;
-                                                   str := "meta" |}))
+                                                   str := "meta" |})
+                                               (LInstance
+                                                    [{| stags := NoInfo;
+                                                        str := "meta" |}]))
                                               (TypTypeName
                                                (BareName
                                                 {| stags := NoInfo;
@@ -1642,7 +1673,11 @@ Definition Query := DeclControl NoInfo {| stags := NoInfo; str := "Query" |}
                                                                (ExpName
                                                                 (BareName
                                                                  {| stags := NoInfo;
-                                                                    str := "hdr" |}))
+                                                                    str := "hdr" |})
+                                                                (LInstance
+                                                                    [{| 
+                                                                    stags := NoInfo;
+                                                                    str := "hdr" |}]))
                                                                (TypTypeName
                                                                 (BareName
                                                                  {| stags := NoInfo;
@@ -1651,14 +1686,12 @@ Definition Query := DeclControl NoInfo {| stags := NoInfo; str := "Query" |}
                                                           {| stags := NoInfo;
                                                              str := "myHeader" |})
                                                      (TypHeader
-                                                      [(MkFieldType
-                                                            {| stags := NoInfo;
-                                                               str := "rw" |}
-                                                            (TypBit 8));
-                                                       (MkFieldType
-                                                            {| stags := NoInfo;
-                                                               str := "data" |}
-                                                            (TypBit 16))])
+                                                      [( {| stags := NoInfo;
+                                                            str := "rw" |},
+                                                         (TypBit 8) );
+                                                       ( {| stags := NoInfo;
+                                                            str := "data" |},
+                                                         (TypBit 16) )])
                                                      Directionless)
                                                 {| stags := NoInfo;
                                                    str := "data" |})
@@ -1686,7 +1719,8 @@ Definition Query := DeclControl NoInfo {| stags := NoInfo; str := "Query" |}
                                                  (ExpName
                                                   (BareName
                                                    {| stags := NoInfo;
-                                                      str := "bloom0" |}))
+                                                      str := "bloom0" |})
+                                                  NoLocator)
                                                  (TypSpecializedType
                                                       (TypExtern
                                                        {| stags := NoInfo;
@@ -1714,7 +1748,10 @@ Definition Query := DeclControl NoInfo {| stags := NoInfo; str := "Query" |}
                                                    (ExpName
                                                     (BareName
                                                      {| stags := NoInfo;
-                                                        str := "meta" |}))
+                                                        str := "meta" |})
+                                                    (LInstance
+                                                         [{| stags := NoInfo;
+                                                             str := "meta" |}]))
                                                    (TypTypeName
                                                     (BareName
                                                      {| stags := NoInfo;
@@ -1730,7 +1767,10 @@ Definition Query := DeclControl NoInfo {| stags := NoInfo; str := "Query" |}
                                                    (ExpName
                                                     (BareName
                                                      {| stags := NoInfo;
-                                                        str := "meta" |}))
+                                                        str := "meta" |})
+                                                    (LInstance
+                                                         [{| stags := NoInfo;
+                                                             str := "meta" |}]))
                                                    (TypTypeName
                                                     (BareName
                                                      {| stags := NoInfo;
@@ -1749,7 +1789,8 @@ Definition Query := DeclControl NoInfo {| stags := NoInfo; str := "Query" |}
                                                       (ExpName
                                                        (BareName
                                                         {| stags := NoInfo;
-                                                           str := "bloom0" |}))
+                                                           str := "bloom0" |})
+                                                       NoLocator)
                                                       (TypSpecializedType
                                                            (TypExtern
                                                             {| stags := NoInfo;
@@ -1777,7 +1818,10 @@ Definition Query := DeclControl NoInfo {| stags := NoInfo; str := "Query" |}
                                                         (ExpName
                                                          (BareName
                                                           {| stags := NoInfo;
-                                                             str := "meta" |}))
+                                                             str := "meta" |})
+                                                         (LInstance
+                                                              [{| stags := NoInfo;
+                                                                  str := "meta" |}]))
                                                         (TypTypeName
                                                          (BareName
                                                           {| stags := NoInfo;
@@ -1793,7 +1837,10 @@ Definition Query := DeclControl NoInfo {| stags := NoInfo; str := "Query" |}
                                                         (ExpName
                                                          (BareName
                                                           {| stags := NoInfo;
-                                                             str := "meta" |}))
+                                                             str := "meta" |})
+                                                         (LInstance
+                                                              [{| stags := NoInfo;
+                                                                  str := "meta" |}]))
                                                         (TypTypeName
                                                          (BareName
                                                           {| stags := NoInfo;
@@ -1812,7 +1859,8 @@ Definition Query := DeclControl NoInfo {| stags := NoInfo; str := "Query" |}
                                                            (ExpName
                                                             (BareName
                                                              {| stags := NoInfo;
-                                                                str := "bloom0" |}))
+                                                                str := "bloom0" |})
+                                                            NoLocator)
                                                            (TypSpecializedType
                                                                 (TypExtern
                                                                  {| stags := NoInfo;
@@ -1842,7 +1890,11 @@ Definition Query := DeclControl NoInfo {| stags := NoInfo; str := "Query" |}
                                                              (ExpName
                                                               (BareName
                                                                {| stags := NoInfo;
-                                                                  str := "meta" |}))
+                                                                  str := "meta" |})
+                                                              (LInstance
+                                                                   [{| 
+                                                                    stags := NoInfo;
+                                                                    str := "meta" |}]))
                                                              (TypTypeName
                                                               (BareName
                                                                {| stags := NoInfo;
@@ -1858,7 +1910,11 @@ Definition Query := DeclControl NoInfo {| stags := NoInfo; str := "Query" |}
                                                              (ExpName
                                                               (BareName
                                                                {| stags := NoInfo;
-                                                                  str := "meta" |}))
+                                                                  str := "meta" |})
+                                                              (LInstance
+                                                                   [{| 
+                                                                    stags := NoInfo;
+                                                                    str := "meta" |}]))
                                                              (TypTypeName
                                                               (BareName
                                                                {| stags := NoInfo;
@@ -1882,7 +1938,11 @@ Definition Query := DeclControl NoInfo {| stags := NoInfo; str := "Query" |}
                                                                     (BareName
                                                                     {| 
                                                                     stags := NoInfo;
-                                                                    str := "hdr" |}))
+                                                                    str := "hdr" |})
+                                                                    (LInstance
+                                                                    [{| 
+                                                                    stags := NoInfo;
+                                                                    str := "hdr" |}]))
                                                                     (TypTypeName
                                                                     (BareName
                                                                     {| 
@@ -1893,16 +1953,17 @@ Definition Query := DeclControl NoInfo {| stags := NoInfo; str := "Query" |}
                                                                     stags := NoInfo;
                                                                     str := "myHeader" |})
                                                                 (TypHeader
-                                                                 [(MkFieldType
-                                                                    {| stags := NoInfo;
-                                                                    str := "rw" |}
-                                                                    (TypBit
-                                                                    8));
-                                                                  (MkFieldType
-                                                                    {| stags := NoInfo;
-                                                                    str := "data" |}
-                                                                    (TypBit
-                                                                    16))])
+                                                                 [( {| 
+                                                                    stags := NoInfo;
+                                                                    str := "rw" |},
+                                                                    (
+                                                                    TypBit 8) );
+                                                                  ( {| 
+                                                                    stags := NoInfo;
+                                                                    str := "data" |},
+                                                                    (
+                                                                    TypBit
+                                                                    16) )])
                                                                 Directionless)
                                                            {| stags := NoInfo;
                                                               str := "rw" |})
@@ -1930,7 +1991,11 @@ Definition Query := DeclControl NoInfo {| stags := NoInfo; str := "Query" |}
                                                                     (BareName
                                                                     {| 
                                                                     stags := NoInfo;
-                                                                    str := "meta" |}))
+                                                                    str := "meta" |})
+                                                                    (LInstance
+                                                                    [{| 
+                                                                    stags := NoInfo;
+                                                                    str := "meta" |}]))
                                                                     (TypTypeName
                                                                     (BareName
                                                                     {| 
@@ -1951,7 +2016,11 @@ Definition Query := DeclControl NoInfo {| stags := NoInfo; str := "Query" |}
                                                                     (BareName
                                                                     {| 
                                                                     stags := NoInfo;
-                                                                    str := "meta" |}))
+                                                                    str := "meta" |})
+                                                                    (LInstance
+                                                                    [{| 
+                                                                    stags := NoInfo;
+                                                                    str := "meta" |}]))
                                                                     (TypTypeName
                                                                     (BareName
                                                                     {| 
@@ -1976,7 +2045,11 @@ Definition Query := DeclControl NoInfo {| stags := NoInfo; str := "Query" |}
                                                                     (BareName
                                                                     {| 
                                                                     stags := NoInfo;
-                                                                    str := "meta" |}))
+                                                                    str := "meta" |})
+                                                                    (LInstance
+                                                                    [{| 
+                                                                    stags := NoInfo;
+                                                                    str := "meta" |}]))
                                                                     (TypTypeName
                                                                     (BareName
                                                                     {| 
@@ -2021,7 +2094,10 @@ Definition MyIngress := DeclControl NoInfo
                                         (ExpName
                                          (BareName
                                           {| stags := NoInfo;
-                                             str := "standard_metadata" |}))
+                                             str := "standard_metadata" |})
+                                         (LInstance
+                                              [{| stags := NoInfo;
+                                                  str := "standard_metadata" |}]))
                                         (TypTypeName
                                          (BareName
                                           {| stags := NoInfo;
@@ -2033,7 +2109,11 @@ Definition MyIngress := DeclControl NoInfo
                          (MkExpression NoInfo
                               (ExpName
                                (BareName
-                                {| stags := NoInfo; str := "port" |}))
+                                {| stags := NoInfo; str := "port" |})
+                               (LInstance
+                                    [{| stags := NoInfo;
+                                        str := "do_forward" |};
+                                     {| stags := NoInfo; str := "port" |}]))
                               (TypTypeName
                                (BareName
                                 {| stags := NoInfo; str := "egressSpec_t" |}))
@@ -2051,7 +2131,10 @@ Definition MyIngress := DeclControl NoInfo
                                                       (ExpName
                                                        (BareName
                                                         {| stags := NoInfo;
-                                                           str := "hdr" |}))
+                                                           str := "hdr" |})
+                                                       (LInstance
+                                                            [{| stags := NoInfo;
+                                                                str := "hdr" |}]))
                                                       (TypTypeName
                                                        (BareName
                                                         {| stags := NoInfo;
@@ -2060,14 +2143,12 @@ Definition MyIngress := DeclControl NoInfo
                                                  {| stags := NoInfo;
                                                     str := "myHeader" |})
                                             (TypHeader
-                                             [(MkFieldType
-                                                   {| stags := NoInfo;
-                                                      str := "rw" |}
-                                                   (TypBit 8));
-                                              (MkFieldType
-                                                   {| stags := NoInfo;
-                                                      str := "data" |}
-                                                   (TypBit 16))])
+                                             [( {| stags := NoInfo;
+                                                   str := "rw" |},
+                                                (TypBit 8) );
+                                              ( {| stags := NoInfo;
+                                                   str := "data" |},
+                                                (TypBit 16) )])
                                             Directionless)
                                        {| stags := NoInfo;
                                           str := "isValid" |})
@@ -2084,7 +2165,10 @@ Definition MyIngress := DeclControl NoInfo
                                              (ExpName
                                               (BareName
                                                {| stags := NoInfo;
-                                                  str := "do_forward" |}))
+                                                  str := "do_forward" |})
+                                              (LInstance
+                                                   [{| stags := NoInfo;
+                                                       str := "do_forward" |}]))
                                              (TypAction nil
                                                   [(MkParameter false
                                                         Directionless
@@ -2125,7 +2209,11 @@ Definition MyIngress := DeclControl NoInfo
                                                                     (BareName
                                                                     {| 
                                                                     stags := NoInfo;
-                                                                    str := "hdr" |}))
+                                                                    str := "hdr" |})
+                                                                    (LInstance
+                                                                    [{| 
+                                                                    stags := NoInfo;
+                                                                    str := "hdr" |}]))
                                                                     (TypTypeName
                                                                     (BareName
                                                                     {| 
@@ -2135,17 +2223,19 @@ Definition MyIngress := DeclControl NoInfo
                                                                     {| stags := NoInfo;
                                                                     str := "myHeader" |})
                                                                     (TypHeader
-                                                                    [(
-                                                                    MkFieldType
-                                                                    {| stags := NoInfo;
-                                                                    str := "rw" |}
-                                                                    (TypBit
-                                                                    8));
-                                                                    (MkFieldType
-                                                                    {| stags := NoInfo;
-                                                                    str := "data" |}
-                                                                    (TypBit
-                                                                    16))])
+                                                                    [( 
+                                                                    {| 
+                                                                    stags := NoInfo;
+                                                                    str := "rw" |},
+                                                                    (
+                                                                    TypBit 8) );
+                                                                    ( 
+                                                                    {| 
+                                                                    stags := NoInfo;
+                                                                    str := "data" |},
+                                                                    (
+                                                                    TypBit
+                                                                    16) )])
                                                                     Directionless)
                                                                    {| 
                                                                    stags := NoInfo;
@@ -2184,7 +2274,11 @@ Definition MyIngress := DeclControl NoInfo
                                                                     (BareName
                                                                     {| 
                                                                     stags := NoInfo;
-                                                                    str := "hdr" |}))
+                                                                    str := "hdr" |})
+                                                                    (LInstance
+                                                                    [{| 
+                                                                    stags := NoInfo;
+                                                                    str := "hdr" |}]))
                                                                     (TypTypeName
                                                                     (BareName
                                                                     {| 
@@ -2197,7 +2291,11 @@ Definition MyIngress := DeclControl NoInfo
                                                                     (BareName
                                                                     {| 
                                                                     stags := NoInfo;
-                                                                    str := "meta" |}))
+                                                                    str := "meta" |})
+                                                                    (LInstance
+                                                                    [{| 
+                                                                    stags := NoInfo;
+                                                                    str := "meta" |}]))
                                                                     (TypTypeName
                                                                     (BareName
                                                                     {| 
@@ -2225,7 +2323,11 @@ Definition MyIngress := DeclControl NoInfo
                                                                     (BareName
                                                                     {| 
                                                                     stags := NoInfo;
-                                                                    str := "hdr" |}))
+                                                                    str := "hdr" |})
+                                                                    (LInstance
+                                                                    [{| 
+                                                                    stags := NoInfo;
+                                                                    str := "hdr" |}]))
                                                                     (TypTypeName
                                                                     (BareName
                                                                     {| 
@@ -2235,17 +2337,19 @@ Definition MyIngress := DeclControl NoInfo
                                                                     {| stags := NoInfo;
                                                                     str := "myHeader" |})
                                                                     (TypHeader
-                                                                    [(
-                                                                    MkFieldType
-                                                                    {| stags := NoInfo;
-                                                                    str := "rw" |}
-                                                                    (TypBit
-                                                                    8));
-                                                                    (MkFieldType
-                                                                    {| stags := NoInfo;
-                                                                    str := "data" |}
-                                                                    (TypBit
-                                                                    16))])
+                                                                    [( 
+                                                                    {| 
+                                                                    stags := NoInfo;
+                                                                    str := "rw" |},
+                                                                    (
+                                                                    TypBit 8) );
+                                                                    ( 
+                                                                    {| 
+                                                                    stags := NoInfo;
+                                                                    str := "data" |},
+                                                                    (
+                                                                    TypBit
+                                                                    16) )])
                                                                     Directionless)
                                                                     {| stags := NoInfo;
                                                                     str := "rw" |})
@@ -2291,7 +2395,11 @@ Definition MyIngress := DeclControl NoInfo
                                                                     (BareName
                                                                     {| 
                                                                     stags := NoInfo;
-                                                                    str := "hdr" |}))
+                                                                    str := "hdr" |})
+                                                                    (LInstance
+                                                                    [{| 
+                                                                    stags := NoInfo;
+                                                                    str := "hdr" |}]))
                                                                     (TypTypeName
                                                                     (BareName
                                                                     {| 
@@ -2304,7 +2412,11 @@ Definition MyIngress := DeclControl NoInfo
                                                                     (BareName
                                                                     {| 
                                                                     stags := NoInfo;
-                                                                    str := "meta" |}))
+                                                                    str := "meta" |})
+                                                                    (LInstance
+                                                                    [{| 
+                                                                    stags := NoInfo;
+                                                                    str := "meta" |}]))
                                                                     (TypTypeName
                                                                     (BareName
                                                                     {| 
@@ -2350,7 +2462,10 @@ Definition MyDeparser := DeclControl NoInfo
                              (MkExpression NoInfo
                                   (ExpName
                                    (BareName
-                                    {| stags := NoInfo; str := "packet" |}))
+                                    {| stags := NoInfo; str := "packet" |})
+                                   (LInstance
+                                        [{| stags := NoInfo;
+                                            str := "packet" |}]))
                                   (TypTypeName
                                    (BareName
                                     {| stags := NoInfo;
@@ -2366,27 +2481,28 @@ Definition MyDeparser := DeclControl NoInfo
                                     None {| stags := NoInfo; str := "hdr" |})]
                               FunExtern TypVoid)) Directionless)
                    [(TypHeader
-                     [(MkFieldType {| stags := NoInfo; str := "rw" |}
-                           (TypBit 8));
-                      (MkFieldType {| stags := NoInfo; str := "data" |}
-                           (TypBit 16))])]
+                     [( {| stags := NoInfo; str := "rw" |}, (TypBit 8) );
+                      ( {| stags := NoInfo; str := "data" |}, (TypBit 16) )])]
                    [(Some
                      (MkExpression NoInfo
                           (ExpExpressionMember
                                (MkExpression NoInfo
                                     (ExpName
                                      (BareName
-                                      {| stags := NoInfo; str := "hdr" |}))
+                                      {| stags := NoInfo; str := "hdr" |})
+                                     (LInstance
+                                          [{| stags := NoInfo;
+                                              str := "hdr" |}]))
                                     (TypTypeName
                                      (BareName
                                       {| stags := NoInfo; str := "headers" |}))
                                     In)
                                {| stags := NoInfo; str := "myHeader" |})
                           (TypHeader
-                           [(MkFieldType {| stags := NoInfo; str := "rw" |}
-                                 (TypBit 8));
-                            (MkFieldType {| stags := NoInfo; str := "data" |}
-                                 (TypBit 16))]) Directionless))]) StmUnit)
+                           [( {| stags := NoInfo; str := "rw" |},
+                              (TypBit 8) );
+                            ( {| stags := NoInfo; str := "data" |},
+                              (TypBit 16) )]) Directionless))]) StmUnit)
          (BlockEmpty NoInfo)).
 
 Definition MyVerifyChecksum := DeclControl NoInfo
@@ -2428,81 +2544,64 @@ Definition main := DeclInstantiation NoInfo
                       None {| stags := NoInfo; str := "packet" |});
                  (MkParameter false Out
                       (TypStruct
-                       [(MkFieldType {| stags := NoInfo; str := "myHeader" |}
-                             (TypHeader
-                              [(MkFieldType
-                                    {| stags := NoInfo; str := "rw" |}
-                                    (TypBit 8));
-                               (MkFieldType
-                                    {| stags := NoInfo; str := "data" |}
-                                    (TypBit 16))]))]) None
+                       [( {| stags := NoInfo; str := "myHeader" |},
+                          (TypHeader
+                           [( {| stags := NoInfo; str := "rw" |},
+                              (TypBit 8) );
+                            ( {| stags := NoInfo; str := "data" |},
+                              (TypBit 16) )]) )]) None
                       {| stags := NoInfo; str := "hdr" |});
                  (MkParameter false InOut
                       (TypStruct
-                       [(MkFieldType {| stags := NoInfo; str := "index0" |}
-                             (TypBit 32));
-                        (MkFieldType {| stags := NoInfo; str := "index1" |}
-                             (TypBit 32));
-                        (MkFieldType {| stags := NoInfo; str := "index2" |}
-                             (TypBit 32));
-                        (MkFieldType {| stags := NoInfo; str := "member0" |}
-                             (TypBit 1));
-                        (MkFieldType {| stags := NoInfo; str := "member1" |}
-                             (TypBit 1));
-                        (MkFieldType {| stags := NoInfo; str := "member2" |}
-                             (TypBit 1))]) None
+                       [( {| stags := NoInfo; str := "index0" |},
+                          (TypBit 32) );
+                        ( {| stags := NoInfo; str := "index1" |},
+                          (TypBit 32) );
+                        ( {| stags := NoInfo; str := "index2" |},
+                          (TypBit 32) );
+                        ( {| stags := NoInfo; str := "member0" |},
+                          (TypBit 1) );
+                        ( {| stags := NoInfo; str := "member1" |},
+                          (TypBit 1) );
+                        ( {| stags := NoInfo; str := "member2" |},
+                          (TypBit 1) )]) None
                       {| stags := NoInfo; str := "meta" |});
                  (MkParameter false InOut
                       (TypStruct
-                       [(MkFieldType
-                             {| stags := NoInfo; str := "ingress_port" |}
-                             (TypBit 9));
-                        (MkFieldType
-                             {| stags := NoInfo; str := "egress_spec" |}
-                             (TypBit 9));
-                        (MkFieldType
-                             {| stags := NoInfo; str := "egress_port" |}
-                             (TypBit 9));
-                        (MkFieldType
-                             {| stags := NoInfo; str := "instance_type" |}
-                             (TypBit 32));
-                        (MkFieldType
-                             {| stags := NoInfo; str := "packet_length" |}
-                             (TypBit 32));
-                        (MkFieldType
-                             {| stags := NoInfo; str := "enq_timestamp" |}
-                             (TypBit 32));
-                        (MkFieldType
-                             {| stags := NoInfo; str := "enq_qdepth" |}
-                             (TypBit 19));
-                        (MkFieldType
-                             {| stags := NoInfo; str := "deq_timedelta" |}
-                             (TypBit 32));
-                        (MkFieldType
-                             {| stags := NoInfo; str := "deq_qdepth" |}
-                             (TypBit 19));
-                        (MkFieldType
-                             {| stags := NoInfo;
-                                str := "ingress_global_timestamp" |}
-                             (TypBit 48));
-                        (MkFieldType
-                             {| stags := NoInfo;
-                                str := "egress_global_timestamp" |}
-                             (TypBit 48));
-                        (MkFieldType
-                             {| stags := NoInfo; str := "mcast_grp" |}
-                             (TypBit 16));
-                        (MkFieldType
-                             {| stags := NoInfo; str := "egress_rid" |}
-                             (TypBit 16));
-                        (MkFieldType
-                             {| stags := NoInfo; str := "checksum_error" |}
-                             (TypBit 1));
-                        (MkFieldType
-                             {| stags := NoInfo; str := "parser_error" |}
-                             TypError);
-                        (MkFieldType {| stags := NoInfo; str := "priority" |}
-                             (TypBit 3))]) None
+                       [( {| stags := NoInfo; str := "ingress_port" |},
+                          (TypBit 9) );
+                        ( {| stags := NoInfo; str := "egress_spec" |},
+                          (TypBit 9) );
+                        ( {| stags := NoInfo; str := "egress_port" |},
+                          (TypBit 9) );
+                        ( {| stags := NoInfo; str := "instance_type" |},
+                          (TypBit 32) );
+                        ( {| stags := NoInfo; str := "packet_length" |},
+                          (TypBit 32) );
+                        ( {| stags := NoInfo; str := "enq_timestamp" |},
+                          (TypBit 32) );
+                        ( {| stags := NoInfo; str := "enq_qdepth" |},
+                          (TypBit 19) );
+                        ( {| stags := NoInfo; str := "deq_timedelta" |},
+                          (TypBit 32) );
+                        ( {| stags := NoInfo; str := "deq_qdepth" |},
+                          (TypBit 19) );
+                        ( {| stags := NoInfo;
+                             str := "ingress_global_timestamp" |},
+                          (TypBit 48) );
+                        ( {| stags := NoInfo;
+                             str := "egress_global_timestamp" |},
+                          (TypBit 48) );
+                        ( {| stags := NoInfo; str := "mcast_grp" |},
+                          (TypBit 16) );
+                        ( {| stags := NoInfo; str := "egress_rid" |},
+                          (TypBit 16) );
+                        ( {| stags := NoInfo; str := "checksum_error" |},
+                          (TypBit 1) );
+                        ( {| stags := NoInfo; str := "parser_error" |},
+                          TypError );
+                        ( {| stags := NoInfo; str := "priority" |},
+                          (TypBit 3) )]) None
                       {| stags := NoInfo; str := "standard_metadata" |})]))
           Directionless);
      (MkExpression NoInfo
@@ -2516,29 +2615,27 @@ Definition main := DeclInstantiation NoInfo
            (MkControlType nil
                 [(MkParameter false InOut
                       (TypStruct
-                       [(MkFieldType {| stags := NoInfo; str := "myHeader" |}
-                             (TypHeader
-                              [(MkFieldType
-                                    {| stags := NoInfo; str := "rw" |}
-                                    (TypBit 8));
-                               (MkFieldType
-                                    {| stags := NoInfo; str := "data" |}
-                                    (TypBit 16))]))]) None
+                       [( {| stags := NoInfo; str := "myHeader" |},
+                          (TypHeader
+                           [( {| stags := NoInfo; str := "rw" |},
+                              (TypBit 8) );
+                            ( {| stags := NoInfo; str := "data" |},
+                              (TypBit 16) )]) )]) None
                       {| stags := NoInfo; str := "hdr" |});
                  (MkParameter false InOut
                       (TypStruct
-                       [(MkFieldType {| stags := NoInfo; str := "index0" |}
-                             (TypBit 32));
-                        (MkFieldType {| stags := NoInfo; str := "index1" |}
-                             (TypBit 32));
-                        (MkFieldType {| stags := NoInfo; str := "index2" |}
-                             (TypBit 32));
-                        (MkFieldType {| stags := NoInfo; str := "member0" |}
-                             (TypBit 1));
-                        (MkFieldType {| stags := NoInfo; str := "member1" |}
-                             (TypBit 1));
-                        (MkFieldType {| stags := NoInfo; str := "member2" |}
-                             (TypBit 1))]) None
+                       [( {| stags := NoInfo; str := "index0" |},
+                          (TypBit 32) );
+                        ( {| stags := NoInfo; str := "index1" |},
+                          (TypBit 32) );
+                        ( {| stags := NoInfo; str := "index2" |},
+                          (TypBit 32) );
+                        ( {| stags := NoInfo; str := "member0" |},
+                          (TypBit 1) );
+                        ( {| stags := NoInfo; str := "member1" |},
+                          (TypBit 1) );
+                        ( {| stags := NoInfo; str := "member2" |},
+                          (TypBit 1) )]) None
                       {| stags := NoInfo; str := "meta" |})])) Directionless);
      (MkExpression NoInfo
           (ExpNamelessInstantiation
@@ -2550,81 +2647,64 @@ Definition main := DeclInstantiation NoInfo
            (MkControlType nil
                 [(MkParameter false InOut
                       (TypStruct
-                       [(MkFieldType {| stags := NoInfo; str := "myHeader" |}
-                             (TypHeader
-                              [(MkFieldType
-                                    {| stags := NoInfo; str := "rw" |}
-                                    (TypBit 8));
-                               (MkFieldType
-                                    {| stags := NoInfo; str := "data" |}
-                                    (TypBit 16))]))]) None
+                       [( {| stags := NoInfo; str := "myHeader" |},
+                          (TypHeader
+                           [( {| stags := NoInfo; str := "rw" |},
+                              (TypBit 8) );
+                            ( {| stags := NoInfo; str := "data" |},
+                              (TypBit 16) )]) )]) None
                       {| stags := NoInfo; str := "hdr" |});
                  (MkParameter false InOut
                       (TypStruct
-                       [(MkFieldType {| stags := NoInfo; str := "index0" |}
-                             (TypBit 32));
-                        (MkFieldType {| stags := NoInfo; str := "index1" |}
-                             (TypBit 32));
-                        (MkFieldType {| stags := NoInfo; str := "index2" |}
-                             (TypBit 32));
-                        (MkFieldType {| stags := NoInfo; str := "member0" |}
-                             (TypBit 1));
-                        (MkFieldType {| stags := NoInfo; str := "member1" |}
-                             (TypBit 1));
-                        (MkFieldType {| stags := NoInfo; str := "member2" |}
-                             (TypBit 1))]) None
+                       [( {| stags := NoInfo; str := "index0" |},
+                          (TypBit 32) );
+                        ( {| stags := NoInfo; str := "index1" |},
+                          (TypBit 32) );
+                        ( {| stags := NoInfo; str := "index2" |},
+                          (TypBit 32) );
+                        ( {| stags := NoInfo; str := "member0" |},
+                          (TypBit 1) );
+                        ( {| stags := NoInfo; str := "member1" |},
+                          (TypBit 1) );
+                        ( {| stags := NoInfo; str := "member2" |},
+                          (TypBit 1) )]) None
                       {| stags := NoInfo; str := "meta" |});
                  (MkParameter false InOut
                       (TypStruct
-                       [(MkFieldType
-                             {| stags := NoInfo; str := "ingress_port" |}
-                             (TypBit 9));
-                        (MkFieldType
-                             {| stags := NoInfo; str := "egress_spec" |}
-                             (TypBit 9));
-                        (MkFieldType
-                             {| stags := NoInfo; str := "egress_port" |}
-                             (TypBit 9));
-                        (MkFieldType
-                             {| stags := NoInfo; str := "instance_type" |}
-                             (TypBit 32));
-                        (MkFieldType
-                             {| stags := NoInfo; str := "packet_length" |}
-                             (TypBit 32));
-                        (MkFieldType
-                             {| stags := NoInfo; str := "enq_timestamp" |}
-                             (TypBit 32));
-                        (MkFieldType
-                             {| stags := NoInfo; str := "enq_qdepth" |}
-                             (TypBit 19));
-                        (MkFieldType
-                             {| stags := NoInfo; str := "deq_timedelta" |}
-                             (TypBit 32));
-                        (MkFieldType
-                             {| stags := NoInfo; str := "deq_qdepth" |}
-                             (TypBit 19));
-                        (MkFieldType
-                             {| stags := NoInfo;
-                                str := "ingress_global_timestamp" |}
-                             (TypBit 48));
-                        (MkFieldType
-                             {| stags := NoInfo;
-                                str := "egress_global_timestamp" |}
-                             (TypBit 48));
-                        (MkFieldType
-                             {| stags := NoInfo; str := "mcast_grp" |}
-                             (TypBit 16));
-                        (MkFieldType
-                             {| stags := NoInfo; str := "egress_rid" |}
-                             (TypBit 16));
-                        (MkFieldType
-                             {| stags := NoInfo; str := "checksum_error" |}
-                             (TypBit 1));
-                        (MkFieldType
-                             {| stags := NoInfo; str := "parser_error" |}
-                             TypError);
-                        (MkFieldType {| stags := NoInfo; str := "priority" |}
-                             (TypBit 3))]) None
+                       [( {| stags := NoInfo; str := "ingress_port" |},
+                          (TypBit 9) );
+                        ( {| stags := NoInfo; str := "egress_spec" |},
+                          (TypBit 9) );
+                        ( {| stags := NoInfo; str := "egress_port" |},
+                          (TypBit 9) );
+                        ( {| stags := NoInfo; str := "instance_type" |},
+                          (TypBit 32) );
+                        ( {| stags := NoInfo; str := "packet_length" |},
+                          (TypBit 32) );
+                        ( {| stags := NoInfo; str := "enq_timestamp" |},
+                          (TypBit 32) );
+                        ( {| stags := NoInfo; str := "enq_qdepth" |},
+                          (TypBit 19) );
+                        ( {| stags := NoInfo; str := "deq_timedelta" |},
+                          (TypBit 32) );
+                        ( {| stags := NoInfo; str := "deq_qdepth" |},
+                          (TypBit 19) );
+                        ( {| stags := NoInfo;
+                             str := "ingress_global_timestamp" |},
+                          (TypBit 48) );
+                        ( {| stags := NoInfo;
+                             str := "egress_global_timestamp" |},
+                          (TypBit 48) );
+                        ( {| stags := NoInfo; str := "mcast_grp" |},
+                          (TypBit 16) );
+                        ( {| stags := NoInfo; str := "egress_rid" |},
+                          (TypBit 16) );
+                        ( {| stags := NoInfo; str := "checksum_error" |},
+                          (TypBit 1) );
+                        ( {| stags := NoInfo; str := "parser_error" |},
+                          TypError );
+                        ( {| stags := NoInfo; str := "priority" |},
+                          (TypBit 3) )]) None
                       {| stags := NoInfo; str := "standard_metadata" |})]))
           Directionless);
      (MkExpression NoInfo
@@ -2637,81 +2717,64 @@ Definition main := DeclInstantiation NoInfo
            (MkControlType nil
                 [(MkParameter false InOut
                       (TypStruct
-                       [(MkFieldType {| stags := NoInfo; str := "myHeader" |}
-                             (TypHeader
-                              [(MkFieldType
-                                    {| stags := NoInfo; str := "rw" |}
-                                    (TypBit 8));
-                               (MkFieldType
-                                    {| stags := NoInfo; str := "data" |}
-                                    (TypBit 16))]))]) None
+                       [( {| stags := NoInfo; str := "myHeader" |},
+                          (TypHeader
+                           [( {| stags := NoInfo; str := "rw" |},
+                              (TypBit 8) );
+                            ( {| stags := NoInfo; str := "data" |},
+                              (TypBit 16) )]) )]) None
                       {| stags := NoInfo; str := "hdr" |});
                  (MkParameter false InOut
                       (TypStruct
-                       [(MkFieldType {| stags := NoInfo; str := "index0" |}
-                             (TypBit 32));
-                        (MkFieldType {| stags := NoInfo; str := "index1" |}
-                             (TypBit 32));
-                        (MkFieldType {| stags := NoInfo; str := "index2" |}
-                             (TypBit 32));
-                        (MkFieldType {| stags := NoInfo; str := "member0" |}
-                             (TypBit 1));
-                        (MkFieldType {| stags := NoInfo; str := "member1" |}
-                             (TypBit 1));
-                        (MkFieldType {| stags := NoInfo; str := "member2" |}
-                             (TypBit 1))]) None
+                       [( {| stags := NoInfo; str := "index0" |},
+                          (TypBit 32) );
+                        ( {| stags := NoInfo; str := "index1" |},
+                          (TypBit 32) );
+                        ( {| stags := NoInfo; str := "index2" |},
+                          (TypBit 32) );
+                        ( {| stags := NoInfo; str := "member0" |},
+                          (TypBit 1) );
+                        ( {| stags := NoInfo; str := "member1" |},
+                          (TypBit 1) );
+                        ( {| stags := NoInfo; str := "member2" |},
+                          (TypBit 1) )]) None
                       {| stags := NoInfo; str := "meta" |});
                  (MkParameter false InOut
                       (TypStruct
-                       [(MkFieldType
-                             {| stags := NoInfo; str := "ingress_port" |}
-                             (TypBit 9));
-                        (MkFieldType
-                             {| stags := NoInfo; str := "egress_spec" |}
-                             (TypBit 9));
-                        (MkFieldType
-                             {| stags := NoInfo; str := "egress_port" |}
-                             (TypBit 9));
-                        (MkFieldType
-                             {| stags := NoInfo; str := "instance_type" |}
-                             (TypBit 32));
-                        (MkFieldType
-                             {| stags := NoInfo; str := "packet_length" |}
-                             (TypBit 32));
-                        (MkFieldType
-                             {| stags := NoInfo; str := "enq_timestamp" |}
-                             (TypBit 32));
-                        (MkFieldType
-                             {| stags := NoInfo; str := "enq_qdepth" |}
-                             (TypBit 19));
-                        (MkFieldType
-                             {| stags := NoInfo; str := "deq_timedelta" |}
-                             (TypBit 32));
-                        (MkFieldType
-                             {| stags := NoInfo; str := "deq_qdepth" |}
-                             (TypBit 19));
-                        (MkFieldType
-                             {| stags := NoInfo;
-                                str := "ingress_global_timestamp" |}
-                             (TypBit 48));
-                        (MkFieldType
-                             {| stags := NoInfo;
-                                str := "egress_global_timestamp" |}
-                             (TypBit 48));
-                        (MkFieldType
-                             {| stags := NoInfo; str := "mcast_grp" |}
-                             (TypBit 16));
-                        (MkFieldType
-                             {| stags := NoInfo; str := "egress_rid" |}
-                             (TypBit 16));
-                        (MkFieldType
-                             {| stags := NoInfo; str := "checksum_error" |}
-                             (TypBit 1));
-                        (MkFieldType
-                             {| stags := NoInfo; str := "parser_error" |}
-                             TypError);
-                        (MkFieldType {| stags := NoInfo; str := "priority" |}
-                             (TypBit 3))]) None
+                       [( {| stags := NoInfo; str := "ingress_port" |},
+                          (TypBit 9) );
+                        ( {| stags := NoInfo; str := "egress_spec" |},
+                          (TypBit 9) );
+                        ( {| stags := NoInfo; str := "egress_port" |},
+                          (TypBit 9) );
+                        ( {| stags := NoInfo; str := "instance_type" |},
+                          (TypBit 32) );
+                        ( {| stags := NoInfo; str := "packet_length" |},
+                          (TypBit 32) );
+                        ( {| stags := NoInfo; str := "enq_timestamp" |},
+                          (TypBit 32) );
+                        ( {| stags := NoInfo; str := "enq_qdepth" |},
+                          (TypBit 19) );
+                        ( {| stags := NoInfo; str := "deq_timedelta" |},
+                          (TypBit 32) );
+                        ( {| stags := NoInfo; str := "deq_qdepth" |},
+                          (TypBit 19) );
+                        ( {| stags := NoInfo;
+                             str := "ingress_global_timestamp" |},
+                          (TypBit 48) );
+                        ( {| stags := NoInfo;
+                             str := "egress_global_timestamp" |},
+                          (TypBit 48) );
+                        ( {| stags := NoInfo; str := "mcast_grp" |},
+                          (TypBit 16) );
+                        ( {| stags := NoInfo; str := "egress_rid" |},
+                          (TypBit 16) );
+                        ( {| stags := NoInfo; str := "checksum_error" |},
+                          (TypBit 1) );
+                        ( {| stags := NoInfo; str := "parser_error" |},
+                          TypError );
+                        ( {| stags := NoInfo; str := "priority" |},
+                          (TypBit 3) )]) None
                       {| stags := NoInfo; str := "standard_metadata" |})]))
           Directionless);
      (MkExpression NoInfo
@@ -2725,29 +2788,27 @@ Definition main := DeclInstantiation NoInfo
            (MkControlType nil
                 [(MkParameter false InOut
                       (TypStruct
-                       [(MkFieldType {| stags := NoInfo; str := "myHeader" |}
-                             (TypHeader
-                              [(MkFieldType
-                                    {| stags := NoInfo; str := "rw" |}
-                                    (TypBit 8));
-                               (MkFieldType
-                                    {| stags := NoInfo; str := "data" |}
-                                    (TypBit 16))]))]) None
+                       [( {| stags := NoInfo; str := "myHeader" |},
+                          (TypHeader
+                           [( {| stags := NoInfo; str := "rw" |},
+                              (TypBit 8) );
+                            ( {| stags := NoInfo; str := "data" |},
+                              (TypBit 16) )]) )]) None
                       {| stags := NoInfo; str := "hdr" |});
                  (MkParameter false InOut
                       (TypStruct
-                       [(MkFieldType {| stags := NoInfo; str := "index0" |}
-                             (TypBit 32));
-                        (MkFieldType {| stags := NoInfo; str := "index1" |}
-                             (TypBit 32));
-                        (MkFieldType {| stags := NoInfo; str := "index2" |}
-                             (TypBit 32));
-                        (MkFieldType {| stags := NoInfo; str := "member0" |}
-                             (TypBit 1));
-                        (MkFieldType {| stags := NoInfo; str := "member1" |}
-                             (TypBit 1));
-                        (MkFieldType {| stags := NoInfo; str := "member2" |}
-                             (TypBit 1))]) None
+                       [( {| stags := NoInfo; str := "index0" |},
+                          (TypBit 32) );
+                        ( {| stags := NoInfo; str := "index1" |},
+                          (TypBit 32) );
+                        ( {| stags := NoInfo; str := "index2" |},
+                          (TypBit 32) );
+                        ( {| stags := NoInfo; str := "member0" |},
+                          (TypBit 1) );
+                        ( {| stags := NoInfo; str := "member1" |},
+                          (TypBit 1) );
+                        ( {| stags := NoInfo; str := "member2" |},
+                          (TypBit 1) )]) None
                       {| stags := NoInfo; str := "meta" |})])) Directionless);
      (MkExpression NoInfo
           (ExpNamelessInstantiation
@@ -2762,14 +2823,12 @@ Definition main := DeclInstantiation NoInfo
                       None {| stags := NoInfo; str := "packet" |});
                  (MkParameter false In
                       (TypStruct
-                       [(MkFieldType {| stags := NoInfo; str := "myHeader" |}
-                             (TypHeader
-                              [(MkFieldType
-                                    {| stags := NoInfo; str := "rw" |}
-                                    (TypBit 8));
-                               (MkFieldType
-                                    {| stags := NoInfo; str := "data" |}
-                                    (TypBit 16))]))]) None
+                       [( {| stags := NoInfo; str := "myHeader" |},
+                          (TypHeader
+                           [( {| stags := NoInfo; str := "rw" |},
+                              (TypBit 8) );
+                            ( {| stags := NoInfo; str := "data" |},
+                              (TypBit 16) )]) )]) None
                       {| stags := NoInfo; str := "hdr" |})])) Directionless)]
     {| stags := NoInfo; str := "main" |} None.
 
