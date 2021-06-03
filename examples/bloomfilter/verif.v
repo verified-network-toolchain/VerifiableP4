@@ -86,13 +86,18 @@ Definition pre (* (rw data : Z) (hdr meta standard_metadata : Val) *) (args : li
 
 Axiom CRC : Z -> Z.
 
-Definition process (rw data : Z) (bst : bloomfilter_state) : bloomfilter_state :=
-  bloomfilter.add Z Z.eqb CRC CRC CRC bst data.
+Definition process (rw data : Z) (bst : bloomfilter_state) : (bloomfilter_state * Z) :=
+  if rw =? 2 then
+    (bloomfilter.add Z Z.eqb CRC CRC CRC bst data, 2)
+  else
+    (bst, bool_to_Z (bloomfilter.query Z CRC CRC CRC bst data)).
 
 Definition post (* (rw data : Z) (hdr meta standard_metadata : Val) *) (args : list Val) (st : state) :=
-  args = [hdr; meta; standard_metadata]
-  /\ bst_match st (process rw data bst).
-
+  let (bst', rw') := process rw data bst in
+  exists hdr',
+  args = [hdr'; meta; standard_metadata]
+    /\ header_encodes hdr' rw' data
+    /\ bst_match st bst'.
 
 Lemma body_bloomfilter : hoare_func ge inst_m this pre MyIngress_fundef nil post.
 Abort.
