@@ -3,7 +3,8 @@ Require Import Poulet4.P4Notations.
 Open Scope string_scope.
 
 Import ListNotations.
-Require Import ProD3.examples.count.p4ast.
+Require Import ProD3.examples.bloomfilter.p4ast.
+Require Import ProD3.examples.bloomfilter.bloomfilter.
 
 Require Import Poulet4.Maps.
 Require Import Poulet4.Semantics.
@@ -17,12 +18,7 @@ Instance target : @Target Info (@Expression Info) := V1Model.
 Opaque IdentMap.empty IdentMap.set PathMap.empty PathMap.set.
 
 (* Global environment *)
-Definition ge := Eval compute in load_prog prog.
-
-(* Global environment for types *)
-Definition ge_typ := Eval compute in match gen_ge_typ prog with Some ge_typ => ge_typ | None => IdentMap.empty end.
-
-Axiom ge_senum : @genv_senum Info.
+Definition ge := Eval compute in gen_ge prog.
 
 Definition instantiation := Eval compute in instantiate_prog prog.
 
@@ -34,39 +30,73 @@ Definition init_es := Eval compute in snd instantiation.
 
 Notation ident := (P4String.t Info).
 Notation path := (list ident).
+Notation Val := (@ValueBase Info).
+Definition this : path := [].
+
+Definition init_st : state := (PathMap.set (this ++ !["var"]) (ValBaseBit 8 2) PathMap.empty, init_es).
+
 Transparent IdentMap.empty IdentMap.set PathMap.empty PathMap.set.
 
-Module Experiment2.
-Definition this : path := [!"main"; !"ig"].
-Definition init_st : state := (PathMap.empty, init_es).
+Module Experiment1.
 
-(* 
-new_register *)
-
-Definition myFundef := Eval compute in
-  match PathMap.get [!"MyIngress"] ge with
+Definition MyIngress_fundef := Eval compute in
+  match PathMap.get [!"MyIngress"] (ge_func ge) with
   | Some x => x
   | None => dummy_fundef
   end.
 
-Definition v1 : @ValueBase Info := ValBaseHeader [(!"firstBit", ValBaseBit 1%nat 0)] true.
-Definition v2 : @ValueBase Info := ValBaseStruct [(!"myHeader", v1)].
-Definition v3 : @ValueBase Info := ValBaseStruct [(!"counter", ValBaseBit 4%nat 0)].
-Definition v4 : @ValueBase Info := ValBaseStruct [(!"counter", ValBaseBit 4%nat 1)].
-Definition v5 : @ValueBase Info := ValBaseStruct [(!"egress_spec", ValBaseBit 9%nat 0)].
-Definition v6 : @ValueBase Info := ValBaseStruct [(!"egress_spec", ValBaseBit 9%nat 0)].
+Definition this : path := !["main"; "ig"].
 
-Print init_es.
+Notation Filter := (Filter Z).
+
+Definition bloomfilter_state : Type := Filter * Filter * Filter.
+
+Definition NUM_ENTRY := 1024.
+
+Definition bool_to_Z (b : bool) :=
+  if b then 1 else 0.
+
+Definition filter_match (st : state) (p : path) (f : Filter) : Prop :=
+  exists content,
+  PathMap.get p (snd st) = Some (ObjRegister (mk_register 1%nat NUM_ENTRY content)) /\
+  forall i : Z, Znth i content = bool_to_Z (f i). (* out-of-bounds indexing is used *)
+
+Definition bst_match (st : state) (bst : bloomfilter_state) : Prop :=
+  let (rest, bloom2) := bst in
+  let (bloom0, bloom1) := rest in
+  filter_match st !["bloom0"] bloom0
+    /\ filter_match st !["bloom1"] bloom1
+    /\ filter_match st !["bloom2"] bloom2.
+
+Axiom header_encodes : forall (hdr : Val) (rw : Z) (data : Z), Prop.
+
+Section Experiment1.
+
+Variable rw : Z.
+Variable data : Z.
+Variable hdr : Val.
+Variable meta : Val.
+Variable standard_metadata : Val.
+Variable bst : bloomfilter_state.
+
+Definition pre (* (rw data : Z) (hdr meta standard_metadata : Val) *) (args : list Val) (st : state) :=
+  args = [hdr; meta; standard_metadata]
+    /\ header_encodes hdr rw data
+    /\ bst_match st bst.
+
+Axiom CRC : Z -> Z.
+
+Definition process (rw data : Z) (bst : bloomfilter_state) : bloomfilter_state :=
+  bloomfilter.add Z Z.eqb CRC CRC CRC bst data.
+
+Definition post (* (rw data : Z) (hdr meta standard_metadata : Val) *) (args : list Val) (st : state) :=
+  args = [hdr; meta; standard_metadata]
+  /\ bst_match st (process rw data bst).
 
 
-(* {st' signal | exec_block [] inst_mem init_st myBlock st' signal }. *)
-Lemma eval_func: { st' & { signal | exec_func ge ge_typ ge_senum this inst_m init_st myFundef
-    [] [v2; v3; v5] st' [v2; v4; v6] signal} }.
-Proof.
-  repeat econstructor.
-  
+Lemma body_bloomfilter : hoare_func ge inst_m this pre MyIngress_fundef nil post.
+Abort.
 
+End Experiment1.
 
-  solve [repeat econstructor].
-Defined.
-
+End Experiment1.

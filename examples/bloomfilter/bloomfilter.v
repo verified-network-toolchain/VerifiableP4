@@ -5,15 +5,17 @@ Require Import Coq.ZArith.ZArith.
 Require Import Coq.Lists.List.
 Require Import Coq.Logic.FunctionalExtensionality.
 
-Parameter Index:Type.
-Parameter index_beq: Index -> Index -> bool.
+Section bloomfilter.
+
+Variable Index:Type.
+Variable index_beq: Index -> Index -> bool.
 (*Parameter Index_eq: forall (i j:Index), {i=j} + {i<>j}.*)
 
-Parameter index_refl: forall i, index_beq i i = true.
+Variable index_refl: forall i, index_beq i i = true.
 
-Parameter Hash0: Z -> Index.
-Parameter Hash1: Z -> Index.
-Parameter Hash2: Z -> Index.
+Variable Hash0: Z -> Index.
+Variable Hash1: Z -> Index.
+Variable Hash2: Z -> Index.
 
 Definition Filter:= Index -> bool.
 
@@ -105,3 +107,4 @@ Proof.
   rewrite addm_add_comm. apply bf_add_query_true.
 Qed.
 
+End bloomfilter.
