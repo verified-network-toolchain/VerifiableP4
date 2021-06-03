@@ -219,11 +219,11 @@ Proof.
       hauto lq: on.
 Qed.
 
-Lemma eval_expr_sound : forall ge_typ ge_senum st a expr v,
+Lemma eval_expr_sound : forall ge st a expr v,
   wellformed a ->
   to_shallow_assertion a st ->
   eval_expr a expr = Some v ->
-  exec_expr ge_typ ge_senum this st expr v.
+  exec_expr ge this st expr v.
 Proof.
   intros * H_wellformed H_pre H_get_val.
   apply eval_expr_gen_sound.

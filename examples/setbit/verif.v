@@ -17,12 +17,7 @@ Instance target : @Target Info (@Expression Info) := V1Model.
 Opaque IdentMap.empty IdentMap.set PathMap.empty PathMap.set.
 
 (* Global environment *)
-Definition ge := Eval compute in load_prog prog.
-
-(* Global environment for types *)
-Definition ge_typ := Eval compute in match gen_ge_typ prog with Some ge_typ => ge_typ | None => IdentMap.empty end.
-
-Axiom ge_senum : @genv_senum Info.
+Definition ge := Eval compute in gen_ge prog.
 
 Definition instantiation := Eval compute in instantiate_prog prog.
 
@@ -51,7 +46,7 @@ Definition myBlock' :=
 Definition myBlock := Eval compute in myBlock'.
 
 (* {st' signal | exec_block [] inst_mem init_st myBlock st' signal }. *)
-Lemma eval_block: {signal & { st' | exec_block ge ge_typ ge_senum this inst_m init_st myBlock st' signal } }.
+Lemma eval_block: {signal & { st' | exec_block ge this inst_m init_st myBlock st' signal } }.
 Proof.
   eexists. eexists. repeat econstructor.
 Defined.
@@ -77,7 +72,7 @@ Definition this : path := [!"main"; !"ig"].
 Definition init_st : state := (PathMap.empty, init_es).
 
 Definition myFundef := Eval compute in
-  match PathMap.get [!"MyIngress"] ge with
+  match PathMap.get [!"MyIngress"] (ge_func ge) with
   | Some x => x
   | None => dummy_fundef
   end.
@@ -88,7 +83,7 @@ Definition v3 : @ValueBase Info := ValBaseHeader [(!"firstByte", ValBaseBit 8%na
 Definition v4 : @ValueBase Info := ValBaseStruct [(!"myHeader", v3)].
 
 (* {st' signal | exec_block [] inst_mem init_st myBlock st' signal }. *)
-Lemma eval_func: { st' & { signal | exec_func ge ge_typ ge_senum this inst_m init_st myFundef
+Lemma eval_func: { st' & { signal | exec_func ge this inst_m init_st myFundef
     [] [v2; ValBaseNull; ValBaseNull] st' [v4; ValBaseNull; ValBaseNull] signal} }.
 Proof.
   solve [repeat econstructor].
@@ -167,20 +162,20 @@ Definition myStmt := Eval compute in
 
 Ltac inv H := inversion H; clear H; subst.
 
-Lemma eval_block: hoare_block ge ge_typ ge_senum inst_m this
+Lemma eval_block: hoare_block ge inst_m this
   (* pre: *) (to_shallow_assertion this [(LInstance !["var"], ValBaseBit 8%nat x)])
   myBlock
   (* post: *) (to_shallow_assertion this [(LInstance !["var"], ValBaseBit 8%nat (x+1))]).
 Proof.
-  assert (hoare_stmt ge ge_typ ge_senum inst_m this
+  assert (hoare_stmt ge inst_m this
     (* pre: *) (to_shallow_assertion this [(LInstance !["var"], ValBaseBit 8%nat x)])
     myStmt
     (* post: *) (to_shallow_assertion this [(LInstance !["var"], ValBaseBit 8%nat (x+1))])).
   { intro; intros.
     repeat lazymatch goal with
-    | H : exec_stmt _ _ _ _ _ _ _ _ _ |- _ => inv H
-    | H : exec_lvalue_expr _ _ _ _ _ _ _ |- _ => inv H
-    | H : exec_expr _ _ _ _ _ _ |- _ => inv H
+    | H : exec_stmt _ _ _ _ _ _ _ |- _ => inv H
+    | H : exec_lvalue_expr _ _ _ _ _ _ |- _ => inv H
+    | H : exec_expr _ _ _ _ _ |- _ => inv H
     end.
     { inv H11.
       replace (loc_to_val this (LInstance !!["var"]) st) with (Some (@ValBaseBit Info 8 x)) in H8. 2 : {
@@ -190,7 +185,7 @@ Proof.
       assert (P4Arith.BitArith.plus_mod 8 x (P4Arith.BitArith.mod_bound 8 1) = x + 1) by admit.
       rewrite H0 in H12.
       inv H12. repeat split.
-      simpl. 
+      simpl.
 Abort.
   (* intro; intros.
   inversion H0.

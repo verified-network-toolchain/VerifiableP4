@@ -17,12 +17,7 @@ Instance target : @Target Info (@Expression Info) := V1Model.
 Opaque IdentMap.empty IdentMap.set PathMap.empty PathMap.set.
 
 (* Global environment *)
-Definition ge := Eval compute in load_prog prog.
-
-(* Global environment for types *)
-Definition ge_typ := Eval compute in match gen_ge_typ prog with Some ge_typ => ge_typ | None => IdentMap.empty end.
-
-Axiom ge_senum : @genv_senum Info.
+Definition ge := Eval compute in gen_ge prog.
 
 Definition instantiation := Eval compute in instantiate_prog prog.
 
