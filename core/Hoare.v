@@ -7,6 +7,7 @@ Section Hoare.
 
 Context {tags_t: Type} {tags_t_inhabitant : Inhabitant tags_t}.
 Notation Val := (@ValueBase tags_t).
+Notation Lval := (@ValueLvalue tags_t).
 
 Notation ident := (P4String.t tags_t).
 Notation path := (list ident).
@@ -17,28 +18,44 @@ Notation signal := (@signal tags_t).
 Context `{@Target tags_t (@Expression tags_t)}.
 
 Variable ge : (@genv tags_t).
-Variable ge_typ : (@genv_typ tags_t).
-Variable ge_senum : (@genv_senum tags_t).
 Variable inst_m : (@inst_mem tags_t).
 
-Definition assertion := state -> Prop.
+Definition assertion := state -> Prop. (* shallow assertion *)
+
+Definition hoare_expr (p : path) (pre : assertion) (expr : Expression) (v : Val) :=
+  forall st v',
+    pre st ->
+    exec_expr ge p st expr v' ->
+    v' = v.
+
+Definition hoare_lvalue_expr (p : path) (pre : assertion) (expr : Expression) (lv : Lval) :=
+  forall st lv' sig,
+    pre st ->
+    exec_lvalue_expr ge p st expr lv' sig ->
+    sig = SContinue /\ lv' = lv.
+
+Definition assign_lvalue (p : path) (pre : assertion) (lv : Lval) (v : Val) (post : assertion) :=
+  forall st st',
+    pre st ->
+    assign_lvalue p st lv v st' ->
+    post st'.
 
 Definition hoare_stmt (p : path) (pre : assertion) (stmt : Statement) (post : assertion) :=
   forall st st' sig,
     pre st ->
-    exec_stmt ge ge_typ ge_senum p inst_m st stmt st' sig ->
+    exec_stmt ge p inst_m st stmt st' sig ->
     sig = SContinue /\ post st'.
 
 Definition hoare_block (p : path) (pre : assertion) (block : Block) (post : assertion) :=
   forall st st' sig,
     pre st ->
-    exec_block ge ge_typ ge_senum p inst_m st block st' sig ->
+    exec_block ge p inst_m st block st' sig ->
     sig = SContinue /\ post st'.
 
 Definition hoare_call (p : path) (pre : assertion) (expr : Expression) (post : assertion) :=
   forall st st' sig,
     pre st ->
-    exec_call ge ge_typ ge_senum p inst_m st expr st' sig ->
+    exec_call ge p inst_m st expr st' sig ->
     sig = SContinue /\ post st'.
 
 Definition arg_assertion := list Val -> state -> Prop.
@@ -46,7 +63,7 @@ Definition arg_assertion := list Val -> state -> Prop.
 Definition hoare_func (p : path) (pre : arg_assertion) (func : @fundef tags_t) (targs : list P4Type) (post : arg_assertion) :=
   forall st inargs st' outargs sig,
     pre inargs st ->
-    exec_func ge ge_typ ge_senum p inst_m st func targs inargs st' outargs sig ->
+    exec_func ge p inst_m st func targs inargs st' outargs sig ->
     sig = SContinue /\ post outargs st'.
 
 Section DeepEmbeddedHoare.
@@ -68,15 +85,15 @@ Inductive deep_hoare_block : path -> assertion -> Block -> assertion -> Prop :=
       deep_hoare_block p mid block post ->
       deep_hoare_block p pre (BlockCons stmt block) post.
 
-Definition hoare_eval_expr (p : path) (pre : assertion) (expr : Expression) (v : Val) : Prop :=
+Definition hoare_exec_expr (p : path) (pre : assertion) (expr : Expression) (v : Val) : Prop :=
   forall st,
     pre st ->
-    exec_expr ge_typ ge_senum p st expr v.
+    exec_expr ge p st expr v.
 
-Definition hoare_eval_lvalue_expr (p : path) (pre : assertion) (expr : Expression) (lv : Lval) : Prop :=
+Definition hoare_exec_lvalue_expr (p : path) (pre : assertion) (expr : Expression) (lv : Lval) : Prop :=
   forall st,
     pre st ->
-    exec_lvalue_expr ge_typ ge_senum p st expr lv SContinue.
+    exec_lvalue_expr ge p st expr lv SContinue.
 
 Inductive deep_hoare_call : path -> assertion -> Expression -> assertion -> Prop :=
   | deep_hoare_call_intro : forall p pre expr post,
