@@ -174,7 +174,7 @@ Proof.
   { intro; intros.
     repeat lazymatch goal with
     | H : exec_stmt _ _ _ _ _ _ _ |- _ => inv H
-    | H : exec_lvalue_expr _ _ _ _ _ _ |- _ => inv H
+    | H : exec_lexpr _ _ _ _ _ _ |- _ => inv H
     | H : exec_expr _ _ _ _ _ |- _ => inv H
     end.
     { inv H11.

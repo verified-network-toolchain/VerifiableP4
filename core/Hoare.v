@@ -28,16 +28,16 @@ Definition hoare_expr (p : path) (pre : assertion) (expr : Expression) (v : Val)
     exec_expr ge p st expr v' ->
     v' = v.
 
-Definition hoare_lvalue_expr (p : path) (pre : assertion) (expr : Expression) (lv : Lval) :=
+Definition hoare_lexpr (p : path) (pre : assertion) (expr : Expression) (lv : Lval) :=
   forall st lv' sig,
     pre st ->
-    exec_lvalue_expr ge p st expr lv' sig ->
+    exec_lexpr ge p st expr lv' sig ->
     sig = SContinue /\ lv' = lv.
 
-Definition assign_lvalue (p : path) (pre : assertion) (lv : Lval) (v : Val) (post : assertion) :=
+Definition hoare_write (p : path) (pre : assertion) (lv : Lval) (v : Val) (post : assertion) :=
   forall st st',
     pre st ->
-    assign_lvalue p st lv v st' ->
+    exec_write p st lv v st' ->
     post st'.
 
 Definition hoare_stmt (p : path) (pre : assertion) (stmt : Statement) (post : assertion) :=
@@ -85,15 +85,15 @@ Inductive deep_hoare_block : path -> assertion -> Block -> assertion -> Prop :=
       deep_hoare_block p mid block post ->
       deep_hoare_block p pre (BlockCons stmt block) post.
 
-Definition hoare_exec_expr (p : path) (pre : assertion) (expr : Expression) (v : Val) : Prop :=
+Definition deep_hoare_expr (p : path) (pre : assertion) (expr : Expression) (v : Val) : Prop :=
   forall st,
     pre st ->
     exec_expr ge p st expr v.
 
-Definition hoare_exec_lvalue_expr (p : path) (pre : assertion) (expr : Expression) (lv : Lval) : Prop :=
+Definition hoare_exec_lexpr (p : path) (pre : assertion) (expr : Expression) (lv : Lval) : Prop :=
   forall st,
     pre st ->
-    exec_lvalue_expr ge p st expr lv SContinue.
+    exec_lexpr ge p st expr lv SContinue.
 
 Inductive deep_hoare_call : path -> assertion -> Expression -> assertion -> Prop :=
   | deep_hoare_call_intro : forall p pre expr post,

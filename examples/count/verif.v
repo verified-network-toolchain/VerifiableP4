@@ -39,7 +39,7 @@ Definition init_st : state := (PathMap.empty, init_es).
 new_register *)
 
 Definition myFundef := Eval compute in
-  match PathMap.get [!"MyIngress"] ge with
+  match PathMap.get [!"MyIngress"] (ge_func ge) with
   | Some x => x
   | None => dummy_fundef
   end.
@@ -55,7 +55,7 @@ Print init_es.
 
 
 (* {st' signal | exec_block [] inst_mem init_st myBlock st' signal }. *)
-Lemma eval_func: { st' & { signal | exec_func ge ge_typ ge_senum this inst_m init_st myFundef
+Lemma eval_func: { st' & { signal | exec_func ge this inst_m init_st myFundef
     [] [v2; v3; v5] st' [v2; v4; v6] signal} }.
 Proof.
   repeat econstructor.

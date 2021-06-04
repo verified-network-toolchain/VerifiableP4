@@ -10,6 +10,7 @@ Section ConcreteHoare.
 
 Context {tags_t: Type} {tags_t_inhabitant : Inhabitant tags_t}.
 Notation Val := (@ValueBase tags_t).
+Notation Lval := (@ValueLvalue tags_t).
 
 Notation ident := (P4String.t tags_t).
 Notation path := (list ident).
@@ -32,27 +33,27 @@ Lemma hoare_expr_sound : forall p pre expr v,
   Hoare.hoare_expr ge p (to_shallow_assertion p pre) expr v.
 Admitted.
 
-Definition hoare_lvalue_expr (p : path) (pre : assertion) (expr : @Expression tags_t) (lv : @Lval tags_t) : Prop :=
+Definition hoare_lexpr (p : path) (pre : assertion) (expr : @Expression tags_t) (lv : Lval) : Prop :=
   True. (* TODO *)
 
-Lemma hoare_lvalue_expr_sound : forall p pre expr lv,
-  hoare_lvalue_expr p pre expr lv ->
-  Hoare.hoare_lvalue_expr ge p (to_shallow_assertion p pre) expr lv.
+Lemma hoare_lexpr_sound : forall p pre expr lv,
+  hoare_lexpr p pre expr lv ->
+  Hoare.hoare_lexpr ge p (to_shallow_assertion p pre) expr lv.
 Admitted.
 
-Definition assign_lvalue (pre : assertion) (lv : @Lval tags_t) (v : Val) (post : assertion) : Prop :=
+Definition hoare_write (pre : assertion) (lv : Lval) (v : Val) (post : assertion) : Prop :=
   True. (* TODO *)
 
-Lemma assign_lvalue_sound : forall p pre lv v post,
-  assign_lvalue pre lv v post ->
-  Hoare.assign_lvalue p (to_shallow_assertion p pre) lv v (to_shallow_assertion p post).
+Lemma hoare_write_sound : forall p pre lv v post,
+  hoare_write pre lv v post ->
+  Hoare.hoare_write p (to_shallow_assertion p pre) lv v (to_shallow_assertion p post).
 Admitted.
 
 Inductive hoare_stmt : path -> assertion -> (@Statement tags_t) -> assertion -> Prop :=
   | hoare_stmt_assignment : forall p pre tags lhs rhs typ post lv v,
-      hoare_lvalue_expr p pre lhs lv ->
+      hoare_lexpr p pre lhs lv ->
       hoare_expr pre rhs v ->
-      assign_lvalue pre lv v post ->
+      hoare_write pre lv v post ->
       hoare_stmt p pre (MkStatement tags (StatAssignment lhs rhs) typ) post.
 
 Lemma hoare_stmt_sound : forall p pre stmt post,
@@ -62,15 +63,15 @@ Proof.
   intros * H_hoare_stmt.
   induction H_hoare_stmt.
   - repeat lazymatch goal with
-    | H : hoare_lvalue_expr _ _ _ _ |- _ => apply hoare_lvalue_expr_sound in H
+    | H : hoare_lexpr _ _ _ _ |- _ => apply hoare_lexpr_sound in H
     | H : hoare_expr _ _ _ |- _ => apply hoare_expr_sound with (p := p) in H
-    | H : assign_lvalue _ _ _ _ |- _ => eapply assign_lvalue_sound with (p := p) in H
+    | H : hoare_write _ _ _ _ |- _ => eapply hoare_write_sound with (p := p) in H
     end.
     hnf. intros. inversion H4.
-    + hauto unfold: Hoare.assign_lvalue, Hoare.hoare_expr, Hoare.hoare_lvalue_expr.
+    + hauto unfold: Hoare.hoare_write, Hoare.hoare_expr, Hoare.hoare_lexpr.
     + admit. (* assign call rule should be ruled out, but we cnanot prove it now. *)
     + admit. (* assign call rule should be ruled out, but we cnanot prove it now. *)
-    + unfold Hoare.hoare_lvalue_expr in H0. hauto lq: on.
+    + unfold Hoare.hoare_lexpr in H0. hauto lq: on.
 (* Qed. *)
 Admitted.
 
