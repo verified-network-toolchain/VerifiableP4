@@ -3,5 +3,5 @@
  (package prod3)
  (modules (:standard)))
 
-(dirs :standard \ coq)
+(dirs :standard)
 (include_subdirs qualified)
