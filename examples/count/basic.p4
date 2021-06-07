@@ -46,15 +46,15 @@ control MyIngress(inout headers hdr,
                   inout standard_metadata_t standard_metadata) {
 
     // counter(32w1, CounterType.packets_and_bytes) myCounter;
-    
-    register<bit<4>>(32w1) myCounter;
+    register<bit<4>>(32w2) myCounter;
+
 
     action drop() {
         // mark_to_drop(standard_metadata);
 
         standard_metadata.egress_spec = 0;
-        myCounter.read(meta.counter, 1);
-        myCounter.write(1, meta.counter+1);
+        myCounter.read(meta.counter, 0);
+        myCounter.write(0, meta.counter+1);
     }
 
     action do_forward(egressSpec_t port) {
@@ -79,9 +79,10 @@ control MyIngress(inout headers hdr,
     }
 
     apply {
-        if (hdr.myHeader.isValid()) {
-            forward.apply();
-        }
+        drop();
+        //if (hdr.myHeader.isValid()) {
+        //    forward.apply();
+        //}
     }
 }
 
