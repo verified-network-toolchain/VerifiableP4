@@ -68,7 +68,8 @@ Definition bst_match (st : state) (bst : bloomfilter_state) : Prop :=
     /\ filter_match st !["bloom1"] bloom1
     /\ filter_match st !["bloom2"] bloom2.
 
-Axiom header_encodes : forall (hdr : Val) (rw : Z) (data : Z), Prop.
+Definition header_encodes (hdr : Val) (rw : Z) (data : Z) : Prop :=
+  hdr = ValBaseStruct [(!"myHeader", ValBaseHeader [(!"rw", ValBaseBit 8%nat rw); (!"data", ValBaseBit 16%nat data)] true)].
 
 Section Experiment1.
 
