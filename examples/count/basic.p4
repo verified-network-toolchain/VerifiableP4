@@ -50,17 +50,16 @@ control MyIngress(inout headers hdr,
 
 
     action drop() {
-        // mark_to_drop(standard_metadata);
-
-        standard_metadata.egress_spec = 0;
         myCounter.read(meta.counter, 0);
-        myCounter.write(0, meta.counter+1);
+        myCounter.write(0, meta.counter + 1);
+        standard_metadata.egress_spec = 0; // drop_port := 0
+        // mark_to_drop(standard_metadata);
     }
 
     action do_forward(egressSpec_t port) {
-        standard_metadata.egress_spec = port;
         myCounter.read(meta.counter, 1);
-        myCounter.write(1, meta.counter+1);
+        myCounter.write(1, meta.counter + 1);
+        standard_metadata.egress_spec = port;
     }
 
     table forward {
@@ -79,7 +78,12 @@ control MyIngress(inout headers hdr,
     }
 
     apply {
-        drop();
+        if (hdr.myHeader.firstBit == 1) {
+            do_forward(48);
+        } else {
+            drop();
+        }
+
         //if (hdr.myHeader.isValid()) {
         //    forward.apply();
         //}

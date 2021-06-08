@@ -637,33 +637,60 @@ Definition MyIngress := DeclControl NoInfo
      (DeclAction NoInfo {| stags := NoInfo; str := "drop" |} nil nil
           (BlockCons
                (MkStatement NoInfo
-                    (StatAssignment
+                    (StatMethodCall
                          (MkExpression NoInfo
                               (ExpExpressionMember
                                    (MkExpression NoInfo
                                         (ExpName
                                          (BareName
                                           {| stags := NoInfo;
-                                             str := "standard_metadata" |})
+                                             str := "myCounter" |})
                                          (LInstance
                                               [{| stags := NoInfo;
-                                                  str := "standard_metadata" |}]))
-                                        (TypTypeName
-                                         (BareName
+                                                  str := "myCounter" |}]))
+                                        (TypSpecializedType
+                                             (TypExtern
+                                              {| stags := NoInfo;
+                                                 str := "register" |})
+                                             [(TypBit 4)]) Directionless)
+                                   {| stags := NoInfo; str := "read" |})
+                              (TypFunction
+                               (MkFunctionType nil
+                                    [(MkParameter false Out (TypBit 4) 
+                                          None
                                           {| stags := NoInfo;
-                                             str := "standard_metadata_t" |}))
-                                        InOut)
-                                   {| stags := NoInfo;
-                                      str := "egress_spec" |}) (TypBit 9)
-                              Directionless)
-                         (MkExpression NoInfo
-                              (ExpCast (TypBit 9)
-                                   (MkExpression NoInfo
-                                        (ExpInt
-                                         {| itags := NoInfo; value := 0;
-                                            width_signed := None |})
-                                        TypInteger Directionless)) (TypBit 9)
-                              Directionless)) StmUnit)
+                                             str := "result" |});
+                                     (MkParameter false In (TypBit 32) 
+                                          None
+                                          {| stags := NoInfo;
+                                             str := "index" |})] FunExtern
+                                    TypVoid)) Directionless) nil
+                         [(Some
+                           (MkExpression NoInfo
+                                (ExpExpressionMember
+                                     (MkExpression NoInfo
+                                          (ExpName
+                                           (BareName
+                                            {| stags := NoInfo;
+                                               str := "meta" |})
+                                           (LInstance
+                                                [{| stags := NoInfo;
+                                                    str := "meta" |}]))
+                                          (TypTypeName
+                                           (BareName
+                                            {| stags := NoInfo;
+                                               str := "metadata" |})) InOut)
+                                     {| stags := NoInfo; str := "counter" |})
+                                (TypBit 4) Directionless));
+                          (Some
+                           (MkExpression NoInfo
+                                (ExpCast (TypBit 32)
+                                     (MkExpression NoInfo
+                                          (ExpInt
+                                           {| itags := NoInfo; value := 0;
+                                              width_signed := None |})
+                                          TypInteger Directionless))
+                                (TypBit 32) Directionless))]) StmUnit)
                (BlockCons
                     (MkStatement NoInfo
                          (StatMethodCall
@@ -683,39 +710,20 @@ Definition MyIngress := DeclControl NoInfo
                                                       str := "register" |})
                                                   [(TypBit 4)])
                                              Directionless)
-                                        {| stags := NoInfo; str := "read" |})
+                                        {| stags := NoInfo; str := "write" |})
                                    (TypFunction
                                     (MkFunctionType nil
-                                         [(MkParameter false Out (TypBit 4)
+                                         [(MkParameter false In (TypBit 32)
                                                None
                                                {| stags := NoInfo;
-                                                  str := "result" |});
-                                          (MkParameter false In (TypBit 32)
+                                                  str := "index" |});
+                                          (MkParameter false In (TypBit 4)
                                                None
                                                {| stags := NoInfo;
-                                                  str := "index" |})]
+                                                  str := "value" |})]
                                          FunExtern TypVoid)) Directionless)
                               nil
                               [(Some
-                                (MkExpression NoInfo
-                                     (ExpExpressionMember
-                                          (MkExpression NoInfo
-                                               (ExpName
-                                                (BareName
-                                                 {| stags := NoInfo;
-                                                    str := "meta" |})
-                                                (LInstance
-                                                     [{| stags := NoInfo;
-                                                         str := "meta" |}]))
-                                               (TypTypeName
-                                                (BareName
-                                                 {| stags := NoInfo;
-                                                    str := "metadata" |}))
-                                               InOut)
-                                          {| stags := NoInfo;
-                                             str := "counter" |}) (TypBit 4)
-                                     Directionless));
-                               (Some
                                 (MkExpression NoInfo
                                      (ExpCast (TypBit 32)
                                           (MkExpression NoInfo
@@ -724,92 +732,73 @@ Definition MyIngress := DeclControl NoInfo
                                                    value := 0;
                                                    width_signed := None |})
                                                TypInteger Directionless))
-                                     (TypBit 32) Directionless))]) StmUnit)
+                                     (TypBit 32) Directionless));
+                               (Some
+                                (MkExpression NoInfo
+                                     (ExpBinaryOp Plus
+                                          ( (MkExpression NoInfo
+                                                 (ExpExpressionMember
+                                                      (MkExpression NoInfo
+                                                           (ExpName
+                                                            (BareName
+                                                             {| stags := NoInfo;
+                                                                str := "meta" |})
+                                                            (LInstance
+                                                                 [{| 
+                                                                  stags := NoInfo;
+                                                                  str := "meta" |}]))
+                                                           (TypTypeName
+                                                            (BareName
+                                                             {| stags := NoInfo;
+                                                                str := "metadata" |}))
+                                                           InOut)
+                                                      {| stags := NoInfo;
+                                                         str := "counter" |})
+                                                 (TypBit 4) Directionless),
+                                            (MkExpression NoInfo
+                                                 (ExpCast (TypBit 4)
+                                                      (MkExpression NoInfo
+                                                           (ExpInt
+                                                            {| itags := NoInfo;
+                                                               value := 1;
+                                                               width_signed := 
+                                                               None |})
+                                                           TypInteger
+                                                           Directionless))
+                                                 (TypBit 4) Directionless) ))
+                                     (TypBit 4) Directionless))]) StmUnit)
                     (BlockCons
                          (MkStatement NoInfo
-                              (StatMethodCall
+                              (StatAssignment
                                    (MkExpression NoInfo
                                         (ExpExpressionMember
                                              (MkExpression NoInfo
                                                   (ExpName
                                                    (BareName
                                                     {| stags := NoInfo;
-                                                       str := "myCounter" |})
+                                                       str := "standard_metadata" |})
                                                    (LInstance
                                                         [{| stags := NoInfo;
-                                                            str := "myCounter" |}]))
-                                                  (TypSpecializedType
-                                                       (TypExtern
-                                                        {| stags := NoInfo;
-                                                           str := "register" |})
-                                                       [(TypBit 4)])
-                                                  Directionless)
+                                                            str := "standard_metadata" |}]))
+                                                  (TypTypeName
+                                                   (BareName
+                                                    {| stags := NoInfo;
+                                                       str := "standard_metadata_t" |}))
+                                                  InOut)
                                              {| stags := NoInfo;
-                                                str := "write" |})
-                                        (TypFunction
-                                         (MkFunctionType nil
-                                              [(MkParameter false In
-                                                    (TypBit 32) None
-                                                    {| stags := NoInfo;
-                                                       str := "index" |});
-                                               (MkParameter false In
-                                                    (TypBit 4) None
-                                                    {| stags := NoInfo;
-                                                       str := "value" |})]
-                                              FunExtern TypVoid))
-                                        Directionless) nil
-                                   [(Some
-                                     (MkExpression NoInfo
-                                          (ExpCast (TypBit 32)
-                                               (MkExpression NoInfo
-                                                    (ExpInt
-                                                     {| itags := NoInfo;
-                                                        value := 0;
-                                                        width_signed := 
-                                                        None |}) TypInteger
-                                                    Directionless))
-                                          (TypBit 32) Directionless));
-                                    (Some
-                                     (MkExpression NoInfo
-                                          (ExpBinaryOp Plus
-                                               ( (MkExpression NoInfo
-                                                      (ExpExpressionMember
-                                                           (MkExpression
-                                                                NoInfo
-                                                                (ExpName
-                                                                 (BareName
-                                                                  {| 
-                                                                  stags := NoInfo;
-                                                                  str := "meta" |})
-                                                                 (LInstance
-                                                                    [{| 
-                                                                    stags := NoInfo;
-                                                                    str := "meta" |}]))
-                                                                (TypTypeName
-                                                                 (BareName
-                                                                  {| 
-                                                                  stags := NoInfo;
-                                                                  str := "metadata" |}))
-                                                                InOut)
-                                                           {| stags := NoInfo;
-                                                              str := "counter" |})
-                                                      (TypBit 4)
-                                                      Directionless),
-                                                 (MkExpression NoInfo
-                                                      (ExpCast (TypBit 4)
-                                                           (MkExpression
-                                                                NoInfo
-                                                                (ExpInt
-                                                                 {| itags := NoInfo;
-                                                                    value := 1;
-                                                                    width_signed := 
-                                                                    None |})
-                                                                TypInteger
-                                                                Directionless))
-                                                      (TypBit 4)
-                                                      Directionless) ))
-                                          (TypBit 4) Directionless))])
-                              StmUnit) (BlockEmpty NoInfo)))));
+                                                str := "egress_spec" |})
+                                        (TypBit 9) Directionless)
+                                   (MkExpression NoInfo
+                                        (ExpCast (TypBit 9)
+                                             (MkExpression NoInfo
+                                                  (ExpInt
+                                                   {| itags := NoInfo;
+                                                      value := 0;
+                                                      width_signed := 
+                                                      None |}) TypInteger
+                                                  Directionless)) (TypBit 9)
+                                        Directionless)) StmUnit)
+                         (BlockEmpty NoInfo)))));
      (DeclAction NoInfo {| stags := NoInfo; str := "do_forward" |} nil
           [(MkParameter false Directionless
                 (TypTypeName
@@ -817,37 +806,60 @@ Definition MyIngress := DeclControl NoInfo
                 None {| stags := NoInfo; str := "port" |})]
           (BlockCons
                (MkStatement NoInfo
-                    (StatAssignment
+                    (StatMethodCall
                          (MkExpression NoInfo
                               (ExpExpressionMember
                                    (MkExpression NoInfo
                                         (ExpName
                                          (BareName
                                           {| stags := NoInfo;
-                                             str := "standard_metadata" |})
+                                             str := "myCounter" |})
                                          (LInstance
                                               [{| stags := NoInfo;
-                                                  str := "standard_metadata" |}]))
-                                        (TypTypeName
-                                         (BareName
+                                                  str := "myCounter" |}]))
+                                        (TypSpecializedType
+                                             (TypExtern
+                                              {| stags := NoInfo;
+                                                 str := "register" |})
+                                             [(TypBit 4)]) Directionless)
+                                   {| stags := NoInfo; str := "read" |})
+                              (TypFunction
+                               (MkFunctionType nil
+                                    [(MkParameter false Out (TypBit 4) 
+                                          None
                                           {| stags := NoInfo;
-                                             str := "standard_metadata_t" |}))
-                                        InOut)
-                                   {| stags := NoInfo;
-                                      str := "egress_spec" |}) (TypBit 9)
-                              Directionless)
-                         (MkExpression NoInfo
-                              (ExpName
-                               (BareName
-                                {| stags := NoInfo; str := "port" |})
-                               (LInstance
-                                    [{| stags := NoInfo;
-                                        str := "do_forward" |};
-                                     {| stags := NoInfo; str := "port" |}]))
-                              (TypTypeName
-                               (BareName
-                                {| stags := NoInfo; str := "egressSpec_t" |}))
-                              Directionless)) StmUnit)
+                                             str := "result" |});
+                                     (MkParameter false In (TypBit 32) 
+                                          None
+                                          {| stags := NoInfo;
+                                             str := "index" |})] FunExtern
+                                    TypVoid)) Directionless) nil
+                         [(Some
+                           (MkExpression NoInfo
+                                (ExpExpressionMember
+                                     (MkExpression NoInfo
+                                          (ExpName
+                                           (BareName
+                                            {| stags := NoInfo;
+                                               str := "meta" |})
+                                           (LInstance
+                                                [{| stags := NoInfo;
+                                                    str := "meta" |}]))
+                                          (TypTypeName
+                                           (BareName
+                                            {| stags := NoInfo;
+                                               str := "metadata" |})) InOut)
+                                     {| stags := NoInfo; str := "counter" |})
+                                (TypBit 4) Directionless));
+                          (Some
+                           (MkExpression NoInfo
+                                (ExpCast (TypBit 32)
+                                     (MkExpression NoInfo
+                                          (ExpInt
+                                           {| itags := NoInfo; value := 1;
+                                              width_signed := None |})
+                                          TypInteger Directionless))
+                                (TypBit 32) Directionless))]) StmUnit)
                (BlockCons
                     (MkStatement NoInfo
                          (StatMethodCall
@@ -867,39 +879,20 @@ Definition MyIngress := DeclControl NoInfo
                                                       str := "register" |})
                                                   [(TypBit 4)])
                                              Directionless)
-                                        {| stags := NoInfo; str := "read" |})
+                                        {| stags := NoInfo; str := "write" |})
                                    (TypFunction
                                     (MkFunctionType nil
-                                         [(MkParameter false Out (TypBit 4)
+                                         [(MkParameter false In (TypBit 32)
                                                None
                                                {| stags := NoInfo;
-                                                  str := "result" |});
-                                          (MkParameter false In (TypBit 32)
+                                                  str := "index" |});
+                                          (MkParameter false In (TypBit 4)
                                                None
                                                {| stags := NoInfo;
-                                                  str := "index" |})]
+                                                  str := "value" |})]
                                          FunExtern TypVoid)) Directionless)
                               nil
                               [(Some
-                                (MkExpression NoInfo
-                                     (ExpExpressionMember
-                                          (MkExpression NoInfo
-                                               (ExpName
-                                                (BareName
-                                                 {| stags := NoInfo;
-                                                    str := "meta" |})
-                                                (LInstance
-                                                     [{| stags := NoInfo;
-                                                         str := "meta" |}]))
-                                               (TypTypeName
-                                                (BareName
-                                                 {| stags := NoInfo;
-                                                    str := "metadata" |}))
-                                               InOut)
-                                          {| stags := NoInfo;
-                                             str := "counter" |}) (TypBit 4)
-                                     Directionless));
-                               (Some
                                 (MkExpression NoInfo
                                      (ExpCast (TypBit 32)
                                           (MkExpression NoInfo
@@ -908,92 +901,78 @@ Definition MyIngress := DeclControl NoInfo
                                                    value := 1;
                                                    width_signed := None |})
                                                TypInteger Directionless))
-                                     (TypBit 32) Directionless))]) StmUnit)
+                                     (TypBit 32) Directionless));
+                               (Some
+                                (MkExpression NoInfo
+                                     (ExpBinaryOp Plus
+                                          ( (MkExpression NoInfo
+                                                 (ExpExpressionMember
+                                                      (MkExpression NoInfo
+                                                           (ExpName
+                                                            (BareName
+                                                             {| stags := NoInfo;
+                                                                str := "meta" |})
+                                                            (LInstance
+                                                                 [{| 
+                                                                  stags := NoInfo;
+                                                                  str := "meta" |}]))
+                                                           (TypTypeName
+                                                            (BareName
+                                                             {| stags := NoInfo;
+                                                                str := "metadata" |}))
+                                                           InOut)
+                                                      {| stags := NoInfo;
+                                                         str := "counter" |})
+                                                 (TypBit 4) Directionless),
+                                            (MkExpression NoInfo
+                                                 (ExpCast (TypBit 4)
+                                                      (MkExpression NoInfo
+                                                           (ExpInt
+                                                            {| itags := NoInfo;
+                                                               value := 1;
+                                                               width_signed := 
+                                                               None |})
+                                                           TypInteger
+                                                           Directionless))
+                                                 (TypBit 4) Directionless) ))
+                                     (TypBit 4) Directionless))]) StmUnit)
                     (BlockCons
                          (MkStatement NoInfo
-                              (StatMethodCall
+                              (StatAssignment
                                    (MkExpression NoInfo
                                         (ExpExpressionMember
                                              (MkExpression NoInfo
                                                   (ExpName
                                                    (BareName
                                                     {| stags := NoInfo;
-                                                       str := "myCounter" |})
+                                                       str := "standard_metadata" |})
                                                    (LInstance
                                                         [{| stags := NoInfo;
-                                                            str := "myCounter" |}]))
-                                                  (TypSpecializedType
-                                                       (TypExtern
-                                                        {| stags := NoInfo;
-                                                           str := "register" |})
-                                                       [(TypBit 4)])
-                                                  Directionless)
+                                                            str := "standard_metadata" |}]))
+                                                  (TypTypeName
+                                                   (BareName
+                                                    {| stags := NoInfo;
+                                                       str := "standard_metadata_t" |}))
+                                                  InOut)
                                              {| stags := NoInfo;
-                                                str := "write" |})
-                                        (TypFunction
-                                         (MkFunctionType nil
-                                              [(MkParameter false In
-                                                    (TypBit 32) None
-                                                    {| stags := NoInfo;
-                                                       str := "index" |});
-                                               (MkParameter false In
-                                                    (TypBit 4) None
-                                                    {| stags := NoInfo;
-                                                       str := "value" |})]
-                                              FunExtern TypVoid))
-                                        Directionless) nil
-                                   [(Some
-                                     (MkExpression NoInfo
-                                          (ExpCast (TypBit 32)
-                                               (MkExpression NoInfo
-                                                    (ExpInt
-                                                     {| itags := NoInfo;
-                                                        value := 1;
-                                                        width_signed := 
-                                                        None |}) TypInteger
-                                                    Directionless))
-                                          (TypBit 32) Directionless));
-                                    (Some
-                                     (MkExpression NoInfo
-                                          (ExpBinaryOp Plus
-                                               ( (MkExpression NoInfo
-                                                      (ExpExpressionMember
-                                                           (MkExpression
-                                                                NoInfo
-                                                                (ExpName
-                                                                 (BareName
-                                                                  {| 
-                                                                  stags := NoInfo;
-                                                                  str := "meta" |})
-                                                                 (LInstance
-                                                                    [{| 
-                                                                    stags := NoInfo;
-                                                                    str := "meta" |}]))
-                                                                (TypTypeName
-                                                                 (BareName
-                                                                  {| 
-                                                                  stags := NoInfo;
-                                                                  str := "metadata" |}))
-                                                                InOut)
-                                                           {| stags := NoInfo;
-                                                              str := "counter" |})
-                                                      (TypBit 4)
-                                                      Directionless),
-                                                 (MkExpression NoInfo
-                                                      (ExpCast (TypBit 4)
-                                                           (MkExpression
-                                                                NoInfo
-                                                                (ExpInt
-                                                                 {| itags := NoInfo;
-                                                                    value := 1;
-                                                                    width_signed := 
-                                                                    None |})
-                                                                TypInteger
-                                                                Directionless))
-                                                      (TypBit 4)
-                                                      Directionless) ))
-                                          (TypBit 4) Directionless))])
-                              StmUnit) (BlockEmpty NoInfo)))));
+                                                str := "egress_spec" |})
+                                        (TypBit 9) Directionless)
+                                   (MkExpression NoInfo
+                                        (ExpName
+                                         (BareName
+                                          {| stags := NoInfo;
+                                             str := "port" |})
+                                         (LInstance
+                                              [{| stags := NoInfo;
+                                                  str := "do_forward" |};
+                                               {| stags := NoInfo;
+                                                  str := "port" |}]))
+                                        (TypTypeName
+                                         (BareName
+                                          {| stags := NoInfo;
+                                             str := "egressSpec_t" |}))
+                                        Directionless)) StmUnit)
+                         (BlockEmpty NoInfo)))));
      (DeclTable NoInfo {| stags := NoInfo; str := "forward" |}
           [(MkTableKey NoInfo
                 (MkExpression NoInfo
@@ -1080,13 +1059,104 @@ Definition MyIngress := DeclControl NoInfo
           (Some {| itags := NoInfo; value := 2; width_signed := None |}) nil)]
     (BlockCons
          (MkStatement NoInfo
-              (StatMethodCall
+              (StatConditional
                    (MkExpression NoInfo
-                        (ExpName
-                         (BareName {| stags := NoInfo; str := "drop" |})
-                         (LInstance [{| stags := NoInfo; str := "drop" |}]))
-                        (TypAction nil nil) Directionless) nil nil) StmUnit)
-         (BlockEmpty NoInfo)).
+                        (ExpBinaryOp Eq
+                             ( (MkExpression NoInfo
+                                    (ExpExpressionMember
+                                         (MkExpression NoInfo
+                                              (ExpExpressionMember
+                                                   (MkExpression NoInfo
+                                                        (ExpName
+                                                         (BareName
+                                                          {| stags := NoInfo;
+                                                             str := "hdr" |})
+                                                         (LInstance
+                                                              [{| stags := NoInfo;
+                                                                  str := "hdr" |}]))
+                                                        (TypTypeName
+                                                         (BareName
+                                                          {| stags := NoInfo;
+                                                             str := "headers" |}))
+                                                        InOut)
+                                                   {| stags := NoInfo;
+                                                      str := "myHeader" |})
+                                              (TypHeader
+                                               [( {| stags := NoInfo;
+                                                     str := "firstBit" |},
+                                                  (TypBit 1) );
+                                                ( {| stags := NoInfo;
+                                                     str := "padding" |},
+                                                  (TypBit 7) )])
+                                              Directionless)
+                                         {| stags := NoInfo;
+                                            str := "firstBit" |}) (TypBit 1)
+                                    Directionless),
+                               (MkExpression NoInfo
+                                    (ExpCast (TypBit 1)
+                                         (MkExpression NoInfo
+                                              (ExpInt
+                                               {| itags := NoInfo;
+                                                  value := 1;
+                                                  width_signed := None |})
+                                              TypInteger Directionless))
+                                    (TypBit 1) Directionless) )) TypBool
+                        Directionless)
+                   (MkStatement NoInfo
+                        (StatBlock
+                         (BlockCons
+                              (MkStatement NoInfo
+                                   (StatMethodCall
+                                        (MkExpression NoInfo
+                                             (ExpName
+                                              (BareName
+                                               {| stags := NoInfo;
+                                                  str := "do_forward" |})
+                                              (LInstance
+                                                   [{| stags := NoInfo;
+                                                       str := "do_forward" |}]))
+                                             (TypAction nil
+                                                  [(MkParameter false
+                                                        Directionless
+                                                        (TypTypeName
+                                                         (BareName
+                                                          {| stags := NoInfo;
+                                                             str := "egressSpec_t" |}))
+                                                        None
+                                                        {| stags := NoInfo;
+                                                           str := "port" |})])
+                                             Directionless) nil
+                                        [(Some
+                                          (MkExpression NoInfo
+                                               (ExpCast (TypBit 9)
+                                                    (MkExpression NoInfo
+                                                         (ExpInt
+                                                          {| itags := NoInfo;
+                                                             value := 48;
+                                                             width_signed := 
+                                                             None |})
+                                                         TypInteger
+                                                         Directionless))
+                                               (TypBit 9) Directionless))])
+                                   StmUnit) (BlockEmpty NoInfo))) StmUnit)
+                   (Some
+                    (MkStatement NoInfo
+                         (StatBlock
+                          (BlockCons
+                               (MkStatement NoInfo
+                                    (StatMethodCall
+                                         (MkExpression NoInfo
+                                              (ExpName
+                                               (BareName
+                                                {| stags := NoInfo;
+                                                   str := "drop" |})
+                                               (LInstance
+                                                    [{| stags := NoInfo;
+                                                        str := "drop" |}]))
+                                              (TypAction nil nil)
+                                              Directionless) nil nil)
+                                    StmUnit) (BlockEmpty NoInfo))) StmUnit)))
+              StmUnit) (BlockEmpty NoInfo)).
 
 Definition MyEgress := DeclControl NoInfo
     {| stags := NoInfo; str := "MyEgress" |} nil

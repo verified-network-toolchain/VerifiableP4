@@ -4,8 +4,9 @@ Open Scope string_scope.
 
 Import ListNotations.
 Require Import ProD3.examples.count.p4ast.
-(* Require Import Coq.micromega.Lia.
-Require Import Coq.micromega.Nia. *)
+Require Import Coq.Lists.List.
+Import ListNotations.
+
 Require Import Psatz.
 
 Require Import Poulet4.Maps.
@@ -13,6 +14,8 @@ Require Import Poulet4.Semantics.
 Require Import Poulet4.SimplExpr.
 Require Import Poulet4.V1Model.
 Require Import Poulet4.P4Arith.
+Require Import Poulet4.P4String.
+Require Import Poulet4.Ops.
 Require Import ProD3.core.Hoare.
 (* Require Import ProD3.core.AssertionLang. *)
 
@@ -33,6 +36,7 @@ Definition init_es := Eval compute in snd instantiation.
 
 Notation ident := (P4String.t Info).
 Notation path := (list ident).
+
 Transparent IdentMap.empty IdentMap.set PathMap.empty PathMap.set.
 
 Module Experiment.
@@ -62,7 +66,8 @@ Proof.
   simpl. reflexivity.
 Qed. *)
 
-Ltac Zify.zify_post_hook ::= Z.to_euclidean_division_equations.
+(* Ltac Zify.zify_post_hook ::= Z.to_euclidean_division_equations.
+Print init_es. *)
 
 (* {st' signal | exec_block [] inst_mem init_st myBlock st' signal }. *)
 Lemma eval_func: { st' & { signal | exec_func ge this inst_m init_st myFundef
@@ -72,73 +77,67 @@ Proof.
 Defined.
 
 Opaque IdentMap.empty IdentMap.set PathMap.empty PathMap.set PathMap.sets.
-Definition st'' := Eval compute in (projT1 eval_func).
+Definition st' := Eval compute in (projT1 eval_func).
+Print st'.
 
-Definition st' := (PathMap.set (loc_to_path this (LInstance !["meta"]))
-(ValBaseStruct
-   [(!"counter",
-    ValBaseBit
-      (reg_width
-         {| reg_width := 4; reg_size := 2; reg_content := [0; 0] |})
-      (Znth
-         (BitArith.mod_bound (Pos.of_nat 32)
-            (value
-               {| tags := NoInfo; value := 0; width_signed := None |}))
-         (reg_content
-            {| reg_width := 4; reg_size := 2; reg_content := [0; 0] |})))])
-(PathMap.set (loc_to_path this (LInstance !["standard_metadata"]))
-   (ValBaseStruct
-      [(!"egress_spec",
-       ValBaseBit 9
-         (BitArith.mod_bound (Pos.of_nat 9)
-            (value
-               {| tags := NoInfo; value := 0; width_signed := None |})))])
-   (PathMap.sets
-      (filter_in
-         (map (map_fst (fun param : ident => (this ++ [param])%list)) []))
-      (extract_invals [])
-      (PathMap.sets
-         (filter_in
-            (map (map_fst (fun param : ident => (this ++ [param])%list))
-               [(!"hdr", InOut); (!"meta", InOut);
-               (!"standard_metadata", InOut)])) 
-         [v2; v3; v5] PathMap.empty))),
-PathMap.set [!"main"; !"ig"; !"myCounter"]
-(ObjRegister
-  {|
-    reg_width :=
-      reg_width
-        {| reg_width := 4; reg_size := 2; reg_content := [0; 0] |};
-    reg_size :=
-      reg_size
-        {| reg_width := 4; reg_size := 2; reg_content := [0; 0] |};
-    reg_content :=
-      upd_Znth
-        (BitArith.mod_bound (Pos.of_nat 32)
-           (value {| tags := NoInfo; value := 0; width_signed := None |}))
-        (reg_content
-           {| reg_width := 4; reg_size := 2; reg_content := [0; 0] |})
-        (BitArith.plus_mod
-           (Pos.of_nat
-              (reg_width
-                 {|
-                   reg_width := 4; reg_size := 2; reg_content := [0; 0]
-                 |}))
-           (Znth
-              (BitArith.mod_bound (Pos.of_nat 32)
-                 (value
-                    {|
-                      tags := NoInfo; value := 0; width_signed := None
-                    |}))
-              (reg_content
-                 {|
-                   reg_width := 4; reg_size := 2; reg_content := [0; 0]
-                 |}))
-           (BitArith.mod_bound (Pos.of_nat 4)
-              (value
-                 {| tags := NoInfo; value := 1; width_signed := None |})))
-  |}) init_es).
+(* Functional model *)
+Notation Val := (@ValueBase Info).
+Notation P4String := (P4String.t Info).
+Definition array_state := (list Z).
+Definition NUM_ENTRY := 2.
 
-Goal st'' = st'. reflexivity. Qed.
+Fixpoint array_incr (ast: array_state) (i: nat) : array_state :=
+  match i, ast with
+    | O, hd :: tl => (hd + 1) :: tl
+    | S n, hd :: tl => array_incr tl n
+    | _, [] => ast
+  end.
+
+Definition ast_match (st : state) (ast : array_state) : Prop :=
+  exists content,
+  PathMap.get !["main"; "ig"; "myCounter"] (snd st) = Some (ObjRegister (mk_register 1%nat NUM_ENTRY content)) /\
+  content = ast.
+
+Definition field_contains (v : Val) (name : P4String) (data: Val) : Prop :=
+  match v with
+  | ValBaseStruct fields => AList.get fields name = Some data
+  | ValBaseHeader fields true => AList.get fields name = Some data
+  | _ => False
+  end.
+
+Section Experiment1.
+Variable fbit : Z.
+Variable hdr : Val.
+Variable meta : Val.
+Variable standard_metadata : Val.
+Variable ast : array_state.
+
+Definition pre (* (fbit : Z) (hdr meta standard_metadata : Val) *) (in_args : list Val) (st : state) :=
+  in_args = [ValBaseStruct [(!"myHeader", hdr)]; meta; standard_metadata]
+    /\ field_contains hdr !"firstBit" (ValBaseBit 1%nat fbit)
+    /\ ast_match st ast.
+
+Definition process (fbit : Z) (ast : array_state) : (array_state * Z) :=
+  if fbit =? 1 then
+    (array_incr ast 1, 48)
+  else
+    (array_incr ast 0, 0).
+
+Definition post (* (fbit : Z) (hdr meta standard_metadata : Val) *) (out_args : list Val) (st : state) :=
+  let (ast', eport) := process fbit ast in
+  exists standard_metadata' std_meta_fields std_meta_fields',
+  out_args = [hdr; meta; standard_metadata']
+    /\ standard_metadata = ValBaseStruct std_meta_fields 
+    /\ standard_metadata' = ValBaseStruct std_meta_fields'
+    /\ field_contains standard_metadata' !"egress_spec" (ValBaseBit 9%nat eport)
+    /\ Ops.eval_binary_op_eq (ValBaseStruct (AList.filter std_meta_fields (P4String.equivb !"egress_spec" )))
+                         (ValBaseStruct (AList.filter std_meta_fields' (P4String.equivb !"egress_spec" )))
+       = Some true
+    /\ ast_match st ast'.
+
+Lemma body_counter : hoare_func ge inst_m this pre myFundef nil post.
+Abort.
+
+End Experiment1.
 
 End Experiment.
