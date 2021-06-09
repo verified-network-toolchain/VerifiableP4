@@ -10,22 +10,37 @@ Section AssertionLang.
 
 Context {tags_t: Type} {tags_t_inhabitant : Inhabitant tags_t}.
 Notation Val := (@ValueBase tags_t).
+Notation Lval := (@ValueLvalue tags_t).
 
 Notation ident := (P4String.t tags_t).
 Notation path := (list ident).
 Notation P4Int := (P4Int.t tags_t).
 Notation P4String := (P4String.t tags_t).
 Notation signal := (@signal tags_t).
+Notation Locator := (@Locator tags_t).
 
 Context `{@Target tags_t (@Expression tags_t)}.
 
-Definition assertion := list (@Locator tags_t * Val).
+Definition assertion := list (Lval * Val).
 
 Variable this : path.
 
-Definition satisfies_unit (st : state) (a_unit : @Locator tags_t * Val) : Prop :=
-  let (loc, v) := a_unit in
-  loc_to_val this loc st = Some v.
+Definition sem_eval_read (st : state) (lv : Lval) : option Val :=
+  match lv with
+  | MkValueLvalue (ValLeftName _ loc) _ =>
+      loc_to_val this loc st
+  | _ => None
+  end.
+
+Lemma sem_eval_read_sound : forall st lv v,
+  sem_eval_read st lv = Some v ->
+  forall v', exec_read this st lv v' ->
+    v' = v.
+Admitted.
+
+Definition satisfies_unit (st : state) (a_unit : Lval * Val) : Prop :=
+  let (lv, v) := a_unit in
+  sem_eval_read st lv = Some v.
 
 Definition satisfies (st : state) (a : assertion) : Prop :=
   fold_right and True (map (satisfies_unit st) a).
@@ -33,50 +48,69 @@ Definition satisfies (st : state) (a : assertion) : Prop :=
 Definition to_shallow_assertion (a : assertion) : state -> Prop :=
   fun st => satisfies st a.
 
-Definition no_overlapping_unit (loc1 : @Locator tags_t) (a_unit2 : @Locator tags_t * Val) : bool :=
-  (* let (loc1, _) := a_unit1 in *)
-  let (loc2, _) := a_unit2 in
+Definition loc_no_overlapping (loc1 : Locator) (loc2 : Locator) : bool :=
   match loc1, loc2 with
   | LInstance p1, LInstance p2 => ~~ (path_equivb p1 p2)
   | _, _ => false
   end.
 
-Fixpoint no_overlapping (loc : @Locator tags_t) (a : assertion) : bool :=
+Definition lval_no_overlapping (lv1 : Lval) (lv2 : Lval) : bool :=
+  match lv1, lv2 with
+  | MkValueLvalue (ValLeftName _ loc1) _, MkValueLvalue (ValLeftName _ loc2) _ =>
+      loc_no_overlapping loc1 loc2
+  | _, _ => false
+  end.
+
+Fixpoint no_overlapping (lv : Lval) (a : assertion) : bool :=
   match a with
-  | hd :: tl => no_overlapping_unit loc hd && no_overlapping loc tl
+  | hd :: tl => lval_no_overlapping lv (fst hd) && no_overlapping lv tl
   | [] => true
   end.
 
-Definition is_instance (loc : @Locator tags_t) : bool :=
+Definition is_instance (loc : Locator) : bool :=
   match loc with
   | LInstance _ => true
   | LGlobal _ => false
   end.
 
+Definition is_lval_loc_instance (lv : Lval) : bool :=
+  match lv with
+  | MkValueLvalue (ValLeftName _ loc) _ =>
+      is_instance loc
+  | _ => false
+  end.
+
 Fixpoint wellformed (a : assertion) : bool :=
   match a with
   | hd :: tl =>
-      let (loc, _) := hd in
-      is_instance loc && no_overlapping loc tl && wellformed tl
+      let (lv, _) := hd in
+      is_lval_loc_instance lv && no_overlapping lv tl && wellformed tl
   | [] => true
   end.
 
-Definition locator_equivb (loc1 loc2 : @Locator tags_t) : bool :=
+Definition locator_equivb (loc1 loc2 : Locator) : bool :=
   match loc1, loc2 with
   | LInstance p1, LInstance p2 => path_equivb p1 p2
   | LGlobal p1, LGlobal p2 => path_equivb p1 p2
   | _, _ => false
   end.
 
-Fixpoint update_val_by_loc (a : assertion) (loc : Locator) (v : Val) : assertion :=
+Definition lval_equivb (lv1 lv2 : Lval) : bool :=
+  match lv1, lv2 with
+  | MkValueLvalue (ValLeftName _ loc1) _, MkValueLvalue (ValLeftName _ loc2) _ =>
+      locator_equivb loc1 loc2
+  | _, _ => false
+  end.
+
+Fixpoint eval_write (a : assertion) (lv : Lval) (v : Val) : assertion :=
   match a with
   | hd :: tl =>
-      let (hd_loc, hd_v) := hd in
-      if locator_equivb loc hd_loc then
-        (hd_loc, v) :: tl
+      let (hd_lv, hd_v) := hd in
+      if lval_equivb lv hd_lv then
+        (lv, v) :: tl
       else
-        hd :: update_val_by_loc tl loc v
-  | [] => [(loc, v)]
+        hd :: eval_write tl lv v
+  | [] => [(lv, v)]
   end.
 
 Axiom loc_to_val_update_val_by_loc_same : forall st p1 p2 v,
@@ -97,139 +131,130 @@ Axiom path_equivb_symm : forall (p1 p2 : path),
 Axiom path_equivb_trans : forall (p1 p2 p3 : path),
   path_equivb p1 p2 -> path_equivb p2 p3 -> path_equivb p1 p3.
 
-Lemma update_val_by_loc_different st a loc v :
-  no_overlapping loc a ->
-  to_shallow_assertion a st ->
-  to_shallow_assertion a (Semantics.update_val_by_loc this st loc v).
+Axiom loc_no_overlapping_symm : forall (loc1 loc2 : Locator),
+  loc_no_overlapping loc1 loc2 = loc_no_overlapping loc2 loc1.
+
+Axiom lval_no_overlapping_symm : forall (lv1 lv2 : Lval),
+  lval_no_overlapping lv1 lv2 = lval_no_overlapping lv2 lv1.
+
+Lemma exec_write_no_overlapping_unit st lv1 v1 lv2 v2 st' :
+  lval_no_overlapping lv1 lv2 ->
+  satisfies_unit st (lv1, v1) ->
+  exec_write this st lv2 v2 st' ->
+  satisfies_unit st' (lv1, v1).
 Proof.
-  intros H_no_overlapping H_pre.
-  induction a; intros.
+  intros H_no_overlapping H_pre H_exec.
+  destruct lv1 as [[? loc1 | | |] ?]; only 2-4 : sfirstorder.
+  destruct lv2 as [[? loc2 | | |] ?]; only 2-4 : sfirstorder.
+  inversion H_exec; subst. simpl.
+  destruct loc1; only 1 : sfirstorder.
+  destruct loc2; only 1 : sfirstorder.
+  rewrite loc_to_val_update_val_by_loc_different by sfirstorder.
+  apply H_pre.
+Qed.
+
+Lemma exec_write_no_overlapping st a lv v st' :
+  no_overlapping lv a ->
+  to_shallow_assertion a st ->
+  exec_write this st lv v st' ->
+  to_shallow_assertion a st'.
+Proof.
+  intros H_no_overlapping H_pre H_exec.
+  induction a as [ | hd tl]; intros.
   - sfirstorder.
   - split.
-    + destruct a as [a_loc a_v]. simpl in *. destruct loc; destruct a_loc; only 1-3 : sfirstorder.
-      rewrite loc_to_val_update_val_by_loc_different by (hauto use: path_equivb_symm unfold: negb, is_true, andb).
-      sfirstorder.
-    + apply IHa; [hauto b: on | sfirstorder].
+    + destruct hd as [a_lv a_v].
+      eapply (exec_write_no_overlapping_unit st _ _ lv v).
+      * rewrite lval_no_overlapping_symm. hauto b: on.
+      * sfirstorder.
+      * sfirstorder.
+    + apply IHtl.
+      * hauto b: on.
+      * sfirstorder.
 Qed.
 
-Lemma update_val_by_loc_different' st a loc v loc' :
-  locator_equivb loc loc' ->
-  no_overlapping loc' a ->
-  to_shallow_assertion a st ->
-  to_shallow_assertion a (Semantics.update_val_by_loc this st loc v).
+Lemma exec_write_same st lv v st' :
+  is_lval_loc_instance lv ->
+  exec_write this st lv v st' ->
+  satisfies_unit st' (lv, v).
 Proof.
-  intros H_equiv H_no_overlapping H_pre.
-  induction a; intros.
-  - sfirstorder.
-  - split.
-    + destruct a as [a_loc a_v]. simpl in *. destruct loc; destruct loc'; destruct a_loc; only 1-7 : sfirstorder.
-      rewrite loc_to_val_update_val_by_loc_different by (
-        simpl in H_equiv; hfcrush brefl: on use: path_equivb_symm, Reflect.negE, path_equivb_trans unfold: andb, is_true, negb).
-      sfirstorder.
-    + apply IHa; [hauto b: on | sfirstorder].
+  intros H_is_lval_loc_instance H_exec_write.
+  simpl. destruct lv as [[? loc | | |] ?]; only 2-4 : sfirstorder.
+  inversion H_exec_write; subst.
+  simpl. destruct loc; only 1 : sfirstorder.
+  apply loc_to_val_update_val_by_loc_same.
+  apply path_equivb_refl.
 Qed.
 
-Lemma update_val_by_loc_add st a loc v loc' :
-  is_instance loc ->
-  no_overlapping loc' a ->
-  locator_equivb loc loc' ->
+Lemma eval_write_add st a lv v st':
+  is_lval_loc_instance lv ->
+  no_overlapping lv a ->
   to_shallow_assertion a st ->
-  to_shallow_assertion ((loc', v) :: a) (Semantics.update_val_by_loc this st loc v).
+  exec_write this st lv v st' ->
+  to_shallow_assertion ((lv, v) :: a) st'.
 Proof.
-  intros H_no_overlapping H_pre.
-  split; only 2 : (eapply update_val_by_loc_different'; hauto).
-  destruct loc; destruct loc'; only 1-3 : sfirstorder.
-  apply loc_to_val_update_val_by_loc_same; unfold locator_equivb in H0; srun eauto use: path_equivb_symm.
+  intros H_is_lval_loc_instance H_no_overlapping H_pre H_exec_write.
+  split.
+  - eapply exec_write_same; eassumption.
+  - apply (exec_write_no_overlapping st _ lv v); sfirstorder.
 Qed.
 
-Lemma update_val_by_loc_sound : forall st a loc v,
-  wellformed a ->
-  is_instance loc ->
-  to_shallow_assertion a st ->
-  to_shallow_assertion (update_val_by_loc a loc v) (Semantics.update_val_by_loc this st loc v).
-Proof.
-  intros * H_wellformed H_is_instance H_pre.
-  destruct loc; only 1 : inversion H_is_instance.
-  unfold to_shallow_assertion in *.
-  induction a; intros.
-  - unfold satisfies. repeat split.
-    apply loc_to_val_update_val_by_loc_same. srun eauto use: path_equivb_refl.
-  - destruct a as [hd_loc hd_v]. simpl. destruct hd_loc; only 1 : hauto lq: on.
-    destruct (path_equivb p p0) eqn:H_path_equivb.
-    + apply update_val_by_loc_add; only 2 : hauto b: on; sfirstorder.
-    + split.
-      * simpl. rewrite loc_to_val_update_val_by_loc_different by (hauto use: path_equivb_symm unfold: negb, is_true).
-        sfirstorder.
-      * apply IHa; [hauto b: on | sfirstorder].
-Qed.
-
-Fixpoint get_val (a : assertion) (loc : Locator) : option Val :=
+Fixpoint no_nequiv_overlapping (lv : Lval) (a : assertion) : bool :=
   match a with
-  | (hd_loc, hd_v) :: tl =>
-      if locator_equivb hd_loc loc then Some hd_v else get_val tl loc
+  | hd :: tl =>
+      if lval_equivb lv (fst hd) then
+        no_overlapping lv tl
+      else
+        lval_no_overlapping lv (fst hd) && no_nequiv_overlapping lv tl
+  | [] => true
+  end.
+
+Lemma eval_write_sound : forall st a lv v st',
+  wellformed a ->
+  is_lval_loc_instance lv ->
+  no_nequiv_overlapping lv a ->
+  to_shallow_assertion a st ->
+  exec_write this st lv v st' ->
+  to_shallow_assertion (eval_write a lv v) st'.
+Proof.
+  intros * H_wellformed H_is_lval_loc_instance H_no_nequiv_overlapping H_pre H_exec_write.
+  induction a as [ | hd tl]; intros.
+  - eapply eval_write_add; eassumption.
+  - destruct hd as [hd_lv hd_v].
+    simpl in H_no_nequiv_overlapping |- *. destruct (lval_equivb lv hd_lv) eqn:H_lval_equivb.
+    + eapply eval_write_add with (st := st); sfirstorder.
+    + split.
+      * refine (exec_write_no_overlapping_unit _ _ _ _ _ _ _ _ H_exec_write); only 2 : sfirstorder.
+        hauto use: lval_no_overlapping_symm unfold: is_true, andb.
+      * apply IHtl; only 3 : sfirstorder; hauto b: on.
+Qed.
+
+Fixpoint eval_read (a : assertion) (lv : Lval) : option Val :=
+  match a with
+  | (hd_lv, hd_v) :: tl =>
+      if lval_equivb hd_lv lv then Some hd_v else eval_read tl lv
   | [] => None
   end.
 
 (* This axiom is provable if tags_t is a unit type. *)
 Axiom locator_equivb_eq : forall loc1 loc2, locator_equivb loc1 loc2 -> loc1 = loc2.
 
-Lemma get_val_sound : forall st a loc v,
-  wellformed a ->
+Axiom lval_equivb_eq : forall lv1 lv2, lval_equivb lv1 lv2 -> lv1 = lv2.
+
+Lemma eval_read_sound : forall st a lv v,
   to_shallow_assertion a st ->
-  get_val a loc = Some v ->
-  loc_to_val this loc st = Some v.
+  eval_read a lv = Some v ->
+  sem_eval_read st lv = Some v.
 Proof.
-  intros * H_wellformed H_pre H_get_val.
-  induction a as [ |hd tl].
-  - inversion H_get_val.
-  - destruct hd as [hd_loc hd_v].
-    simpl in H_wellformed, H_get_val, H_pre.
-    destruct (locator_equivb hd_loc loc) eqn:H_locator_equivb.
-    + hnf in H_pre. erewrite <- (locator_equivb_eq _ loc) by (apply H_locator_equivb).
+  intros * H_pre H_eval_read.
+  induction a as [ | hd tl].
+  - inversion H_eval_read.
+  - destruct hd as [hd_lv hd_v].
+    simpl in H_pre, H_eval_read.
+    destruct (lval_equivb hd_lv lv) eqn:H_lval_equivb.
+    + erewrite <- (lval_equivb_eq _ lv) by (apply H_lval_equivb).
       sfirstorder.
-    + apply IHtl; only 1: hauto b: on; sfirstorder.
-Qed.
-
-Definition eval_expr (a : assertion) (expr : Expression) :=
-  eval_expr_gen (fun _ loc => get_val a loc) expr.
-
-Definition eval_expr_gen_refine_statement get_val1 get_val2 (expr : @Expression tags_t) v :=
-  (forall name loc v, get_val1 name loc = Some v -> get_val2 name loc = Some v) ->
-  eval_expr_gen get_val1 expr = Some v ->
-  eval_expr_gen get_val2 expr = Some v.
-
-Lemma eval_expr_gen_refine get_val1 get_val2 (expr : @Expression tags_t) v :
-  eval_expr_gen_refine_statement get_val1 get_val2 expr v
-with eval_expr_gen_refine_preT get_val1 get_val2 tags expr typ dir v :
-  eval_expr_gen_refine_statement get_val1 get_val2 (MkExpression tags expr typ dir) v.
-Proof.
-  - intros. destruct expr; apply eval_expr_gen_refine_preT.
-  - unfold eval_expr_gen_refine_statement. intros H_refine H_eval_expr_gen.
-    destruct expr; inversion H_eval_expr_gen.
-    + reflexivity.
-    + hauto lq: on.
-    + destruct (eval_expr_gen get_val1 arg) eqn:H_eval_arg; only 2 : inversion H1.
-      assert (eval_expr_gen get_val2 arg = Some v0) by (eapply eval_expr_gen_refine; eauto).
-      hauto lq: on.
-    + destruct args as [larg rarg].
-      destruct (eval_expr_gen get_val1 larg) eqn:H_eval_larg; only 2 : inversion H1.
-      destruct (eval_expr_gen get_val1 rarg) eqn:H_eval_rarg; only 2 : inversion H1.
-      assert (eval_expr_gen get_val2 larg = Some v0) by (eapply eval_expr_gen_refine; eauto).
-      assert (eval_expr_gen get_val2 rarg = Some v1) by (eapply eval_expr_gen_refine; eauto).
-      hauto lq: on.
-Qed.
-
-Lemma eval_expr_sound : forall ge st a expr v,
-  wellformed a ->
-  to_shallow_assertion a st ->
-  eval_expr a expr = Some v ->
-  exec_expr ge this st expr v.
-Proof.
-  intros * H_wellformed H_pre H_get_val.
-  apply eval_expr_gen_sound.
-  eapply eval_expr_gen_refine; only 2 : eassumption.
-  intros *. simpl.
-  apply get_val_sound; assumption.
+    + apply IHtl; sfirstorder.
 Qed.
 
 End AssertionLang.
