@@ -29,6 +29,21 @@ Definition assertion := list (Lval * Val).
 
 Variable this : path.
 
+Ltac inv H := inversion H; subst; clear H.
+Ltac pinv P :=
+  lazymatch goal with
+  | H : context [P] |- _ => inv H
+  (* | H : P |- _ => inv H
+  | H : P _ |- _ => inv H
+  | H : P _ _ |- _ => inv H
+  | H : P _ _ _ |- _ => inv H
+  | H : P _ _ _ _ |- _ => inv H
+  | H : P _ _ _ _ _ |- _ => inv H
+  | H : P _ _ _ _ _ _ |- _ => inv H
+  | H : P _ _ _ _ _ _ _ |- _ => inv H
+  | H : P _ _ _ _ _ _ _ _ |- _ => inv H *)
+  end.
+
 (* Fixpoint sem_eval_read (st : state) (lv : Lval) : option Val :=
   match lv with
   | MkValueLvalue (ValLeftName _ loc) _ =>
@@ -72,31 +87,11 @@ Definition state_eval_read (st : state) (lv : Lval) : option Val :=
   let (loc, fl) := lv in
   fold_left extract_option fl (loc_to_val this loc st).
 
-Definition state_eval_read_alt (st : state) (lv : Lval) : option Val :=
-  let (loc, fl) := lv in
-  let rfl := rev fl in
-  let step (extractor : option Val -> option Val) f ov :=
-    extractor (extract_option ov f) in
-  fold_left step rfl id (loc_to_val this loc st).
-
-Lemma fold_left_fold_right {A B} (f : A -> B -> A) (l : list B) (acc : A) :
-  fold_left f l acc = fold_right (fun x fold_rest acc => fold_rest (f acc x)) id l acc.
+Lemma state_eval_read_snoc st loc fl f :
+  state_eval_read st (loc, fl ++ [f]) =
+    extract_option (state_eval_read st (loc, fl)) f .
 Proof.
-  revert acc.
-  induction l as [ | hd tl]; intros acc.
-  - reflexivity.
-  - change (hd :: tl) with ([hd] ++ tl) at 2.
-    rewrite fold_right_app. simpl. apply IHtl.
-Qed.
-
-Lemma state_eval_read_alt_eq_state_eval_read st lv :
-  state_eval_read_alt st lv = state_eval_read st lv.
-Proof.
-  destruct lv as [loc fl]; simpl.
-  rewrite <- (rev_involutive fl) at 2.
-  rewrite <- fold_left_rev_right with (l := (rev fl)).
-  rewrite fold_left_fold_right.
-  reflexivity.
+  simpl. rewrite fold_left_app. reflexivity.
 Qed.
 
 Definition state_is_valid_field (st : state) (lv : Lval) : bool :=
@@ -106,9 +101,8 @@ Lemma state_is_valid_field_parent st loc fl1 f :
   state_is_valid_field st (loc, fl1 ++ [f]) ->
   state_is_valid_field st (loc, fl1).
 Proof.
-  unfold state_is_valid_field. simpl.
-  rewrite fold_left_app. simpl.
-  destruct (fold_left extract_option fl1 (loc_to_val this loc st)); sfirstorder.
+  unfold state_is_valid_field. rewrite state_eval_read_snoc.
+  destruct (state_eval_read st (loc, fl1)); sfirstorder.
 Qed.
 
 Definition satisfies_unit (st : state) (a_unit : Lval * Val) : Prop :=
@@ -145,10 +139,52 @@ Definition lval_to_semlval (lv : Lval) : SemLval :=
       MkValueLvalue (ValLeftMember acc (P4String.Build_t tags_t default f)) dummy_type in
   fold_left step fl acc.
 
-Lemma state_eval_read_complete : forall st lv v,
-  exec_read this st (lval_to_semlval lv) v ->
-  state_eval_read st lv = Some v.
-Admitted.
+Lemma lval_to_semlval_snoc loc fl f :
+  lval_to_semlval (loc, fl ++ [f]) =
+    MkValueLvalue (ValLeftMember (lval_to_semlval (loc, fl)) (P4String.Build_t tags_t default f)) dummy_type.
+Proof.
+  simpl. rewrite fold_left_app. reflexivity.
+Qed.
+
+Lemma state_eval_read_sound_1 : forall st lv v,
+  state_eval_read st lv = Some v ->
+  exec_read this st (lval_to_semlval lv) v.
+Proof.
+  destruct lv as [loc fl].
+  rewrite <- (rev_involutive fl).
+  induction (rev fl) as [ | hd tl]; intros * H_state_eval_read.
+  - apply exec_read_name, H_state_eval_read.
+  - simpl rev in *. rewrite lval_to_semlval_snoc. rewrite state_eval_read_snoc in H_state_eval_read.
+    apply exec_read_by_member.
+    destruct (state_eval_read st (loc, rev tl)) as [[] | ]; only 1-12, 15-20 : solve [inversion H_state_eval_read].
+    + eapply exec_read_member_struct; only 1 : (apply IHtl; reflexivity).
+      apply H_state_eval_read.
+    + eapply exec_read_member_header; only 1 : (apply IHtl; reflexivity).
+      destruct is_valid; only 2 : inversion H_state_eval_read.
+      apply read_header_field_intro, H_state_eval_read.
+Qed.
+
+Lemma state_eval_read_sound : forall st lv v,
+  state_eval_read st lv = Some v ->
+  forall v', exec_read this st (lval_to_semlval lv) v' ->
+    v' = v.
+Proof.
+  destruct lv as [loc fl].
+  rewrite <- (rev_involutive fl).
+  induction (rev fl) as [ | hd tl]; intros * H_state_eval_read * H_exec_read.
+  - inv H_exec_read. sfirstorder.
+  - simpl rev in *. rewrite lval_to_semlval_snoc in H_exec_read. rewrite state_eval_read_snoc in H_state_eval_read.
+    destruct (state_eval_read st (loc, rev tl)) as [fields | ]; only 2 : solve [inversion H_state_eval_read].
+    specialize (IHtl fields ltac:(reflexivity)).
+    destruct fields; only 1-12, 15-19 : solve [inversion H_state_eval_read]; simpl in H_state_eval_read.
+    + inv H_exec_read. pinv @exec_read_member; specialize (IHtl _ H0); only 1, 3 : solve [inversion IHtl].
+      scongruence unfold: alist_get.
+    + destruct is_valid; only 2 : inversion H_state_eval_read.
+      inv H_exec_read. pinv @exec_read_member; specialize (IHtl _ H0); only 2, 3 : solve [inversion IHtl].
+      destruct is_valid; only 2 : inversion IHtl.
+      pinv @read_header_field.
+      scongruence unfold: alist_get.
+Qed.
 
 Fixpoint field_list_no_overlapping (fl1 fl2 : list Field) : bool :=
   match fl1, fl2 with
@@ -264,31 +300,6 @@ Axiom lval_no_overlapping_symm : forall (lv1 lv2 : Lval),
 Axiom lval_equivb_symm : forall (lv1 lv2 : Lval),
   lval_equivb lv1 lv2 = lval_equivb lv2 lv1.
 
-(* This lemma is not general enough to proof the case in exec_write_no_overlapping_unit,
-  that loc1 = loc2 but the fl1 and fl2 are not overlapping. *)
-
-Lemma lval_to_semlval_snoc loc fl f :
-  lval_to_semlval (loc, fl ++ [f]) =
-    MkValueLvalue (ValLeftMember (lval_to_semlval (loc, fl)) (P4String.Build_t tags_t default f)) dummy_type.
-Proof.
-  simpl. rewrite fold_left_app. reflexivity.
-Qed.
-
-Ltac inv H := inversion H; subst; clear H.
-Ltac pinv P :=
-  lazymatch goal with
-  | H : context [P] |- _ => inv H
-  (* | H : P |- _ => inv H
-  | H : P _ |- _ => inv H
-  | H : P _ _ |- _ => inv H
-  | H : P _ _ _ |- _ => inv H
-  | H : P _ _ _ _ |- _ => inv H
-  | H : P _ _ _ _ _ |- _ => inv H
-  | H : P _ _ _ _ _ _ |- _ => inv H
-  | H : P _ _ _ _ _ _ _ |- _ => inv H
-  | H : P _ _ _ _ _ _ _ _ |- _ => inv H *)
-  end.
-
 Lemma exec_write_1 st lv v st' :
   exec_write this st (lval_to_semlval lv) v st' ->
   exists v',
@@ -325,41 +336,61 @@ Axiom P4String_equivb_diff : forall (tags1 tags2 : tags_t) s1 s2,
 
 Hint Resolve alist_get_set_same alist_get_set_diff P4String_equivb_same P4String_equivb_diff : core.
 
+Lemma satisfies_unit_helper_header st loc fl f fields v :
+  satisfies_unit st ((loc, fl), (ValBaseHeader fields true)) ->
+  alist_get fields f = Some v ->
+  satisfies_unit st ((loc, fl ++ [f]), v).
+Proof.
+  intros H_satisfies_unit H_alist_get.
+  simpl. rewrite fold_left_app, H_satisfies_unit.
+  apply H_alist_get.
+Qed.
+
+Lemma satisfies_unit_helper_struct st loc fl f fields v :
+  satisfies_unit st ((loc, fl), (ValBaseStruct fields)) ->
+  alist_get fields f = Some v ->
+  satisfies_unit st ((loc, fl ++ [f]), v).
+Proof.
+  intros H_satisfies_unit H_alist_get.
+  simpl. rewrite fold_left_app, H_satisfies_unit.
+  apply H_alist_get.
+Qed.
+
 Lemma exec_write_satisfies_unit st lv v st' :
   state_is_valid_field st lv ->
   exec_write this st (lval_to_semlval lv) v st' ->
   satisfies_unit st' (lv, v).
 Proof.
   intros * H_state_is_valid_field H_exec_write.
-  apply state_eval_read_complete.
   revert H_state_is_valid_field H_exec_write.
-  (* unfold state_is_valid_field; rewrite <- state_eval_read_alt_eq_state_eval_read; unfold state_eval_read_alt. *)
-  (* rewrite <- lval_to_semlval_alt_eq_lval_to_semlval. *)
   destruct lv as [loc fl].
   rewrite <- (rev_involutive fl).
   generalize dependent v.
   induction (rev fl) as [ | hd tl]; intros * H_state_is_valid_field H_exec_write.
-  - inv H_exec_write. apply exec_read_name, loc_to_val_update_val_by_loc_same, locator_equivb_refl.
-  - simpl rev in H_exec_write |- *; rewrite lval_to_semlval_snoc in H_exec_write |- *.
-    inv H_exec_write. apply exec_read_by_member.
+  - inv H_exec_write. apply loc_to_val_update_val_by_loc_same, locator_equivb_refl.
+  - simpl rev in H_exec_write; rewrite lval_to_semlval_snoc in H_exec_write.
+    inv H_exec_write.
     simpl in H_state_is_valid_field.
     apply state_is_valid_field_parent in H_state_is_valid_field as H_state_is_valid_field'.
+    assert (state_eval_read st (loc, rev tl) = Some v0) as H_state_eval_read. {
+      destruct (state_eval_read st (loc, rev tl)) eqn:H_state_eval_read;
+        (* conflict with H_state_is_valid_field' *)
+        only 2 : hauto unfold: isSome, state_is_valid_field, is_true.
+      f_equal. symmetry. eapply state_eval_read_sound; eassumption.
+    }
     pinv @update_member.
     + pinv @write_header_field.
-      eapply exec_read_member_header; only 1 : (apply IHtl; eassumption).
-      rename H5 into H_exec_read.
-      apply (state_eval_read_complete _ (loc, rev tl)) in H_exec_read as H_state_eval_read.
-      destruct is_valid; only 2 : sauto lq: on.
-      eapply read_header_field_intro.
-      eauto.
-    + eapply exec_read_member_struct; only 1 : (apply IHtl; eassumption).
-      eauto.
-    + rename H5 into H_exec_read.
-      apply (state_eval_read_complete _ (loc, rev tl)) in H_exec_read as H_state_eval_read.
       unfold state_is_valid_field, state_eval_read in H_state_is_valid_field, H_state_eval_read.
-      rewrite fold_left_app in H_state_is_valid_field.
-      rewrite H_state_eval_read in H_state_is_valid_field.
-      discriminate H_state_is_valid_field.
+      rewrite fold_left_app, H_state_eval_read in H_state_is_valid_field.
+      destruct is_valid; only 2 : sfirstorder.
+      unfold satisfies_unit.
+      eapply satisfies_unit_helper_header; only 1 : (apply IHtl; eassumption).
+      eapply alist_get_set_same; eauto.
+    + eapply satisfies_unit_helper_struct; only 1 : (apply IHtl; eassumption).
+      eapply alist_get_set_same; eauto.
+    + unfold state_is_valid_field, state_eval_read in H_state_is_valid_field, H_state_eval_read.
+      rewrite fold_left_app, H_state_eval_read in H_state_is_valid_field.
+      sfirstorder.
 Qed.
 
 (* Things will be easier if we use the reversed order in exec_write. *)
@@ -389,7 +420,13 @@ Proof.
   - eapply state_is_valid_field_parent with (f := f1). unfold satisfies_unit in H_pre.
     hauto lq: on unfold: isSome, is_true, state_is_valid_field.
   - eassumption.
-  - apply state_eval_read_complete with (lv := (loc, fl)) in H5 as H_state_eval_read.
+  - assert (state_eval_read st (loc, fl) = Some v) as H_state_eval_read. {
+      simpl in H_pre; rewrite fold_left_app in H_pre; simpl in H_pre.
+      destruct (state_eval_read st (loc, fl)) eqn:H_state_eval_read;
+        (* conflict with H_state_is_valid_field' *)
+        only 2 : hauto.
+      f_equal. symmetry. eapply state_eval_read_sound; eassumption.
+    }
     simpl in H_pre, H_state_eval_read.
     rewrite fold_left_app, H_state_eval_read in H_pre. simpl in H_pre.
     clear H_state_eval_read.
@@ -419,21 +456,6 @@ Proof.
     inv H_exec_write; eauto.
 Qed.
 
-(*   state_eval_read st (loc, fl ++ [f2]) = state_eval_read st (loc, fl ++ [f2])
-  exec_write this st (lval_to_semlval lv) v st' ->
-  exists v',
-    st' = update_val_by_loc this st (fst lv) v'.
-Proof.
-  rewrite <- lval_to_semlval_alt_eq_lval_to_semlval.
-  destruct lv as [loc fl]. simpl fst. simpl lval_to_semlval_alt.
-  generalize dependent v.
-  induction (rev fl) as [ | hd tl]; intros * H_exec_write.
-  - sauto lq: on.
-  - inversion H_exec_write; subst.
-    destruct (IHtl _ ltac:(eassumption)).
-    sfirstorder.
-Qed. *)
-
 Lemma exec_write_no_overlapping_unit_case_1 st loc fl f1 f2 v1 v2 st' :
   let lv1 := (loc, fl ++ [f1]) in
   let lv2 := (loc, fl ++ [f2]) in
@@ -453,26 +475,6 @@ Proof.
   - simpl in H_field_list_no_overlapping. hauto use: eqb_refl, eqb_neq, Bool.orb_false_l unfold: negb, Field, is_true.
   - apply IHfl. simpl in H_field_list_no_overlapping. hauto use: eqb_eq unfold: negb, orb, Field, is_true.
 Qed.
-
-(* Lemma exec_write_no_overlapping_unit_case_1_v2 st loc fl f1 f2 v1 v2 st' :
-  let lv1 := (loc, fl ++ [f1]) in
-  let lv2 := (loc, fl ++ [f2]) in
-  f1 <> f2 ->
-  satisfies_unit st (lv1, v1) ->
-  exec_write this st (lval_to_semlval lv2) v2 st' ->
-  satisfies_unit st' (lv1, v1).
-Proof.
-  intros * H_lval_no_overlapping. subst lv1 lv2. apply exec_write_2.
-  (* unfold lval_no_overlapping in H_lval_no_overlapping.
-  replace (loc_no_overlapping loc loc) with false in H_lval_no_overlapping
-    by (destruct (loc_no_overlapping loc loc) eqn:?;
-      unfold loc_no_overlapping in *; destruct loc; hauto use: path_equivb_refl unfold: is_true, negb). *)
-  (* assert (field_list_no_overlapping (fl ++ [f1]) (fl ++ [f2])) as H_field_list_no_overlapping by sfirstorder.
-  clear H_lval_no_overlapping. *)
-  induction fl.
-  - simpl in H_field_list_no_overlapping. hauto use: eqb_refl, eqb_neq, Bool.orb_false_l unfold: negb, Field, is_true.
-  - apply IHfl. simpl in H_field_list_no_overlapping. hauto use: eqb_eq unfold: negb, orb, Field, is_true.
-Qed. *)
 
 Lemma satisfies_unit_child_iff st loc fl f v :
   satisfies_unit st ((loc, fl ++ [f]), v) <->
@@ -542,7 +544,6 @@ Proof.
     rewrite loc_to_val_update_val_by_loc_diff; only 2 : sfirstorder.
     apply H_pre.
   - assert (p1 = p2) by (apply path_equivb_eq; hauto unfold: loc_no_overlapping, negb, is_true); subst p2.
-    
     assert (field_list_no_overlapping fl1 fl2) as H_field_list_no_overlapping by sfirstorder.
     apply field_list_no_overlapping_spec in H_field_list_no_overlapping
       as (fl3 & f1 & f2 & fl4 & fl5 & ? & ? & ?); subst fl1 fl2.

@@ -197,6 +197,55 @@ End Experiment3.
 
 End Experiment3.
 
+Module Experiment4.
+
+Section Experiment4.
+
+Definition stmt := (MkStatement NoInfo
+                     (StatAssignment
+                          (MkExpression NoInfo
+                               (ExpExpressionMember
+                                    (MkExpression NoInfo
+                                         (ExpExpressionMember
+                                              (MkExpression NoInfo
+                                                   (ExpName
+                                                    (BareName
+                                                     {| stags := NoInfo;
+                                                        str := "hdr" |})
+                                                    (LInstance
+                                                         [{| stags := NoInfo;
+                                                             str := "hdr" |}]))
+                                                   (TypTypeName
+                                                    (BareName
+                                                     {| stags := NoInfo;
+                                                        str := "headers" |}))
+                                                   InOut)
+                                              {| stags := NoInfo;
+                                                 str := "myHeader" |})
+                                         (TypHeader
+                                          [( {| stags := NoInfo;
+                                                str := "firstByte" |},
+                                             (TypBit 8) )]) Directionless)
+                                    {| stags := NoInfo; str := "firstByte" |})
+                               (TypBit 8) Directionless)
+                          (MkExpression NoInfo
+                               (ExpName
+                                (BareName {| stags := NoInfo; str := "x" |})
+                                (LInstance [{| stags := NoInfo; str := "x" |}]))
+                               (TypBit 8) InOut)) StmUnit).
+
+Variable this : path.
+
+Definition st : state := (PathMap.set (this ++ !["hdr"]) (ValBaseBit 8 1) (PathMap.set (this ++ !["x"]) (ValBaseBit 8 1) PathMap.empty), PathMap.empty).
+
+Lemma eval_stmt: { st' & { signal | exec_stmt ge this inst_m st stmt st' signal} }.
+Proof.
+  solve [repeat econstructor].
+Defined.
+
+End Experiment4.
+
+End Experiment4.
 
 (* Module Experiment3.
 
