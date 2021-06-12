@@ -1,4 +1,4 @@
-Require Import Poulet4.Typed.
+(* Require Import Poulet4.Typed.
 Require Import Poulet4.Syntax.
 Require Import Poulet4.Semantics.
 Require Import ProD3.core.Coqlib.
@@ -76,3 +76,4 @@ Proof.
 Admitted.
 
 End ConcreteHoare.
+ *)
