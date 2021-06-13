@@ -19,7 +19,7 @@ Opaque IdentMap.empty IdentMap.set PathMap.empty PathMap.set.
 (* Global environment *)
 Definition ge := Eval compute in gen_ge prog.
 
-Definition instantiation := Eval compute in instantiate_prog prog.
+Definition instantiation := Eval compute in instantiate_prog ge prog.
 
 (* inst_m *)
 Definition inst_m := Eval compute in fst instantiation.
@@ -163,35 +163,41 @@ Definition myStmt := Eval compute in
 Ltac inv H := inversion H; clear H; subst.
 
 Lemma eval_block: hoare_block ge inst_m this
-  (* pre: *) (to_shallow_assertion this [(LInstance !["var"], ValBaseBit 8%nat x)])
+  (* pre: *) (to_shallow_assertion this [(LInstance !["var"], [], ValBaseBit 8%nat x)])
   myBlock
-  (* post: *) (to_shallow_assertion this [(LInstance !["var"], ValBaseBit 8%nat (x+1))]).
+  (* post: *) (to_shallow_assertion this [(LInstance !["var"], [], ValBaseBit 8%nat (x+1))]).
 Proof.
   assert (hoare_stmt ge inst_m this
-    (* pre: *) (to_shallow_assertion this [(LInstance !["var"], ValBaseBit 8%nat x)])
+    (* pre: *) (to_shallow_assertion this [(LInstance !["var"], [], ValBaseBit 8%nat x)])
     myStmt
-    (* post: *) (to_shallow_assertion this [(LInstance !["var"], ValBaseBit 8%nat (x+1))])).
+    (* post: *) (to_shallow_assertion this [(LInstance !["var"], [], ValBaseBit 8%nat (x+1))])).
   { intro; intros.
     repeat lazymatch goal with
     | H : exec_stmt _ _ _ _ _ _ _ |- _ => inv H
     | H : exec_lexpr _ _ _ _ _ _ |- _ => inv H
-    | H : exec_expr _ _ _ _ _ |- _ => inv H
+    (* | H : exec_expr _ _ _ _ _ |- _ => inv H *)
+    | H : exec_call _ _ _ _ _ _ _ |- _ => inv H
     end.
-    { inv H11.
-      replace (loc_to_val this (LInstance !!["var"]) st) with (Some (@ValBaseBit Info 8 x)) in H8. 2 : {
-        symmetry. apply H.
-      }
-      inv H8. inv H14. inv H13.
-      assert (P4Arith.BitArith.plus_mod 8 x (P4Arith.BitArith.mod_bound 8 1) = x + 1) by admit.
-      rewrite H0 in H12.
-      inv H12. repeat split.
-      simpl.
+    2 : { inv H11. }
+    (* manipulate H11 *)
+      eapply eval_expr_sound in H11.
+      3 : eassumption.
+      2, 3 : constructor.
+    (* manipulate H12 *)
+      eapply exec_write_semlval_equiv in H12.
+      eapply eval_write_sound with (lv := (LInstance !["var"], [])) in H12.
+      7 : constructor.
+      6 : eassumption.
+      2-5 : reflexivity.
+      split; only 1 : split.
+      simpl eval_write in H12.
+    subst v.
+    assert ((P4Arith.BitArith.plus_mod (Pos.of_nat 8) x
+              (P4Arith.BitArith.mod_bound (Pos.of_nat 8) (value {| tags := NoInfo; value := 1; width_signed := None |}))) = x + 1) by admit.
+    (* Fail congruence. *) (* why? *)
+    rewrite H0 in H12. apply H12.
+  }
 Abort.
-  (* intro; intros.
-  inversion H0.
-  2 : {
-  eexists. eexists. repeat econstructor.
-Defined. *)
 
 End Experiment3.
 
@@ -240,8 +246,9 @@ Definition st : state := (PathMap.set (this ++ !["hdr"]) (ValBaseBit 8 1) (PathM
 
 Lemma eval_stmt: { st' & { signal | exec_stmt ge this inst_m st stmt st' signal} }.
 Proof.
-  solve [repeat econstructor].
-Defined.
+  (* solve [repeat econstructor].
+Defined. *)
+Abort.
 
 End Experiment4.
 

@@ -709,5 +709,89 @@ Proof.
     + apply IHtl; sfirstorder.
 Qed.
 
+Fixpoint semlval_equivb (lv1 lv2 : SemLval) : bool :=
+  match lv1, lv2 with
+  | MkValueLvalue (ValLeftName _ loc1) _, MkValueLvalue (ValLeftName _ loc2) _ =>
+      locator_equivb loc1 loc2
+  | MkValueLvalue (ValLeftMember lv1 member1) _, MkValueLvalue (ValLeftMember lv2 member2) _ =>
+      semlval_equivb lv1 lv2 && P4String.equivb member1 member2
+  | MkValueLvalue (ValLeftBitAccess lv1 msb1 lsb1) _, MkValueLvalue (ValLeftBitAccess lv2 msb2 lsb2) _ =>
+      semlval_equivb lv1 lv2 && Nat.eqb msb1 msb2 && Nat.eqb lsb1 lsb2
+  | MkValueLvalue (ValLeftArrayAccess lv1 idx1) _, MkValueLvalue (ValLeftArrayAccess lv2 idx2) _ =>
+      semlval_equivb lv1 lv2 && Nat.eqb idx1 idx2
+  | _, _ => false
+  end.
+
+Axiom exec_write_semlval_equiv : forall st lv1 lv2 v st',
+  semlval_equivb lv1 lv2 ->
+  exec_write this st lv1 v st' ->
+  exec_write this st lv2 v st'.
+
+Axiom exec_read_semlval_equiv : forall st lv1 lv2 v,
+  semlval_equivb lv1 lv2 ->
+  exec_read this st lv1 v ->
+  exec_read this st lv2 v.
+
+Definition eval_expr (ge : genv) (a : assertion) (expr : Expression) :=
+  eval_expr_gen ge (fun _ loc => eval_read a (loc, [])) expr.
+
+Definition eval_expr_gen_refine_statement ge get_val1 get_val2 (expr : @Expression tags_t) v :=
+  (forall name loc v, get_val1 name loc = Some v -> get_val2 name loc = Some v) ->
+  eval_expr_gen ge get_val1 expr = Some v ->
+  eval_expr_gen ge get_val2 expr = Some v.
+
+Lemma eval_expr_gen_refine ge get_val1 get_val2 (expr : @Expression tags_t) v :
+  eval_expr_gen_refine_statement ge get_val1 get_val2 expr v
+with eval_expr_gen_refine_preT ge get_val1 get_val2 tags expr typ dir v :
+  eval_expr_gen_refine_statement ge get_val1 get_val2 (MkExpression tags expr typ dir) v.
+Proof.
+  - intros. destruct expr; apply eval_expr_gen_refine_preT.
+  - unfold eval_expr_gen_refine_statement. intros H_refine H_eval_expr_gen.
+    destruct expr; inversion H_eval_expr_gen.
+    + reflexivity.
+    + hauto lq: on.
+    + destruct (eval_expr_gen ge get_val1 arg) eqn:H_eval_arg; only 2 : inversion H1.
+      assert (eval_expr_gen ge get_val2 arg = Some v0) by (eapply eval_expr_gen_refine; eauto).
+      hauto lq: on.
+    + destruct args as [larg rarg].
+      destruct (eval_expr_gen ge get_val1 larg) eqn:H_eval_larg; only 2 : inversion H1.
+      destruct (eval_expr_gen ge get_val1 rarg) eqn:H_eval_rarg; only 2 : inversion H1.
+      assert (eval_expr_gen ge get_val2 larg = Some v0) by (eapply eval_expr_gen_refine; eauto).
+      assert (eval_expr_gen ge get_val2 rarg = Some v1) by (eapply eval_expr_gen_refine; eauto).
+      hauto lq: on.
+    + destruct (eval_expr_gen ge get_val1 expr) eqn:H_eval_larg; only 2 : inversion H1.
+      assert (eval_expr_gen ge get_val2 expr = Some v0) by (eapply eval_expr_gen_refine; eauto).
+      hauto lq: on.
+Qed.
+
+Lemma eval_expr_sound_1 : forall ge st a expr v,
+  wellformed a ->
+  to_shallow_assertion a st ->
+  eval_expr ge a expr = Some v ->
+  exec_expr ge this st expr v.
+Proof.
+  intros * H_wellformed H_pre H_eval_expr.
+  apply eval_expr_gen_sound_1.
+  eapply eval_expr_gen_refine; only 2 : eassumption.
+  intros * H_eval_read. simpl in H_eval_read.
+  eapply eval_read_sound in H_eval_read; only 2 : eassumption.
+  assumption.
+Qed.
+
+Lemma eval_expr_sound : forall ge st a expr v,
+  wellformed a ->
+  to_shallow_assertion a st ->
+  eval_expr ge a expr = Some v ->
+  forall v', exec_expr ge this st expr v'->
+    v' = v.
+Proof.
+  intros * H_wellformed H_pre H_eval_expr.
+  apply eval_expr_gen_sound.
+  eapply eval_expr_gen_refine; only 2 : eassumption.
+  intros * H_eval_read. simpl in H_eval_read.
+  eapply eval_read_sound in H_eval_read; only 2 : eassumption.
+  assumption.
+Qed.
+
 End AssertionLang.
 
