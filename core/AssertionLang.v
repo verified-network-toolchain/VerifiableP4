@@ -94,15 +94,28 @@ Proof.
   simpl. rewrite fold_left_app. reflexivity.
 Qed.
 
+Definition isNil {A} (l : list A) :=
+  match l with
+  | nil => true
+  | _ => false
+  end.
+
+Lemma not_isNil_snoc {A} (l : list A) (x : A) :
+  ~~(isNil (l ++ [x])).
+Proof.
+  induction l; auto.
+Qed.
+
 Definition state_is_valid_field (st : state) (lv : Lval) : bool :=
-  isSome (state_eval_read st lv).
+  let (loc, fl) := lv in
+  isNil fl || isSome (state_eval_read st lv).
 
 Lemma state_is_valid_field_parent st loc fl1 f :
   state_is_valid_field st (loc, fl1 ++ [f]) ->
   state_is_valid_field st (loc, fl1).
 Proof.
   unfold state_is_valid_field. rewrite state_eval_read_snoc.
-  destruct (state_eval_read st (loc, fl1)); sfirstorder.
+  destruct (state_eval_read st (loc, fl1)); hauto use: Reflect.orE, is_true_true unfold: isNil, is_true, app, extract_option, orb, isSome.
 Qed.
 
 Definition satisfies_unit (st : state) (a_unit : Lval * Val) : Prop :=
@@ -370,27 +383,26 @@ Proof.
   - inv H_exec_write. apply loc_to_val_update_val_by_loc_same, locator_equivb_refl.
   - simpl rev in H_exec_write; rewrite lval_to_semlval_snoc in H_exec_write.
     inv H_exec_write.
-    simpl in H_state_is_valid_field.
+    simpl rev in H_state_is_valid_field.
     apply state_is_valid_field_parent in H_state_is_valid_field as H_state_is_valid_field'.
+    unfold state_is_valid_field in H_state_is_valid_field.
+    rewrite state_eval_read_snoc in H_state_is_valid_field.
+    assert (~~(isNil (rev tl ++ [hd]))) by (apply not_isNil_snoc).
     assert (state_eval_read st (loc, rev tl) = Some v0) as H_state_eval_read. {
-      destruct (state_eval_read st (loc, rev tl)) eqn:H_state_eval_read;
-        (* conflict with H_state_is_valid_field' *)
-        only 2 : hauto unfold: isSome, state_is_valid_field, is_true.
+      destruct (state_eval_read st (loc, rev tl)) eqn:H_state_eval_read; only 2 : hauto b: on.
       f_equal. symmetry. eapply state_eval_read_sound; eassumption.
     }
     pinv @update_member.
     + pinv @write_header_field.
-      unfold state_is_valid_field, state_eval_read in H_state_is_valid_field, H_state_eval_read.
-      rewrite fold_left_app, H_state_eval_read in H_state_is_valid_field.
-      destruct is_valid; only 2 : sfirstorder.
+      rewrite H_state_eval_read in H_state_is_valid_field.
+      destruct is_valid; only 2 : (hauto b: on).
       unfold satisfies_unit.
       eapply satisfies_unit_helper_header; only 1 : (apply IHtl; eassumption).
       eapply alist_get_set_same; eauto.
     + eapply satisfies_unit_helper_struct; only 1 : (apply IHtl; eassumption).
       eapply alist_get_set_same; eauto.
-    + unfold state_is_valid_field, state_eval_read in H_state_is_valid_field, H_state_eval_read.
-      rewrite fold_left_app, H_state_eval_read in H_state_is_valid_field.
-      sfirstorder.
+    + rewrite H_state_eval_read in H_state_is_valid_field.
+      hauto b: on.
 Qed.
 
 (* Things will be easier if we use the reversed order in exec_write. *)
@@ -418,18 +430,17 @@ Proof.
   inv H_exec_write.
   eapply satisfies_unit_child with (st := st'). 1 : eapply exec_write_satisfies_unit with (st := st).
   - eapply state_is_valid_field_parent with (f := f1). unfold satisfies_unit in H_pre.
-    hauto lq: on unfold: isSome, is_true, state_is_valid_field.
+    hauto b: on.
   - eassumption.
-  - assert (state_eval_read st (loc, fl) = Some v) as H_state_eval_read. {
-      simpl in H_pre; rewrite fold_left_app in H_pre; simpl in H_pre.
+  - unfold satisfies_unit in H_pre.
+    rewrite state_eval_read_snoc in H_pre.
+    assert (state_eval_read st (loc, fl) = Some v) as H_state_eval_read. {
       destruct (state_eval_read st (loc, fl)) eqn:H_state_eval_read;
         (* conflict with H_state_is_valid_field' *)
         only 2 : hauto.
       f_equal. symmetry. eapply state_eval_read_sound; eassumption.
     }
-    simpl in H_pre, H_state_eval_read.
-    rewrite fold_left_app, H_state_eval_read in H_pre. simpl in H_pre.
-    clear H_state_eval_read.
+    rewrite H_state_eval_read in H_pre.
     pinv @update_member.
     + destruct is_valid; only 2 : sfirstorder.
       pinv @write_header_field. simpl.
@@ -517,7 +528,18 @@ Lemma field_list_no_overlapping_spec fl1 fl2 :
     fl1 = fl3 ++ [f1] ++ fl4 /\
     fl2 = fl3 ++ [f2] ++ fl5.
 Proof.
-Admitted.
+  revert fl2.
+  induction fl1 as [ | hd1 tl1]; intros * H_field_list_no_overlapping.
+  - inversion H_field_list_no_overlapping.
+  - destruct fl2 as [ | hd2 tl2]; only 1 : inversion H_field_list_no_overlapping.
+    simpl in H_field_list_no_overlapping.
+    destruct (~~(String.eqb hd1 hd2)) eqn:H_string_eqb.
+    + exists [], hd1, hd2, tl1, tl2.
+      hauto use: eqb_refl, eqb_neq, app_comm_cons, app_nil_l unfold: Field, app, negb.
+    + destruct (IHtl1 tl2 ltac:(sfirstorder)) as (fl3 & f1 & f2 & fl4 & fl5 & ?).
+      assert (hd1 = hd2) by (hauto use: eqb_eq, Bool.eq_true_negb_classical, eqb_neq unfold: Field); subst hd2.
+      exists (hd1 :: fl3). sauto.
+Qed.
 
 (* This axiom is provable if tags_t is a unit type. *)
 Axiom path_equivb_eq : forall (p1 p2 : path), path_equivb p1 p2 -> p1 = p2.
@@ -588,12 +610,6 @@ Fixpoint eval_read (a : assertion) (lv : Lval) : option Val :=
   | [] => None
   end.
 
-Definition isNil {A} (l : list A) :=
-  match l with
-  | nil => true
-  | _ => false
-  end.
-
 Definition is_valid_field (a : assertion) (lv : Lval) : bool :=
   let (loc, fl) := lv in
   isNil fl || isSome (eval_read a lv).
@@ -602,7 +618,17 @@ Definition is_valid_field_sound st a lv :
   to_shallow_assertion a st ->
   is_valid_field a lv ->
   state_is_valid_field st lv.
-Admitted.
+Proof.
+  intros H_pre H_is_valid_field.
+  induction a as [ | [hd_lv hd_v] tl].
+  - destruct lv as [loc fl]. hauto b: on.
+  - destruct lv as [loc fl]. simpl in H_is_valid_field |- *.
+    unfold to_shallow_assertion, satisfies in H_pre; simpl in H_pre.
+    destruct (lval_equivb hd_lv (loc, fl)) eqn:H_lval_equivb.
+    + assert (hd_lv = (loc, fl)) by (apply lval_equivb_eq; assumption); subst.
+      hauto lq: on.
+    + destruct H_pre. apply IHtl; assumption.
+Qed.
 
 Lemma eval_write_add st a lv v st':
   is_valid_field a lv ->
@@ -667,10 +693,10 @@ Proof.
         sfirstorder.
 Qed.
 
-(* Lemma eval_read_sound : forall st a lv v,
+Lemma eval_read_sound : forall st a lv v,
   to_shallow_assertion a st ->
   eval_read a lv = Some v ->
-  sem_eval_read st lv = Some v.
+  state_eval_read st lv = Some v.
 Proof.
   intros * H_pre H_eval_read.
   induction a as [ | hd tl].
@@ -681,7 +707,7 @@ Proof.
     + erewrite <- (lval_equivb_eq _ lv) by (apply H_lval_equivb).
       sfirstorder.
     + apply IHtl; sfirstorder.
-Qed. *)
+Qed.
 
 End AssertionLang.
 
