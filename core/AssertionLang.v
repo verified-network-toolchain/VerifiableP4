@@ -329,6 +329,10 @@ Proof.
     sfirstorder.
 Qed.
 
+Axiom alist_get_equiv : forall {V} (l : P4String.AList tags_t V) (s1 s2 : P4String),
+  P4String.equivb s1 s2 ->
+  AList.get l s1 = AList.get l s2.
+
 Axiom alist_get_set_same : forall {V} (l l' : P4String.AList tags_t V) (s1 s2 : P4String) v,
   AList.set l s2 v = Some l' ->
   P4String.equivb s1 s2 ->
@@ -732,10 +736,12 @@ Axiom exec_read_semlval_equiv : forall st lv1 lv2 v,
   exec_read this st lv1 v ->
   exec_read this st lv2 v.
 
-Definition eval_expr_hook (a : assertion) (expr : Expression) : option Val :=
+Fixpoint eval_expr_hook (a : assertion) (expr : Expression) : option Val :=
   match expr with
   | MkExpression _ (ExpName _ loc) _ _ =>
-    eval_read a (loc, [])
+      eval_read a (loc, [])
+  | MkExpression _ (ExpExpressionMember expr member) _ _ =>
+      extract_option (eval_expr_hook a expr) (P4String.str member)
   | _ => None
   end.
 
@@ -771,16 +777,30 @@ Proof.
       hauto lq: on.
 Qed. *)
 
-Lemma eval_expr_hook_sound_1 : forall ge st a expr v,
+Definition eval_expr_hook_sound_1_statement ge st a expr v :=
   wellformed a ->
   to_shallow_assertion a st ->
   eval_expr_hook a expr = Some v ->
   exec_expr ge this st expr v.
+
+Lemma eval_expr_hook_sound_1 : forall ge st a expr v,
+  eval_expr_hook_sound_1_statement ge st a expr v
+with eval_expr_hook_sound_1_preT : forall ge st a tags expr typ dir v,
+  eval_expr_hook_sound_1_statement ge st a (MkExpression tags expr typ dir) v.
 Proof.
-  intros * H_wellformed H_pre H_eval_expr_hook.
-  destruct expr; destruct expr; inversion H_eval_expr_hook.
-  eapply eval_read_sound in H_eval_expr_hook; only 2 : eassumption.
-  constructor. assumption.
+  - intros. destruct expr; apply eval_expr_hook_sound_1_preT.
+  - unfold eval_expr_hook_sound_1_statement.
+    intros * H_wellformed H_pre H_eval_expr_hook.
+    destruct expr; inversion H_eval_expr_hook.
+    + eapply eval_read_sound in H_eval_expr_hook; only 2 : eassumption.
+      constructor. assumption.
+    + destruct (eval_expr_hook a expr) as [[] | ] eqn:?; inversion H1.
+      * econstructor; only 1 : (eapply eval_expr_hook_sound_1; eassumption).
+        erewrite alist_get_equiv; only 1 : apply H2. destruct name; eauto.
+      * econstructor; only 1 : (eapply eval_expr_hook_sound_1; eassumption).
+        destruct is_valid; only 2 : inversion H2.
+        constructor.
+        erewrite alist_get_equiv; only 1 : apply H2. destruct name; eauto.
 Qed.
 
 Lemma eval_expr_sound_1 : forall ge st a expr v,
@@ -794,18 +814,48 @@ Proof.
   intros; eapply eval_expr_hook_sound_1; eassumption.
 Qed.
 
-Lemma eval_expr_hook_sound : forall ge st a expr v,
+Definition eval_expr_hook_sound_statement ge st a expr v :=
   wellformed a ->
   to_shallow_assertion a st ->
   eval_expr_hook a expr = Some v ->
   forall v', exec_expr ge this st expr v'->
     v' = v.
+
+Lemma eval_expr_hook_sound : forall ge st a expr v,
+  eval_expr_hook_sound_statement ge st a expr v
+with eval_expr_hook_sound_preT : forall ge st a tags expr typ dir v,
+  eval_expr_hook_sound_statement ge st a (MkExpression tags expr typ dir) v.
 Proof.
-  intros * H_wellformed H_pre H_eval_expr_hook.
-  destruct expr; destruct expr; inversion H_eval_expr_hook.
-  eapply eval_read_sound in H_eval_expr_hook; only 2 : eassumption.
-  simpl in H_eval_expr_hook.
-  inversion 1; subst. congruence.
+  - intros. destruct expr; apply eval_expr_hook_sound_preT.
+  - unfold eval_expr_hook_sound_statement.
+    intros * H_wellformed H_pre H_eval_expr_hook.
+    destruct expr; inversion H_eval_expr_hook.
+    + eapply eval_read_sound in H_eval_expr_hook; only 2 : eassumption.
+      simpl in H_eval_expr_hook.
+      inversion 1; subst. congruence.
+    + destruct (eval_expr_hook a expr) as [[] | ] eqn:H_eval_expr_hook'; inversion H1.
+      * apply eval_expr_hook_sound with (ge := ge) (st := st) in H_eval_expr_hook'; only 2, 3 : assumption.
+        inversion 1; subst;
+          lazymatch goal with
+          | H : exec_expr _ _ _ expr _ |- _ =>
+              apply H_eval_expr_hook' in H;
+              inv H
+          end.
+        unfold alist_get in H2.
+        erewrite alist_get_equiv, H2 in H12. 2 : { destruct name; eauto. }
+        congruence.
+      * apply eval_expr_hook_sound with (ge := ge) (st := st) in H_eval_expr_hook'; only 2, 3 : assumption.
+        inversion 1; subst;
+          lazymatch goal with
+          | H : exec_expr _ _ _ expr _ |- _ =>
+              apply H_eval_expr_hook' in H;
+              inv H
+          end.
+        destruct is_valid; only 2 : inversion H2.
+        inv H12.
+        unfold alist_get in H2.
+        erewrite alist_get_equiv, H2 in H3. 2 : { destruct name; eauto. }
+        congruence.
 Qed.
 
 Lemma eval_expr_sound : forall ge st a expr v,
