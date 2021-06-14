@@ -732,10 +732,17 @@ Axiom exec_read_semlval_equiv : forall st lv1 lv2 v,
   exec_read this st lv1 v ->
   exec_read this st lv2 v.
 
-Definition eval_expr (ge : genv) (a : assertion) (expr : Expression) :=
-  eval_expr_gen ge (fun _ loc => eval_read a (loc, [])) expr.
+Definition eval_expr_hook (a : assertion) (expr : Expression) : option Val :=
+  match expr with
+  | MkExpression _ (ExpName _ loc) _ _ =>
+    eval_read a (loc, [])
+  | _ => None
+  end.
 
-Definition eval_expr_gen_refine_statement ge get_val1 get_val2 (expr : @Expression tags_t) v :=
+Definition eval_expr (ge : genv) (a : assertion) (expr : Expression) :=
+  eval_expr_gen ge (eval_expr_hook a) expr.
+
+(* Definition eval_expr_gen_refine_statement ge get_val1 get_val2 (expr : @Expression tags_t) v :=
   (forall name loc v, get_val1 name loc = Some v -> get_val2 name loc = Some v) ->
   eval_expr_gen ge get_val1 expr = Some v ->
   eval_expr_gen ge get_val2 expr = Some v.
@@ -762,6 +769,18 @@ Proof.
     + destruct (eval_expr_gen ge get_val1 expr) eqn:H_eval_larg; only 2 : inversion H1.
       assert (eval_expr_gen ge get_val2 expr = Some v0) by (eapply eval_expr_gen_refine; eauto).
       hauto lq: on.
+Qed. *)
+
+Lemma eval_expr_hook_sound_1 : forall ge st a expr v,
+  wellformed a ->
+  to_shallow_assertion a st ->
+  eval_expr_hook a expr = Some v ->
+  exec_expr ge this st expr v.
+Proof.
+  intros * H_wellformed H_pre H_eval_expr_hook.
+  destruct expr; destruct expr; inversion H_eval_expr_hook.
+  eapply eval_read_sound in H_eval_expr_hook; only 2 : eassumption.
+  constructor. assumption.
 Qed.
 
 Lemma eval_expr_sound_1 : forall ge st a expr v,
@@ -771,11 +790,22 @@ Lemma eval_expr_sound_1 : forall ge st a expr v,
   exec_expr ge this st expr v.
 Proof.
   intros * H_wellformed H_pre H_eval_expr.
-  apply eval_expr_gen_sound_1.
-  eapply eval_expr_gen_refine; only 2 : eassumption.
-  intros * H_eval_read. simpl in H_eval_read.
-  eapply eval_read_sound in H_eval_read; only 2 : eassumption.
-  assumption.
+  eapply eval_expr_gen_sound_1; only 2 : eassumption.
+  intros; eapply eval_expr_hook_sound_1; eassumption.
+Qed.
+
+Lemma eval_expr_hook_sound : forall ge st a expr v,
+  wellformed a ->
+  to_shallow_assertion a st ->
+  eval_expr_hook a expr = Some v ->
+  forall v', exec_expr ge this st expr v'->
+    v' = v.
+Proof.
+  intros * H_wellformed H_pre H_eval_expr_hook.
+  destruct expr; destruct expr; inversion H_eval_expr_hook.
+  eapply eval_read_sound in H_eval_expr_hook; only 2 : eassumption.
+  simpl in H_eval_expr_hook.
+  inversion 1; subst. congruence.
 Qed.
 
 Lemma eval_expr_sound : forall ge st a expr v,
@@ -786,11 +816,8 @@ Lemma eval_expr_sound : forall ge st a expr v,
     v' = v.
 Proof.
   intros * H_wellformed H_pre H_eval_expr.
-  apply eval_expr_gen_sound.
-  eapply eval_expr_gen_refine; only 2 : eassumption.
-  intros * H_eval_read. simpl in H_eval_read.
-  eapply eval_read_sound in H_eval_read; only 2 : eassumption.
-  assumption.
+  eapply eval_expr_gen_sound; only 2 : eassumption.
+  intros; eapply eval_expr_hook_sound; eassumption.
 Qed.
 
 End AssertionLang.
