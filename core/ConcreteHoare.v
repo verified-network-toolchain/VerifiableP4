@@ -1,4 +1,3 @@
-Require Import Coq.ssr.ssrbool.
 Require Import Poulet4.Typed.
 Require Import Poulet4.Syntax.
 Require Import Poulet4.Semantics.
@@ -43,17 +42,11 @@ Qed.
 Definition hoare_lexpr (p : path) (pre : assertion) (expr : @Expression tags_t) (lv : Lval) : Prop :=
   eval_lexpr expr = Some lv.
 
-Definition ihoare_lexpr (p : path) (pre : Hoare.assertion) (expr : Expression) (lv : SemLval) :=
-  forall st lv' sig,
-    pre st ->
-    exec_lexpr ge p st expr lv' sig ->
-    sig = SContinue /\ semlval_equivb lv' lv.
-
 Lemma hoare_lexpr_sound : forall p pre expr lv,
   hoare_lexpr p pre expr lv ->
-  ihoare_lexpr p (to_shallow_assertion p pre) expr (lval_to_semlval lv).
+  Hoare.hoare_lexpr ge p (to_shallow_assertion p pre) expr (lval_to_semlval lv).
 Proof.
-  unfold ihoare_lexpr; intros.
+  unfold Hoare.hoare_lexpr; intros.
   eapply eval_lexpr_sound; eassumption.
 Qed.
 
@@ -99,7 +92,7 @@ Proof.
     + lazymatch goal with
       | H : hoare_lexpr _ _ _ _ |- _ => apply hoare_lexpr_sound in H
       end.
-      unfold ihoare_lexpr in H0. hauto lq: on.
+      unfold Hoare.hoare_lexpr in H0. hauto lq: on.
 Qed.
 
 End ConcreteHoare.

@@ -1,4 +1,3 @@
-Require Import Coq.ssr.ssrbool.
 Require Import Poulet4.Typed.
 Require Import Poulet4.Syntax.
 Require Import Poulet4.Semantics.
@@ -33,7 +32,7 @@ Definition hoare_lexpr (p : path) (pre : assertion) (expr : Expression) (lv : Lv
   forall st lv' sig,
     pre st ->
     exec_lexpr ge p st expr lv' sig ->
-    sig = SContinue /\ lv' = lv.
+    sig = SContinue /\ lval_equivb lv' lv.
 
 Definition hoare_write (p : path) (pre : assertion) (lv : Lval) (v : Val) (post : assertion) :=
   forall st st',

@@ -1,4 +1,3 @@
-Require Import Coq.ssr.ssrbool.
 Require Import Coq.Strings.String.
 Require Import Poulet4.Typed.
 Require Import Poulet4.Syntax.
@@ -6,21 +5,6 @@ Require Import Poulet4.Semantics.
 Require Import ProD3.core.Coqlib.
 Require Import Hammer.Tactics.Tactics.
 Require Import Hammer.Plugin.Hammer.
-
-Ltac inv H := inversion H; subst; clear H.
-Ltac pinv P :=
-  lazymatch goal with
-  | H : context [P] |- _ => inv H
-  (* | H : P |- _ => inv H
-  | H : P _ |- _ => inv H
-  | H : P _ _ |- _ => inv H
-  | H : P _ _ _ |- _ => inv H
-  | H : P _ _ _ _ |- _ => inv H
-  | H : P _ _ _ _ _ |- _ => inv H
-  | H : P _ _ _ _ _ _ |- _ => inv H
-  | H : P _ _ _ _ _ _ _ |- _ => inv H
-  | H : P _ _ _ _ _ _ _ _ |- _ => inv H *)
-  end.
 
 Section AssertionLang.
 
@@ -34,6 +18,7 @@ Notation P4Int := (P4Int.t tags_t).
 Notation P4String := (P4String.t tags_t).
 Notation signal := (@signal tags_t).
 Notation Locator := (@Locator tags_t).
+Notation semlval_equivb := (@lval_equivb tags_t).
 
 Context `{@Target tags_t (@Expression tags_t)}.
 
@@ -44,8 +29,7 @@ Definition assertion := list (Lval * Val).
 
 Variable this : path.
 
-Definition alist_get {A} (l : P4String.AList tags_t A) (s : string) : option A :=
-  AList.get l (P4String.Build_t _ default s).
+Notation alist_get l s := (AList.get l (P4String.Build_t _ default s)).
 
 Definition extract (v : Val) (f : Field) : option Val :=
   match v with
@@ -170,12 +154,12 @@ Proof.
     specialize (IHtl fields ltac:(reflexivity)).
     destruct fields; only 1-12, 15-19 : solve [inversion H_state_eval_read]; simpl in H_state_eval_read.
     + inv H_exec_read. pinv @exec_read_member; specialize (IHtl _ H0); only 1, 3 : solve [inversion IHtl].
-      scongruence unfold: alist_get.
+      scongruence.
     + destruct is_valid; only 2 : inversion H_state_eval_read.
       inv H_exec_read. pinv @exec_read_member; specialize (IHtl _ H0); only 2, 3 : solve [inversion IHtl].
       destruct is_valid; only 2 : inversion IHtl.
       pinv @read_header_field.
-      scongruence unfold: alist_get.
+      scongruence.
 Qed.
 
 Fixpoint field_list_no_overlapping (fl1 fl2 : list Field) : bool :=
@@ -215,13 +199,6 @@ Fixpoint wellformed (a : assertion) : bool :=
       let (lv, _) := hd in
       is_lval_instance lv && no_overlapping lv tl && wellformed tl
   | [] => true
-  end.
-
-Definition locator_equivb (loc1 loc2 : Locator) : bool :=
-  match loc1, loc2 with
-  | LInstance p1, LInstance p2 => path_equivb p1 p2
-  | LGlobal p1, LGlobal p2 => path_equivb p1 p2
-  | _, _ => false
   end.
 
 Definition field_equivb (f1 f2 : Field) : bool :=
@@ -527,7 +504,7 @@ Qed.
 (* This axiom is provable if tags_t is a unit type. *)
 Axiom path_equivb_eq : forall (p1 p2 : path), path_equivb p1 p2 -> p1 = p2.
 
-Axiom locator_equivb_eq : forall loc1 loc2, locator_equivb loc1 loc2 -> loc1 = loc2.
+Axiom locator_equivb_eq : forall (loc1 loc2 : Locator), locator_equivb loc1 loc2 -> loc1 = loc2.
 
 Axiom lval_equivb_eq : forall lv1 lv2, lval_equivb lv1 lv2 -> lv1 = lv2.
 
@@ -804,7 +781,6 @@ Proof.
               apply H_eval_expr_hook' in H;
               inv H
           end.
-        unfold alist_get in H2.
         erewrite alist_get_equiv, H2 in H12. 2 : { destruct name; eauto. }
         congruence.
       * apply eval_expr_hook_sound with (ge := ge) (st := st) in H_eval_expr_hook'; only 2, 3 : assumption.
@@ -816,7 +792,6 @@ Proof.
           end.
         destruct is_valid; only 2 : inversion H2.
         inv H12.
-        unfold alist_get in H2.
         erewrite alist_get_equiv, H2 in H3. 2 : { destruct name; eauto. }
         congruence.
 Qed.
@@ -832,19 +807,6 @@ Proof.
   eapply eval_expr_gen_sound; only 2 : eassumption.
   intros; eapply eval_expr_hook_sound; eassumption.
 Qed.
-
-Fixpoint semlval_equivb (lv1 lv2 : SemLval) : bool :=
-  match lv1, lv2 with
-  | MkValueLvalue (ValLeftName _ loc1) _, MkValueLvalue (ValLeftName _ loc2) _ =>
-      locator_equivb loc1 loc2
-  | MkValueLvalue (ValLeftMember lv1 member1) _, MkValueLvalue (ValLeftMember lv2 member2) _ =>
-      semlval_equivb lv1 lv2 && P4String.equivb member1 member2
-  | MkValueLvalue (ValLeftBitAccess lv1 msb1 lsb1) _, MkValueLvalue (ValLeftBitAccess lv2 msb2 lsb2) _ =>
-      semlval_equivb lv1 lv2 && Nat.eqb msb1 msb2 && Nat.eqb lsb1 lsb2
-  | MkValueLvalue (ValLeftArrayAccess lv1 idx1) _, MkValueLvalue (ValLeftArrayAccess lv2 idx2) _ =>
-      semlval_equivb lv1 lv2 && Nat.eqb idx1 idx2
-  | _, _ => false
-  end.
 
 Fixpoint sem_eval_read (st : state) (lv : SemLval) : option Val :=
   match lv with
@@ -911,14 +873,14 @@ Proof.
       * inv H_exec_read. pinv @exec_read_member; specialize (IH _ H0); only 1, 3 : solve [inversion IH].
         rewrite alist_get_equiv with (s2 := {| P4String.tags := default; P4String.str := (P4String.str name) |}) in H1.
           2 : { destruct name. auto. }
-        scongruence unfold: alist_get.
+        scongruence.
       * destruct is_valid; only 2 : inversion H_sem_eval_read.
         inv H_exec_read. pinv @exec_read_member; specialize (IH _ H0); only 2, 3 : solve [inversion IH].
         destruct is_valid; only 2 : inversion IH.
         pinv @read_header_field.
         rewrite alist_get_equiv with (s2 := {| P4String.tags := default; P4String.str := (P4String.str name) |}) in H2.
           2 : { destruct name. auto. }
-        scongruence unfold: alist_get.
+        scongruence.
 Qed.
 
 Definition sem_is_valid_field (st : state) (lv : SemLval) : bool :=
