@@ -7,6 +7,21 @@ Require Import ProD3.core.Coqlib.
 Require Import Hammer.Tactics.Tactics.
 Require Import Hammer.Plugin.Hammer.
 
+Ltac inv H := inversion H; subst; clear H.
+Ltac pinv P :=
+  lazymatch goal with
+  | H : context [P] |- _ => inv H
+  (* | H : P |- _ => inv H
+  | H : P _ |- _ => inv H
+  | H : P _ _ |- _ => inv H
+  | H : P _ _ _ |- _ => inv H
+  | H : P _ _ _ _ |- _ => inv H
+  | H : P _ _ _ _ _ |- _ => inv H
+  | H : P _ _ _ _ _ _ |- _ => inv H
+  | H : P _ _ _ _ _ _ _ |- _ => inv H
+  | H : P _ _ _ _ _ _ _ _ |- _ => inv H *)
+  end.
+
 Section AssertionLang.
 
 Context {tags_t: Type} {tags_t_inhabitant : Inhabitant tags_t}.
@@ -28,42 +43,6 @@ Definition Lval : Type := Locator * list Field.
 Definition assertion := list (Lval * Val).
 
 Variable this : path.
-
-Ltac inv H := inversion H; subst; clear H.
-Ltac pinv P :=
-  lazymatch goal with
-  | H : context [P] |- _ => inv H
-  (* | H : P |- _ => inv H
-  | H : P _ |- _ => inv H
-  | H : P _ _ |- _ => inv H
-  | H : P _ _ _ |- _ => inv H
-  | H : P _ _ _ _ |- _ => inv H
-  | H : P _ _ _ _ _ |- _ => inv H
-  | H : P _ _ _ _ _ _ |- _ => inv H
-  | H : P _ _ _ _ _ _ _ |- _ => inv H
-  | H : P _ _ _ _ _ _ _ _ |- _ => inv H *)
-  end.
-
-(* Fixpoint sem_eval_read (st : state) (lv : Lval) : option Val :=
-  match lv with
-  | MkValueLvalue (ValLeftName _ loc) _ =>
-      loc_to_val this loc st
-  | MkValueLvalue (ValLeftMember lv member) _ =>
-      match sem_eval_read st lv with
-      | Some (ValBaseStruct fields) =>
-          AList.get fields member
-      | Some (ValBaseHeader fields true) =>
-          AList.get fields member
-      | _ => None
-      end
-  | _ => None
-  end.
-
-Lemma sem_eval_read_sound : forall st lv v,
-  sem_eval_read st lv = Some v ->
-  forall v', exec_read this st lv v' ->
-    v' = v.
-Admitted. *)
 
 Definition alist_get {A} (l : P4String.AList tags_t A) (s : string) : option A :=
   AList.get l (P4String.Build_t _ default s).
@@ -671,16 +650,23 @@ Fixpoint no_nequiv_overlapping (lv : Lval) (a : assertion) : bool :=
   | [] => true
   end.
 
+Definition is_writable_lval (lv : Lval) (a : assertion) : bool :=
+  is_valid_field a lv && is_lval_instance lv && no_nequiv_overlapping lv a.
+
 Lemma eval_write_sound : forall st a lv v st',
   wellformed a ->
-  is_valid_field a lv ->
-  is_lval_instance lv ->
-  no_nequiv_overlapping lv a ->
+  is_writable_lval lv a ->
   to_shallow_assertion a st ->
   exec_write this st (lval_to_semlval lv) v st' ->
   to_shallow_assertion (eval_write a lv v) st'.
 Proof.
-  intros * H_wellformed H_is_valid_field H_is_lval_instance H_no_nequiv_overlapping H_pre H_exec_write.
+  intros * H_wellformed H_is_writable_lval.
+  unfold is_writable_lval in H_is_writable_lval.
+  assert (is_valid_field a lv) as H_is_valid_field by hauto b: on.
+  assert (is_lval_instance lv) as H_is_lval_instance by hauto b: on.
+  assert (no_nequiv_overlapping lv a) as H_no_nequiv_overlapping by hauto b: on.
+  clear H_is_writable_lval.
+  intros H_pre H_exec_write.
   induction a as [ | hd tl]; intros.
   - eapply eval_write_add; eassumption.
   - destruct hd as [hd_lv hd_v].
@@ -712,29 +698,6 @@ Proof.
       sfirstorder.
     + apply IHtl; sfirstorder.
 Qed.
-
-Fixpoint semlval_equivb (lv1 lv2 : SemLval) : bool :=
-  match lv1, lv2 with
-  | MkValueLvalue (ValLeftName _ loc1) _, MkValueLvalue (ValLeftName _ loc2) _ =>
-      locator_equivb loc1 loc2
-  | MkValueLvalue (ValLeftMember lv1 member1) _, MkValueLvalue (ValLeftMember lv2 member2) _ =>
-      semlval_equivb lv1 lv2 && P4String.equivb member1 member2
-  | MkValueLvalue (ValLeftBitAccess lv1 msb1 lsb1) _, MkValueLvalue (ValLeftBitAccess lv2 msb2 lsb2) _ =>
-      semlval_equivb lv1 lv2 && Nat.eqb msb1 msb2 && Nat.eqb lsb1 lsb2
-  | MkValueLvalue (ValLeftArrayAccess lv1 idx1) _, MkValueLvalue (ValLeftArrayAccess lv2 idx2) _ =>
-      semlval_equivb lv1 lv2 && Nat.eqb idx1 idx2
-  | _, _ => false
-  end.
-
-Axiom exec_write_semlval_equiv : forall st lv1 lv2 v st',
-  semlval_equivb lv1 lv2 ->
-  exec_write this st lv1 v st' ->
-  exec_write this st lv2 v st'.
-
-Axiom exec_read_semlval_equiv : forall st lv1 lv2 v,
-  semlval_equivb lv1 lv2 ->
-  exec_read this st lv1 v ->
-  exec_read this st lv2 v.
 
 Fixpoint eval_expr_hook (a : assertion) (expr : Expression) : option Val :=
   match expr with
@@ -818,7 +781,7 @@ Definition eval_expr_hook_sound_statement ge st a expr v :=
   wellformed a ->
   to_shallow_assertion a st ->
   eval_expr_hook a expr = Some v ->
-  forall v', exec_expr ge this st expr v'->
+  forall v', exec_expr ge this st expr v' ->
     v' = v.
 
 Lemma eval_expr_hook_sound : forall ge st a expr v,
@@ -868,6 +831,279 @@ Proof.
   intros * H_wellformed H_pre H_eval_expr.
   eapply eval_expr_gen_sound; only 2 : eassumption.
   intros; eapply eval_expr_hook_sound; eassumption.
+Qed.
+
+Fixpoint semlval_equivb (lv1 lv2 : SemLval) : bool :=
+  match lv1, lv2 with
+  | MkValueLvalue (ValLeftName _ loc1) _, MkValueLvalue (ValLeftName _ loc2) _ =>
+      locator_equivb loc1 loc2
+  | MkValueLvalue (ValLeftMember lv1 member1) _, MkValueLvalue (ValLeftMember lv2 member2) _ =>
+      semlval_equivb lv1 lv2 && P4String.equivb member1 member2
+  | MkValueLvalue (ValLeftBitAccess lv1 msb1 lsb1) _, MkValueLvalue (ValLeftBitAccess lv2 msb2 lsb2) _ =>
+      semlval_equivb lv1 lv2 && Nat.eqb msb1 msb2 && Nat.eqb lsb1 lsb2
+  | MkValueLvalue (ValLeftArrayAccess lv1 idx1) _, MkValueLvalue (ValLeftArrayAccess lv2 idx2) _ =>
+      semlval_equivb lv1 lv2 && Nat.eqb idx1 idx2
+  | _, _ => false
+  end.
+
+Fixpoint sem_eval_read (st : state) (lv : SemLval) : option Val :=
+  match lv with
+  | MkValueLvalue (ValLeftName _ loc) _ =>
+      loc_to_val this loc st
+  | MkValueLvalue (ValLeftMember lv member) _ =>
+      extract_option (sem_eval_read st lv) (P4String.str member)
+  | _ => None
+  end.
+
+Definition sem_eval_read_sound_1_statement st lv v :=
+  sem_eval_read st lv = Some v ->
+  exec_read this st lv v.
+
+Lemma sem_eval_read_sound_1 : forall st lv v,
+  sem_eval_read_sound_1_statement st lv v
+with sem_eval_read_sound_1_preT : forall st lv typ v,
+  sem_eval_read_sound_1_statement st (MkValueLvalue lv typ) v.
+Proof.
+  - destruct lv; apply sem_eval_read_sound_1_preT.
+  - unfold sem_eval_read_sound_1_statement.
+    rename sem_eval_read_sound_1 into IH.
+    destruct lv; intros * H_sem_eval_read; only 3, 4 : solve [inversion H_sem_eval_read].
+    + apply exec_read_name, H_sem_eval_read.
+    + simpl in H_sem_eval_read.
+      destruct (sem_eval_read st expr) as [fields | ] eqn:H_sem_eval_read'; only 2 : solve [inversion H_sem_eval_read].
+      apply exec_read_by_member.
+      specialize (IH st expr fields H_sem_eval_read').
+      destruct fields; only 1-12, 15-19 : solve [inversion H_sem_eval_read]; simpl in H_sem_eval_read.
+      * eapply exec_read_member_struct; only 1 : (apply IH; reflexivity).
+        rewrite alist_get_equiv with (s2 := {| P4String.tags := default; P4String.str := (P4String.str name) |}).
+          2 : { destruct name. auto. }
+        apply H_sem_eval_read.
+      * eapply exec_read_member_header; only 1 : (apply IH; reflexivity).
+        destruct is_valid; only 2 : inversion H_sem_eval_read.
+        apply read_header_field_intro.
+        rewrite alist_get_equiv with (s2 := {| P4String.tags := default; P4String.str := (P4String.str name) |}).
+          2 : { destruct name. auto. }
+        apply H_sem_eval_read.
+Qed.
+
+Definition sem_eval_read_sound_statement st lv v :=
+  sem_eval_read st lv = Some v ->
+  forall v', exec_read this st lv v' ->
+    v' = v.
+
+Lemma sem_eval_read_sound : forall st lv v,
+  sem_eval_read_sound_statement st lv v
+with sem_eval_read_sound_preT : forall st lv typ v,
+  sem_eval_read_sound_statement st (MkValueLvalue lv typ) v.
+Proof.
+  - destruct lv; apply sem_eval_read_sound_preT.
+  - unfold sem_eval_read_sound_statement.
+    rename sem_eval_read_sound into IH.
+    destruct lv; intros * H_sem_eval_read; only 3, 4 : solve [inversion H_sem_eval_read].
+    + intros * H_exec_read.
+      inv H_exec_read.
+      simpl in H_sem_eval_read. congruence.
+    + intros * H_exec_read.
+      simpl in H_sem_eval_read.
+      destruct (sem_eval_read st expr) as [fields | ] eqn:H_sem_eval_read'; only 2 : solve [inversion H_sem_eval_read].
+      specialize (IH st expr fields H_sem_eval_read').
+      destruct fields; only 1-12, 15-19 : solve [inversion H_sem_eval_read]; simpl in H_sem_eval_read.
+      * inv H_exec_read. pinv @exec_read_member; specialize (IH _ H0); only 1, 3 : solve [inversion IH].
+        rewrite alist_get_equiv with (s2 := {| P4String.tags := default; P4String.str := (P4String.str name) |}) in H1.
+          2 : { destruct name. auto. }
+        scongruence unfold: alist_get.
+      * destruct is_valid; only 2 : inversion H_sem_eval_read.
+        inv H_exec_read. pinv @exec_read_member; specialize (IH _ H0); only 2, 3 : solve [inversion IH].
+        destruct is_valid; only 2 : inversion IH.
+        pinv @read_header_field.
+        rewrite alist_get_equiv with (s2 := {| P4String.tags := default; P4String.str := (P4String.str name) |}) in H2.
+          2 : { destruct name. auto. }
+        scongruence unfold: alist_get.
+Qed.
+
+Definition sem_is_valid_field (st : state) (lv : SemLval) : bool :=
+  match lv with
+  | MkValueLvalue (ValLeftName _ loc) _ => true
+  | _ => sem_eval_read st lv
+  end.
+
+Axiom loc_to_val_congruent : forall st loc1 loc2,
+  locator_equivb loc1 loc2 ->
+  loc_to_val this loc1 st = loc_to_val this loc2 st.
+
+Definition sem_eval_read_congruent_statement st lv1 lv2 :=
+  semlval_equivb lv1 lv2 ->
+  sem_eval_read st lv1 = sem_eval_read st lv2.
+
+Lemma sem_eval_read_congruent : forall st lv1 lv2,
+  sem_eval_read_congruent_statement st lv1 lv2
+with sem_eval_read_congruent_preT : forall st lv1 typ1 lv2,
+  sem_eval_read_congruent_statement st (MkValueLvalue lv1 typ1) lv2.
+Proof.
+  - destruct lv1; apply sem_eval_read_congruent_preT.
+  - unfold sem_eval_read_congruent_statement.
+    rename sem_eval_read_congruent into IH.
+    intros * H_semlval_equivb.
+    destruct lv1; destruct lv2 as [[] ?]; only 2-5, 7-10, 12-15 : solve [inversion H_semlval_equivb].
+    + simpl in H_semlval_equivb |- *.
+      apply loc_to_val_congruent; assumption.
+    + simpl in H_semlval_equivb |- *.
+      erewrite IH with (lv2 := expr0); only 2 : hauto b: on.
+      f_equal.
+      destruct name; destruct name0.
+      unfold P4String.equivb in H_semlval_equivb.
+      simpl in H_semlval_equivb |- *.
+      apply Strings.String.eqb_eq; hauto b: on.
+    + constructor.
+    + constructor.
+Qed.
+
+(* Lemma state_eval_read_sound_2 : forall st lv v,
+  state_eval_read st lv = Some v ->
+  sem_eval_read st (lval_to_semlval lv) = Some v.
+Proof.
+  (* intros * H_state_eval_read.
+  destruct lv as [loc fl].
+  induction fl as [ | hd tl].
+  - exact H_state_eval_read.
+  - simpl. apply IHtl. *)
+Admitted. *)
+
+Lemma state_is_valid_field_sound st lv :
+  state_is_valid_field st lv ->
+  sem_is_valid_field st (lval_to_semlval lv).
+Admitted.
+
+(* Definition sem_is_valid_field (st : state) (lv : SemLval) : bool :=
+  match lv with
+  | MkValueLvalue (ValLeftName _ loc) _ => true
+  | _ => sem_eval_read st lv
+  end. *)
+
+Lemma exec_read_congruent : forall st lv1 lv2 v,
+  sem_is_valid_field st lv2 ->
+  semlval_equivb lv1 lv2 ->
+  exec_read this st lv1 v ->
+  exec_read this st lv2 v.
+Proof.
+  intros * H_sem_is_valid_field H_semlval_equivb H_exec_read.
+  destruct (sem_eval_read st lv2) eqn:?.
+  - assert (sem_eval_read st lv1 = sem_eval_read st lv2) by (apply sem_eval_read_congruent; assumption).
+    assert (sem_eval_read st lv1 = Some v0) by congruence.
+    epose proof (sem_eval_read_sound _ _ _ ltac:(eassumption) _ H_exec_read).
+    apply sem_eval_read_sound_1. congruence.
+  - unfold sem_is_valid_field in H_sem_is_valid_field.
+    destruct lv2 as [[] ?]; only 2-4 : (rewrite Heqo in H_sem_is_valid_field; hauto).
+    constructor.
+    destruct lv1 as [[] ?]; only 2-4 : inversion H_semlval_equivb.
+    inv H_exec_read. erewrite loc_to_val_congruent; only 1 : eassumption.
+    rewrite locator_equivb_symm. apply H_semlval_equivb.
+Qed.
+
+(* Lemma sem_eval_read_sem_is_valid_field st lv :
+  sem_eval_read st lv ->
+  sem_is_valid_field st lv.
+Proof.
+  intros H_sem_eval_read.
+  unfold sem_is_valid_field.
+  destruct (sem_eval_read st lv); only 2 : sfirstorder.
+  destruct lv as [[] ?]; constructor.
+Qed. *)
+
+Lemma sem_is_valid_field_parent : forall st lv member typ,
+  sem_is_valid_field st (MkValueLvalue (ValLeftMember lv member) typ) ->
+  sem_is_valid_field st lv.
+Proof.
+  intros * H_sem_is_valid_field.
+  unfold sem_is_valid_field in H_sem_is_valid_field.
+  destruct (sem_eval_read st lv) eqn:?; destruct lv as [[] ?];
+  hauto lq: on.
+Qed.
+
+Axiom update_member_congruent : forall fields (f1 f2 : P4String) v fields',
+  P4String.equivb f1 f2 ->
+  update_member fields f1 v fields' ->
+  update_member fields f2 v fields'.
+
+Lemma exec_write_congruent : forall st lv1 lv2 v st',
+  sem_is_valid_field st lv2 ->
+  semlval_equivb lv1 lv2 ->
+  exec_write this st lv1 v st' ->
+  exec_write this st lv2 v st'.
+Proof.
+  intros * H_sem_is_valid_field H_semlval_equivb H_exec_write.
+  generalize dependent lv2.
+  induction H_exec_write; intros * H_sem_is_valid_field H_semlval_equivb.
+  - destruct lv2 as [[] ?]; inv H_semlval_equivb.
+    econstructor.
+    sfirstorder use: locator_equivb_eq unfold: is_true.
+  - destruct lv2 as [[] ?]; inv H_semlval_equivb.
+    apply sem_is_valid_field_parent in H_sem_is_valid_field.
+    unfold sem_is_valid_field in H_sem_is_valid_field.
+    econstructor.
+    1 : {
+      eapply exec_read_congruent; only 1, 3 : eassumption.
+      destruct (semlval_equivb lv expr); sfirstorder.
+    }
+    2 : {
+      eapply IHH_exec_write.
+      - apply H_sem_is_valid_field.
+      - destruct (semlval_equivb lv expr); sfirstorder.
+    }
+    eapply update_member_congruent; only  2 : eassumption.
+    destruct (P4String.equivb fname name); hauto b: on.
+  - destruct lv2 as [[] ?]; hauto lq: on.
+  - destruct lv2 as [[] ?]; hauto lq: on.
+  - destruct lv2 as [[] ?]; hauto lq: on.
+Qed.
+
+Fixpoint eval_lexpr (expr : @Expression tags_t) : option Lval :=
+  match expr with
+  | MkExpression _ (ExpName _ loc) _ _ =>
+      Some (loc, [])
+  | MkExpression _ (ExpExpressionMember expr member) _ _ =>
+      match eval_lexpr expr with
+      | Some (loc, fl) =>
+          if (String.eqb (P4String.str member) "next") then
+            None
+          else
+            Some (loc, fl ++ [P4String.str member])
+      | None => None
+      end
+  | _ => None
+  end.
+
+Definition eval_lexpr_sound_statement ge st expr lv :=
+  eval_lexpr expr = Some lv ->
+  forall lv' sig, exec_lexpr ge this st expr lv' sig ->
+    sig = SContinue /\ semlval_equivb lv' (lval_to_semlval lv).
+
+Lemma eval_lexpr_sound : forall ge st expr v,
+  eval_lexpr_sound_statement ge st expr v
+with eval_lexpr_sound_preT : forall ge st tags expr typ dir v,
+  eval_lexpr_sound_statement ge st (MkExpression tags expr typ dir) v.
+Proof.
+  - intros. destruct expr; apply eval_lexpr_sound_preT.
+  - unfold eval_lexpr_sound_statement.
+    rename eval_lexpr_sound into IH.
+    intros * H_eval_lexpr.
+    destruct expr; inversion H_eval_lexpr.
+    + intros * H_exec_lexpr.
+      inv H_exec_lexpr. repeat split. simpl. apply locator_equivb_refl.
+    + intros * H_exec_lexpr.
+      destruct (eval_lexpr expr) as [[loc fl] | ] eqn:H_eval_lexpr'; only 2 : discriminate.
+      specialize (IH ge st expr (loc, fl) ltac:(assumption)).
+      inv H_exec_lexpr.
+      * specialize (IH _ _ ltac:(eassumption)) as [].
+        destruct (String.eqb (P4String.str name) "next"); only 1 : discriminate.
+        inv H1.
+        rewrite lval_to_semlval_snoc.
+        unfold semlval_equivb; fold semlval_equivb.
+        destruct name; hauto b: on.
+      * destruct name. change (String.eqb "next" str = true) in H11.
+        simpl in H1. rewrite eqb_sym, H11 in H1. discriminate.
+      * destruct name. change (String.eqb "next" str = true) in H11.
+        simpl in H1. rewrite eqb_sym, H11 in H1. discriminate.
 Qed.
 
 End AssertionLang.
