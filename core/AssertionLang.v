@@ -213,15 +213,47 @@ Definition lval_equivb (lv1 lv2 : Lval) : bool :=
       locator_equivb loc1 loc2 && list_eqb field_equivb fl1 fl2
   end.
 
-Fixpoint eval_write (a : assertion) (lv : Lval) (v : Val) : assertion :=
+Definition val_eqb (v1 v2 : Val) : bool :=
+  match v1, v2 with
+  | ValBaseNull, ValBaseNull => true
+  | ValBaseBool b1, ValBaseBool b2 => Bool.eqb b1 b2
+  | ValBaseInteger i1, ValBaseInteger i2 => BinInt.Z.eqb i1 i2
+  | ValBaseBit w1 i1, ValBaseBit w2 i2 => Nat.eqb w1 w2 && BinInt.Z.eqb i1 i2
+  | ValBaseInt w1 i1, ValBaseInt w2 i2 => Nat.eqb w1 w2 && BinInt.Z.eqb i1 i2
+  | _, _ => false
+  end.
+
+Lemma val_eqb_eq v1 v2 :
+  val_eqb v1 v2 -> v1 = v2.
+Proof.
+  intros H_val_eqb.
+  destruct v1; destruct v2; simpl in H_val_eqb; try discriminate.
+  - constructor.
+  - sfirstorder use: Bool.eqb_prop unfold: is_true.
+  - hauto b: on.
+  - hauto b: on.
+  - hauto b: on.
+Qed.
+
+Definition assretion_unit_equivb (a_unit1 a_unit2 : Lval * Val) :=
+  let (lv1, v1) := a_unit1 in
+  let (lv2, v2) := a_unit2 in
+  lval_equivb lv1 lv2 && val_eqb v1 v2.
+
+Fixpoint implies_unit (a : assertion) (a_unit : Lval * Val) :=
   match a with
   | hd :: tl =>
-      let (hd_lv, hd_v) := hd in
-      if lval_equivb lv hd_lv then
-        (lv, v) :: tl
-      else
-        hd :: eval_write tl lv v
-  | [] => [(lv, v)]
+      assretion_unit_equivb hd a_unit || implies_unit tl a_unit
+  | [] =>
+      false
+  end.
+
+Fixpoint implies (a1 a2 : assertion) :=
+  match a2 with
+  | hd :: tl =>
+      implies_unit a1 hd && implies a1 tl
+  | [] =>
+      true
   end.
 
 Axiom loc_to_val_update_val_by_loc_same : forall st loc1 loc2 v,
@@ -268,6 +300,58 @@ Axiom lval_no_overlapping_symm : forall (lv1 lv2 : Lval),
 
 Axiom lval_equivb_symm : forall (lv1 lv2 : Lval),
   lval_equivb lv1 lv2 = lval_equivb lv2 lv1.
+
+(* This axiom is provable if tags_t is a unit type. *)
+Axiom path_equivb_eq : forall (p1 p2 : path), path_equivb p1 p2 -> p1 = p2.
+
+Axiom locator_equivb_eq : forall (loc1 loc2 : Locator), locator_equivb loc1 loc2 -> loc1 = loc2.
+
+Axiom lval_equivb_eq : forall lv1 lv2, lval_equivb lv1 lv2 -> lv1 = lv2.
+
+Lemma implies_unit_sound st a a_unit :
+  to_shallow_assertion a st ->
+  implies_unit a a_unit ->
+  satisfies_unit st a_unit.
+Proof.
+  intros H_pre H_implies_unit.
+  induction a as [ | hd tl].
+  - inversion H_implies_unit.
+  - destruct (assretion_unit_equivb hd a_unit) eqn:H_assretion_unit_equivb.
+    + assert (satisfies_unit st hd) by (clear -H_pre; sfirstorder).
+      destruct hd as [lv1 v1]; destruct a_unit as [lv2 v2].
+      simpl in H_assretion_unit_equivb.
+      assert (lv1 = lv2) by (apply lval_equivb_eq; hauto unfold: is_true, andb).
+      assert (v1 = v2) by (apply val_eqb_eq; hauto unfold: is_true, andb).
+      sfirstorder.
+    + apply IHtl.
+      * sfirstorder.
+      * hauto.
+Qed.
+
+Lemma implies_sound st pre post :
+  to_shallow_assertion pre st ->
+  implies pre post ->
+  to_shallow_assertion post st.
+Proof.
+  intros H_pre H_implies.
+  induction post as [ | hd tl].
+  - exact I.
+  - split.
+    + apply implies_unit_sound with (a := pre); only 1 : assumption.
+      hauto b: on.
+    + apply IHtl. hauto b: on.
+Qed.
+
+Fixpoint eval_write (a : assertion) (lv : Lval) (v : Val) : assertion :=
+  match a with
+  | hd :: tl =>
+      let (hd_lv, hd_v) := hd in
+      if lval_equivb lv hd_lv then
+        (lv, v) :: tl
+      else
+        hd :: eval_write tl lv v
+  | [] => [(lv, v)]
+  end.
 
 Lemma exec_write_1 st lv v st' :
   exec_write this st (lval_to_semlval lv) v st' ->
@@ -500,13 +584,6 @@ Proof.
       assert (hd1 = hd2) by (hauto use: eqb_eq, Bool.eq_true_negb_classical, eqb_neq unfold: Field); subst hd2.
       exists (hd1 :: fl3). sauto.
 Qed.
-
-(* This axiom is provable if tags_t is a unit type. *)
-Axiom path_equivb_eq : forall (p1 p2 : path), path_equivb p1 p2 -> p1 = p2.
-
-Axiom locator_equivb_eq : forall (loc1 loc2 : Locator), locator_equivb loc1 loc2 -> loc1 = loc2.
-
-Axiom lval_equivb_eq : forall lv1 lv2, lval_equivb lv1 lv2 -> lv1 = lv2.
 
 Lemma exec_write_no_overlapping_unit st lv1 v1 lv2 v2 st' :
   lval_no_overlapping lv1 lv2 ->

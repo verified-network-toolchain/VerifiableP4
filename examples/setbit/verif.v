@@ -11,6 +11,7 @@ Require Import Poulet4.SimplExpr.
 Require Import Poulet4.V1Model.
 Require Import ProD3.core.Hoare.
 Require Import ProD3.core.AssertionLang.
+Require Import ProD3.core.ConcreteHoare.
 
 Instance target : @Target Info (@Expression Info) := V1Model.
 
@@ -162,41 +163,18 @@ Definition myStmt := Eval compute in
 
 Ltac inv H := inversion H; clear H; subst.
 
-Lemma eval_block: hoare_block ge inst_m this
+Lemma eval_block: Hoare.hoare_block ge inst_m this
   (* pre: *) (to_shallow_assertion this [(LInstance !["var"], [], ValBaseBit 8%nat x)])
   myBlock
   (* post: *) (to_shallow_assertion this [(LInstance !["var"], [], ValBaseBit 8%nat (x+1))]).
 Proof.
-  assert (hoare_stmt ge inst_m this
-    (* pre: *) (to_shallow_assertion this [(LInstance !["var"], [], ValBaseBit 8%nat x)])
-    myStmt
-    (* post: *) (to_shallow_assertion this [(LInstance !["var"], [], ValBaseBit 8%nat (x+1))])).
-  { intro; intros.
-    repeat lazymatch goal with
-    | H : exec_stmt _ _ _ _ _ _ _ |- _ => inv H
-    | H : exec_lexpr _ _ _ _ _ _ |- _ => inv H
-    (* | H : exec_expr _ _ _ _ _ |- _ => inv H *)
-    | H : exec_call _ _ _ _ _ _ _ |- _ => inv H
-    end.
-    2 : { inv H11. }
-    (* manipulate H11 *)
-      eapply eval_expr_sound in H11.
-      3 : eassumption.
-      2, 3 : constructor.
-    (* manipulate H12 *)
-      eapply exec_write_semlval_equiv in H12.
-      eapply eval_write_sound with (lv := (LInstance !["var"], [])) in H12.
-      7 : constructor.
-      6 : eassumption.
-      2-5 : reflexivity.
-      split; only 1 : split.
-      simpl eval_write in H12.
-    subst v.
-    assert ((P4Arith.BitArith.plus_mod (Pos.of_nat 8) x
+  apply hoare_block_sound; only 1 : auto.
+  repeat econstructor.
+  assert ((P4Arith.BitArith.plus_mod (Pos.of_nat 8) x
               (P4Arith.BitArith.mod_bound (Pos.of_nat 8) (value {| tags := NoInfo; value := 1; width_signed := None |}))) = x + 1) by admit.
-    (* Fail congruence. *) (* why? *)
-    rewrite H0 in H12. apply H12.
-  }
+  rewrite H.
+  (* need unification rather than evaluation here. *)
+  (* econstructor. *)
 Abort.
 
 End Experiment3.

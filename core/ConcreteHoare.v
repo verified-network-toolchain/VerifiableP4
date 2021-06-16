@@ -95,4 +95,32 @@ Proof.
       unfold Hoare.hoare_lexpr in H0. hauto lq: on.
 Qed.
 
+Inductive hoare_block : path -> assertion -> (@Block tags_t) -> assertion -> Prop :=
+  | hoare_block_nil : forall p pre post tags,
+      implies pre post ->
+      hoare_block p pre (BlockEmpty tags) post
+  | hoare_block_cons : forall p pre stmt rest mid post,
+      hoare_stmt p pre stmt mid ->
+      wellformed mid ->
+      hoare_block p mid rest post ->
+      hoare_block p pre (BlockCons stmt rest) post.
+
+Lemma hoare_block_sound : forall p pre block post,
+  wellformed pre ->
+  hoare_block p pre block post ->
+  Hoare.hoare_block ge inst_m p (to_shallow_assertion p pre) block (to_shallow_assertion p post).
+Proof.
+  intros * H_wellformed H_hoare_block.
+  induction H_hoare_block.
+  - hnf. intros. pinv @exec_block.
+    split; only 1 : constructor.
+    eapply implies_sound; eassumption.
+  - apply hoare_stmt_sound in H0; only 2 : assumption.
+    hnf. intros. pinv @exec_block.
+    + specialize (H0 _ _ _ H2 H9).
+      specialize (IHH_hoare_block H1 _ _ _ (proj2 H0) H12).
+      auto.
+    + specialize (H0 _ _ _ H2 H9). hauto.
+Qed.
+
 End ConcreteHoare.
