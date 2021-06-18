@@ -11,6 +11,7 @@ Require Import Poulet4.SimplExpr.
 Require Import Poulet4.V1Model.
 Require Import ProD3.core.Hoare.
 Require Import ProD3.core.AssertionLang.
+Require Import ProD3.core.ConcreteHoare.
 
 Instance target : @Target Info (@Expression Info) := V1Model.
 
@@ -19,7 +20,7 @@ Opaque IdentMap.empty IdentMap.set PathMap.empty PathMap.set.
 (* Global environment *)
 Definition ge := Eval compute in gen_ge prog.
 
-Definition instantiation := Eval compute in instantiate_prog prog.
+Definition instantiation := Eval compute in instantiate_prog ge prog.
 
 (* inst_m *)
 Definition inst_m := Eval compute in fst instantiation.
@@ -162,41 +163,74 @@ Definition myStmt := Eval compute in
 
 Ltac inv H := inversion H; clear H; subst.
 
-Lemma eval_block: hoare_block ge inst_m this
-  (* pre: *) (to_shallow_assertion this [(LInstance !["var"], ValBaseBit 8%nat x)])
+Lemma eval_block: Hoare.hoare_block ge inst_m this
+  (* pre: *) (to_shallow_assertion this [(LInstance !["var"], [], ValBaseBit 8%nat x)])
   myBlock
-  (* post: *) (to_shallow_assertion this [(LInstance !["var"], ValBaseBit 8%nat (x+1))]).
+  (* post: *) (to_shallow_assertion this [(LInstance !["var"], [], ValBaseBit 8%nat (x+1))]).
 Proof.
-  assert (hoare_stmt ge inst_m this
-    (* pre: *) (to_shallow_assertion this [(LInstance !["var"], ValBaseBit 8%nat x)])
-    myStmt
-    (* post: *) (to_shallow_assertion this [(LInstance !["var"], ValBaseBit 8%nat (x+1))])).
-  { intro; intros.
-    repeat lazymatch goal with
-    | H : exec_stmt _ _ _ _ _ _ _ |- _ => inv H
-    | H : exec_lexpr _ _ _ _ _ _ |- _ => inv H
-    | H : exec_expr _ _ _ _ _ |- _ => inv H
-    end.
-    { inv H11.
-      replace (loc_to_val this (LInstance !!["var"]) st) with (Some (@ValBaseBit Info 8 x)) in H8. 2 : {
-        symmetry. apply H.
-      }
-      inv H8. inv H14. inv H13.
-      assert (P4Arith.BitArith.plus_mod 8 x (P4Arith.BitArith.mod_bound 8 1) = x + 1) by admit.
-      rewrite H0 in H12.
-      inv H12. repeat split.
-      simpl.
+  apply hoare_block_sound; only 1 : auto.
+  repeat econstructor.
+  assert ((P4Arith.BitArith.plus_mod (Pos.of_nat 8) x
+              (P4Arith.BitArith.mod_bound (Pos.of_nat 8) (value {| tags := NoInfo; value := 1; width_signed := None |}))) = x + 1) by admit.
+  rewrite H.
+  (* need unification rather than evaluation here. *)
+  (* econstructor. *)
 Abort.
-  (* intro; intros.
-  inversion H0.
-  2 : {
-  eexists. eexists. repeat econstructor.
+
+End Experiment3.
+
+End Experiment3.
+
+Module Experiment4.
+
+Section Experiment4.
+
+Definition stmt := (MkStatement NoInfo
+                     (StatAssignment
+                          (MkExpression NoInfo
+                               (ExpExpressionMember
+                                    (MkExpression NoInfo
+                                         (ExpExpressionMember
+                                              (MkExpression NoInfo
+                                                   (ExpName
+                                                    (BareName
+                                                     {| stags := NoInfo;
+                                                        str := "hdr" |})
+                                                    (LInstance
+                                                         [{| stags := NoInfo;
+                                                             str := "hdr" |}]))
+                                                   (TypTypeName
+                                                    (BareName
+                                                     {| stags := NoInfo;
+                                                        str := "headers" |}))
+                                                   InOut)
+                                              {| stags := NoInfo;
+                                                 str := "myHeader" |})
+                                         (TypHeader
+                                          [( {| stags := NoInfo;
+                                                str := "firstByte" |},
+                                             (TypBit 8) )]) Directionless)
+                                    {| stags := NoInfo; str := "firstByte" |})
+                               (TypBit 8) Directionless)
+                          (MkExpression NoInfo
+                               (ExpName
+                                (BareName {| stags := NoInfo; str := "x" |})
+                                (LInstance [{| stags := NoInfo; str := "x" |}]))
+                               (TypBit 8) InOut)) StmUnit).
+
+Variable this : path.
+
+Definition st : state := (PathMap.set (this ++ !["hdr"]) (ValBaseBit 8 1) (PathMap.set (this ++ !["x"]) (ValBaseBit 8 1) PathMap.empty), PathMap.empty).
+
+Lemma eval_stmt: { st' & { signal | exec_stmt ge this inst_m st stmt st' signal} }.
+Proof.
+  (* solve [repeat econstructor].
 Defined. *)
+Abort.
 
-End Experiment3.
+End Experiment4.
 
-End Experiment3.
-
+End Experiment4.
 
 (* Module Experiment3.
 
