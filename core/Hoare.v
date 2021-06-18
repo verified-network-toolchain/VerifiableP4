@@ -64,7 +64,7 @@ Definition hoare_func (p : path) (pre : arg_assertion) (func : @fundef tags_t) (
   forall st inargs st' outargs sig,
     pre inargs st ->
     exec_func ge p inst_m st func targs inargs st' outargs sig ->
-    sig = SContinue /\ post outargs st'.
+    is_return sig = true /\ post outargs st'.
 
 Section DeepEmbeddedHoare.
 
