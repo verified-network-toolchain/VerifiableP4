@@ -1189,5 +1189,65 @@ Proof.
       * discriminate.
 Qed.
 
+(*************** Argument and return value assertion language **********)
+
+Import BinNums.
+
+Instance Inhabitant_option {T: Type} : Inhabitant (option T) := None.
+
+Definition Znth_option {T} n (l : list T) :=
+  Znth n (map Some l).
+
+Definition arg_Lval : Type := Z * list Field.
+
+Definition arg_eval_read (args : list Val) (lv : arg_Lval) : option Val :=
+  let (n, fl) := lv in
+  fold_left extract_option fl (Znth_option n args).
+
+Inductive arg_assertion_unit :=
+| ArgVal: arg_Lval -> Val -> arg_assertion_unit
+| ArgType : arg_Lval -> P4Type -> arg_assertion_unit.
+
+Definition arg_assertion := list arg_assertion_unit.
+
+Definition arg_satisfies_unit (args : list Val) (a_unit : arg_assertion_unit) : Prop :=
+  match a_unit with
+  | ArgVal lv v =>
+      arg_eval_read args lv = Some v
+  | ArgType lv typ =>
+      True
+  end.
+
+Definition arg_satisfies (args : list Val) (a : arg_assertion) : Prop :=
+  fold_right and True (map (arg_satisfies_unit args) a).
+
+Definition arg_to_shallow_assertion (a : arg_assertion) : list Val -> Prop :=
+  fun args => arg_satisfies args a.
+
+Definition ret_Lval : Type := list Field.
+
+Definition ret_eval_read (vret : Val) (lv : ret_Lval) : option Val :=
+  fold_left extract_option lv (Some vret).
+
+Inductive ret_assertion_unit :=
+| RetVal: ret_Lval -> Val -> ret_assertion_unit
+| RetType : ret_Lval -> P4Type -> ret_assertion_unit.
+
+Definition ret_assertion := list ret_assertion_unit.
+
+Definition ret_satisfies_unit (vret : Val) (a_unit : ret_assertion_unit) : Prop :=
+  match a_unit with
+  | RetVal lv v =>
+      ret_eval_read vret lv = Some v
+  | RetType lv typ =>
+      True
+  end.
+
+Definition ret_satisfies (vret : Val) (a : ret_assertion) : Prop :=
+  fold_right and True (map (ret_satisfies_unit vret) a).
+
+Definition ret_to_shallow_assertion (a : ret_assertion) : Val -> Prop :=
+  fun vret => ret_satisfies vret a.
+
 End AssertionLang.
 
