@@ -648,16 +648,17 @@ Proof.
   induction a as [ | hd tl]; intros.
   - sfirstorder.
   - split.
-    + destruct hd as [hd_lv hd_v | hd_lv hd_type]; only 2 : admit.
-      eapply (exec_write_no_overlapping_unit).
-      * rewrite lval_no_overlapping_symm. hauto b: on.
-      * apply H_pre.
-      * sfirstorder.
+    + destruct hd as [hd_lv hd_v | hd_lv hd_type].
+      * eapply (exec_write_no_overlapping_unit).
+        ++ rewrite lval_no_overlapping_symm. hauto b: on.
+        ++ apply H_pre.
+        ++ sfirstorder.
+      (* TODO when type case is implemented *)
+      * constructor.
     + apply IHtl.
       * destruct hd; hauto b: on.
       * sfirstorder.
-(* Qed. *)
-Admitted.
+Qed.
 
 Lemma exec_write_same st lv v st' :
   state_is_valid_field st lv ->
@@ -691,15 +692,15 @@ Proof.
   intros H_pre H_is_valid_field.
   induction a as [ | [hd_lv hd_v | hd_lv hd_type] tl].
   - destruct lv as [loc fl]. hauto b: on.
-  - admit.
   - destruct lv as [loc fl]. simpl in H_is_valid_field |- *.
     unfold to_shallow_assertion, satisfies in H_pre; simpl in H_pre.
     destruct (lval_equivb hd_lv (loc, fl)) eqn:H_lval_equivb.
     + assert (hd_lv = (loc, fl)) by (apply lval_equivb_eq; assumption); subst.
       hauto lq: on.
     + destruct H_pre. apply IHtl; assumption.
-(* Qed. *)
-Admitted.
+  (* TODO when type case is implemented *)
+  - sfirstorder.
+Qed.
 
 Lemma eval_write_add st a lv v st':
   is_valid_field a lv ->
@@ -762,20 +763,22 @@ Proof.
   intros H_pre H_exec_write.
   induction a as [ | hd tl]; intros.
   - eapply eval_write_add; eassumption.
-  - destruct hd as [hd_lv hd_v | hd_lv hd_type]; only 2 : admit.
-    simpl in H_no_nequiv_overlapping |- *. destruct (lval_equivb lv hd_lv) eqn:H_lval_equivb.
-    + eapply eval_write_add' with (st := st); only 2-4 : sfirstorder.
-      eapply is_valid_field_sound; eassumption.
-    + split.
-      * refine (exec_write_no_overlapping_unit _ _ _ _ _ _ _ _ H_exec_write); only 2 : sfirstorder.
-        hauto brefl: on use: lval_no_overlapping_symm unfold: andb, is_true.
-      * apply IHtl; only 4 : sfirstorder; only 1, 3: hauto b: on.
-        destruct lv as [loc fl].
-        simpl in H_is_valid_field.
-        replace (lval_equivb hd_lv (loc, fl)) with (false) in H_is_valid_field by (rewrite lval_equivb_symm; sfirstorder).
-        sfirstorder.
-(* Qed. *)
-Admitted.
+  - destruct hd as [hd_lv hd_v | hd_lv hd_type].
+    + simpl in H_no_nequiv_overlapping |- *. destruct (lval_equivb lv hd_lv) eqn:H_lval_equivb.
+      * eapply eval_write_add' with (st := st); only 2-4 : sfirstorder.
+        eapply is_valid_field_sound; eassumption.
+      * split.
+        ++ refine (exec_write_no_overlapping_unit _ _ _ _ _ _ _ _ H_exec_write); only 2 : sfirstorder.
+           hauto brefl: on use: lval_no_overlapping_symm unfold: andb, is_true.
+        ++ apply IHtl; only 4 : sfirstorder; only 1, 3: hauto b: on.
+           destruct lv as [loc fl].
+           simpl in H_is_valid_field.
+           replace (lval_equivb hd_lv (loc, fl)) with (false) in H_is_valid_field by (rewrite lval_equivb_symm; sfirstorder).
+           sfirstorder.
+    (* TODO when type case is implemented *)
+    + split; only 1 : constructor.
+      apply IHtl; only 4 : sfirstorder; hauto b: on.
+Qed.
 
 Lemma eval_read_sound : forall st a lv v,
   to_shallow_assertion a st ->
@@ -785,14 +788,15 @@ Proof.
   intros * H_pre H_eval_read.
   induction a as [ | hd tl].
   - inversion H_eval_read.
-  - destruct hd as [hd_lv hd_v | hd_lv hd_type]; only 2 : admit.
-    simpl in H_pre, H_eval_read.
-    destruct (lval_equivb hd_lv lv) eqn:H_lval_equivb.
-    + erewrite <- (lval_equivb_eq _ lv) by (apply H_lval_equivb).
-      sfirstorder.
-    + apply IHtl; sfirstorder.
-(* Qed. *)
-Admitted.
+  - destruct hd as [hd_lv hd_v | hd_lv hd_type].
+    + simpl in H_pre, H_eval_read.
+      destruct (lval_equivb hd_lv lv) eqn:H_lval_equivb.
+      * erewrite <- (lval_equivb_eq _ lv) by (apply H_lval_equivb).
+        sfirstorder.
+      * apply IHtl; sfirstorder.
+    (* TODO when type case is implemented *)
+    + sfirstorder.
+Qed.
 
 Fixpoint eval_expr_hook (a : assertion) (expr : Expression) : option Val :=
   match expr with
@@ -1182,11 +1186,8 @@ Proof.
         rewrite lval_to_semlval_snoc.
         unfold semlval_equivb; fold semlval_equivb.
         destruct name; hauto b: on.
-      * (* destruct name. change (String.eqb "next" str = true) in H11.
-        simpl in H1. rewrite eqb_sym, H11 in H1. discriminate. *)
-        admit.
-(* Qed. *)
-Admitted.
+      * discriminate.
+Qed.
 
 End AssertionLang.
 
