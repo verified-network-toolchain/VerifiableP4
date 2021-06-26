@@ -171,9 +171,9 @@ Inductive deep_hoare_stmt : path -> assertion -> Statement -> post_assertion -> 
       deep_hoare_stmt p pre stmt post.
 
 Inductive deep_hoare_block : path -> assertion -> Block -> post_assertion -> Prop :=
-  | deep_hoare_block_nil : forall p pre post,
+  | deep_hoare_block_nil : forall p pre post tags,
       implies pre (post_continue post) ->
-      deep_hoare_block p pre BlockNil post
+      deep_hoare_block p pre (BlockEmpty tags) post
   | deep_hoare_block_cons : forall p pre stmt mid block post,
       deep_hoare_stmt p pre stmt mid ->
       deep_hoare_block p mid block post ->
