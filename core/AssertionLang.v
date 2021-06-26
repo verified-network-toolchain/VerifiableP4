@@ -20,8 +20,11 @@ Notation P4Type := (@P4Type tags_t).
 Notation signal := (@signal tags_t).
 Notation Locator := (@Locator tags_t).
 Notation semlval_equivb := (@lval_equivb tags_t).
+Notation mem := (@Semantics.mem tags_t).
 
 Context `{@Target tags_t (@Expression tags_t)}.
+
+Variable this : path.
 
 Definition Field : Type := string.
 Definition Lval : Type := Locator * list Field.
@@ -31,8 +34,6 @@ Inductive assertion_unit :=
 | AType : Lval -> P4Type -> assertion_unit.
 
 Definition assertion := list assertion_unit.
-
-Variable this : path.
 
 Notation alist_get l s := (AList.get l (P4String.Build_t _ default s)).
 
@@ -51,13 +52,13 @@ Definition extract_option (ov : option Val) (f : Field) : option Val :=
   | None => None
   end.
 
-Definition state_eval_read (st : state) (lv : Lval) : option Val :=
+Definition mem_eval_read (m : mem) (lv : Lval) : option Val :=
   let (loc, fl) := lv in
-  fold_left extract_option fl (loc_to_val this loc st).
+  fold_left extract_option fl (PathMap.get (loc_to_path this loc) m).
 
-Lemma state_eval_read_snoc st loc fl f :
-  state_eval_read st (loc, fl ++ [f]) =
-    extract_option (state_eval_read st (loc, fl)) f .
+Lemma mem_eval_read_snoc m loc fl f :
+  mem_eval_read m (loc, fl ++ [f]) =
+    extract_option (mem_eval_read m (loc, fl)) f .
 Proof.
   simpl. rewrite fold_left_app. reflexivity.
 Qed.
@@ -74,31 +75,31 @@ Proof.
   induction l; auto.
 Qed.
 
-Definition state_is_valid_field (st : state) (lv : Lval) : bool :=
+Definition mem_is_valid_field (m : mem) (lv : Lval) : bool :=
   let (loc, fl) := lv in
-  isNil fl || isSome (state_eval_read st lv).
+  isNil fl || isSome (mem_eval_read m lv).
 
-Lemma state_is_valid_field_parent st loc fl1 f :
-  state_is_valid_field st (loc, fl1 ++ [f]) ->
-  state_is_valid_field st (loc, fl1).
+Lemma mem_is_valid_field_parent m loc fl1 f :
+  mem_is_valid_field m (loc, fl1 ++ [f]) ->
+  mem_is_valid_field m (loc, fl1).
 Proof.
-  unfold state_is_valid_field. rewrite state_eval_read_snoc.
-  destruct (state_eval_read st (loc, fl1)); hauto use: Reflect.orE, is_true_true unfold: isNil, is_true, app, extract_option, orb, isSome.
+  unfold mem_is_valid_field. rewrite mem_eval_read_snoc.
+  destruct (mem_eval_read m (loc, fl1)); hauto use: Reflect.orE, is_true_true unfold: isNil, is_true, app, extract_option, orb, isSome.
 Qed.
 
-Definition satisfies_unit (st : state) (a_unit : assertion_unit) : Prop :=
+Definition satisfies_unit (m : mem) (a_unit : assertion_unit) : Prop :=
   match a_unit with
   | AVal lv v =>
-      state_eval_read st lv = Some v
+      mem_eval_read m lv = Some v
   | AType lv typ =>
       True
   end.
 
-Definition satisfies (st : state) (a : assertion) : Prop :=
-  fold_right and True (map (satisfies_unit st) a).
+Definition satisfies (m : mem) (a : assertion) : Prop :=
+  fold_right and True (map (satisfies_unit m) a).
 
-Definition to_shallow_assertion (a : assertion) : state -> Prop :=
-  fun st => satisfies st a.
+Definition to_shallow_assertion (a : assertion) : mem -> Prop :=
+  fun m => satisfies m a.
 
 Definition loc_no_overlapping (loc1 : Locator) (loc2 : Locator) : bool :=
   match loc1, loc2 with
@@ -131,40 +132,42 @@ Proof.
   simpl. rewrite fold_left_app. reflexivity.
 Qed.
 
-Lemma state_eval_read_sound_1 : forall st lv v,
-  state_eval_read st lv = Some v ->
+Lemma mem_eval_read_sound_1 : forall st lv v,
+  mem_eval_read (fst st) lv = Some v ->
   exec_read this st (lval_to_semlval lv) v.
 Proof.
   destruct lv as [loc fl].
   rewrite <- (rev_involutive fl).
-  induction (rev fl) as [ | hd tl]; intros * H_state_eval_read.
-  - apply exec_read_name, H_state_eval_read.
-  - simpl rev in *. rewrite lval_to_semlval_snoc. rewrite state_eval_read_snoc in H_state_eval_read.
+  induction (rev fl) as [ | hd tl]; intros * H_mem_eval_read.
+  - apply exec_read_name, H_mem_eval_read.
+  - simpl rev in *. rewrite lval_to_semlval_snoc. rewrite mem_eval_read_snoc in H_mem_eval_read.
     apply exec_read_by_member.
-    destruct (state_eval_read st (loc, rev tl)) as [[] | ]; only 1-12, 15-20 : solve [inversion H_state_eval_read].
+    destruct (mem_eval_read (fst st) (loc, rev tl)) as [[] | ]; only 1-12, 15-20 : solve [inversion H_mem_eval_read].
     + eapply exec_read_member_struct; only 1 : (apply IHtl; reflexivity).
-      apply H_state_eval_read.
+      apply H_mem_eval_read.
     + eapply exec_read_member_header; only 1 : (apply IHtl; reflexivity).
-      destruct is_valid; only 2 : inversion H_state_eval_read.
-      apply read_header_field_intro, H_state_eval_read.
+      destruct is_valid; only 2 : inversion H_mem_eval_read.
+      apply read_header_field_intro, H_mem_eval_read.
 Qed.
 
-Lemma state_eval_read_sound : forall st lv v,
-  state_eval_read st lv = Some v ->
+Lemma mem_eval_read_sound : forall st lv v,
+  mem_eval_read (fst st) lv = Some v ->
   forall v', exec_read this st (lval_to_semlval lv) v' ->
     v' = v.
 Proof.
   destruct lv as [loc fl].
   rewrite <- (rev_involutive fl).
-  induction (rev fl) as [ | hd tl]; intros * H_state_eval_read * H_exec_read.
-  - inv H_exec_read. sfirstorder.
-  - simpl rev in *. rewrite lval_to_semlval_snoc in H_exec_read. rewrite state_eval_read_snoc in H_state_eval_read.
-    destruct (state_eval_read st (loc, rev tl)) as [fields | ]; only 2 : solve [inversion H_state_eval_read].
+  induction (rev fl) as [ | hd tl]; intros * H_mem_eval_read * H_exec_read.
+  - inv H_exec_read.
+    assert (Some v' = Some v) by (eapply eq_trans; only 2 : apply H_mem_eval_read; eauto).
+    sfirstorder.
+  - simpl rev in *. rewrite lval_to_semlval_snoc in H_exec_read. rewrite mem_eval_read_snoc in H_mem_eval_read.
+    destruct (mem_eval_read (fst st) (loc, rev tl)) as [fields | ]; only 2 : solve [inversion H_mem_eval_read].
     specialize (IHtl fields ltac:(reflexivity)).
-    destruct fields; only 1-12, 15-19 : solve [inversion H_state_eval_read]; simpl in H_state_eval_read.
+    destruct fields; only 1-12, 15-19 : solve [inversion H_mem_eval_read]; simpl in H_mem_eval_read.
     + inv H_exec_read. pinv @exec_read_member; specialize (IHtl _ H0); only 1, 3 : solve [inversion IHtl].
       scongruence.
-    + destruct is_valid; only 2 : inversion H_state_eval_read.
+    + destruct is_valid; only 2 : inversion H_mem_eval_read.
       inv H_exec_read. pinv @exec_read_member; specialize (IHtl _ H0); only 2, 3 : solve [inversion IHtl].
       destruct is_valid; only 2 : inversion IHtl.
       pinv @read_header_field.
@@ -329,16 +332,16 @@ Axiom locator_equivb_eq : forall (loc1 loc2 : Locator), locator_equivb loc1 loc2
 
 Axiom lval_equivb_eq : forall lv1 lv2, lval_equivb lv1 lv2 -> lv1 = lv2.
 
-Lemma implies_unit_sound st a a_unit :
-  to_shallow_assertion a st ->
+Lemma implies_unit_sound m a a_unit :
+  to_shallow_assertion a m ->
   implies_unit a a_unit ->
-  satisfies_unit st a_unit.
+  satisfies_unit m a_unit.
 Proof.
   intros H_pre H_implies_unit.
   induction a as [ | hd tl].
   - inversion H_implies_unit.
   - destruct (assretion_unit_equivb hd a_unit) eqn:H_assretion_unit_equivb.
-    + assert (satisfies_unit st hd) by (clear -H_pre; sfirstorder).
+    + assert (satisfies_unit m hd) by (clear -H_pre; sfirstorder).
       destruct hd as [lv1 v1 | lv1 v1]; destruct a_unit as [lv2 v2 | lv2 v2];
         only 2-4 : sfirstorder.
       simpl in H_assretion_unit_equivb.
@@ -350,10 +353,10 @@ Proof.
       * hauto.
 Qed.
 
-Lemma implies_sound st pre post :
-  to_shallow_assertion pre st ->
+Lemma implies_sound m pre post :
+  to_shallow_assertion pre m ->
   implies pre post ->
-  to_shallow_assertion post st.
+  to_shallow_assertion post m.
 Proof.
   intros H_pre H_implies.
   induction post as [ | hd tl].
@@ -440,47 +443,47 @@ Proof.
 Qed.
 
 Lemma exec_write_satisfies_unit st lv v st' :
-  state_is_valid_field st lv ->
+  mem_is_valid_field (fst st) lv ->
   exec_write this st (lval_to_semlval lv) v st' ->
-  satisfies_unit st' (AVal lv v).
+  satisfies_unit (fst st') (AVal lv v).
 Proof.
-  intros * H_state_is_valid_field H_exec_write.
-  revert H_state_is_valid_field H_exec_write.
+  intros * H_mem_is_valid_field H_exec_write.
+  revert H_mem_is_valid_field H_exec_write.
   destruct lv as [loc fl].
   rewrite <- (rev_involutive fl).
   generalize dependent v.
-  induction (rev fl) as [ | hd tl]; intros * H_state_is_valid_field H_exec_write.
+  induction (rev fl) as [ | hd tl]; intros * H_mem_is_valid_field H_exec_write.
   - inv H_exec_write. apply loc_to_val_update_val_by_loc_same, locator_equivb_refl.
   - simpl rev in H_exec_write; rewrite lval_to_semlval_snoc in H_exec_write.
     inv H_exec_write.
-    simpl rev in H_state_is_valid_field.
-    apply state_is_valid_field_parent in H_state_is_valid_field as H_state_is_valid_field'.
-    unfold state_is_valid_field in H_state_is_valid_field.
-    rewrite state_eval_read_snoc in H_state_is_valid_field.
+    simpl rev in H_mem_is_valid_field.
+    apply mem_is_valid_field_parent in H_mem_is_valid_field as H_mem_is_valid_field'.
+    unfold mem_is_valid_field in H_mem_is_valid_field.
+    rewrite mem_eval_read_snoc in H_mem_is_valid_field.
     assert (~~(isNil (rev tl ++ [hd]))) by (apply not_isNil_snoc).
-    assert (state_eval_read st (loc, rev tl) = Some v0) as H_state_eval_read. {
-      destruct (state_eval_read st (loc, rev tl)) eqn:H_state_eval_read; only 2 : hauto b: on.
-      f_equal. symmetry. eapply state_eval_read_sound; eassumption.
+    assert (mem_eval_read (fst st) (loc, rev tl) = Some v0) as H_mem_eval_read. {
+      destruct (mem_eval_read (fst st) (loc, rev tl)) eqn:H_mem_eval_read; only 2 : hauto b: on.
+      f_equal. symmetry. eapply mem_eval_read_sound; eassumption.
     }
     pinv @update_member.
     + pinv @write_header_field.
-      rewrite H_state_eval_read in H_state_is_valid_field.
+      rewrite H_mem_eval_read in H_mem_is_valid_field.
       destruct is_valid; only 2 : (hauto b: on).
       unfold satisfies_unit.
       eapply satisfies_unit_helper_header; only 1 : (apply IHtl; eassumption).
       eapply alist_get_set_same; eauto.
     + eapply satisfies_unit_helper_struct; only 1 : (apply IHtl; eassumption).
       eapply alist_get_set_same; eauto.
-    + rewrite H_state_eval_read in H_state_is_valid_field.
+    + rewrite H_mem_eval_read in H_mem_is_valid_field.
       hauto b: on.
 Qed.
 
 (* Things will be easier if we use the reversed order in exec_write. *)
 
-Lemma satisfies_unit_child st loc fl f fields v :
-  satisfies_unit st (AVal (loc, fl) fields) ->
+Lemma satisfies_unit_child m loc fl f fields v :
+  satisfies_unit m (AVal (loc, fl) fields) ->
   extract_option (Some fields) f = Some v ->
-  satisfies_unit st (AVal (loc, fl ++ [f]) v).
+  satisfies_unit m (AVal (loc, fl ++ [f]) v).
 Proof.
   simpl. rewrite fold_left_app. hauto lq: on.
 Qed.
@@ -491,26 +494,26 @@ Qed.
 
 Lemma exec_write_2 st loc fl f1 f2 v1 v2 st' :
   f1 <> f2 ->
-  satisfies_unit st (AVal (loc, fl ++ [f1]) v1) ->
+  satisfies_unit (fst st) (AVal (loc, fl ++ [f1]) v1) ->
   exec_write this st (lval_to_semlval (loc, fl ++ [f2])) v2 st' ->
-  satisfies_unit st' (AVal (loc, fl ++ [f1]) v1).
+  satisfies_unit (fst st') (AVal (loc, fl ++ [f1]) v1).
 Proof.
   intros H_neq H_pre H_exec_write.
   simpl rev in H_exec_write; rewrite lval_to_semlval_snoc in H_exec_write.
   inv H_exec_write.
-  eapply satisfies_unit_child with (st := st'). 1 : eapply exec_write_satisfies_unit with (st := st).
-  - eapply state_is_valid_field_parent with (f := f1). unfold satisfies_unit in H_pre.
+  eapply satisfies_unit_child with (m := (fst st')). 1 : eapply exec_write_satisfies_unit with (st := st).
+  - eapply mem_is_valid_field_parent with (f := f1). unfold satisfies_unit in H_pre.
     hauto b: on.
   - eassumption.
   - unfold satisfies_unit in H_pre.
-    rewrite state_eval_read_snoc in H_pre.
-    assert (state_eval_read st (loc, fl) = Some v) as H_state_eval_read. {
-      destruct (state_eval_read st (loc, fl)) eqn:H_state_eval_read;
-        (* conflict with H_state_is_valid_field' *)
+    rewrite mem_eval_read_snoc in H_pre.
+    assert (mem_eval_read (fst st) (loc, fl) = Some v) as H_mem_eval_read. {
+      destruct (mem_eval_read (fst st) (loc, fl)) eqn:H_mem_eval_read;
+        (* conflict with H_mem_is_valid_field' *)
         only 2 : hauto.
-      f_equal. symmetry. eapply state_eval_read_sound; eassumption.
+      f_equal. symmetry. eapply mem_eval_read_sound; eassumption.
     }
-    rewrite H_state_eval_read in H_pre.
+    rewrite H_mem_eval_read in H_pre.
     pinv @update_member.
     + destruct is_valid; only 2 : sfirstorder.
       pinv @write_header_field. simpl.
@@ -541,9 +544,9 @@ Lemma exec_write_no_overlapping_unit_case_1 st loc fl f1 f2 v1 v2 st' :
   let lv1 := (loc, fl ++ [f1]) in
   let lv2 := (loc, fl ++ [f2]) in
   lval_no_overlapping lv1 lv2 ->
-  satisfies_unit st (AVal lv1 v1) ->
+  satisfies_unit (fst st) (AVal lv1 v1) ->
   exec_write this st (lval_to_semlval lv2) v2 st' ->
-  satisfies_unit st' (AVal lv1 v1).
+  satisfies_unit (fst st') (AVal lv1 v1).
 Proof.
   intros * H_lval_no_overlapping. subst lv1 lv2. apply exec_write_2.
   unfold lval_no_overlapping in H_lval_no_overlapping.
@@ -557,14 +560,14 @@ Proof.
   - apply IHfl. simpl in H_field_list_no_overlapping. hauto use: eqb_eq unfold: negb, orb, Field, is_true.
 Qed.
 
-Lemma satisfies_unit_child_iff st loc fl f v :
-  satisfies_unit st (AVal (loc, fl ++ [f]) v) <->
+Lemma satisfies_unit_child_iff m loc fl f v :
+  satisfies_unit m (AVal (loc, fl ++ [f]) v) <->
   exists v',
-    satisfies_unit st (AVal (loc, fl) v') /\ extract v' f = Some v.
+    satisfies_unit m (AVal (loc, fl) v') /\ extract v' f = Some v.
 Proof.
   split.
   - simpl. rewrite fold_left_app. intros H_satisfies_unit.
-    destruct (fold_left extract_option fl (loc_to_val this loc st)) as [v' | ]; only 2 : sfirstorder.
+    destruct (fold_left extract_option fl (PathMap.get (loc_to_path this loc) m)) as [v' | ]; only 2 : sfirstorder.
     exists v'; sfirstorder.
   - simpl. rewrite fold_left_app. hauto lq: on.
 Qed.
@@ -574,9 +577,9 @@ Lemma exec_write_no_overlapping_unit_case_2 st loc fl1 f1 fl2 f2 v1 v2 st' :
   let lv2 := (loc, fl1 ++ [f2]) in
   f1 <> f2 ->
   (* lval_no_overlapping lv1 lv2 -> *)
-  satisfies_unit st (AVal lv1 v1) ->
+  satisfies_unit (fst st) (AVal lv1 v1) ->
   exec_write this st (lval_to_semlval lv2) v2 st' ->
-  satisfies_unit st' (AVal lv1 v1).
+  satisfies_unit (fst st') (AVal lv1 v1).
 Proof.
   intros * H_lval_no_overlapping H_pre H_exec_write; subst lv1.
   rewrite <- (rev_involutive fl2) in *.
@@ -613,9 +616,9 @@ Qed.
 
 Lemma exec_write_no_overlapping_unit st lv1 v1 lv2 v2 st' :
   lval_no_overlapping lv1 lv2 ->
-  satisfies_unit st (AVal lv1 v1) ->
+  satisfies_unit (fst st) (AVal lv1 v1) ->
   exec_write this st (lval_to_semlval lv2) v2 st' ->
-  satisfies_unit st' (AVal lv1 v1).
+  satisfies_unit (fst st') (AVal lv1 v1).
 Proof.
   intros * H_no_overlapping H_pre H_exec_write.
   destruct lv1 as [loc1 fl1]; destruct lv2 as [loc2 fl2].
@@ -626,7 +629,9 @@ Proof.
   - apply exec_write_3 with (fl1 := []) in H_exec_write.
     clear v2; destruct H_exec_write as [v2 H_exec_write].
     inv H_exec_write. simpl.
-    rewrite loc_to_val_update_val_by_loc_diff; only 2 : sfirstorder.
+    replace (PathMap.get (this ++ p1) (fst (update_val_by_loc this st (LInstance p2) v2)))
+      with (PathMap.get (this ++ p1) (fst st))
+      by (symmetry; apply loc_to_val_update_val_by_loc_diff; sfirstorder).
     apply H_pre.
   - assert (p1 = p2) by (apply path_equivb_eq; hauto unfold: loc_no_overlapping, negb, is_true); subst p2.
     assert (field_list_no_overlapping fl1 fl2) as H_field_list_no_overlapping by sfirstorder.
@@ -640,9 +645,9 @@ Qed.
 
 Lemma exec_write_no_overlapping st a lv v st' :
   no_overlapping lv a ->
-  to_shallow_assertion a st ->
+  to_shallow_assertion a (fst st) ->
   exec_write this st (lval_to_semlval lv) v st' ->
-  to_shallow_assertion a st'.
+  to_shallow_assertion a (fst st').
 Proof.
   intros H_no_overlapping H_pre H_exec.
   induction a as [ | hd tl]; intros.
@@ -661,9 +666,9 @@ Proof.
 Qed.
 
 Lemma exec_write_same st lv v st' :
-  state_is_valid_field st lv ->
+  mem_is_valid_field (fst st) lv ->
   exec_write this st (lval_to_semlval lv) v st' ->
-  satisfies_unit st' (AVal lv v).
+  satisfies_unit (fst st') (AVal lv v).
 Proof.
   apply exec_write_satisfies_unit.
 Qed.
@@ -684,10 +689,10 @@ Definition is_valid_field (a : assertion) (lv : Lval) : bool :=
   let (loc, fl) := lv in
   isNil fl || isSome (eval_read a lv).
 
-Definition is_valid_field_sound st a lv :
-  to_shallow_assertion a st ->
+Definition is_valid_field_sound m a lv :
+  to_shallow_assertion a m ->
   is_valid_field a lv ->
-  state_is_valid_field st lv.
+  mem_is_valid_field m lv.
 Proof.
   intros H_pre H_is_valid_field.
   induction a as [ | [hd_lv hd_v | hd_lv hd_type] tl].
@@ -705,9 +710,9 @@ Qed.
 Lemma eval_write_add st a lv v st':
   is_valid_field a lv ->
   no_overlapping lv a ->
-  to_shallow_assertion a st ->
+  to_shallow_assertion a (fst st) ->
   exec_write this st (lval_to_semlval lv) v st' ->
-  to_shallow_assertion ((AVal lv v) :: a) st'.
+  to_shallow_assertion ((AVal lv v) :: a) (fst st').
 Proof.
   intros H_is_valid_field H_no_overlapping H_pre H_exec_write.
   split.
@@ -717,11 +722,11 @@ Proof.
 Qed.
 
 Lemma eval_write_add' st a lv v st':
-  state_is_valid_field st lv ->
+  mem_is_valid_field (fst st) lv ->
   no_overlapping lv a ->
-  to_shallow_assertion a st ->
+  to_shallow_assertion a (fst st) ->
   exec_write this st (lval_to_semlval lv) v st' ->
-  to_shallow_assertion ((AVal lv v) :: a) st'.
+  to_shallow_assertion ((AVal lv v) :: a) (fst st').
 Proof.
   intros H_is_valid_field H_no_overlapping H_pre H_exec_write.
   split.
@@ -750,9 +755,9 @@ Definition is_writable_lval (lv : Lval) (a : assertion) : bool :=
 Lemma eval_write_sound : forall st a lv v st',
   wellformed a ->
   is_writable_lval lv a ->
-  to_shallow_assertion a st ->
+  to_shallow_assertion a (fst st) ->
   exec_write this st (lval_to_semlval lv) v st' ->
-  to_shallow_assertion (eval_write a lv v) st'.
+  to_shallow_assertion (eval_write a lv v) (fst st').
 Proof.
   intros * H_wellformed H_is_writable_lval.
   unfold is_writable_lval in H_is_writable_lval.
@@ -783,7 +788,7 @@ Qed.
 Lemma eval_read_sound : forall st a lv v,
   to_shallow_assertion a st ->
   eval_read a lv = Some v ->
-  state_eval_read st lv = Some v.
+  mem_eval_read st lv = Some v.
 Proof.
   intros * H_pre H_eval_read.
   induction a as [ | hd tl].
@@ -841,7 +846,7 @@ Qed. *)
 
 Definition eval_expr_hook_sound_1_statement ge st a expr v :=
   wellformed a ->
-  to_shallow_assertion a st ->
+  to_shallow_assertion a (fst st) ->
   eval_expr_hook a expr = Some v ->
   exec_expr ge this st expr v.
 
@@ -867,7 +872,7 @@ Qed.
 
 Lemma eval_expr_sound_1 : forall ge st a expr v,
   wellformed a ->
-  to_shallow_assertion a st ->
+  to_shallow_assertion a (fst st) ->
   eval_expr ge a expr = Some v ->
   exec_expr ge this st expr v.
 Proof.
@@ -878,7 +883,7 @@ Qed.
 
 Definition eval_expr_hook_sound_statement ge st a expr v :=
   wellformed a ->
-  to_shallow_assertion a st ->
+  to_shallow_assertion a (fst st) ->
   eval_expr_hook a expr = Some v ->
   forall v', exec_expr ge this st expr v' ->
     v' = v.
@@ -894,7 +899,9 @@ Proof.
     destruct expr; inversion H_eval_expr_hook.
     + eapply eval_read_sound in H_eval_expr_hook; only 2 : eassumption.
       simpl in H_eval_expr_hook.
-      inversion 1; subst. congruence.
+      inversion 1; subst.
+      assert (Some v' = Some v) by (eapply eq_trans; only 2 : apply H_eval_expr_hook; eauto).
+      congruence.
     + destruct (eval_expr_hook a expr) as [[] | ] eqn:H_eval_expr_hook'; inversion H1.
       * apply eval_expr_hook_sound with (ge := ge) (st := st) in H_eval_expr_hook'; only 2, 3 : assumption.
         inversion 1; subst;
@@ -922,7 +929,7 @@ Qed.
 
 Lemma eval_expr_sound : forall ge st a expr v,
   wellformed a ->
-  to_shallow_assertion a st ->
+  to_shallow_assertion a (fst st) ->
   eval_expr ge a expr = Some v ->
   forall v', exec_expr ge this st expr v'->
     v' = v.
@@ -932,17 +939,17 @@ Proof.
   intros; eapply eval_expr_hook_sound; eassumption.
 Qed.
 
-Fixpoint sem_eval_read (st : state) (lv : SemLval) : option Val :=
+Fixpoint sem_eval_read (m : mem) (lv : SemLval) : option Val :=
   match lv with
   | MkValueLvalue (ValLeftName _ loc) _ =>
-      loc_to_val this loc st
+      PathMap.get (loc_to_path this loc) m
   | MkValueLvalue (ValLeftMember lv member) _ =>
-      extract_option (sem_eval_read st lv) (P4String.str member)
+      extract_option (sem_eval_read m lv) (P4String.str member)
   | _ => None
   end.
 
 Definition sem_eval_read_sound_1_statement st lv v :=
-  sem_eval_read st lv = Some v ->
+  sem_eval_read (fst st) lv = Some v ->
   exec_read this st lv v.
 
 Lemma sem_eval_read_sound_1 : forall st lv v,
@@ -956,7 +963,7 @@ Proof.
     destruct lv; intros * H_sem_eval_read; only 3, 4 : solve [inversion H_sem_eval_read].
     + apply exec_read_name, H_sem_eval_read.
     + simpl in H_sem_eval_read.
-      destruct (sem_eval_read st expr) as [fields | ] eqn:H_sem_eval_read'; only 2 : solve [inversion H_sem_eval_read].
+      destruct (sem_eval_read (fst st) expr) as [fields | ] eqn:H_sem_eval_read'; only 2 : solve [inversion H_sem_eval_read].
       apply exec_read_by_member.
       specialize (IH st expr fields H_sem_eval_read').
       destruct fields; only 1-12, 15-19 : solve [inversion H_sem_eval_read]; simpl in H_sem_eval_read.
@@ -973,7 +980,7 @@ Proof.
 Qed.
 
 Definition sem_eval_read_sound_statement st lv v :=
-  sem_eval_read st lv = Some v ->
+  sem_eval_read (fst st) lv = Some v ->
   forall v', exec_read this st lv v' ->
     v' = v.
 
@@ -988,10 +995,11 @@ Proof.
     destruct lv; intros * H_sem_eval_read; only 3, 4 : solve [inversion H_sem_eval_read].
     + intros * H_exec_read.
       inv H_exec_read.
-      simpl in H_sem_eval_read. congruence.
+      assert (Some v' = Some v) by (eapply eq_trans; only 2 : apply H_sem_eval_read; eauto).
+      congruence.
     + intros * H_exec_read.
       simpl in H_sem_eval_read.
-      destruct (sem_eval_read st expr) as [fields | ] eqn:H_sem_eval_read'; only 2 : solve [inversion H_sem_eval_read].
+      destruct (sem_eval_read (fst st) expr) as [fields | ] eqn:H_sem_eval_read'; only 2 : solve [inversion H_sem_eval_read].
       specialize (IH st expr fields H_sem_eval_read').
       destruct fields; only 1-12, 15-19 : solve [inversion H_sem_eval_read]; simpl in H_sem_eval_read.
       * inv H_exec_read. pinv @exec_read_member; specialize (IH _ H0); only 1, 3 : solve [inversion IH].
@@ -1007,24 +1015,28 @@ Proof.
         scongruence.
 Qed.
 
-Definition sem_is_valid_field (st : state) (lv : SemLval) : bool :=
+Definition sem_is_valid_field (m : mem) (lv : SemLval) : bool :=
   match lv with
   | MkValueLvalue (ValLeftName _ loc) _ => true
-  | _ => sem_eval_read st lv
+  | _ => sem_eval_read m lv
   end.
+
+Axiom get_loc_to_path_congruent : forall (m : mem) loc1 loc2,
+  locator_equivb loc1 loc2 ->
+  PathMap.get (loc_to_path this loc1) m = PathMap.get (loc_to_path this loc2) m.
 
 Axiom loc_to_val_congruent : forall st loc1 loc2,
   locator_equivb loc1 loc2 ->
   loc_to_val this loc1 st = loc_to_val this loc2 st.
 
-Definition sem_eval_read_congruent_statement st lv1 lv2 :=
+Definition sem_eval_read_congruent_statement m lv1 lv2 :=
   semlval_equivb lv1 lv2 ->
-  sem_eval_read st lv1 = sem_eval_read st lv2.
+  sem_eval_read m lv1 = sem_eval_read m lv2.
 
-Lemma sem_eval_read_congruent : forall st lv1 lv2,
-  sem_eval_read_congruent_statement st lv1 lv2
-with sem_eval_read_congruent_preT : forall st lv1 typ1 lv2,
-  sem_eval_read_congruent_statement st (MkValueLvalue lv1 typ1) lv2.
+Lemma sem_eval_read_congruent : forall m lv1 lv2,
+  sem_eval_read_congruent_statement m lv1 lv2
+with sem_eval_read_congruent_preT : forall m lv1 typ1 lv2,
+  sem_eval_read_congruent_statement m (MkValueLvalue lv1 typ1) lv2.
 Proof.
   - destruct lv1; apply sem_eval_read_congruent_preT.
   - unfold sem_eval_read_congruent_statement.
@@ -1032,7 +1044,7 @@ Proof.
     intros * H_semlval_equivb.
     destruct lv1; destruct lv2 as [[] ?]; only 2-5, 7-10, 12-15 : solve [inversion H_semlval_equivb].
     + simpl in H_semlval_equivb |- *.
-      apply loc_to_val_congruent; assumption.
+      apply get_loc_to_path_congruent; assumption.
     + simpl in H_semlval_equivb |- *.
       erewrite IH with (lv2 := expr0); only 2 : hauto b: on.
       f_equal.
@@ -1044,38 +1056,38 @@ Proof.
     + constructor.
 Qed.
 
-(* Lemma state_eval_read_sound_2 : forall st lv v,
-  state_eval_read st lv = Some v ->
+(* Lemma mem_eval_read_sound_2 : forall st lv v,
+  mem_eval_read st lv = Some v ->
   sem_eval_read st (lval_to_semlval lv) = Some v.
 Proof.
-  (* intros * H_state_eval_read.
+  (* intros * H_mem_eval_read.
   destruct lv as [loc fl].
   induction fl as [ | hd tl].
-  - exact H_state_eval_read.
+  - exact H_mem_eval_read.
   - simpl. apply IHtl. *)
 Admitted. *)
 
-Lemma state_is_valid_field_sound st lv :
-  state_is_valid_field st lv ->
-  sem_is_valid_field st (lval_to_semlval lv).
+Lemma mem_is_valid_field_sound m lv :
+  mem_is_valid_field m lv ->
+  sem_is_valid_field m (lval_to_semlval lv).
 Admitted.
 
-(* Definition sem_is_valid_field (st : state) (lv : SemLval) : bool :=
+(* Definition sem_is_valid_field (m : mem) (lv : SemLval) : bool :=
   match lv with
   | MkValueLvalue (ValLeftName _ loc) _ => true
-  | _ => sem_eval_read st lv
+  | _ => sem_eval_read m lv
   end. *)
 
 Lemma exec_read_congruent : forall st lv1 lv2 v,
-  sem_is_valid_field st lv2 ->
+  sem_is_valid_field (fst st) lv2 ->
   semlval_equivb lv1 lv2 ->
   exec_read this st lv1 v ->
   exec_read this st lv2 v.
 Proof.
   intros * H_sem_is_valid_field H_semlval_equivb H_exec_read.
-  destruct (sem_eval_read st lv2) eqn:?.
-  - assert (sem_eval_read st lv1 = sem_eval_read st lv2) by (apply sem_eval_read_congruent; assumption).
-    assert (sem_eval_read st lv1 = Some v0) by congruence.
+  destruct (sem_eval_read (fst st) lv2) eqn:?.
+  - assert (sem_eval_read (fst st) lv1 = sem_eval_read (fst st) lv2) by (apply sem_eval_read_congruent; assumption).
+    assert (sem_eval_read (fst st) lv1 = Some v0) by congruence.
     epose proof (sem_eval_read_sound _ _ _ ltac:(eassumption) _ H_exec_read).
     apply sem_eval_read_sound_1. congruence.
   - unfold sem_is_valid_field in H_sem_is_valid_field.
@@ -1112,7 +1124,7 @@ Axiom update_member_congruent : forall fields (f1 f2 : P4String) v fields',
   update_member fields f2 v fields'.
 
 Lemma exec_write_congruent : forall st lv1 lv2 v st',
-  sem_is_valid_field st lv2 ->
+  sem_is_valid_field (fst st) lv2 ->
   semlval_equivb lv1 lv2 ->
   exec_write this st lv1 v st' ->
   exec_write this st lv2 v st'.
