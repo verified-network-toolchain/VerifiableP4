@@ -251,7 +251,7 @@ Proof.
   intros H_val_eqb.
   destruct v1; destruct v2; simpl in H_val_eqb; try discriminate.
   - constructor.
-  - sfirstorder use: Bool.eqb_prop unfold: is_true.
+  - clear H. sfirstorder use: Bool.eqb_prop unfold: is_true.
   - hauto b: on.
   - hauto b: on.
   - hauto b: on.
@@ -337,6 +337,7 @@ Lemma implies_unit_sound m a a_unit :
   implies_unit a a_unit ->
   satisfies_unit m a_unit.
 Proof.
+  clear H.
   intros H_pre H_implies_unit.
   induction a as [ | hd tl].
   - inversion H_implies_unit.
