@@ -201,14 +201,14 @@ Definition post2 : ArgAssertion (Z * Val * Val * Val * BitArray.t) :=
     /\ meta = ValBaseStruct meta_fields 
     /\ meta' = ValBaseStruct meta_fields'
     /\ field_contains meta' !"counter" (ValBaseBit (Z.to_nat (Z.pos WIDTH)) (Znth (if fbit =? 1 then 1 else 0) ast))
-    /\ Ops.eval_binary_op_eq (ValBaseStruct (AList.filter meta_fields (P4String.equivb !"counter" )))
-                             (ValBaseStruct (AList.filter meta_fields' (P4String.equivb !"counter" )))
+    /\ Ops.eval_binary_op_eq (ValBaseStruct (AList.filter meta_fields (P4String.nequivb !"counter" )))
+                             (ValBaseStruct (AList.filter meta_fields' (P4String.nequivb !"counter" )))
        = Some true
     /\ standard_metadata = ValBaseStruct std_meta_fields 
     /\ standard_metadata' = ValBaseStruct std_meta_fields'
     /\ field_contains standard_metadata' !"egress_spec" (ValBaseBit 9%nat eport)
-    /\ Ops.eval_binary_op_eq (ValBaseStruct (AList.filter std_meta_fields (P4String.equivb !"egress_spec" )))
-                             (ValBaseStruct (AList.filter std_meta_fields' (P4String.equivb !"egress_spec" )))
+    /\ Ops.eval_binary_op_eq (ValBaseStruct (AList.filter std_meta_fields (P4String.nequivb !"egress_spec" )))
+                             (ValBaseStruct (AList.filter std_meta_fields' (P4String.nequivb !"egress_spec" )))
        = Some true
     /\ ast_match st ast'
   end.
@@ -245,6 +245,7 @@ Proof.
   destruct H as [A [[hdr_fields B] [[meta_fields C] 
                 [[std_meta_fields D] [E [[counter F] [[eport G] [content [J K]]]]]]]]].
   unfold default, Inhabitant_Info in *.
+  (* Opaque Ops.eval_binary_op_eq. *)
   simpl in *.
   rewrite A in H4.
   inv H4. inv H5. inv H6. 
