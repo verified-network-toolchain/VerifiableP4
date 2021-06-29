@@ -4,6 +4,7 @@ Require Import Poulet4.Semantics.
 Require Import ProD3.core.Coqlib.
 Require Import ProD3.core.Hoare.
 Require Import ProD3.core.AssertionLang.
+Require Import ProD3.core.AssertionLangSoundness.
 Require Import Poulet4.V1Model.
 Require Import ProD3.core.V1ModelLang.
 Require Import Hammer.Tactics.Tactics.
@@ -72,7 +73,7 @@ Proof.
   intros * H_implies. destruct pre; destruct post.
   apply Reflect.andE in H_implies. destruct H_implies.
   intros [] []. split.
-  - eapply AssertionLang.implies_sound; eassumption.
+  - eapply AssertionLangSoundness.implies_sound; eassumption.
   - eapply ext_implies_sound; eassumption.
 Qed.
 

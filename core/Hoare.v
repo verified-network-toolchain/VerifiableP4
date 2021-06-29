@@ -225,37 +225,17 @@ Inductive deep_hoare_write_options : path -> assertion -> list (option Lval) -> 
       deep_hoare_write_options p pre (lv :: lvs) (val :: vals) post.
 
 Inductive deep_hoare_call : path -> assertion -> Expression -> ret_assertion -> Prop :=
-  | deep_hoare_call_func : forall p pre tags func targs args typ dir argvals obj_path fd outvals vret mid post,
+  | deep_hoare_call_func : forall p (pre : assertion) tags func targs args typ dir lvs argvals obj_path fd mid post,
       let dirs := get_arg_directions func in
-      deep_hoare_args p pre args dirs argvals ->
+      (forall st argvals sig,
+          pre st -> exec_args ge p st args dirs argvals sig ->
+          extract_outlvals dirs argvals = lvs /\ sig = SContinue) ->
+      let pre1 inargs st :=
+        pre st /\ exists argvals, exec_args ge p st args dirs argvals SContinue /\ extract_invals argvals = inargs in
       lookup_func ge p inst_m func = Some (obj_path, fd) ->
-      deep_hoare_func obj_path
-          (fun invals' st => invals' = (extract_invals argvals) /\ pre st)
-          fd targs
-          (fun outvals' vret' st => outvals' = outvals /\ vret' = vret /\ mid st) ->
-      deep_hoare_write_options p mid (extract_outlvals dirs argvals) outvals post ->
-      deep_hoare_call p pre (MkExpression tags (ExpFunctionCall func targs args) typ dir)
-          (fun vret' st => vret' = vret /\ post st).
-
-
-(****************************** Soundness ***************************)
-(* TODO prove them *)
-
-Axiom deep_hoare_stmt_sound : forall p pre stmt post,
-  deep_hoare_stmt p pre stmt post ->
-  hoare_stmt p pre stmt post.
-
-Axiom deep_hoare_block_sound : forall p pre block post,
-  deep_hoare_block p pre block post ->
-  hoare_block p pre block post.
-
-Axiom deep_hoare_func_sound : forall p pre fd targs post,
-  deep_hoare_func p pre fd targs post ->
-  hoare_func p pre fd targs post.
-
-Axiom deep_hoare_call_sound : forall p pre expr post,
-  deep_hoare_call p pre expr post ->
-  hoare_call p pre expr post.
+      deep_hoare_func obj_path pre1 fd targs mid ->
+      (forall outargs vret, deep_hoare_write_options p (mid outargs vret) (extract_outlvals dirs argvals) outargs (post vret)) ->
+      deep_hoare_call p pre (MkExpression tags (ExpFunctionCall func targs args) typ dir) post.
 
 End DeepEmbeddedHoare.
 
