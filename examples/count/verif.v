@@ -160,8 +160,8 @@ Definition post (* (fbit : Z) (hdr meta standard_metadata : Val) *) (out_args : 
        = Some true
     /\ ast_match st ast'.
 
-Lemma body_counter : hoare_func ge inst_m this pre myFundef nil post.
-Abort.
+(* Lemma body_counter : hoare_func ge inst_m this pre myFundef nil post.
+Abort. *)
 
 End Experiment1.
 
@@ -171,11 +171,16 @@ Section Experiment2.
 (*Assumption argsassertion:= (in_args : list Val) (st : state)*)
 Definition ArgAssertion (T:Type) := forall (t:T), arg_assertion.
 
+Definition ArgRetAssertion (T:Type) := forall (t:T), arg_ret_assertion.
+
 Record FunSpec := {
   WITHtype : Type;
   preCond: ArgAssertion WITHtype ;
-  postCond: ArgAssertion WITHtype ;
+  postCond: ArgRetAssertion WITHtype ;
 }.
+
+Definition withType3 := ((Z * (P4String.AList Info Val) * (P4String.AList Info Val) 
+                           * (P4String.AList Info Val) * BitArray.t)%type).
 
 (* As general as possible *)
 Definition pre2 : ArgAssertion (Z * Val * Val * Val * BitArray.t) :=
@@ -191,9 +196,22 @@ Definition pre2 : ArgAssertion (Z * Val * Val * Val * BitArray.t) :=
    /\ ast_match st ast
  end.
 
+Definition pre3 : ArgAssertion withType3 :=
+ fun t in_args st =>
+   match t with (fbit, hdr_fields, meta_fields, std_meta_fields, ast) =>
+    in_args = [ValBaseStruct [(!"myHeader", ValBaseHeader hdr_fields true)];
+               ValBaseStruct meta_fields;
+               ValBaseStruct std_meta_fields]
+   /\ field_contains (ValBaseHeader hdr_fields true) !"firstBit" (ValBaseBit 1%nat fbit)
+   /\ (exists counter, field_contains (ValBaseStruct meta_fields) !"counter" (ValBaseBit (Z.to_nat (Z.pos WIDTH)) counter))
+   /\ (exists eport, field_contains (ValBaseStruct std_meta_fields) !"egress_spec" (ValBaseBit 9%nat eport))
+   /\ ast_match st ast
+ end.
+
+
 (* As precise as possible *)
-Definition post2 : ArgAssertion (Z * Val * Val * Val * BitArray.t) :=
-  fun t out_args st =>
+Definition post2 : ArgRetAssertion (Z * Val * Val * Val * BitArray.t) :=
+  fun t out_args retv st =>
   match t with (fbit, hdr, meta, standard_metadata, ast) =>
   let (ast', eport) := process WIDTH fbit ast in
   exists standard_metadata' std_meta_fields std_meta_fields' meta_fields meta_fields' meta',
@@ -201,22 +219,45 @@ Definition post2 : ArgAssertion (Z * Val * Val * Val * BitArray.t) :=
     /\ meta = ValBaseStruct meta_fields 
     /\ meta' = ValBaseStruct meta_fields'
     /\ field_contains meta' !"counter" (ValBaseBit (Z.to_nat (Z.pos WIDTH)) (Znth (if fbit =? 1 then 1 else 0) ast))
-    /\ Ops.eval_binary_op_eq (ValBaseStruct (AList.filter meta_fields (P4String.nequivb !"counter" )))
-                             (ValBaseStruct (AList.filter meta_fields' (P4String.nequivb !"counter" )))
-       = Some true
+    /\ (AList.filter meta_fields (P4String.nequivb !"counter" )) = 
+       (AList.filter meta_fields' (P4String.nequivb !"counter" ))
     /\ standard_metadata = ValBaseStruct std_meta_fields 
     /\ standard_metadata' = ValBaseStruct std_meta_fields'
     /\ field_contains standard_metadata' !"egress_spec" (ValBaseBit 9%nat eport)
-    /\ Ops.eval_binary_op_eq (ValBaseStruct (AList.filter std_meta_fields (P4String.nequivb !"egress_spec" )))
-                             (ValBaseStruct (AList.filter std_meta_fields' (P4String.nequivb !"egress_spec" )))
-       = Some true
+    /\ (AList.filter std_meta_fields (P4String.nequivb !"egress_spec" )) =
+       (AList.filter std_meta_fields' (P4String.nequivb !"egress_spec" ))
+    /\ ast_match st ast'
+    /\ retv = ValBaseNull
+  end.
+
+
+Definition post3_prop meta_fields meta_fields' std_meta_fields std_meta_fields' counter_val eport_val ret_val:=
+  field_contains (ValBaseStruct meta_fields') !"counter" counter_val
+  /\ (AList.filter meta_fields (P4String.nequivb !"counter" )) = 
+     (AList.filter meta_fields' (P4String.nequivb !"counter" ))
+  /\ field_contains (ValBaseStruct std_meta_fields') !"egress_spec" (ValBaseBit 9%nat eport_val)
+  /\ (AList.filter std_meta_fields (P4String.nequivb !"egress_spec" )) =
+     (AList.filter std_meta_fields' (P4String.nequivb !"egress_spec" ))
+  /\ ret_val = @ValBaseNull Info.
+
+(* As precise as possible *)
+Definition post3 : ArgRetAssertion withType3 :=
+  fun t out_args retv st =>
+  match t with (fbit, hdr_fields, meta_fields, std_meta_fields, ast) =>
+  let (ast', eport) := process WIDTH fbit ast in
+  exists std_meta_fields' meta_fields',
+  out_args = [ValBaseStruct [(!"myHeader", ValBaseHeader hdr_fields true)];
+              ValBaseStruct meta_fields';
+              ValBaseStruct std_meta_fields']
+    /\ post3_prop meta_fields meta_fields' std_meta_fields std_meta_fields' 
+              (ValBaseBit (Z.to_nat (Z.pos WIDTH)) (Znth (if fbit =? 1 then 1 else 0) ast))
+              eport retv
     /\ ast_match st ast'
   end.
 
-Definition countFunspec : FunSpec := {| WITHtype := (Z * Val * Val * Val * BitArray.t)%type;
-                                       preCond := pre2;
-                                       postCond := post2 |}.
-
+Definition countFunspec : FunSpec := {| WITHtype := withType3;
+                                       preCond := pre3;
+                                       postCond := post3 |}.
 
 Definition statement := Eval compute in
   match myFundef with
@@ -228,22 +269,28 @@ Ltac inv H := inversion H; subst; clear H.
 Transparent IdentMap.empty IdentMap.set PathMap.empty PathMap.set PathMap.sets.
 Set Printing Notations.
 
+Require Import Coq.Classes.Morphisms.
+
+Lemma nequivb_proper: forall p4str, Morphisms.Proper (Morphisms.respectful (@P4String.equiv Info) eq) (nequivb p4str).
+Proof.
+  repeat intro. unfold nequivb. unfold equiv in H. rewrite H. now simpl.
+Qed.
+
 Lemma body_counter : forall t : WITHtype countFunspec,
      hoare_func ge inst_m this (preCond countFunspec t) myFundef nil (postCond countFunspec t).
 Proof.
   intros t.
   unfold countFunspec in t.
   simpl in t.
-  destruct t as [[[[fbit hdr] meta] standard_metadata] ast].
+  destruct t as [[[[fbit hdr_fields] meta_fields] std_meta_fields] ast].
   simpl.
-  unfold pre2.
+  unfold pre3.
   unfold hoare_func.
   intros.
   destruct st, st'.
   (* +[H16] exec_func on ingress.apply() *)
   inv H0.
-  destruct H as [A [[hdr_fields B] [[meta_fields C] 
-                [[std_meta_fields D] [E [[counter F] [[eport G] [content [J K]]]]]]]]].
+  destruct H as [A [B [[counter C] [[eport D] [content [E F]]]]]].
   unfold default, Inhabitant_Info in *.
   (* Opaque Ops.eval_binary_op_eq. *)
   simpl in *.
@@ -253,7 +300,7 @@ Proof.
   inv H10. inv H4. inv H11. inv H9. inv H8.
   inv H9. inv H8. inv H14. inv H0.
   inv H11. inv H4.
-  rewrite E in H.
+  rewrite B in H.
   inv H. inv H10. inv H8. inv H9. inv H11.
   inversion H13. clear H13.
   destruct b.
@@ -276,12 +323,12 @@ Proof.
     inv H12. inv H14. inv H15.
     inv H13. inv H17. inv H19.
     inv H14. inv H.
-    rewrite J in H2. inv H2. clear H4.
+    rewrite E in H2. inv H2. clear H4.
     (* -[H21] *)
     inv H21. inv H8. inv H3. inv H5. inv H6.
     inv H12. apply AList.get_some_set with 
-              (v2:=(ValBaseBit 4 (Znth (BitArith.mod_bound 32 1) ast))) in F.
-    rewrite F in H1. inv H1.
+              (v2:=(ValBaseBit 4 (Znth (BitArith.mod_bound 32 1) ast))) in C.
+    rewrite C in H1. inv H1.
     inv H13. inv H11.
     (* -[H9] *)
     (* +[H11]: exec_block *)
@@ -293,7 +340,7 @@ Proof.
     inv H14. inv H12. rewrite AList.set_some_get in H1.
     inv H1. inv H15. inv H9. inv H12. inv H14. inv H22.
     inv H13. inv H17. inv H19. inv H14.
-    inv H. rewrite J in H4. inv H4. clear H8. clear H9.
+    inv H. rewrite E in H4. inv H4. clear H8. clear H9.
     (* -[H21] *)
     inv H21.
     (* -[H11] *)
@@ -303,8 +350,8 @@ Proof.
     inv H13. inv H11. inv H14. inv H12.
     inv H13. inv H15. inv H11. inv H4.
     inv H6. inv H8. apply AList.get_some_set with 
-                  (v2:=(ValBaseBit 9 (BitArith.mod_bound 9 48))) in G.
-    rewrite G in H1. inv H1.
+                  (v2:=(ValBaseBit 9 (BitArith.mod_bound 9 48))) in D.
+    rewrite D in H1. inv H1.
     (* -[H9] *)
     inv H9.
     (* -[H20] *)
@@ -318,19 +365,18 @@ Proof.
     (* -[H16] *)
     inv H16. clear dirs. clear dirs0. clear dirs1.
     simpl.
-    split. reflexivity.
     unfold process.
     apply Z.eqb_eq in H0.
-    subst. simpl. do 6 eexists.
-    split. f_equal. f_equal. 
-    split. reflexivity.
-    split. reflexivity.
+    subst. simpl. do 2 eexists.
+    split. f_equal.
+    split. unfold post3_prop.
     split. apply AList.set_some_get.
-    split. admit.
-    split. reflexivity.
-    split. reflexivity.
+    split. symmetry. apply AList.filter_set_some_false. apply nequivb_proper.
+    reflexivity. 
     split. apply AList.set_some_get.
-    split. admit.
+    split. symmetry. apply AList.filter_set_some_false. apply nequivb_proper.
+    reflexivity.
+    reflexivity.
     unfold ast_match.
     eexists. simpl.
     split. 2: reflexivity.
@@ -352,12 +398,12 @@ Proof.
     inv H12. inv H14. inv H15.
     inv H13. inv H17. inv H19.
     inv H14. inv H.
-    rewrite J in H2. inv H2. clear H4.
+    rewrite E in H2. inv H2. clear H4.
     (* -[H21] *)
     inv H21. inv H8. inv H3. inv H5. inv H6.
     inv H12. apply AList.get_some_set with 
-              (v2:=(ValBaseBit 4 (Znth (BitArith.mod_bound 32 0) ast))) in F.
-    rewrite F in H1. inv H1.
+              (v2:=(ValBaseBit 4 (Znth (BitArith.mod_bound 32 0) ast))) in C.
+    rewrite C in H1. inv H1.
     inv H13. inv H11.
     (* -[H9] *)
     (* +[H11]: exec_block *)
@@ -369,7 +415,7 @@ Proof.
     inv H14. inv H12. rewrite AList.set_some_get in H1.
     inv H1. inv H15. inv H9. inv H12. inv H14. inv H22.
     inv H13. inv H17. inv H19. inv H14.
-    inv H. rewrite J in H4. inv H4. clear H8. clear H9.
+    inv H. rewrite E in H4. inv H4. clear H8. clear H9.
     (* -[H21] *)
     inv H21.
     (* -[H11] *)
@@ -381,8 +427,8 @@ Proof.
     inv H15. inv H4. inv H6.
     inv H8.
     apply AList.get_some_set with 
-          (v2:=(ValBaseBit 9 (BitArith.mod_bound 9 0))) in G.
-    rewrite G in H1. inv H1. inv H11.
+          (v2:=(ValBaseBit 9 (BitArith.mod_bound 9 0))) in D.
+    rewrite D in H1. inv H1. inv H11.
     (* -[H9] *)
     inv H9.
     (* -[H20] *)
@@ -396,26 +442,25 @@ Proof.
     (* -[H16] *)
     inv H16. clear dirs. clear dirs0. clear dirs1.
     simpl.
-    split. reflexivity.
     unfold process.
     assert (BitArith.mod_bound 1 1 = 1). { reflexivity. }
     rewrite H in H0.
-    rewrite H0. do 6 eexists.
-    split. f_equal. f_equal. 
-    split. reflexivity.
-    split. reflexivity.
-    split. simpl. apply AList.set_some_get.
-    split. admit.
-    split. reflexivity.
-    split. reflexivity.
+    rewrite H0. do 2 eexists.
+    split. f_equal.
+    split. unfold post3_prop.
     split. apply AList.set_some_get.
-    split. admit.
+    split. symmetry. apply AList.filter_set_some_false. apply nequivb_proper.
+    reflexivity. 
+    split. apply AList.set_some_get.
+    split. symmetry. apply AList.filter_set_some_false. apply nequivb_proper.
+    reflexivity.
+    reflexivity.
     unfold ast_match.
     eexists. simpl.
     split. 2: reflexivity.
     unfold PathMap.get, PathMap.set, FuncAsMap.get, FuncAsMap.set.
     simpl. unfold BitArray.incr. reflexivity.
-Admitted.
+Qed.
 
 End Experiment2.
 
