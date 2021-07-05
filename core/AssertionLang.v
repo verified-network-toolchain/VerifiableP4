@@ -68,7 +68,8 @@ Definition satisfies_unit (m : mem) (a_unit : assertion_unit) : Prop :=
   | AVal lv v =>
       mem_eval_read m lv = Some v
   | AType lv typ =>
-      True
+      (* match mem_eval_read m lv with Some v => v has type (typ) | None => False *)
+      True (* placeholder *)
   end.
 
 Definition satisfies (m : mem) (a : assertion) : Prop :=

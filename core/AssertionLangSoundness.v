@@ -24,6 +24,8 @@ Notation Locator := (@Locator tags_t).
 Notation semlval_equivb := (@Semantics.lval_equivb tags_t).
 Notation mem := (@Semantics.mem tags_t).
 
+Notation assertion := (@assertion tags_t).
+
 Context `{@Target tags_t (@Expression tags_t)}.
 
 Notation alist_get l s := (AList.get l (P4String.Build_t _ default s)).
@@ -222,6 +224,10 @@ Proof.
       hauto b: on.
     + apply IHtl. hauto b: on.
 Qed.
+
+Lemma implies_refl (a : assertion) :
+  implies a a.
+Admitted.
 
 Fixpoint eval_write (a : assertion) (lv : Lval) (v : Val) : assertion :=
   match a with
@@ -1056,6 +1062,24 @@ Proof.
         destruct name; hauto b: on.
       * discriminate.
 Qed.
+
+Definition get_assertion_unit_locator (a_unit : assertion_unit) : Locator :=
+  match a_unit with
+  | AVal (loc, _) _ => loc
+  | AType (loc, _) _ => loc
+  end.
+
+Definition clear_loc (a : assertion) (loc : Locator) : assertion :=
+  filter (fun a_unit => ~~ (locator_equivb (get_assertion_unit_locator a_unit) loc)) a.
+
+Definition arg_assertion_unit_to_assertion_unit (params : list Locator) (a_unit : arg_assertion_unit)
+    : option assertion_unit :=
+  match a_unit with
+  | ArgVal (n, fl) v =>
+      option_map (fun loc => AVal (loc, fl) v) (Znth_option n params)
+  | ArgType (n, fl) typ =>
+      option_map (fun loc => AType (loc, fl) typ) (Znth_option n params)
+  end.
 
 End AssertionLangSoundness.
 

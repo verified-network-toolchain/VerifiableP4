@@ -39,11 +39,19 @@ Definition continue_post_assertion (a : assertion) : post_assertion :=
 Definition return_post_assertion (a : ret_assertion) : post_assertion :=
   mk_post_assertion (fun _ => False) a.
 
+Definition return_post_assertion_1 (a : ret_assertion) : post_assertion :=
+  mk_post_assertion (a ValBaseNull) a.
+
 Definition hoare_expr (p : path) (pre : assertion) (expr : Expression) (v : Val) :=
   forall st v',
     pre st ->
     exec_expr ge p st expr v' ->
     v' = v.
+
+Definition hoare_expr_1 (p : path) (pre : assertion) (expr : Expression) (v : Val) :=
+  forall st,
+    pre st ->
+    exec_expr ge p st expr v.
 
 Definition hoare_lexpr (p : path) (pre : assertion) (expr : Expression) (lv : Lval) :=
   forall st lv' sig,
@@ -105,6 +113,20 @@ Section DeepEmbeddedHoare.
 Definition implies (pre post : assertion) :=
   forall st, pre st -> post st.
 
+Lemma implies_refl : forall (pre : assertion),
+  implies pre pre.
+Proof.
+  clear ge inst_m. admit.
+Admitted.
+
+Lemma implies_trans : forall (pre mid post : assertion),
+  implies pre mid ->
+  implies mid post ->
+  implies pre post.
+Proof.
+  clear ge inst_m. admit.
+Admitted.
+
 Fixpoint _in (x : ident) (al : list ident) : bool :=
   match al with
   | y :: al => P4String.equivb x y || _in x al
@@ -165,25 +187,48 @@ Definition deep_hoare_lexpr (p : path) (pre : assertion) (expr : Expression) (lv
     pre st ->
     exec_lexpr ge p st expr lv SContinue. *)
 
-Inductive deep_hoare_stmt : path -> assertion -> Statement -> post_assertion -> Prop :=
-  | deep_hoare_stmt_intro : forall p pre stmt post,
-      hoare_stmt p pre stmt post ->
-      deep_hoare_stmt p pre stmt post.
+Definition ret_assertion_to_assertion (a : ret_assertion) : assertion :=
+  fun st => exists vret, a vret st.
 
-Inductive deep_hoare_block : path -> assertion -> Block -> post_assertion -> Prop :=
+Inductive deep_hoare_stmt : path -> assertion -> Statement -> post_assertion -> Prop :=
+  | deep_hoare_stmt_fallback : forall p pre stmt post,
+      hoare_stmt p pre stmt post ->
+      deep_hoare_stmt p pre stmt post
+
+  | deep_hoare_stmt_block : forall p pre tags block typ post,
+      deep_hoare_block p pre block post ->
+      deep_hoare_stmt p pre (MkStatement tags (StatBlock block) typ) post
+
+  | deep_hoare_stmt_if_true : forall p pre tags cond tru ofls typ post,
+      hoare_expr p pre cond (ValBaseBool true) ->
+      deep_hoare_stmt p pre tru post ->
+      deep_hoare_stmt p pre (MkStatement tags (StatConditional cond tru ofls) typ) post
+
+  | deep_hoare_stmt_method_call : forall p pre tags func args typ mid (post : post_assertion),
+      hoare_call p pre (MkExpression default (ExpFunctionCall func nil args) TypVoid Directionless) mid ->
+      ret_assertion_to_assertion mid = post ->
+      deep_hoare_stmt p pre (MkStatement tags (StatMethodCall func nil args) typ) post
+
+with deep_hoare_block : path -> assertion -> Block -> post_assertion -> Prop :=
   | deep_hoare_block_nil : forall p pre post tags,
       implies pre (post_continue post) ->
       deep_hoare_block p pre (BlockEmpty tags) post
+
   | deep_hoare_block_cons : forall p pre stmt mid block post,
       deep_hoare_stmt p pre stmt mid ->
       deep_hoare_block p mid block post ->
       deep_hoare_block p pre (BlockCons stmt block) post.
 
+Inductive deep_hoare_copy_in : path -> arg_assertion -> list Locator -> assertion -> Prop := 
+  | deep_hoare_copy_in_intro : forall p pre params post,
+      (forall inargs, deep_hoare_update_val_by_loc_list p (pre inargs) params inargs post) ->
+      deep_hoare_copy_in p pre params post.
+
 Inductive deep_hoare_func : path -> arg_assertion -> @fundef tags_t -> list (@P4Type tags_t) -> arg_ret_assertion -> Prop :=
   | deep_hoare_func_internal : forall p pre params init body targs mid1 mid2 post,
-      (forall inargs, deep_hoare_update_val_by_loc_list p (pre inargs) (filter_in params) inargs mid1) ->
+      deep_hoare_copy_in p pre (filter_in params) mid1 ->
       deep_hoare_block p mid1 init (continue_post_assertion mid2) ->
-      deep_hoare_block p mid2 body (return_post_assertion (generate_post_condition p (filter_out params) post)) ->
+      deep_hoare_block p mid2 body (return_post_assertion_1 (generate_post_condition p (filter_out params) post)) ->
       deep_hoare_func p pre (FInternal params init body) targs post.
 
 Inductive deep_hoare_arg : path -> assertion -> option Expression -> direction -> argument -> Prop :=
@@ -224,17 +269,33 @@ Inductive deep_hoare_write_options : path -> assertion -> list (option Lval) -> 
       deep_hoare_write_options p mid lvs vals post ->
       deep_hoare_write_options p pre (lv :: lvs) (val :: vals) post.
 
-Inductive deep_hoare_call : path -> assertion -> Expression -> ret_assertion -> Prop :=
-  | deep_hoare_call_func : forall p (pre : assertion) tags func targs args typ dir lvs argvals obj_path fd mid post,
-      let dirs := get_arg_directions func in
+Inductive deep_hoare_outargs : path -> assertion -> list direction -> list (option Expression) -> list (option Lval) -> Prop :=
+  | deep_hoare_outargs_intro : forall p (pre : assertion) dirs args lvs,
       (forall st argvals sig,
           pre st -> exec_args ge p st args dirs argvals sig ->
           extract_outlvals dirs argvals = lvs /\ sig = SContinue) ->
-      let pre1 inargs st :=
+      deep_hoare_outargs p pre dirs args lvs.
+
+Inductive deep_hoare_inargs : path -> assertion -> list direction -> list (option Expression) -> arg_assertion -> Prop :=
+  | deep_hoare_inargs_intro : forall p (pre : assertion) dirs args,
+      let post inargs st :=
         pre st /\ exists argvals, exec_args ge p st args dirs argvals SContinue /\ extract_invals argvals = inargs in
+      deep_hoare_inargs p pre dirs args post.
+
+Inductive deep_hoare_write_copy_out : path -> arg_ret_assertion -> list (option Lval) -> ret_assertion -> Prop :=
+  | deep_hoare_write_copy_out_intro : forall p (pre : arg_ret_assertion) outlvs post,
+      (forall outargs vret, deep_hoare_write_options p (pre outargs vret) outlvs outargs (post vret)) ->
+      deep_hoare_write_copy_out p pre outlvs post.
+
+Inductive deep_hoare_call : path -> assertion -> Expression -> ret_assertion -> Prop :=
+  | deep_hoare_call_func : forall p (pre : assertion) tags func targs args typ dir outlvs obj_path fd
+          (mid1 : arg_assertion) (mid2 : arg_ret_assertion) (post : ret_assertion),
+      let dirs := get_arg_directions func in
+      deep_hoare_outargs p pre dirs args outlvs ->
+      deep_hoare_inargs p pre dirs args mid1 ->
       lookup_func ge p inst_m func = Some (obj_path, fd) ->
-      deep_hoare_func obj_path pre1 fd targs mid ->
-      (forall outargs vret, deep_hoare_write_options p (mid outargs vret) (extract_outlvals dirs argvals) outargs (post vret)) ->
+      deep_hoare_func obj_path mid1 fd targs mid2 ->
+      deep_hoare_write_copy_out p mid2 outlvs post ->
       deep_hoare_call p pre (MkExpression tags (ExpFunctionCall func targs args) typ dir) post.
 
 End DeepEmbeddedHoare.
