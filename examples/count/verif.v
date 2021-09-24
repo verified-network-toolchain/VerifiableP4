@@ -119,53 +119,59 @@ Definition process_multi (fbits : list Z) : (BitArray.t) :=
 Definition fbit_1_count (fbits: list Z) : Z :=
   List.fold_left (fun c fbit => BitArith.plus_mod WIDTH c 1) (List.filter (Z.eqb 1) fbits) 0.
 
-Lemma process_multi_index_1'' :
-  forall fbits init init2,
-  Znth 1 (List.fold_left (fun a fbit => fst (process fbit a)) fbits (upd_Znth 0 (upd_Znth 1 (BitArray.zeros NUM_ENTRY) init) init2)) =
-  List.fold_left (fun c fbit => BitArith.plus_mod WIDTH c 1) (List.filter (Z.eqb 1) fbits) init.
-  (* Znth 1 (process_multi fbits) = fbit_1_count fbits. *)
-Proof.
-  intros. induction fbits as [|hd tl H].
-  - reflexivity.
-  - unfold BitArray.zeros.
-    destruct (Z.eqb 1 hd) eqn:Hhd; unfold process_multi, fbit_1_count, fold_left, process, filter; intros;
-    rewrite Hhd; rewrite Z.eqb_sym in Hhd; rewrite Hhd.
-    + unfold BitArray.incr. simpl. Search upd_Znth.
-      assert (forall {A:Type} i j (l : list A) u v, 0 <= i < Zlength l -> 0 <= j < Zlength l ->  i <> j -> upd_Znth i (upd_Znth j l u) v = upd_Znth j (upd_Znth i l v) u).
-Abort.
+Lemma process_multi_last: forall x l,
+    process_multi (l ++ [x]) = fst (process x (process_multi l)).
+Proof. intros. unfold process_multi. rewrite fold_left_app. easy. Qed.
 
-Lemma process_multi_index_1' :
-  forall fbits init,
-  Znth 1 (List.fold_left (fun a fbit => fst (process fbit a)) fbits (upd_Znth 1 (BitArray.zeros NUM_ENTRY) init)) =
-  List.fold_left (fun c fbit => BitArith.plus_mod WIDTH c 1) (List.filter (Z.eqb 1) fbits) init.
-  (* Znth 1 (process_multi fbits) = fbit_1_count fbits. *)
+Lemma fbit_1_count_last: forall x l,
+    fbit_1_count (l ++ [x]) =
+    if (1 =? x) then BitArith.plus_mod WIDTH (fbit_1_count l) 1
+    else fbit_1_count l.
 Proof.
-  intros fbits. induction fbits as [|hd tl H].
-  - reflexivity.
-  - unfold BitArray.zeros.
-    destruct (Z.eqb 1 hd) eqn:Hhd; unfold process_multi, fbit_1_count, fold_left, process, filter; intros;
-    rewrite Hhd; rewrite Z.eqb_sym in Hhd; rewrite Hhd.
-    + unfold BitArray.incr. simpl. 
-      assert (0 <= 1 < Zlength [0; 0]). 
-      { split. lia. reflexivity. }
-      apply upd_Znth_same with (u := init) in H0. rewrite H0. apply H.
-    + unfold BitArray.incr. simpl. 
-Abort.
+  intros. unfold fbit_1_count. rewrite filter_app. rewrite fold_left_app.
+  Opaque Z.eqb. simpl. destruct (1 =? x); now simpl. Transparent Z.eqb.
+Qed.
+
+Lemma Zlength_process_multi: forall l, Zlength (process_multi l) = NUM_ENTRY.
+Proof.
+  apply rev_ind.
+  - cbn. rewrite Zlength_repeat'. easy.
+  - intros. rewrite process_multi_last. unfold process.
+    destruct (x =? 1); simpl; unfold BitArray.incr; rewrite upd_Znth_Zlength; auto;
+      rewrite H; unfold NUM_ENTRY; lia.
+Qed.
 
 Lemma process_multi_index_1 :
   forall fbits,
     Znth 1 (process_multi fbits) = fbit_1_count fbits.
 Proof.
-Abort.
+  apply rev_ind. 1: easy. intros. rewrite process_multi_last.
+  rewrite fbit_1_count_last. unfold process. rewrite Z.eqb_sym.
+  assert (0 <= 1 < Zlength (process_multi l)). {
+    rewrite Zlength_process_multi. unfold NUM_ENTRY. lia. }
+  destruct (1 =? x); simpl; unfold BitArray.incr.
+  - rewrite H. rewrite upd_Znth_same; auto.
+  - unfold BitArray.incr. rewrite upd_Znth_diff; auto; lia.
+Qed.
 
 Lemma process_multi_index_1_original :
 forall fbits,
   Znth 1 (process_multi fbits) =
   BitArith.mod_bound WIDTH (Zlength (List.filter (Z.eqb 1) fbits)).
 Proof.
-Abort.
+  apply rev_ind. 1: easy. intros. rewrite process_multi_last. rewrite filter_app.
+  rewrite Zlength_app. Opaque Z.eqb. simpl. unfold process. Transparent Z.eqb.
+  assert (0 <= 1 < Zlength (process_multi l)). {
+    rewrite Zlength_process_multi. unfold NUM_ENTRY. lia. }
+  rewrite Z.eqb_sym. destruct (1 =? x) eqn: ?H.
+  + simpl. unfold BitArray.incr. rewrite upd_Znth_same; auto.
+    unfold BitArith.plus_mod. assert (Zlength [x] = 1) by now cbn. rewrite H2.
+    rewrite H. unfold BitArith.mod_bound. rewrite Zplus_mod_idemp_l. easy.
+  + simpl. rewrite Zlength_nil. rewrite Z.add_0_r. rewrite <- H. unfold BitArray.incr.
+    rewrite upd_Znth_diff; auto; lia.
+Qed.  
 
-Definition register_match_array (st : state) (a : BitArray.t) : Prop :=
+Definition array_in_state (st : state) (a : BitArray.t) : Prop :=
   PathMap.get !["main"; "ig"; "myCounter"] (snd st) = Some (ObjRegister (mk_register 4%nat NUM_ENTRY a)).
 
 Definition field_contains (v : Val) (name : P4String) (data: Val) : Prop :=
