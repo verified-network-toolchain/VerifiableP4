@@ -1,12 +1,15 @@
 Require Import Poulet4.Typed.
 Require Import Poulet4.Syntax.
+Require Import Poulet4.Value.
 Require Import Poulet4.Semantics.
 Require Import ProD3.core.Coqlib.
 
 Section Hoare.
 
 Context {tags_t: Type} {tags_t_inhabitant : Inhabitant tags_t}.
-Notation Val := (@ValueBase tags_t).
+Notation Val := (@ValueBase tags_t bool).
+Notation Sval := (@ValueBase tags_t (option bool)).
+(* Notation ValSet := (@ValueSet tags_t). *)
 Notation Lval := (@ValueLvalue tags_t).
 
 Notation ident := (P4String.t tags_t).
@@ -21,12 +24,12 @@ Notation argument := (@argument tags_t).
 Context `{@Target tags_t Expression}.
 
 Variable ge : (@genv tags_t).
-Variable inst_m : (@inst_mem tags_t).
+(* Variable inst_m : (@inst_mem tags_t). *)
 
 Definition assertion := state -> Prop. (* shallow assertion *)
-Definition arg_assertion := list Val -> state -> Prop.
+Definition arg_assertion := list Sval -> state -> Prop.
 Definition ret_assertion := Val -> state -> Prop.
-Definition arg_ret_assertion := list Val -> Val -> state -> Prop.
+Definition arg_ret_assertion := list Sval -> Val -> state -> Prop.
 
 Record post_assertion := mk_post_assertion {
   post_continue :> assertion;
@@ -42,70 +45,70 @@ Definition return_post_assertion (a : ret_assertion) : post_assertion :=
 Definition return_post_assertion_1 (a : ret_assertion) : post_assertion :=
   mk_post_assertion (a ValBaseNull) a.
 
-Definition hoare_expr (p : path) (pre : assertion) (expr : Expression) (v : Val) :=
+Definition hoare_expr (p : path) (pre : assertion) (expr : Expression) (v : Sval) :=
   forall st v',
     pre st ->
-    exec_expr ge p st expr v' ->
+    exec_expr ge read_ndetbit p st expr v' ->
     v' = v.
 
-Definition hoare_expr_1 (p : path) (pre : assertion) (expr : Expression) (v : Val) :=
+Definition hoare_expr_1 (p : path) (pre : assertion) (expr : Expression) (v : Sval) :=
   forall st,
     pre st ->
-    exec_expr ge p st expr v.
+    exec_expr ge read_ndetbit p st expr v.
 
 Definition hoare_lexpr (p : path) (pre : assertion) (expr : Expression) (lv : Lval) :=
   forall st lv' sig,
     pre st ->
-    exec_lexpr ge p st expr lv' sig ->
+    exec_lexpr ge read_ndetbit p st expr lv' sig ->
     sig = SContinue /\ lval_equivb lv' lv.
 
-Definition hoare_loc_to_val (p : path) (pre : assertion) (loc : Locator) (v : Val) :=
+(* Definition hoare_loc_to_val (p : path) (pre : assertion) (loc : Locator) (v : Sval) :=
     forall st,
     pre st ->
-    loc_to_val p loc st = Some v.
+    loc_to_val p loc st = Some v. *)
 
-Definition hoare_update_val_by_loc (p : path) (pre : assertion) (loc : Locator) (v : Val) (post : assertion) :=
+Definition hoare_update_val_by_loc (p : path) (pre : assertion) (loc : Locator) (v : Sval) (post : assertion) :=
     forall st st',
     pre st ->
     update_val_by_loc p st loc v = st' ->
     post st'.
 
-Definition hoare_read (p : path) (pre : assertion) (lv : Lval) (v : Val) :=
+Definition hoare_read (p : path) (pre : assertion) (lv : Lval) (v : Sval) :=
   forall st v',
     pre st ->
-    exec_read p st lv v' ->
+    exec_read ge p st lv v' ->
     v' = v.
 
-Definition hoare_write (p : path) (pre : assertion) (lv : Lval) (v : Val) (post : assertion) :=
+Definition hoare_write (p : path) (pre : assertion) (lv : Lval) (v : Sval) (post : assertion) :=
   forall st st',
     pre st ->
-    exec_write p st lv v st' ->
+    exec_write ge p st lv v st' ->
     post st'.
 
 Definition hoare_stmt (p : path) (pre : assertion) (stmt : Statement) (post : post_assertion) :=
   forall st st' sig,
     pre st ->
-    exec_stmt ge p inst_m st stmt st' sig ->
+    exec_stmt ge read_ndetbit p st stmt st' sig ->
     (sig = SContinue /\ (post_continue post) st')
       \/ (force False (option_map (fun vret => post_return post vret st') (get_return_val sig))).
 
 Definition hoare_block (p : path) (pre : assertion) (block : Block) (post : post_assertion) :=
   forall st st' sig,
     pre st ->
-    exec_block ge p inst_m st block st' sig ->
+    exec_block ge read_ndetbit p st block st' sig ->
     (sig = SContinue /\ (post_continue post) st')
       \/ (force False (option_map (fun vret => post_return post vret st') (get_return_val sig))).
 
 Definition hoare_call (p : path) (pre : assertion) (expr : Expression) (post : ret_assertion) :=
   forall st st' sig,
     pre st ->
-    exec_call ge p inst_m st expr st' sig ->
+    exec_call ge read_ndetbit p st expr st' sig ->
     force False (option_map (fun vret => post vret st') (get_return_val sig)).
 
 Definition hoare_func (p : path) (pre : arg_assertion) (func : @fundef tags_t) (targs : list P4Type) (post : arg_ret_assertion) :=
   forall st inargs st' outargs sig,
     pre inargs st ->
-    exec_func ge p inst_m st func targs inargs st' outargs sig ->
+    exec_func ge read_ndetbit p st func targs inargs st' outargs sig ->
     force False (option_map (fun vret => post outargs vret st') (get_return_val sig)).
 
 Section DeepEmbeddedHoare.
@@ -116,7 +119,7 @@ Definition implies (pre post : assertion) :=
 Lemma implies_refl : forall (pre : assertion),
   implies pre pre.
 Proof.
-  clear ge inst_m. admit.
+  clear ge. admit.
 Admitted.
 
 Lemma implies_trans : forall (pre mid post : assertion),
@@ -124,7 +127,7 @@ Lemma implies_trans : forall (pre mid post : assertion),
   implies mid post ->
   implies pre post.
 Proof.
-  clear ge inst_m. admit.
+  clear ge. admit.
 Admitted.
 
 Fixpoint _in (x : ident) (al : list ident) : bool :=
@@ -139,7 +142,7 @@ Fixpoint no_dup (al : list ident) : bool :=
   | [] => true
   end.
 
-Inductive deep_hoare_loc_to_val : path -> assertion -> Locator -> Val -> Prop :=
+(* Inductive deep_hoare_loc_to_val : path -> assertion -> Locator -> Val -> Prop :=
   | deep_hoare_loc_to_val_intro : forall p pre loc v,
       hoare_loc_to_val p pre loc v ->
       deep_hoare_loc_to_val p pre loc v.
@@ -296,7 +299,7 @@ Inductive deep_hoare_call : path -> assertion -> Expression -> ret_assertion -> 
       lookup_func ge p inst_m func = Some (obj_path, fd) ->
       deep_hoare_func obj_path mid1 fd targs mid2 ->
       deep_hoare_write_copy_out p mid2 outlvs post ->
-      deep_hoare_call p pre (MkExpression tags (ExpFunctionCall func targs args) typ dir) post.
+      deep_hoare_call p pre (MkExpression tags (ExpFunctionCall func targs args) typ dir) post. *)
 
 End DeepEmbeddedHoare.
 
