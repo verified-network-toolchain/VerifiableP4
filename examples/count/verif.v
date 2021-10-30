@@ -196,7 +196,7 @@ Definition pre (* (fbit : Z) (hdr meta standard_metadata : Val) *) (in_args : li
   /\ field_contains hdr !"firstBit" (ValBaseBit 1%nat fbit)
   /\ (exists counter, field_contains meta !"counter" (ValBaseBit (Z.to_nat (Z.pos WIDTH)) counter))
   /\ (exists eport, field_contains standard_metadata !"egress_spec" (ValBaseBit 9%nat eport))
-  /\ register_match_array st ast.
+  /\ array_in_state st ast.
 
 Definition post (* (fbit : Z) (hdr meta standard_metadata : Val) *) (out_args : list Val) (st : state) :=
   let (ast', eport) := process fbit ast in
@@ -214,7 +214,7 @@ Definition post (* (fbit : Z) (hdr meta standard_metadata : Val) *) (out_args : 
     /\ Ops.eval_binary_op_eq (ValBaseStruct (AList.filter std_meta_fields (P4String.equivb !"egress_spec" )))
                              (ValBaseStruct (AList.filter std_meta_fields' (P4String.equivb !"egress_spec" )))
        = Some true
-    /\ register_match_array st ast'.
+    /\ array_in_state st ast'.
 
 (* Lemma body_counter : hoare_func ge inst_m this pre myFundef nil post.
 Abort. *)
@@ -249,7 +249,7 @@ Definition pre2 : ArgAssertion (Z * Val * Val * Val * BitArray.t) :=
    /\ field_contains hdr !"firstBit" (ValBaseBit 1%nat fbit)
    /\ (exists counter, field_contains meta !"counter" (ValBaseBit (Z.to_nat (Z.pos WIDTH)) counter))
    /\ (exists eport, field_contains standard_metadata !"egress_spec" (ValBaseBit 9%nat eport))
-   /\ register_match_array st ast
+   /\ array_in_state st ast
  end.
 
 Definition pre3 : ArgAssertion withType3 :=
@@ -261,7 +261,7 @@ Definition pre3 : ArgAssertion withType3 :=
    /\ field_contains (ValBaseHeader hdr_fields true) !"firstBit" (ValBaseBit 1%nat fbit)
    /\ (exists counter, field_contains (ValBaseStruct meta_fields) !"counter" (ValBaseBit (Z.to_nat (Z.pos WIDTH)) counter))
    /\ (exists eport, field_contains (ValBaseStruct std_meta_fields) !"egress_spec" (ValBaseBit 9%nat eport))
-   /\ register_match_array st ast
+   /\ array_in_state st ast
  end.
 
 
@@ -282,7 +282,7 @@ Definition post2 : ArgRetAssertion (Z * Val * Val * Val * BitArray.t) :=
     /\ field_contains standard_metadata' !"egress_spec" (ValBaseBit 9%nat eport)
     /\ (AList.filter std_meta_fields (P4String.nequivb !"egress_spec" )) =
        (AList.filter std_meta_fields' (P4String.nequivb !"egress_spec" ))
-    /\ register_match_array st ast'
+    /\ array_in_state st ast'
     /\ retv = ValBaseNull
   end.
 
@@ -308,7 +308,7 @@ Definition post3 : ArgRetAssertion withType3 :=
     /\ post3_prop meta_fields meta_fields' std_meta_fields std_meta_fields' 
               (ValBaseBit (Z.to_nat (Z.pos WIDTH)) (Znth (if fbit =? 1 then 1 else 0) ast))
               eport retv
-    /\ register_match_array st ast'
+    /\ array_in_state st ast'
   end.
 
 Definition countFunspec : FunSpec := {| WITHtype := withType3;
