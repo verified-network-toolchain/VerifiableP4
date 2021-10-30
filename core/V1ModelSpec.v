@@ -9,6 +9,8 @@ Require Import Poulet4.V1Model.
 Require Import Poulet4.P4Notations.
 Require Import Poulet4.P4Arith.
 Require Import BinNat.
+Require Import BinInt.
+Open Scope Z_scope.
 (* Require Import Hammer.Tactics.Tactics.
 Require Import Hammer.Plugin.Hammer. *)
 
@@ -39,6 +41,7 @@ Variable ge : (@genv tags_t).
 
 Definition register_read_pre (p : path) reg i :=
   fun (args : list Sval) st =>
+    (0 <= i < reg_size reg)%Z /\
     args = [ValBaseBit (to_loptbool 32%N i)]
     /\ PathMap.get p (get_external_state st) = Some (ObjRegister reg).
 
@@ -70,6 +73,7 @@ Definition register_read_spec : Prop :=
 
 Definition register_write_pre (p : path) reg i v :=
   fun (args : list Sval) st =>
+    (0 <= i < reg_size reg)%Z /\
     args = [ValBaseBit (to_loptbool 32%N i); ValBaseBit (to_loptbool (reg_width reg) v)]
     /\ PathMap.get p (get_external_state st) = Some (ObjRegister reg).
 
