@@ -3,6 +3,8 @@ Require Import Poulet4.Syntax.
 Require Import Poulet4.Value.
 Require Import Poulet4.Semantics.
 Require Import ProD3.core.Coqlib.
+Require Import Poulet4.SyntaxUtil.
+Require Import Hammer.Plugin.Hammer.
 
 Section Hoare.
 
@@ -24,7 +26,6 @@ Notation argument := (@argument tags_t).
 Context `{@Target tags_t Expression}.
 
 Variable ge : (@genv tags_t).
-(* Variable inst_m : (@inst_mem tags_t). *)
 
 Definition assertion := state -> Prop. (* shallow assertion *)
 Definition arg_assertion := list Sval -> state -> Prop.
@@ -85,36 +86,73 @@ Definition hoare_write (p : path) (pre : assertion) (lv : Lval) (v : Sval) (post
     exec_write ge p st lv v st' ->
     post st'.
 
+Definition satisfies_ret_assertion (post : ret_assertion) (sig : signal) (st : state) : Prop :=
+  match sig with
+  | SReturn vret => post vret st
+  | _ => False
+  end.
+
+Definition satisfies_arg_ret_assertion (post : arg_ret_assertion) (args : list Sval) (sig : signal) (st : state) : Prop :=
+  match sig with
+  | SReturn vret => post args vret st
+  | _ => False
+  end.
+
+(* Semantic Hoare judgments. *)
+
 Definition hoare_stmt (p : path) (pre : assertion) (stmt : Statement) (post : post_assertion) :=
   forall st st' sig,
     pre st ->
     exec_stmt ge read_ndetbit p st stmt st' sig ->
     (sig = SContinue /\ (post_continue post) st')
-      \/ (force False (option_map (fun vret => post_return post vret st') (get_return_val sig))).
+      \/ satisfies_ret_assertion (post_return post) sig st'.
 
 Definition hoare_block (p : path) (pre : assertion) (block : Block) (post : post_assertion) :=
   forall st st' sig,
     pre st ->
     exec_block ge read_ndetbit p st block st' sig ->
     (sig = SContinue /\ (post_continue post) st')
-      \/ (force False (option_map (fun vret => post_return post vret st') (get_return_val sig))).
+      \/ satisfies_ret_assertion (post_return post) sig st'.
 
 Definition hoare_call (p : path) (pre : assertion) (expr : Expression) (post : ret_assertion) :=
   forall st st' sig,
     pre st ->
     exec_call ge read_ndetbit p st expr st' sig ->
-    force False (option_map (fun vret => post vret st') (get_return_val sig)).
+    satisfies_ret_assertion post sig st'.
 
 Definition hoare_func (p : path) (pre : arg_assertion) (func : @fundef tags_t) (targs : list P4Type) (post : arg_ret_assertion) :=
   forall st inargs st' outargs sig,
     pre inargs st ->
     exec_func ge read_ndetbit p st func targs inargs st' outargs sig ->
-    force False (option_map (fun vret => post outargs vret st') (get_return_val sig)).
+    satisfies_arg_ret_assertion post outargs sig st'.
 
-Section DeepEmbeddedHoare.
+(* Hoare proof rules ass lemmas. *)
 
 Definition implies (pre post : assertion) :=
   forall st, pre st -> post st.
+
+Lemma hoare_block_nil : forall p pre post tags,
+  implies pre (post_continue post) ->
+  hoare_block p pre (BlockEmpty tags) post.
+Proof.
+  unfold hoare_block. intros. inv H2.
+  auto.
+Qed.
+
+Lemma hoare_block_cons : forall p pre stmt mid block post_con post_ret,
+  hoare_stmt p pre stmt (mk_post_assertion mid post_ret) ->
+  hoare_block p mid block (mk_post_assertion post_con post_ret) ->
+  hoare_block p pre (BlockCons stmt block) (mk_post_assertion post_con post_ret).
+Proof.
+  unfold hoare_stmt, hoare_block. intros.
+  inv H3. destruct sig0.
+  - sfirstorder.
+  - inv H11. hauto.
+  - inv H11. hauto.
+  - inv H11. hauto.
+Qed.
+
+Section DeepEmbeddedHoare.
 
 Lemma implies_refl : forall (pre : assertion),
   implies pre pre.
