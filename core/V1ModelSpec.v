@@ -46,8 +46,8 @@ Definition register_read_pre (p : path) reg i :=
     /\ PathMap.get p (get_external_state st) = Some (ObjRegister reg).
 
 Definition register_read_post (p : path) reg i :=
-  fun (args : list Sval) st =>
-    args = [ValBaseBit (to_loptbool (reg_width reg) (Znth i (reg_content reg)))]
+  fun (args : list Sval) (retv : Val) st =>
+    args = [eval_val_to_sval ge (Znth i (reg_content reg))]
     /\ PathMap.get p (get_external_state st) = Some (ObjRegister reg).
 
 Definition hoare_func_modifies (ge : genv) (p : path) (func : @fundef tags_t) (vars : list Locator) (exts : list Locator) :=
@@ -68,28 +68,30 @@ Definition register_read_spec : Prop :=
         (register_read_pre p reg i)
         (FExternal !"Register" !"read")
         nil
-        (fun args _ => register_read_post p reg i args)
+        (register_read_post p reg i)
         [] [].
 
 Definition register_write_pre (p : path) reg i v :=
   fun (args : list Sval) st =>
     (0 <= i < reg_size reg)%Z /\
-    args = [ValBaseBit (to_loptbool 32%N i); ValBaseBit (to_loptbool (reg_width reg) v)]
+    args = [ValBaseBit (to_loptbool 32%N i); eval_val_to_sval ge v]
     /\ PathMap.get p (get_external_state st) = Some (ObjRegister reg).
 
 Definition register_write_post (p : path) reg i v :=
-  fun (args : list Sval) st =>
+  fun (args : list Sval) (retv : Val) st =>
     args = []
-    /\ v = Znth i (reg_content reg)
-    /\ PathMap.get p (get_external_state st) = Some (ObjRegister reg).
+    /\ PathMap.get p (get_external_state st) =
+        Some (ObjRegister {| reg_width := reg_width reg;
+                             reg_size := reg_size reg;
+                             reg_content := upd_Znth i (reg_content reg) v |}).
 
 Definition register_write_spec : Prop :=
-  forall (p : path) (reg : register) (i : Z) (v : Z),
+  forall (p : path) (reg : register) (i : Z) (v : Val),
     hoare_func_spec ge p
         (register_write_pre p reg i v)
         (FExternal !"Register" !"write")
         nil
-        (fun args _ => register_write_post p reg i v args)
+        (register_write_post p reg i v)
         [] [ LInstance [] ].
 
 (*
