@@ -2,12 +2,15 @@ Require Import Coq.Strings.String.
 Require Import Poulet4.Typed.
 Require Import Poulet4.Syntax.
 Require Import Poulet4.Semantics.
+Require Import Poulet4.Value.
 Require Import ProD3.core.Coqlib.
+Open Scope type_scope.
 
 Section AssertionLang.
 
 Context {tags_t: Type} {tags_t_inhabitant : Inhabitant tags_t}.
-Notation Val := (@ValueBase tags_t).
+Notation Val := (@ValueBase tags_t bool).
+Notation Sval := (@ValueBase tags_t (option bool)).
 Notation SemLval := (@ValueLvalue tags_t).
 
 Notation ident := (P4String.t tags_t).
@@ -23,16 +26,14 @@ Context `{@Target tags_t (@Expression tags_t)}.
 
 Variable this : path.
 
-Definition Field : Type := string.
-Definition Lval : Type := Locator * list Field.
+(* Definition Field : Type := string.
+Definition Lval : Type := Locator * list Field. *)
 
-Inductive assertion_unit :=
-| AVal: Lval -> Val -> assertion_unit
-| AType : Lval -> P4Type -> assertion_unit.
+Definition assertion_unit := path * Sval.
 
 Definition assertion := list assertion_unit.
 
-Notation alist_get l s := (AList.get l (P4String.Build_t _ default s)).
+(* Notation alist_get l s := (AList.get l (P4String.Build_t _ default s)).
 
 Definition extract (v : Val) (f : Field) : option Val :=
   match v with
@@ -47,9 +48,15 @@ Definition extract_option (ov : option Val) (f : Field) : option Val :=
   match ov with
   | Some v => extract v f
   | None => None
-  end.
+  end. *)
 
-Definition mem_eval_read (m : mem) (lv : Lval) : option Val :=
+Inductive bit_refine : option bool -> option bool -> Prop :=
+  | read_none : forall ob, bit_refine None ob
+  | read_some : forall b, bit_refine (Some b) (Some b).
+
+Definition sval_refine := exec_val (tags_t := tags_t) bit_refine.
+
+(* Definition mem_eval_read (m : mem) (lv : Lval) : option Val :=
   let (loc, fl) := lv in
   fold_left extract_option fl (PathMap.get (loc_to_path this loc) m).
 
@@ -61,24 +68,22 @@ Definition isNil {A} (l : list A) :=
 
 Definition mem_is_valid_field (m : mem) (lv : Lval) : bool :=
   let (loc, fl) := lv in
-  isNil fl || isSome (mem_eval_read m lv).
+  isNil fl || isSome (mem_eval_read m lv). *)
 
 Definition satisfies_unit (m : mem) (a_unit : assertion_unit) : Prop :=
-  match a_unit with
-  | AVal lv v =>
-      mem_eval_read m lv = Some v
-  | AType lv typ =>
-      (* match mem_eval_read m lv with Some v => v has type (typ) | None => False *)
-      True (* placeholder *)
+  let (p, sv) := a_unit in
+  match PathMap.get p m with
+  | Some sv' => sval_refine sv sv'
+  | None => False
   end.
 
 Definition satisfies (m : mem) (a : assertion) : Prop :=
   fold_right and True (map (satisfies_unit m) a).
 
-Definition to_shallow_assertion (a : assertion) : mem -> Prop :=
+Definition denote (a : assertion) : mem -> Prop :=
   fun m => satisfies m a.
 
-Definition loc_no_overlapping (loc1 : Locator) (loc2 : Locator) : bool :=
+(* Definition loc_no_overlapping (loc1 : Locator) (loc2 : Locator) : bool :=
   match loc1, loc2 with
   | LInstance p1, LInstance p2 => ~~ (path_equivb p1 p2)
   | _, _ => false
@@ -236,6 +241,6 @@ Definition ret_satisfies (vret : Val) (a : ret_assertion) : Prop :=
   fold_right and True (map (ret_satisfies_unit vret) a).
 
 Definition ret_to_shallow_assertion (a : ret_assertion) : Val -> Prop :=
-  fun vret => ret_satisfies vret a.
+  fun vret => ret_satisfies vret a. *)
 
 End AssertionLang.
