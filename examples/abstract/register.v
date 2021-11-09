@@ -79,7 +79,7 @@ Definition c := DeclControl NoInfo {| stags := NoInfo; str := "c" |} nil
           [(MkExpression NoInfo
                 (ExpInt
                  {| itags := NoInfo; value := 65536;
-                    width_signed := (Some ( 32, false )) |}) (TypBit 32)
+                    width_signed := (Some ( 32%N, false )) |}) (TypBit 32)
                 Directionless);
            (MkExpression NoInfo
                 (ExpCast (TypBit 32)
@@ -101,7 +101,7 @@ Definition c := DeclControl NoInfo {| stags := NoInfo; str := "c" |} nil
                      (TypExtern {| stags := NoInfo; str := "Register" |})
                      [(TypBit 32); (TypBit 16)]) Directionless)]
           {| stags := NoInfo; str := "regact" |}
-          [(InitFunction NoInfo TypVoid {| stags := NoInfo; str := "apply" |}
+          [(DeclFunction NoInfo TypVoid {| stags := NoInfo; str := "apply" |}
                 nil
                 [(MkParameter false InOut (TypBit 32) None
                       {| stags := NoInfo; str := "value" |});
@@ -114,12 +114,21 @@ Definition c := DeclControl NoInfo {| stags := NoInfo; str := "c" |} nil
                                     (ExpName
                                      (BareName
                                       {| stags := NoInfo; str := "rv" |})
-                                     NoLocator) (TypBit 32) Out)
+                                     (LInstance
+                                          [{| stags := NoInfo;
+                                              str := "apply" |};
+                                           {| stags := NoInfo; str := "rv" |}]))
+                                    (TypBit 32) Out)
                                (MkExpression NoInfo
                                     (ExpName
                                      (BareName
                                       {| stags := NoInfo; str := "value" |})
-                                     NoLocator) (TypBit 32) InOut)) StmUnit)
+                                     (LInstance
+                                          [{| stags := NoInfo;
+                                              str := "apply" |};
+                                           {| stags := NoInfo;
+                                              str := "value" |}]))
+                                    (TypBit 32) InOut)) StmUnit)
                      (BlockCons
                           (MkStatement NoInfo
                                (StatAssignment
@@ -127,7 +136,12 @@ Definition c := DeclControl NoInfo {| stags := NoInfo; str := "c" |} nil
                                          (ExpName
                                           (BareName
                                            {| stags := NoInfo;
-                                              str := "value" |}) NoLocator)
+                                              str := "value" |})
+                                          (LInstance
+                                               [{| stags := NoInfo;
+                                                   str := "apply" |};
+                                                {| stags := NoInfo;
+                                                   str := "value" |}]))
                                          (TypBit 32) InOut)
                                     (MkExpression NoInfo
                                          (ExpBinaryOp Plus
@@ -136,8 +150,12 @@ Definition c := DeclControl NoInfo {| stags := NoInfo; str := "c" |} nil
                                                       (BareName
                                                        {| stags := NoInfo;
                                                           str := "value" |})
-                                                      NoLocator) (TypBit 32)
-                                                     InOut),
+                                                      (LInstance
+                                                           [{| stags := NoInfo;
+                                                               str := "apply" |};
+                                                            {| stags := NoInfo;
+                                                               str := "value" |}]))
+                                                     (TypBit 32) InOut),
                                                 (MkExpression NoInfo
                                                      (ExpCast (TypBit 32)
                                                           (MkExpression

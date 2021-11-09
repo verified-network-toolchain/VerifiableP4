@@ -31,7 +31,7 @@ Definition c := DeclControl NoInfo {| stags := NoInfo; str := "c" |} nil
                (TypTypeName
                 (BareName {| stags := NoInfo; str := "Virtual" |})) nil) nil
           {| stags := NoInfo; str := "cntr" |}
-          [(InitInstantiation NoInfo
+          [(DeclInstantiation NoInfo
                 (TypSpecializedType
                      (TypTypeName
                       (BareName {| stags := NoInfo; str := "State" |})) nil)
@@ -43,7 +43,7 @@ Definition c := DeclControl NoInfo {| stags := NoInfo; str := "c" |} nil
                                     width_signed := None |}) TypInteger
                                 Directionless)) (TypInt 16) Directionless)]
                 {| stags := NoInfo; str := "state" |} nil);
-           (InitFunction NoInfo (TypBit 16) {| stags := NoInfo; str := "f" |}
+           (DeclFunction NoInfo (TypBit 16) {| stags := NoInfo; str := "f" |}
                 nil
                 [(MkParameter false In (TypBit 16) None
                       {| stags := NoInfo; str := "ix" |})]
