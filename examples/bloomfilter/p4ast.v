@@ -628,7 +628,7 @@ Definition bloom0 := DeclInstantiation NoInfo
           (ExpInt
            {| itags := NoInfo; value := 1024;
               width_signed := (Some ( 32%N, false )) |}) (TypBit 32)
-          Directionless)] {| stags := NoInfo; str := "bloom0" |} None.
+          Directionless)] {| stags := NoInfo; str := "bloom0" |} nil.
 
 Definition bloom1 := DeclInstantiation NoInfo
     (TypSpecializedType
@@ -638,7 +638,7 @@ Definition bloom1 := DeclInstantiation NoInfo
           (ExpInt
            {| itags := NoInfo; value := 1024;
               width_signed := (Some ( 32%N, false )) |}) (TypBit 32)
-          Directionless)] {| stags := NoInfo; str := "bloom1" |} None.
+          Directionless)] {| stags := NoInfo; str := "bloom1" |} nil.
 
 Definition bloom2 := DeclInstantiation NoInfo
     (TypSpecializedType
@@ -648,7 +648,7 @@ Definition bloom2 := DeclInstantiation NoInfo
           (ExpInt
            {| itags := NoInfo; value := 1024;
               width_signed := (Some ( 32%N, false )) |}) (TypBit 32)
-          Directionless)] {| stags := NoInfo; str := "bloom2" |} None.
+          Directionless)] {| stags := NoInfo; str := "bloom2" |} nil.
 
 Definition Add := DeclControl NoInfo {| stags := NoInfo; str := "Add" |} nil
     [(MkParameter false InOut
@@ -664,7 +664,7 @@ Definition Add := DeclControl NoInfo {| stags := NoInfo; str := "Add" |} nil
                    (MkExpression NoInfo
                         (ExpName
                          (BareName {| stags := NoInfo; str := "hash" |})
-                         NoLocator)
+                         (LGlobal [{| stags := NoInfo; str := "hash" |}]))
                         (TypFunction
                          (MkFunctionType
                               [{| stags := NoInfo; str := "O" |};
@@ -794,7 +794,8 @@ Definition Add := DeclControl NoInfo {| stags := NoInfo; str := "Add" |} nil
                         (MkExpression NoInfo
                              (ExpName
                               (BareName {| stags := NoInfo; str := "hash" |})
-                              NoLocator)
+                              (LGlobal
+                                   [{| stags := NoInfo; str := "hash" |}]))
                              (TypFunction
                               (MkFunctionType
                                    [{| stags := NoInfo; str := "O" |};
@@ -935,7 +936,8 @@ Definition Add := DeclControl NoInfo {| stags := NoInfo; str := "Add" |} nil
                                   (ExpName
                                    (BareName
                                     {| stags := NoInfo; str := "hash" |})
-                                   NoLocator)
+                                   (LGlobal
+                                        [{| stags := NoInfo; str := "hash" |}]))
                                   (TypFunction
                                    (MkFunctionType
                                         [{| stags := NoInfo; str := "O" |};
@@ -1098,7 +1100,9 @@ Definition Add := DeclControl NoInfo {| stags := NoInfo; str := "Add" |} nil
                                                   (BareName
                                                    {| stags := NoInfo;
                                                       str := "bloom0" |})
-                                                  NoLocator)
+                                                  (LGlobal
+                                                       [{| stags := NoInfo;
+                                                           str := "bloom0" |}]))
                                                  (TypSpecializedType
                                                       (TypExtern
                                                        {| stags := NoInfo;
@@ -1159,7 +1163,9 @@ Definition Add := DeclControl NoInfo {| stags := NoInfo; str := "Add" |} nil
                                                        (BareName
                                                         {| stags := NoInfo;
                                                            str := "bloom0" |})
-                                                       NoLocator)
+                                                       (LGlobal
+                                                            [{| stags := NoInfo;
+                                                                str := "bloom0" |}]))
                                                       (TypSpecializedType
                                                            (TypExtern
                                                             {| stags := NoInfo;
@@ -1222,7 +1228,10 @@ Definition Add := DeclControl NoInfo {| stags := NoInfo; str := "Add" |} nil
                                                             (BareName
                                                              {| stags := NoInfo;
                                                                 str := "bloom0" |})
-                                                            NoLocator)
+                                                            (LGlobal
+                                                                 [{| 
+                                                                  stags := NoInfo;
+                                                                  str := "bloom0" |}]))
                                                            (TypSpecializedType
                                                                 (TypExtern
                                                                  {| stags := NoInfo;
@@ -1294,7 +1303,7 @@ Definition Query := DeclControl NoInfo {| stags := NoInfo; str := "Query" |}
                    (MkExpression NoInfo
                         (ExpName
                          (BareName {| stags := NoInfo; str := "hash" |})
-                         NoLocator)
+                         (LGlobal [{| stags := NoInfo; str := "hash" |}]))
                         (TypFunction
                          (MkFunctionType
                               [{| stags := NoInfo; str := "O" |};
@@ -1424,7 +1433,8 @@ Definition Query := DeclControl NoInfo {| stags := NoInfo; str := "Query" |}
                         (MkExpression NoInfo
                              (ExpName
                               (BareName {| stags := NoInfo; str := "hash" |})
-                              NoLocator)
+                              (LGlobal
+                                   [{| stags := NoInfo; str := "hash" |}]))
                              (TypFunction
                               (MkFunctionType
                                    [{| stags := NoInfo; str := "O" |};
@@ -1565,7 +1575,8 @@ Definition Query := DeclControl NoInfo {| stags := NoInfo; str := "Query" |}
                                   (ExpName
                                    (BareName
                                     {| stags := NoInfo; str := "hash" |})
-                                   NoLocator)
+                                   (LGlobal
+                                        [{| stags := NoInfo; str := "hash" |}]))
                                   (TypFunction
                                    (MkFunctionType
                                         [{| stags := NoInfo; str := "O" |};
@@ -1728,7 +1739,9 @@ Definition Query := DeclControl NoInfo {| stags := NoInfo; str := "Query" |}
                                                   (BareName
                                                    {| stags := NoInfo;
                                                       str := "bloom0" |})
-                                                  NoLocator)
+                                                  (LGlobal
+                                                       [{| stags := NoInfo;
+                                                           str := "bloom0" |}]))
                                                  (TypSpecializedType
                                                       (TypExtern
                                                        {| stags := NoInfo;
@@ -1798,7 +1811,9 @@ Definition Query := DeclControl NoInfo {| stags := NoInfo; str := "Query" |}
                                                        (BareName
                                                         {| stags := NoInfo;
                                                            str := "bloom0" |})
-                                                       NoLocator)
+                                                       (LGlobal
+                                                            [{| stags := NoInfo;
+                                                                str := "bloom0" |}]))
                                                       (TypSpecializedType
                                                            (TypExtern
                                                             {| stags := NoInfo;
@@ -1868,7 +1883,10 @@ Definition Query := DeclControl NoInfo {| stags := NoInfo; str := "Query" |}
                                                             (BareName
                                                              {| stags := NoInfo;
                                                                 str := "bloom0" |})
-                                                            NoLocator)
+                                                            (LGlobal
+                                                                 [{| 
+                                                                  stags := NoInfo;
+                                                                  str := "bloom0" |}]))
                                                            (TypSpecializedType
                                                                 (TypExtern
                                                                  {| stags := NoInfo;
@@ -2685,7 +2703,7 @@ Definition main := DeclInstantiation NoInfo
                             ( {| stags := NoInfo; str := "data" |},
                               (TypBit 16) )]) )]) None
                       {| stags := NoInfo; str := "hdr" |})])) Directionless)]
-    {| stags := NoInfo; str := "main" |} None.
+    {| stags := NoInfo; str := "main" |} nil.
 
 Definition prog := Program
     [decl'1; packet_in; packet_out; verify'check'toSignal; NoAction; decl'2;
