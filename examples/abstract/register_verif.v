@@ -1,6 +1,7 @@
 Require Import Poulet4.P4defs.
 Require Import Poulet4.P4Notations.
 Require Import Coq.Program.Basics.
+Require Import Poulet4.P4Arith.
 Open Scope string_scope.
 
 Import ListNotations.
@@ -17,5 +18,85 @@ Opaque new_register.
 (* Opaque construct_extern. *)
 Definition ge := Eval compute in gen_ge prog.
 Definition init_es := Eval compute in snd (instantiate_prog ge prog).
+
+Transparent PathMap.empty PathMap.set new_register.
+
+Definition c : fundef := Eval compute in force (FExternal !"" !"") (PathMap.get !["c"] (ge_func ge)).
+
+Definition foo : {st' & exec_func ge read_ndetbit !["main"; "ctrl"] (PathMap.empty, init_es) c nil
+  [ValBaseBit (to_loptbool 16%N 0)] st' [ValBaseBit (to_loptbool 16%N 0)] SReturnNull}.
+Proof.
+  repeat econstructor.
+  simpl Z.eqb.
+  replace (ValBaseBit
+     [false; false; false; false; false; false; false; false; false; false; false; false; false; false;
+     false; false]) with (@ValBaseBit Info _ (to_lbool 16 0)) by auto.
+  econstructor.
+  econstructor.
+  econstructor.
+  econstructor.
+  econstructor.
+  econstructor.
+  econstructor.
+  econstructor.
+  replace (Znth 0
+     (new_register 65536 16
+        (ValBaseBit
+           [false; false; false; false; false; false; false; false; false; false; false; false; false;
+           false; false; false; false; false; false; false; false; false; false; false; false; false;
+           false; false; false; false; false; false]))) with (@ValBaseBit Info _ (to_lbool 32 0)) by auto.
+  {
+    econstructor.
+    repeat econstructor.
+    simpl Z.eqb.
+    econstructor.
+    econstructor.
+    econstructor.
+    timeout 10 repeat econstructor.
+    econstructor.
+    econstructor.
+    econstructor.
+    timeout 30 repeat econstructor.
+    econstructor.
+    econstructor.
+    {
+      econstructor.
+      econstructor.
+      econstructor.
+      econstructor.
+      econstructor.
+      econstructor.
+      econstructor.
+      econstructor.
+      econstructor.
+      econstructor.
+      repeat econstructor.
+      repeat econstructor.
+      repeat econstructor.
+      simpl. econstructor.
+      repeat econstructor.
+      simpl. repeat econstructor.
+    }
+    econstructor.
+    repeat econstructor.
+    repeat econstructor.
+    repeat econstructor.
+    repeat econstructor.
+    repeat econstructor.
+    repeat econstructor.
+  }
+  repeat econstructor.
+  repeat econstructor.
+  repeat econstructor.
+  repeat econstructor.
+Defined.
+
+Definition st := Eval simpl in projT1 foo.
+
+
+
+
+
+
 
 
