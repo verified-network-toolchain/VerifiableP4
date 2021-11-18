@@ -11,7 +11,7 @@ Section AssertionLang.
 Context {tags_t: Type} {tags_t_inhabitant : Inhabitant tags_t}.
 Notation Val := (@ValueBase tags_t bool).
 Notation Sval := (@ValueBase tags_t (option bool)).
-Notation SemLval := (@ValueLvalue tags_t).
+Notation Lval := (@ValueLvalue tags_t).
 
 Notation ident := (P4String.t tags_t).
 Notation path := (list ident).

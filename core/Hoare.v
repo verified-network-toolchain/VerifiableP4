@@ -25,7 +25,7 @@ Notation argument := (@argument tags_t).
 
 Context `{@Target tags_t Expression}.
 
-Variable ge : (@genv tags_t).
+Variable ge : (@genv tags_t _).
 
 Definition assertion := state -> Prop. (* shallow assertion *)
 Definition arg_assertion := list Sval -> state -> Prop.
