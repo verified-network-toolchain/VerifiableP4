@@ -9,17 +9,15 @@ Require Import Hammer.Plugin.Hammer.
 Section Hoare.
 
 Context {tags_t: Type} {tags_t_inhabitant : Inhabitant tags_t}.
-Notation Val := (@ValueBase tags_t bool).
-Notation Sval := (@ValueBase tags_t (option bool)).
+Notation Val := (@ValueBase bool).
+Notation Sval := (@ValueBase (option bool)).
 (* Notation ValSet := (@ValueSet tags_t). *)
-Notation Lval := (@ValueLvalue tags_t).
+Notation Lval := ValueLvalue.
 
 Notation ident := (P4String.t tags_t).
 Notation path := (list ident).
 Notation P4Int := (P4Int.t tags_t).
 Notation P4String := (P4String.t tags_t).
-Notation signal := (@signal tags_t).
-Notation Locator := (@Locator tags_t).
 Notation Expression := (@Expression tags_t).
 Notation argument := (@argument tags_t).
 

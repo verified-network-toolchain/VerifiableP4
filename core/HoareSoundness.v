@@ -21,8 +21,8 @@ Notation argument := (@argument tags_t).
 
 Context `{@Target tags_t Expression}.
 
-Variable ge : (@genv tags_t).
-Variable inst_m : (@inst_mem tags_t).
+Variable ge : (@genv tags_t _).
+Variable inst_m : (@inst_mem tags_t _).
 
 (****************************** Soundness ***************************)
 (* TODO prove them *)
