@@ -1,1 +1,2 @@
 -Q _build/default ProD3
+-Q _build/default/core ProD3.core

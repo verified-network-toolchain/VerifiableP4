@@ -25,18 +25,22 @@ enum bit<8> Suits {
 }
 
 header hdr {
-    bit<16> f;
-    //bit<4> paddings;
-    //varbit<8> g;
+    bit<16> input;
+    bit<16> output;
 }
 
+struct meta {
+    tuple<bool, bit<1>> x;
+}
 
 control compute(inout hdr h) {
     apply {
-    	bool i = true;
-    	int<8> j = -128;
-        bit<8> k = 1;
-        h.f = (-16)[15:0];
+
+        hash(h.output, HashAlgorithm.identity, 8w0x00, {h.input}, 24w0x123455);
+    	// bool i = true;
+    	// int<8> j = -128;
+        // bit<8> k = 1;
+        // h.f = (-16)[15:0];
         //h.paddings = 0;
     }
 }

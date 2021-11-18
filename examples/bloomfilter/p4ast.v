@@ -14,10 +14,10 @@ Definition decl'1 := DeclError NoInfo
 
 Definition packet_in := DeclExternObject NoInfo
     {| stags := NoInfo; str := "packet_in" |} nil
-    [(ProtoMethod NoInfo (TypBit 32) {| stags := NoInfo; str := "length" |}
+    [(ProtoMethod NoInfo (TypBit 32%N) {| stags := NoInfo; str := "length" |}
           nil nil);
      (ProtoMethod NoInfo TypVoid {| stags := NoInfo; str := "advance" |} nil
-          [(MkParameter false In (TypBit 32) None
+          [(MkParameter false In (TypBit 32%N) None
                 {| stags := NoInfo; str := "sizeInBits" |})]);
      (ProtoMethod NoInfo
           (TypTypeName (BareName {| stags := NoInfo; str := "T1" |}))
@@ -28,7 +28,7 @@ Definition packet_in := DeclExternObject NoInfo
           [(MkParameter false Out
                 (TypTypeName (BareName {| stags := NoInfo; str := "T0" |}))
                 None {| stags := NoInfo; str := "variableSizeHeader" |});
-           (MkParameter false In (TypBit 32) None
+           (MkParameter false In (TypBit 32%N) None
                 {| stags := NoInfo; str := "variableFieldSizeInBits" |})]);
      (ProtoMethod NoInfo TypVoid {| stags := NoInfo; str := "extract" |}
           [{| stags := NoInfo; str := "T" |}]
@@ -65,37 +65,37 @@ Definition decl'3 := DeclMatchKind NoInfo
 
 Definition standard_metadata_t := DeclStruct NoInfo
     {| stags := NoInfo; str := "standard_metadata_t" |}
-    [(MkDeclarationField NoInfo (TypBit 9)
+    [(MkDeclarationField NoInfo (TypBit 9%N)
           {| stags := NoInfo; str := "ingress_port" |});
-     (MkDeclarationField NoInfo (TypBit 9)
+     (MkDeclarationField NoInfo (TypBit 9%N)
           {| stags := NoInfo; str := "egress_spec" |});
-     (MkDeclarationField NoInfo (TypBit 9)
+     (MkDeclarationField NoInfo (TypBit 9%N)
           {| stags := NoInfo; str := "egress_port" |});
-     (MkDeclarationField NoInfo (TypBit 32)
+     (MkDeclarationField NoInfo (TypBit 32%N)
           {| stags := NoInfo; str := "instance_type" |});
-     (MkDeclarationField NoInfo (TypBit 32)
+     (MkDeclarationField NoInfo (TypBit 32%N)
           {| stags := NoInfo; str := "packet_length" |});
-     (MkDeclarationField NoInfo (TypBit 32)
+     (MkDeclarationField NoInfo (TypBit 32%N)
           {| stags := NoInfo; str := "enq_timestamp" |});
-     (MkDeclarationField NoInfo (TypBit 19)
+     (MkDeclarationField NoInfo (TypBit 19%N)
           {| stags := NoInfo; str := "enq_qdepth" |});
-     (MkDeclarationField NoInfo (TypBit 32)
+     (MkDeclarationField NoInfo (TypBit 32%N)
           {| stags := NoInfo; str := "deq_timedelta" |});
-     (MkDeclarationField NoInfo (TypBit 19)
+     (MkDeclarationField NoInfo (TypBit 19%N)
           {| stags := NoInfo; str := "deq_qdepth" |});
-     (MkDeclarationField NoInfo (TypBit 48)
+     (MkDeclarationField NoInfo (TypBit 48%N)
           {| stags := NoInfo; str := "ingress_global_timestamp" |});
-     (MkDeclarationField NoInfo (TypBit 48)
+     (MkDeclarationField NoInfo (TypBit 48%N)
           {| stags := NoInfo; str := "egress_global_timestamp" |});
-     (MkDeclarationField NoInfo (TypBit 16)
+     (MkDeclarationField NoInfo (TypBit 16%N)
           {| stags := NoInfo; str := "mcast_grp" |});
-     (MkDeclarationField NoInfo (TypBit 16)
+     (MkDeclarationField NoInfo (TypBit 16%N)
           {| stags := NoInfo; str := "egress_rid" |});
-     (MkDeclarationField NoInfo (TypBit 1)
+     (MkDeclarationField NoInfo (TypBit 1%N)
           {| stags := NoInfo; str := "checksum_error" |});
      (MkDeclarationField NoInfo TypError
           {| stags := NoInfo; str := "parser_error" |});
-     (MkDeclarationField NoInfo (TypBit 3)
+     (MkDeclarationField NoInfo (TypBit 3%N)
           {| stags := NoInfo; str := "priority" |})].
 
 Definition CounterType := DeclEnum NoInfo
@@ -112,14 +112,14 @@ Definition MeterType := DeclEnum NoInfo
 Definition counter := DeclExternObject NoInfo
     {| stags := NoInfo; str := "counter" |} nil
     [(ProtoConstructor NoInfo {| stags := NoInfo; str := "counter" |}
-          [(MkParameter false Directionless (TypBit 32) None
+          [(MkParameter false Directionless (TypBit 32%N) None
                 {| stags := NoInfo; str := "size" |});
            (MkParameter false Directionless
                 (TypTypeName
                  (BareName {| stags := NoInfo; str := "CounterType" |})) 
                 None {| stags := NoInfo; str := "type" |})]);
      (ProtoMethod NoInfo TypVoid {| stags := NoInfo; str := "count" |} nil
-          [(MkParameter false In (TypBit 32) None
+          [(MkParameter false In (TypBit 32%N) None
                 {| stags := NoInfo; str := "index" |})])].
 
 Definition direct_counter := DeclExternObject NoInfo
@@ -135,7 +135,7 @@ Definition direct_counter := DeclExternObject NoInfo
 Definition meter := DeclExternObject NoInfo
     {| stags := NoInfo; str := "meter" |} nil
     [(ProtoConstructor NoInfo {| stags := NoInfo; str := "meter" |}
-          [(MkParameter false Directionless (TypBit 32) None
+          [(MkParameter false Directionless (TypBit 32%N) None
                 {| stags := NoInfo; str := "size" |});
            (MkParameter false Directionless
                 (TypTypeName
@@ -144,7 +144,7 @@ Definition meter := DeclExternObject NoInfo
      (ProtoMethod NoInfo TypVoid
           {| stags := NoInfo; str := "execute_meter" |}
           [{| stags := NoInfo; str := "T3" |}]
-          [(MkParameter false In (TypBit 32) None
+          [(MkParameter false In (TypBit 32%N) None
                 {| stags := NoInfo; str := "index" |});
            (MkParameter false Out
                 (TypTypeName (BareName {| stags := NoInfo; str := "T3" |}))
@@ -167,10 +167,10 @@ Definition register := DeclExternObject NoInfo
     {| stags := NoInfo; str := "register" |}
     [{| stags := NoInfo; str := "T5" |}]
     [(ProtoConstructor NoInfo {| stags := NoInfo; str := "register" |}
-          [(MkParameter false Directionless (TypBit 32) None
+          [(MkParameter false Directionless (TypBit 32%N) None
                 {| stags := NoInfo; str := "size" |})]);
      (ProtoMethod NoInfo TypVoid {| stags := NoInfo; str := "write" |} nil
-          [(MkParameter false In (TypBit 32) None
+          [(MkParameter false In (TypBit 32%N) None
                 {| stags := NoInfo; str := "index" |});
            (MkParameter false In
                 (TypTypeName (BareName {| stags := NoInfo; str := "T5" |}))
@@ -179,13 +179,13 @@ Definition register := DeclExternObject NoInfo
           [(MkParameter false Out
                 (TypTypeName (BareName {| stags := NoInfo; str := "T5" |}))
                 None {| stags := NoInfo; str := "result" |});
-           (MkParameter false In (TypBit 32) None
+           (MkParameter false In (TypBit 32%N) None
                 {| stags := NoInfo; str := "index" |})])].
 
 Definition action_profile := DeclExternObject NoInfo
     {| stags := NoInfo; str := "action_profile" |} nil
     [(ProtoConstructor NoInfo {| stags := NoInfo; str := "action_profile" |}
-          [(MkParameter false Directionless (TypBit 32) None
+          [(MkParameter false Directionless (TypBit 32%N) None
                 {| stags := NoInfo; str := "size" |})])].
 
 Definition random'result'lo'hi := DeclExternFunction NoInfo TypVoid
@@ -204,7 +204,7 @@ Definition random'result'lo'hi := DeclExternFunction NoInfo TypVoid
 Definition digest'receiver'data := DeclExternFunction NoInfo TypVoid
     {| stags := NoInfo; str := "digest" |}
     [{| stags := NoInfo; str := "T7" |}]
-    [(MkParameter false In (TypBit 32) None
+    [(MkParameter false In (TypBit 32%N) None
           {| stags := NoInfo; str := "receiver" |});
      (MkParameter false In
           (TypTypeName (BareName {| stags := NoInfo; str := "T7" |})) 
@@ -259,9 +259,9 @@ Definition action_selector := DeclExternObject NoInfo
                 (TypTypeName
                  (BareName {| stags := NoInfo; str := "HashAlgorithm" |}))
                 None {| stags := NoInfo; str := "algorithm" |});
-           (MkParameter false Directionless (TypBit 32) None
+           (MkParameter false Directionless (TypBit 32%N) None
                 {| stags := NoInfo; str := "size" |});
-           (MkParameter false Directionless (TypBit 32) None
+           (MkParameter false Directionless (TypBit 32%N) None
                 {| stags := NoInfo; str := "outputWidth" |})])].
 
 Definition CloneType := DeclEnum NoInfo
@@ -272,7 +272,7 @@ Definition CloneType := DeclEnum NoInfo
 Definition Checksum16 := DeclExternObject NoInfo
     {| stags := NoInfo; str := "Checksum16" |} nil
     [(ProtoConstructor NoInfo {| stags := NoInfo; str := "Checksum16" |} nil);
-     (ProtoMethod NoInfo (TypBit 16) {| stags := NoInfo; str := "get" |}
+     (ProtoMethod NoInfo (TypBit 16%N) {| stags := NoInfo; str := "get" |}
           [{| stags := NoInfo; str := "D9" |}]
           [(MkParameter false In
                 (TypTypeName (BareName {| stags := NoInfo; str := "D9" |}))
@@ -367,7 +367,7 @@ Definition clone'type'session := DeclExternFunction NoInfo TypVoid
     [(MkParameter false In
           (TypTypeName (BareName {| stags := NoInfo; str := "CloneType" |}))
           None {| stags := NoInfo; str := "type" |});
-     (MkParameter false In (TypBit 32) None
+     (MkParameter false In (TypBit 32%N) None
           {| stags := NoInfo; str := "session" |})].
 
 Definition clone3'type'session'data := DeclExternFunction NoInfo TypVoid
@@ -376,7 +376,7 @@ Definition clone3'type'session'data := DeclExternFunction NoInfo TypVoid
     [(MkParameter false In
           (TypTypeName (BareName {| stags := NoInfo; str := "CloneType" |}))
           None {| stags := NoInfo; str := "type" |});
-     (MkParameter false In (TypBit 32) None
+     (MkParameter false In (TypBit 32%N) None
           {| stags := NoInfo; str := "session" |});
      (MkParameter false In
           (TypTypeName (BareName {| stags := NoInfo; str := "T20" |})) 
@@ -384,7 +384,7 @@ Definition clone3'type'session'data := DeclExternFunction NoInfo TypVoid
 
 Definition truncate'length := DeclExternFunction NoInfo TypVoid
     {| stags := NoInfo; str := "truncate" |} nil
-    [(MkParameter false In (TypBit 32) None
+    [(MkParameter false In (TypBit 32%N) None
           {| stags := NoInfo; str := "length" |})].
 
 Definition assert'check := DeclExternFunction NoInfo TypVoid
@@ -523,36 +523,36 @@ Definition V1Switch := DeclPackageType NoInfo
           None {| stags := NoInfo; str := "dep" |})].
 
 Definition egressSpec_t := DeclTypeDef NoInfo
-    {| stags := NoInfo; str := "egressSpec_t" |} (inl (TypBit 9)).
+    {| stags := NoInfo; str := "egressSpec_t" |} (inl (TypBit 9%N)).
 
 Definition myHeader_t := DeclHeader NoInfo
     {| stags := NoInfo; str := "myHeader_t" |}
-    [(MkDeclarationField NoInfo (TypBit 8)
+    [(MkDeclarationField NoInfo (TypBit 8%N)
           {| stags := NoInfo; str := "rw" |});
-     (MkDeclarationField NoInfo (TypBit 16)
+     (MkDeclarationField NoInfo (TypBit 16%N)
           {| stags := NoInfo; str := "data" |})].
 
 Definition custom_metadata_t := DeclStruct NoInfo
     {| stags := NoInfo; str := "custom_metadata_t" |}
-    [(MkDeclarationField NoInfo (TypBit 32)
+    [(MkDeclarationField NoInfo (TypBit 32%N)
           {| stags := NoInfo; str := "index0" |});
-     (MkDeclarationField NoInfo (TypBit 32)
+     (MkDeclarationField NoInfo (TypBit 32%N)
           {| stags := NoInfo; str := "index1" |});
-     (MkDeclarationField NoInfo (TypBit 32)
+     (MkDeclarationField NoInfo (TypBit 32%N)
           {| stags := NoInfo; str := "index2" |});
-     (MkDeclarationField NoInfo (TypBit 1)
+     (MkDeclarationField NoInfo (TypBit 1%N)
           {| stags := NoInfo; str := "member0" |});
-     (MkDeclarationField NoInfo (TypBit 1)
+     (MkDeclarationField NoInfo (TypBit 1%N)
           {| stags := NoInfo; str := "member1" |});
-     (MkDeclarationField NoInfo (TypBit 1)
+     (MkDeclarationField NoInfo (TypBit 1%N)
           {| stags := NoInfo; str := "member2" |})].
 
 Definition headers := DeclStruct NoInfo
     {| stags := NoInfo; str := "headers" |}
     [(MkDeclarationField NoInfo
           (TypHeader
-           [( {| stags := NoInfo; str := "rw" |}, (TypBit 8) );
-            ( {| stags := NoInfo; str := "data" |}, (TypBit 16) )])
+           [( {| stags := NoInfo; str := "rw" |}, (TypBit 8%N) );
+            ( {| stags := NoInfo; str := "data" |}, (TypBit 16%N) )])
           {| stags := NoInfo; str := "myHeader" |})].
 
 Definition MyParser := DeclParser NoInfo
@@ -598,8 +598,9 @@ Definition MyParser := DeclParser NoInfo
                                       {| stags := NoInfo; str := "hdr" |})]
                                 FunExtern TypVoid)) Directionless)
                      [(TypHeader
-                       [( {| stags := NoInfo; str := "rw" |}, (TypBit 8) );
-                        ( {| stags := NoInfo; str := "data" |}, (TypBit 16) )])]
+                       [( {| stags := NoInfo; str := "rw" |}, (TypBit 8%N) );
+                        ( {| stags := NoInfo; str := "data" |},
+                          (TypBit 16%N) )])]
                      [(Some
                        (MkExpression NoInfo
                             (ExpExpressionMember
@@ -615,39 +616,39 @@ Definition MyParser := DeclParser NoInfo
                                  {| stags := NoInfo; str := "myHeader" |})
                             (TypHeader
                              [( {| stags := NoInfo; str := "rw" |},
-                                (TypBit 8) );
+                                (TypBit 8%N) );
                               ( {| stags := NoInfo; str := "data" |},
-                                (TypBit 16) )]) Directionless))]) StmUnit)]
+                                (TypBit 16%N) )]) Directionless))]) StmUnit)]
           (ParserDirect NoInfo {| stags := NoInfo; str := "accept" |}))].
 
 Definition bloom0 := DeclInstantiation NoInfo
     (TypSpecializedType
          (TypTypeName (BareName {| stags := NoInfo; str := "register" |}))
-         [(TypBit 1)])
+         [(TypBit 1%N)])
     [(MkExpression NoInfo
           (ExpInt
            {| itags := NoInfo; value := 1024;
-              width_signed := (Some ( 32%N, false )) |}) (TypBit 32)
+              width_signed := (Some ( 32%N, false )) |}) (TypBit 32%N)
           Directionless)] {| stags := NoInfo; str := "bloom0" |} nil.
 
 Definition bloom1 := DeclInstantiation NoInfo
     (TypSpecializedType
          (TypTypeName (BareName {| stags := NoInfo; str := "register" |}))
-         [(TypBit 1)])
+         [(TypBit 1%N)])
     [(MkExpression NoInfo
           (ExpInt
            {| itags := NoInfo; value := 1024;
-              width_signed := (Some ( 32%N, false )) |}) (TypBit 32)
+              width_signed := (Some ( 32%N, false )) |}) (TypBit 32%N)
           Directionless)] {| stags := NoInfo; str := "bloom1" |} nil.
 
 Definition bloom2 := DeclInstantiation NoInfo
     (TypSpecializedType
          (TypTypeName (BareName {| stags := NoInfo; str := "register" |}))
-         [(TypBit 1)])
+         [(TypBit 1%N)])
     [(MkExpression NoInfo
           (ExpInt
            {| itags := NoInfo; value := 1024;
-              width_signed := (Some ( 32%N, false )) |}) (TypBit 32)
+              width_signed := (Some ( 32%N, false )) |}) (TypBit 32%N)
           Directionless)] {| stags := NoInfo; str := "bloom2" |} nil.
 
 Definition Add := DeclControl NoInfo {| stags := NoInfo; str := "Add" |} nil
@@ -702,8 +703,8 @@ Definition Add := DeclControl NoInfo {| stags := NoInfo; str := "Add" |} nil
                                       {| stags := NoInfo; str := "M" |}))
                                     None {| stags := NoInfo; str := "max" |})]
                               FunExtern TypVoid)) Directionless)
-                   [(TypBit 32); (TypBit 10);
-                    (TypList [(TypBit 16); (TypBit 3)]); (TypBit 10)]
+                   [(TypBit 32%N); (TypBit 10%N);
+                    (TypList [(TypBit 16%N); (TypBit 3%N)]); (TypBit 10%N)]
                    [(Some
                      (MkExpression NoInfo
                           (ExpExpressionMember
@@ -720,7 +721,7 @@ Definition Add := DeclControl NoInfo {| stags := NoInfo; str := "Add" |} nil
                                          str := "custom_metadata_t" |}))
                                     InOut)
                                {| stags := NoInfo; str := "index0" |})
-                          (TypBit 32) Directionless));
+                          (TypBit 32%N) Directionless));
                     (Some
                      (MkExpression NoInfo
                           (ExpTypeMember
@@ -744,7 +745,7 @@ Definition Add := DeclControl NoInfo {| stags := NoInfo; str := "Add" |} nil
                           (ExpInt
                            {| itags := NoInfo; value := 0;
                               width_signed := (Some ( 10%N, false )) |})
-                          (TypBit 10) Directionless));
+                          (TypBit 10%N) Directionless));
                     (Some
                      (MkExpression NoInfo
                           (ExpList
@@ -770,24 +771,26 @@ Definition Add := DeclControl NoInfo {| stags := NoInfo; str := "Add" |} nil
                                            (TypHeader
                                             [( {| stags := NoInfo;
                                                   str := "rw" |},
-                                               (TypBit 8) );
+                                               (TypBit 8%N) );
                                              ( {| stags := NoInfo;
                                                   str := "data" |},
-                                               (TypBit 16) )]) Directionless)
+                                               (TypBit 16%N) )])
+                                           Directionless)
                                       {| stags := NoInfo; str := "data" |})
-                                 (TypBit 16) Directionless);
+                                 (TypBit 16%N) Directionless);
                             (MkExpression NoInfo
                                  (ExpInt
                                   {| itags := NoInfo; value := 3;
                                      width_signed := (Some ( 3%N, false )) |})
-                                 (TypBit 3) Directionless)])
-                          (TypList [(TypBit 16); (TypBit 3)]) Directionless));
+                                 (TypBit 3%N) Directionless)])
+                          (TypList [(TypBit 16%N); (TypBit 3%N)])
+                          Directionless));
                     (Some
                      (MkExpression NoInfo
                           (ExpInt
                            {| itags := NoInfo; value := 1023;
                               width_signed := (Some ( 10%N, false )) |})
-                          (TypBit 10) Directionless))]) StmUnit)
+                          (TypBit 10%N) Directionless))]) StmUnit)
          (BlockCons
               (MkStatement NoInfo
                    (StatMethodCall
@@ -835,8 +838,9 @@ Definition Add := DeclControl NoInfo {| stags := NoInfo; str := "Add" |} nil
                                          None
                                          {| stags := NoInfo; str := "max" |})]
                                    FunExtern TypVoid)) Directionless)
-                        [(TypBit 32); (TypBit 10);
-                         (TypList [(TypBit 16); (TypBit 5)]); (TypBit 10)]
+                        [(TypBit 32%N); (TypBit 10%N);
+                         (TypList [(TypBit 16%N); (TypBit 5%N)]);
+                         (TypBit 10%N)]
                         [(Some
                           (MkExpression NoInfo
                                (ExpExpressionMember
@@ -854,7 +858,7 @@ Definition Add := DeclControl NoInfo {| stags := NoInfo; str := "Add" |} nil
                                               str := "custom_metadata_t" |}))
                                          InOut)
                                     {| stags := NoInfo; str := "index1" |})
-                               (TypBit 32) Directionless));
+                               (TypBit 32%N) Directionless));
                          (Some
                           (MkExpression NoInfo
                                (ExpTypeMember
@@ -881,7 +885,7 @@ Definition Add := DeclControl NoInfo {| stags := NoInfo; str := "Add" |} nil
                                (ExpInt
                                 {| itags := NoInfo; value := 0;
                                    width_signed := (Some ( 10%N, false )) |})
-                               (TypBit 10) Directionless));
+                               (TypBit 10%N) Directionless));
                          (Some
                           (MkExpression NoInfo
                                (ExpList
@@ -907,28 +911,28 @@ Definition Add := DeclControl NoInfo {| stags := NoInfo; str := "Add" |} nil
                                                 (TypHeader
                                                  [( {| stags := NoInfo;
                                                        str := "rw" |},
-                                                    (TypBit 8) );
+                                                    (TypBit 8%N) );
                                                   ( {| stags := NoInfo;
                                                        str := "data" |},
-                                                    (TypBit 16) )])
+                                                    (TypBit 16%N) )])
                                                 Directionless)
                                            {| stags := NoInfo;
-                                              str := "data" |}) (TypBit 16)
+                                              str := "data" |}) (TypBit 16%N)
                                       Directionless);
                                  (MkExpression NoInfo
                                       (ExpInt
                                        {| itags := NoInfo; value := 5;
                                           width_signed := (Some
                                                            ( 5%N, false )) |})
-                                      (TypBit 5) Directionless)])
-                               (TypList [(TypBit 16); (TypBit 5)])
+                                      (TypBit 5%N) Directionless)])
+                               (TypList [(TypBit 16%N); (TypBit 5%N)])
                                Directionless));
                          (Some
                           (MkExpression NoInfo
                                (ExpInt
                                 {| itags := NoInfo; value := 1023;
                                    width_signed := (Some ( 10%N, false )) |})
-                               (TypBit 10) Directionless))]) StmUnit)
+                               (TypBit 10%N) Directionless))]) StmUnit)
               (BlockCons
                    (MkStatement NoInfo
                         (StatMethodCall
@@ -981,9 +985,9 @@ Definition Add := DeclControl NoInfo {| stags := NoInfo; str := "Add" |} nil
                                               {| stags := NoInfo;
                                                  str := "max" |})] FunExtern
                                         TypVoid)) Directionless)
-                             [(TypBit 32); (TypBit 10);
-                              (TypList [(TypBit 16); (TypBit 7)]);
-                              (TypBit 10)]
+                             [(TypBit 32%N); (TypBit 10%N);
+                              (TypList [(TypBit 16%N); (TypBit 7%N)]);
+                              (TypBit 10%N)]
                              [(Some
                                (MkExpression NoInfo
                                     (ExpExpressionMember
@@ -1001,7 +1005,7 @@ Definition Add := DeclControl NoInfo {| stags := NoInfo; str := "Add" |} nil
                                                    str := "custom_metadata_t" |}))
                                               InOut)
                                          {| stags := NoInfo;
-                                            str := "index2" |}) (TypBit 32)
+                                            str := "index2" |}) (TypBit 32%N)
                                     Directionless));
                               (Some
                                (MkExpression NoInfo
@@ -1038,7 +1042,7 @@ Definition Add := DeclControl NoInfo {| stags := NoInfo; str := "Add" |} nil
                                      {| itags := NoInfo; value := 0;
                                         width_signed := (Some
                                                          ( 10%N, false )) |})
-                                    (TypBit 10) Directionless));
+                                    (TypBit 10%N) Directionless));
                               (Some
                                (MkExpression NoInfo
                                     (ExpList
@@ -1066,22 +1070,22 @@ Definition Add := DeclControl NoInfo {| stags := NoInfo; str := "Add" |} nil
                                                      (TypHeader
                                                       [( {| stags := NoInfo;
                                                             str := "rw" |},
-                                                         (TypBit 8) );
+                                                         (TypBit 8%N) );
                                                        ( {| stags := NoInfo;
                                                             str := "data" |},
-                                                         (TypBit 16) )])
+                                                         (TypBit 16%N) )])
                                                      Directionless)
                                                 {| stags := NoInfo;
                                                    str := "data" |})
-                                           (TypBit 16) Directionless);
+                                           (TypBit 16%N) Directionless);
                                       (MkExpression NoInfo
                                            (ExpInt
                                             {| itags := NoInfo; value := 7;
                                                width_signed := (Some
                                                                 ( 7%N,
                                                                   false )) |})
-                                           (TypBit 7) Directionless)])
-                                    (TypList [(TypBit 16); (TypBit 7)])
+                                           (TypBit 7%N) Directionless)])
+                                    (TypList [(TypBit 16%N); (TypBit 7%N)])
                                     Directionless));
                               (Some
                                (MkExpression NoInfo
@@ -1089,7 +1093,7 @@ Definition Add := DeclControl NoInfo {| stags := NoInfo; str := "Add" |} nil
                                      {| itags := NoInfo; value := 1023;
                                         width_signed := (Some
                                                          ( 10%N, false )) |})
-                                    (TypBit 10) Directionless))]) StmUnit)
+                                    (TypBit 10%N) Directionless))]) StmUnit)
                    (BlockCons
                         (MkStatement NoInfo
                              (StatMethodCall
@@ -1107,18 +1111,18 @@ Definition Add := DeclControl NoInfo {| stags := NoInfo; str := "Add" |} nil
                                                       (TypExtern
                                                        {| stags := NoInfo;
                                                           str := "register" |})
-                                                      [(TypBit 1)])
+                                                      [(TypBit 1%N)])
                                                  Directionless)
                                             {| stags := NoInfo;
                                                str := "write" |})
                                        (TypFunction
                                         (MkFunctionType nil
                                              [(MkParameter false In
-                                                   (TypBit 32) None
+                                                   (TypBit 32%N) None
                                                    {| stags := NoInfo;
                                                       str := "index" |});
                                               (MkParameter false In
-                                                   (TypBit 1) None
+                                                   (TypBit 1%N) None
                                                    {| stags := NoInfo;
                                                       str := "value" |})]
                                              FunExtern TypVoid))
@@ -1141,18 +1145,19 @@ Definition Add := DeclControl NoInfo {| stags := NoInfo; str := "Add" |} nil
                                                    InOut)
                                               {| stags := NoInfo;
                                                  str := "index0" |})
-                                         (TypBit 32) Directionless));
+                                         (TypBit 32%N) Directionless));
                                    (Some
                                     (MkExpression NoInfo
-                                         (ExpCast (TypBit 1)
+                                         (ExpCast (TypBit 1%N)
                                               (MkExpression NoInfo
                                                    (ExpInt
                                                     {| itags := NoInfo;
                                                        value := 1;
                                                        width_signed := 
                                                        None |}) TypInteger
-                                                   Directionless)) (TypBit 1)
-                                         Directionless))]) StmUnit)
+                                                   Directionless))
+                                         (TypBit 1%N) Directionless))])
+                             StmUnit)
                         (BlockCons
                              (MkStatement NoInfo
                                   (StatMethodCall
@@ -1170,18 +1175,20 @@ Definition Add := DeclControl NoInfo {| stags := NoInfo; str := "Add" |} nil
                                                            (TypExtern
                                                             {| stags := NoInfo;
                                                                str := "register" |})
-                                                           [(TypBit 1)])
+                                                           [(TypBit 1%N)])
                                                       Directionless)
                                                  {| stags := NoInfo;
                                                     str := "write" |})
                                             (TypFunction
                                              (MkFunctionType nil
                                                   [(MkParameter false In
-                                                        (TypBit 32) None
+                                                        (TypBit 32%N) 
+                                                        None
                                                         {| stags := NoInfo;
                                                            str := "index" |});
                                                    (MkParameter false In
-                                                        (TypBit 1) None
+                                                        (TypBit 1%N) 
+                                                        None
                                                         {| stags := NoInfo;
                                                            str := "value" |})]
                                                   FunExtern TypVoid))
@@ -1204,10 +1211,10 @@ Definition Add := DeclControl NoInfo {| stags := NoInfo; str := "Add" |} nil
                                                         InOut)
                                                    {| stags := NoInfo;
                                                       str := "index1" |})
-                                              (TypBit 32) Directionless));
+                                              (TypBit 32%N) Directionless));
                                         (Some
                                          (MkExpression NoInfo
-                                              (ExpCast (TypBit 1)
+                                              (ExpCast (TypBit 1%N)
                                                    (MkExpression NoInfo
                                                         (ExpInt
                                                          {| itags := NoInfo;
@@ -1216,7 +1223,7 @@ Definition Add := DeclControl NoInfo {| stags := NoInfo; str := "Add" |} nil
                                                             None |})
                                                         TypInteger
                                                         Directionless))
-                                              (TypBit 1) Directionless))])
+                                              (TypBit 1%N) Directionless))])
                                   StmUnit)
                              (BlockCons
                                   (MkStatement NoInfo
@@ -1236,19 +1243,19 @@ Definition Add := DeclControl NoInfo {| stags := NoInfo; str := "Add" |} nil
                                                                 (TypExtern
                                                                  {| stags := NoInfo;
                                                                     str := "register" |})
-                                                                [(TypBit 1)])
+                                                                [(TypBit 1%N)])
                                                            Directionless)
                                                       {| stags := NoInfo;
                                                          str := "write" |})
                                                  (TypFunction
                                                   (MkFunctionType nil
                                                        [(MkParameter false In
-                                                             (TypBit 32) 
+                                                             (TypBit 32%N)
                                                              None
                                                              {| stags := NoInfo;
                                                                 str := "index" |});
                                                         (MkParameter false In
-                                                             (TypBit 1) 
+                                                             (TypBit 1%N)
                                                              None
                                                              {| stags := NoInfo;
                                                                 str := "value" |})]
@@ -1273,10 +1280,11 @@ Definition Add := DeclControl NoInfo {| stags := NoInfo; str := "Add" |} nil
                                                              InOut)
                                                         {| stags := NoInfo;
                                                            str := "index2" |})
-                                                   (TypBit 32) Directionless));
+                                                   (TypBit 32%N)
+                                                   Directionless));
                                              (Some
                                               (MkExpression NoInfo
-                                                   (ExpCast (TypBit 1)
+                                                   (ExpCast (TypBit 1%N)
                                                         (MkExpression NoInfo
                                                              (ExpInt
                                                               {| itags := NoInfo;
@@ -1285,8 +1293,9 @@ Definition Add := DeclControl NoInfo {| stags := NoInfo; str := "Add" |} nil
                                                                  None |})
                                                              TypInteger
                                                              Directionless))
-                                                   (TypBit 1) Directionless))])
-                                       StmUnit) (BlockEmpty NoInfo))))))).
+                                                   (TypBit 1%N)
+                                                   Directionless))]) StmUnit)
+                                  (BlockEmpty NoInfo))))))).
 
 Definition Query := DeclControl NoInfo {| stags := NoInfo; str := "Query" |}
     nil
@@ -1341,8 +1350,8 @@ Definition Query := DeclControl NoInfo {| stags := NoInfo; str := "Query" |}
                                       {| stags := NoInfo; str := "M" |}))
                                     None {| stags := NoInfo; str := "max" |})]
                               FunExtern TypVoid)) Directionless)
-                   [(TypBit 32); (TypBit 10);
-                    (TypList [(TypBit 16); (TypBit 3)]); (TypBit 10)]
+                   [(TypBit 32%N); (TypBit 10%N);
+                    (TypList [(TypBit 16%N); (TypBit 3%N)]); (TypBit 10%N)]
                    [(Some
                      (MkExpression NoInfo
                           (ExpExpressionMember
@@ -1359,7 +1368,7 @@ Definition Query := DeclControl NoInfo {| stags := NoInfo; str := "Query" |}
                                          str := "custom_metadata_t" |}))
                                     InOut)
                                {| stags := NoInfo; str := "index0" |})
-                          (TypBit 32) Directionless));
+                          (TypBit 32%N) Directionless));
                     (Some
                      (MkExpression NoInfo
                           (ExpTypeMember
@@ -1383,7 +1392,7 @@ Definition Query := DeclControl NoInfo {| stags := NoInfo; str := "Query" |}
                           (ExpInt
                            {| itags := NoInfo; value := 0;
                               width_signed := (Some ( 10%N, false )) |})
-                          (TypBit 10) Directionless));
+                          (TypBit 10%N) Directionless));
                     (Some
                      (MkExpression NoInfo
                           (ExpList
@@ -1409,24 +1418,26 @@ Definition Query := DeclControl NoInfo {| stags := NoInfo; str := "Query" |}
                                            (TypHeader
                                             [( {| stags := NoInfo;
                                                   str := "rw" |},
-                                               (TypBit 8) );
+                                               (TypBit 8%N) );
                                              ( {| stags := NoInfo;
                                                   str := "data" |},
-                                               (TypBit 16) )]) Directionless)
+                                               (TypBit 16%N) )])
+                                           Directionless)
                                       {| stags := NoInfo; str := "data" |})
-                                 (TypBit 16) Directionless);
+                                 (TypBit 16%N) Directionless);
                             (MkExpression NoInfo
                                  (ExpInt
                                   {| itags := NoInfo; value := 3;
                                      width_signed := (Some ( 3%N, false )) |})
-                                 (TypBit 3) Directionless)])
-                          (TypList [(TypBit 16); (TypBit 3)]) Directionless));
+                                 (TypBit 3%N) Directionless)])
+                          (TypList [(TypBit 16%N); (TypBit 3%N)])
+                          Directionless));
                     (Some
                      (MkExpression NoInfo
                           (ExpInt
                            {| itags := NoInfo; value := 1023;
                               width_signed := (Some ( 10%N, false )) |})
-                          (TypBit 10) Directionless))]) StmUnit)
+                          (TypBit 10%N) Directionless))]) StmUnit)
          (BlockCons
               (MkStatement NoInfo
                    (StatMethodCall
@@ -1474,8 +1485,9 @@ Definition Query := DeclControl NoInfo {| stags := NoInfo; str := "Query" |}
                                          None
                                          {| stags := NoInfo; str := "max" |})]
                                    FunExtern TypVoid)) Directionless)
-                        [(TypBit 32); (TypBit 10);
-                         (TypList [(TypBit 16); (TypBit 5)]); (TypBit 10)]
+                        [(TypBit 32%N); (TypBit 10%N);
+                         (TypList [(TypBit 16%N); (TypBit 5%N)]);
+                         (TypBit 10%N)]
                         [(Some
                           (MkExpression NoInfo
                                (ExpExpressionMember
@@ -1493,7 +1505,7 @@ Definition Query := DeclControl NoInfo {| stags := NoInfo; str := "Query" |}
                                               str := "custom_metadata_t" |}))
                                          InOut)
                                     {| stags := NoInfo; str := "index1" |})
-                               (TypBit 32) Directionless));
+                               (TypBit 32%N) Directionless));
                          (Some
                           (MkExpression NoInfo
                                (ExpTypeMember
@@ -1520,7 +1532,7 @@ Definition Query := DeclControl NoInfo {| stags := NoInfo; str := "Query" |}
                                (ExpInt
                                 {| itags := NoInfo; value := 0;
                                    width_signed := (Some ( 10%N, false )) |})
-                               (TypBit 10) Directionless));
+                               (TypBit 10%N) Directionless));
                          (Some
                           (MkExpression NoInfo
                                (ExpList
@@ -1546,28 +1558,28 @@ Definition Query := DeclControl NoInfo {| stags := NoInfo; str := "Query" |}
                                                 (TypHeader
                                                  [( {| stags := NoInfo;
                                                        str := "rw" |},
-                                                    (TypBit 8) );
+                                                    (TypBit 8%N) );
                                                   ( {| stags := NoInfo;
                                                        str := "data" |},
-                                                    (TypBit 16) )])
+                                                    (TypBit 16%N) )])
                                                 Directionless)
                                            {| stags := NoInfo;
-                                              str := "data" |}) (TypBit 16)
+                                              str := "data" |}) (TypBit 16%N)
                                       Directionless);
                                  (MkExpression NoInfo
                                       (ExpInt
                                        {| itags := NoInfo; value := 5;
                                           width_signed := (Some
                                                            ( 5%N, false )) |})
-                                      (TypBit 5) Directionless)])
-                               (TypList [(TypBit 16); (TypBit 5)])
+                                      (TypBit 5%N) Directionless)])
+                               (TypList [(TypBit 16%N); (TypBit 5%N)])
                                Directionless));
                          (Some
                           (MkExpression NoInfo
                                (ExpInt
                                 {| itags := NoInfo; value := 1023;
                                    width_signed := (Some ( 10%N, false )) |})
-                               (TypBit 10) Directionless))]) StmUnit)
+                               (TypBit 10%N) Directionless))]) StmUnit)
               (BlockCons
                    (MkStatement NoInfo
                         (StatMethodCall
@@ -1620,9 +1632,9 @@ Definition Query := DeclControl NoInfo {| stags := NoInfo; str := "Query" |}
                                               {| stags := NoInfo;
                                                  str := "max" |})] FunExtern
                                         TypVoid)) Directionless)
-                             [(TypBit 32); (TypBit 10);
-                              (TypList [(TypBit 16); (TypBit 7)]);
-                              (TypBit 10)]
+                             [(TypBit 32%N); (TypBit 10%N);
+                              (TypList [(TypBit 16%N); (TypBit 7%N)]);
+                              (TypBit 10%N)]
                              [(Some
                                (MkExpression NoInfo
                                     (ExpExpressionMember
@@ -1640,7 +1652,7 @@ Definition Query := DeclControl NoInfo {| stags := NoInfo; str := "Query" |}
                                                    str := "custom_metadata_t" |}))
                                               InOut)
                                          {| stags := NoInfo;
-                                            str := "index2" |}) (TypBit 32)
+                                            str := "index2" |}) (TypBit 32%N)
                                     Directionless));
                               (Some
                                (MkExpression NoInfo
@@ -1677,7 +1689,7 @@ Definition Query := DeclControl NoInfo {| stags := NoInfo; str := "Query" |}
                                      {| itags := NoInfo; value := 0;
                                         width_signed := (Some
                                                          ( 10%N, false )) |})
-                                    (TypBit 10) Directionless));
+                                    (TypBit 10%N) Directionless));
                               (Some
                                (MkExpression NoInfo
                                     (ExpList
@@ -1705,22 +1717,22 @@ Definition Query := DeclControl NoInfo {| stags := NoInfo; str := "Query" |}
                                                      (TypHeader
                                                       [( {| stags := NoInfo;
                                                             str := "rw" |},
-                                                         (TypBit 8) );
+                                                         (TypBit 8%N) );
                                                        ( {| stags := NoInfo;
                                                             str := "data" |},
-                                                         (TypBit 16) )])
+                                                         (TypBit 16%N) )])
                                                      Directionless)
                                                 {| stags := NoInfo;
                                                    str := "data" |})
-                                           (TypBit 16) Directionless);
+                                           (TypBit 16%N) Directionless);
                                       (MkExpression NoInfo
                                            (ExpInt
                                             {| itags := NoInfo; value := 7;
                                                width_signed := (Some
                                                                 ( 7%N,
                                                                   false )) |})
-                                           (TypBit 7) Directionless)])
-                                    (TypList [(TypBit 16); (TypBit 7)])
+                                           (TypBit 7%N) Directionless)])
+                                    (TypList [(TypBit 16%N); (TypBit 7%N)])
                                     Directionless));
                               (Some
                                (MkExpression NoInfo
@@ -1728,7 +1740,7 @@ Definition Query := DeclControl NoInfo {| stags := NoInfo; str := "Query" |}
                                      {| itags := NoInfo; value := 1023;
                                         width_signed := (Some
                                                          ( 10%N, false )) |})
-                                    (TypBit 10) Directionless))]) StmUnit)
+                                    (TypBit 10%N) Directionless))]) StmUnit)
                    (BlockCons
                         (MkStatement NoInfo
                              (StatMethodCall
@@ -1746,18 +1758,18 @@ Definition Query := DeclControl NoInfo {| stags := NoInfo; str := "Query" |}
                                                       (TypExtern
                                                        {| stags := NoInfo;
                                                           str := "register" |})
-                                                      [(TypBit 1)])
+                                                      [(TypBit 1%N)])
                                                  Directionless)
                                             {| stags := NoInfo;
                                                str := "read" |})
                                        (TypFunction
                                         (MkFunctionType nil
                                              [(MkParameter false Out
-                                                   (TypBit 1) None
+                                                   (TypBit 1%N) None
                                                    {| stags := NoInfo;
                                                       str := "result" |});
                                               (MkParameter false In
-                                                   (TypBit 32) None
+                                                   (TypBit 32%N) None
                                                    {| stags := NoInfo;
                                                       str := "index" |})]
                                              FunExtern TypVoid))
@@ -1780,7 +1792,7 @@ Definition Query := DeclControl NoInfo {| stags := NoInfo; str := "Query" |}
                                                    InOut)
                                               {| stags := NoInfo;
                                                  str := "member0" |})
-                                         (TypBit 1) Directionless));
+                                         (TypBit 1%N) Directionless));
                                    (Some
                                     (MkExpression NoInfo
                                          (ExpExpressionMember
@@ -1799,7 +1811,7 @@ Definition Query := DeclControl NoInfo {| stags := NoInfo; str := "Query" |}
                                                    InOut)
                                               {| stags := NoInfo;
                                                  str := "index0" |})
-                                         (TypBit 32) Directionless))])
+                                         (TypBit 32%N) Directionless))])
                              StmUnit)
                         (BlockCons
                              (MkStatement NoInfo
@@ -1818,18 +1830,20 @@ Definition Query := DeclControl NoInfo {| stags := NoInfo; str := "Query" |}
                                                            (TypExtern
                                                             {| stags := NoInfo;
                                                                str := "register" |})
-                                                           [(TypBit 1)])
+                                                           [(TypBit 1%N)])
                                                       Directionless)
                                                  {| stags := NoInfo;
                                                     str := "read" |})
                                             (TypFunction
                                              (MkFunctionType nil
                                                   [(MkParameter false Out
-                                                        (TypBit 1) None
+                                                        (TypBit 1%N) 
+                                                        None
                                                         {| stags := NoInfo;
                                                            str := "result" |});
                                                    (MkParameter false In
-                                                        (TypBit 32) None
+                                                        (TypBit 32%N) 
+                                                        None
                                                         {| stags := NoInfo;
                                                            str := "index" |})]
                                                   FunExtern TypVoid))
@@ -1852,7 +1866,7 @@ Definition Query := DeclControl NoInfo {| stags := NoInfo; str := "Query" |}
                                                         InOut)
                                                    {| stags := NoInfo;
                                                       str := "member1" |})
-                                              (TypBit 1) Directionless));
+                                              (TypBit 1%N) Directionless));
                                         (Some
                                          (MkExpression NoInfo
                                               (ExpExpressionMember
@@ -1871,7 +1885,7 @@ Definition Query := DeclControl NoInfo {| stags := NoInfo; str := "Query" |}
                                                         InOut)
                                                    {| stags := NoInfo;
                                                       str := "index1" |})
-                                              (TypBit 32) Directionless))])
+                                              (TypBit 32%N) Directionless))])
                                   StmUnit)
                              (BlockCons
                                   (MkStatement NoInfo
@@ -1891,19 +1905,19 @@ Definition Query := DeclControl NoInfo {| stags := NoInfo; str := "Query" |}
                                                                 (TypExtern
                                                                  {| stags := NoInfo;
                                                                     str := "register" |})
-                                                                [(TypBit 1)])
+                                                                [(TypBit 1%N)])
                                                            Directionless)
                                                       {| stags := NoInfo;
                                                          str := "read" |})
                                                  (TypFunction
                                                   (MkFunctionType nil
                                                        [(MkParameter false
-                                                             Out (TypBit 1)
+                                                             Out (TypBit 1%N)
                                                              None
                                                              {| stags := NoInfo;
                                                                 str := "result" |});
                                                         (MkParameter false In
-                                                             (TypBit 32) 
+                                                             (TypBit 32%N)
                                                              None
                                                              {| stags := NoInfo;
                                                                 str := "index" |})]
@@ -1928,7 +1942,8 @@ Definition Query := DeclControl NoInfo {| stags := NoInfo; str := "Query" |}
                                                              InOut)
                                                         {| stags := NoInfo;
                                                            str := "member2" |})
-                                                   (TypBit 1) Directionless));
+                                                   (TypBit 1%N)
+                                                   Directionless));
                                              (Some
                                               (MkExpression NoInfo
                                                    (ExpExpressionMember
@@ -1948,8 +1963,8 @@ Definition Query := DeclControl NoInfo {| stags := NoInfo; str := "Query" |}
                                                              InOut)
                                                         {| stags := NoInfo;
                                                            str := "index2" |})
-                                                   (TypBit 32) Directionless))])
-                                       StmUnit)
+                                                   (TypBit 32%N)
+                                                   Directionless))]) StmUnit)
                                   (BlockCons
                                        (MkStatement NoInfo
                                             (StatAssignment
@@ -1983,20 +1998,21 @@ Definition Query := DeclControl NoInfo {| stags := NoInfo; str := "Query" |}
                                                                     stags := NoInfo;
                                                                     str := "rw" |},
                                                                     (
-                                                                    TypBit 8) );
+                                                                    TypBit
+                                                                    8%N) );
                                                                   ( {| 
                                                                     stags := NoInfo;
                                                                     str := "data" |},
                                                                     (
                                                                     TypBit
-                                                                    16) )])
+                                                                    16%N) )])
                                                                 Directionless)
                                                            {| stags := NoInfo;
                                                               str := "rw" |})
-                                                      (TypBit 8)
+                                                      (TypBit 8%N)
                                                       Directionless)
                                                  (MkExpression NoInfo
-                                                      (ExpCast (TypBit 8)
+                                                      (ExpCast (TypBit 8%N)
                                                            (MkExpression
                                                                 NoInfo
                                                                 (ExpBinaryOp
@@ -2031,7 +2047,7 @@ Definition Query := DeclControl NoInfo {| stags := NoInfo; str := "Query" |}
                                                                     {| stags := NoInfo;
                                                                     str := "member0" |})
                                                                     (TypBit
-                                                                    1)
+                                                                    1%N)
                                                                     Directionless),
                                                                     (MkExpression
                                                                     NoInfo
@@ -2056,10 +2072,10 @@ Definition Query := DeclControl NoInfo {| stags := NoInfo; str := "Query" |}
                                                                     {| stags := NoInfo;
                                                                     str := "member1" |})
                                                                     (TypBit
-                                                                    1)
+                                                                    1%N)
                                                                     Directionless) ))
                                                                     (TypBit
-                                                                    1)
+                                                                    1%N)
                                                                     Directionless),
                                                                     (
                                                                     MkExpression
@@ -2085,11 +2101,11 @@ Definition Query := DeclControl NoInfo {| stags := NoInfo; str := "Query" |}
                                                                     {| stags := NoInfo;
                                                                     str := "member2" |})
                                                                     (TypBit
-                                                                    1)
+                                                                    1%N)
                                                                     Directionless) ))
-                                                                (TypBit 1)
+                                                                (TypBit 1%N)
                                                                 Directionless))
-                                                      (TypBit 8)
+                                                      (TypBit 8%N)
                                                       Directionless))
                                             StmUnit) (BlockEmpty NoInfo)))))))).
 
@@ -2130,7 +2146,7 @@ Definition MyIngress := DeclControl NoInfo
                                              str := "standard_metadata_t" |}))
                                         InOut)
                                    {| stags := NoInfo;
-                                      str := "egress_spec" |}) (TypBit 9)
+                                      str := "egress_spec" |}) (TypBit 9%N)
                               Directionless)
                          (MkExpression NoInfo
                               (ExpName
@@ -2172,10 +2188,10 @@ Definition MyIngress := DeclControl NoInfo
                                              (TypHeader
                                               [( {| stags := NoInfo;
                                                     str := "rw" |},
-                                                 (TypBit 8) );
+                                                 (TypBit 8%N) );
                                                ( {| stags := NoInfo;
                                                     str := "data" |},
-                                                 (TypBit 16) )])
+                                                 (TypBit 16%N) )])
                                              Directionless)
                                         {| stags := NoInfo;
                                            str := "isValid" |})
@@ -2212,7 +2228,7 @@ Definition MyIngress := DeclControl NoInfo
                                         Directionless) nil
                                    [(Some
                                      (MkExpression NoInfo
-                                          (ExpCast (TypBit 9)
+                                          (ExpCast (TypBit 9%N)
                                                (MkExpression NoInfo
                                                     (ExpInt
                                                      {| itags := NoInfo;
@@ -2220,7 +2236,7 @@ Definition MyIngress := DeclControl NoInfo
                                                         width_signed := 
                                                         None |}) TypInteger
                                                     Directionless))
-                                          (TypBit 9) Directionless))])
+                                          (TypBit 9%N) Directionless))])
                               StmUnit)
                          (BlockCons
                               (MkStatement NoInfo
@@ -2354,8 +2370,8 @@ Definition MyDeparser := DeclControl NoInfo
                                     None {| stags := NoInfo; str := "hdr" |})]
                               FunExtern TypVoid)) Directionless)
                    [(TypHeader
-                     [( {| stags := NoInfo; str := "rw" |}, (TypBit 8) );
-                      ( {| stags := NoInfo; str := "data" |}, (TypBit 16) )])]
+                     [( {| stags := NoInfo; str := "rw" |}, (TypBit 8%N) );
+                      ( {| stags := NoInfo; str := "data" |}, (TypBit 16%N) )])]
                    [(Some
                      (MkExpression NoInfo
                           (ExpExpressionMember
@@ -2373,9 +2389,9 @@ Definition MyDeparser := DeclControl NoInfo
                                {| stags := NoInfo; str := "myHeader" |})
                           (TypHeader
                            [( {| stags := NoInfo; str := "rw" |},
-                              (TypBit 8) );
+                              (TypBit 8%N) );
                             ( {| stags := NoInfo; str := "data" |},
-                              (TypBit 16) )]) Directionless))]) StmUnit)
+                              (TypBit 16%N) )]) Directionless))]) StmUnit)
          (BlockEmpty NoInfo)).
 
 Definition MyVerifyChecksum := DeclControl NoInfo
@@ -2420,61 +2436,61 @@ Definition main := DeclInstantiation NoInfo
                        [( {| stags := NoInfo; str := "myHeader" |},
                           (TypHeader
                            [( {| stags := NoInfo; str := "rw" |},
-                              (TypBit 8) );
+                              (TypBit 8%N) );
                             ( {| stags := NoInfo; str := "data" |},
-                              (TypBit 16) )]) )]) None
+                              (TypBit 16%N) )]) )]) None
                       {| stags := NoInfo; str := "hdr" |});
                  (MkParameter false InOut
                       (TypStruct
                        [( {| stags := NoInfo; str := "index0" |},
-                          (TypBit 32) );
+                          (TypBit 32%N) );
                         ( {| stags := NoInfo; str := "index1" |},
-                          (TypBit 32) );
+                          (TypBit 32%N) );
                         ( {| stags := NoInfo; str := "index2" |},
-                          (TypBit 32) );
+                          (TypBit 32%N) );
                         ( {| stags := NoInfo; str := "member0" |},
-                          (TypBit 1) );
+                          (TypBit 1%N) );
                         ( {| stags := NoInfo; str := "member1" |},
-                          (TypBit 1) );
+                          (TypBit 1%N) );
                         ( {| stags := NoInfo; str := "member2" |},
-                          (TypBit 1) )]) None
+                          (TypBit 1%N) )]) None
                       {| stags := NoInfo; str := "meta" |});
                  (MkParameter false InOut
                       (TypStruct
                        [( {| stags := NoInfo; str := "ingress_port" |},
-                          (TypBit 9) );
+                          (TypBit 9%N) );
                         ( {| stags := NoInfo; str := "egress_spec" |},
-                          (TypBit 9) );
+                          (TypBit 9%N) );
                         ( {| stags := NoInfo; str := "egress_port" |},
-                          (TypBit 9) );
+                          (TypBit 9%N) );
                         ( {| stags := NoInfo; str := "instance_type" |},
-                          (TypBit 32) );
+                          (TypBit 32%N) );
                         ( {| stags := NoInfo; str := "packet_length" |},
-                          (TypBit 32) );
+                          (TypBit 32%N) );
                         ( {| stags := NoInfo; str := "enq_timestamp" |},
-                          (TypBit 32) );
+                          (TypBit 32%N) );
                         ( {| stags := NoInfo; str := "enq_qdepth" |},
-                          (TypBit 19) );
+                          (TypBit 19%N) );
                         ( {| stags := NoInfo; str := "deq_timedelta" |},
-                          (TypBit 32) );
+                          (TypBit 32%N) );
                         ( {| stags := NoInfo; str := "deq_qdepth" |},
-                          (TypBit 19) );
+                          (TypBit 19%N) );
                         ( {| stags := NoInfo;
                              str := "ingress_global_timestamp" |},
-                          (TypBit 48) );
+                          (TypBit 48%N) );
                         ( {| stags := NoInfo;
                              str := "egress_global_timestamp" |},
-                          (TypBit 48) );
+                          (TypBit 48%N) );
                         ( {| stags := NoInfo; str := "mcast_grp" |},
-                          (TypBit 16) );
+                          (TypBit 16%N) );
                         ( {| stags := NoInfo; str := "egress_rid" |},
-                          (TypBit 16) );
+                          (TypBit 16%N) );
                         ( {| stags := NoInfo; str := "checksum_error" |},
-                          (TypBit 1) );
+                          (TypBit 1%N) );
                         ( {| stags := NoInfo; str := "parser_error" |},
                           TypError );
                         ( {| stags := NoInfo; str := "priority" |},
-                          (TypBit 3) )]) None
+                          (TypBit 3%N) )]) None
                       {| stags := NoInfo; str := "standard_metadata" |})]))
           Directionless);
      (MkExpression NoInfo
@@ -2491,24 +2507,24 @@ Definition main := DeclInstantiation NoInfo
                        [( {| stags := NoInfo; str := "myHeader" |},
                           (TypHeader
                            [( {| stags := NoInfo; str := "rw" |},
-                              (TypBit 8) );
+                              (TypBit 8%N) );
                             ( {| stags := NoInfo; str := "data" |},
-                              (TypBit 16) )]) )]) None
+                              (TypBit 16%N) )]) )]) None
                       {| stags := NoInfo; str := "hdr" |});
                  (MkParameter false InOut
                       (TypStruct
                        [( {| stags := NoInfo; str := "index0" |},
-                          (TypBit 32) );
+                          (TypBit 32%N) );
                         ( {| stags := NoInfo; str := "index1" |},
-                          (TypBit 32) );
+                          (TypBit 32%N) );
                         ( {| stags := NoInfo; str := "index2" |},
-                          (TypBit 32) );
+                          (TypBit 32%N) );
                         ( {| stags := NoInfo; str := "member0" |},
-                          (TypBit 1) );
+                          (TypBit 1%N) );
                         ( {| stags := NoInfo; str := "member1" |},
-                          (TypBit 1) );
+                          (TypBit 1%N) );
                         ( {| stags := NoInfo; str := "member2" |},
-                          (TypBit 1) )]) None
+                          (TypBit 1%N) )]) None
                       {| stags := NoInfo; str := "meta" |})])) Directionless);
      (MkExpression NoInfo
           (ExpNamelessInstantiation
@@ -2523,61 +2539,61 @@ Definition main := DeclInstantiation NoInfo
                        [( {| stags := NoInfo; str := "myHeader" |},
                           (TypHeader
                            [( {| stags := NoInfo; str := "rw" |},
-                              (TypBit 8) );
+                              (TypBit 8%N) );
                             ( {| stags := NoInfo; str := "data" |},
-                              (TypBit 16) )]) )]) None
+                              (TypBit 16%N) )]) )]) None
                       {| stags := NoInfo; str := "hdr" |});
                  (MkParameter false InOut
                       (TypStruct
                        [( {| stags := NoInfo; str := "index0" |},
-                          (TypBit 32) );
+                          (TypBit 32%N) );
                         ( {| stags := NoInfo; str := "index1" |},
-                          (TypBit 32) );
+                          (TypBit 32%N) );
                         ( {| stags := NoInfo; str := "index2" |},
-                          (TypBit 32) );
+                          (TypBit 32%N) );
                         ( {| stags := NoInfo; str := "member0" |},
-                          (TypBit 1) );
+                          (TypBit 1%N) );
                         ( {| stags := NoInfo; str := "member1" |},
-                          (TypBit 1) );
+                          (TypBit 1%N) );
                         ( {| stags := NoInfo; str := "member2" |},
-                          (TypBit 1) )]) None
+                          (TypBit 1%N) )]) None
                       {| stags := NoInfo; str := "meta" |});
                  (MkParameter false InOut
                       (TypStruct
                        [( {| stags := NoInfo; str := "ingress_port" |},
-                          (TypBit 9) );
+                          (TypBit 9%N) );
                         ( {| stags := NoInfo; str := "egress_spec" |},
-                          (TypBit 9) );
+                          (TypBit 9%N) );
                         ( {| stags := NoInfo; str := "egress_port" |},
-                          (TypBit 9) );
+                          (TypBit 9%N) );
                         ( {| stags := NoInfo; str := "instance_type" |},
-                          (TypBit 32) );
+                          (TypBit 32%N) );
                         ( {| stags := NoInfo; str := "packet_length" |},
-                          (TypBit 32) );
+                          (TypBit 32%N) );
                         ( {| stags := NoInfo; str := "enq_timestamp" |},
-                          (TypBit 32) );
+                          (TypBit 32%N) );
                         ( {| stags := NoInfo; str := "enq_qdepth" |},
-                          (TypBit 19) );
+                          (TypBit 19%N) );
                         ( {| stags := NoInfo; str := "deq_timedelta" |},
-                          (TypBit 32) );
+                          (TypBit 32%N) );
                         ( {| stags := NoInfo; str := "deq_qdepth" |},
-                          (TypBit 19) );
+                          (TypBit 19%N) );
                         ( {| stags := NoInfo;
                              str := "ingress_global_timestamp" |},
-                          (TypBit 48) );
+                          (TypBit 48%N) );
                         ( {| stags := NoInfo;
                              str := "egress_global_timestamp" |},
-                          (TypBit 48) );
+                          (TypBit 48%N) );
                         ( {| stags := NoInfo; str := "mcast_grp" |},
-                          (TypBit 16) );
+                          (TypBit 16%N) );
                         ( {| stags := NoInfo; str := "egress_rid" |},
-                          (TypBit 16) );
+                          (TypBit 16%N) );
                         ( {| stags := NoInfo; str := "checksum_error" |},
-                          (TypBit 1) );
+                          (TypBit 1%N) );
                         ( {| stags := NoInfo; str := "parser_error" |},
                           TypError );
                         ( {| stags := NoInfo; str := "priority" |},
-                          (TypBit 3) )]) None
+                          (TypBit 3%N) )]) None
                       {| stags := NoInfo; str := "standard_metadata" |})]))
           Directionless);
      (MkExpression NoInfo
@@ -2593,61 +2609,61 @@ Definition main := DeclInstantiation NoInfo
                        [( {| stags := NoInfo; str := "myHeader" |},
                           (TypHeader
                            [( {| stags := NoInfo; str := "rw" |},
-                              (TypBit 8) );
+                              (TypBit 8%N) );
                             ( {| stags := NoInfo; str := "data" |},
-                              (TypBit 16) )]) )]) None
+                              (TypBit 16%N) )]) )]) None
                       {| stags := NoInfo; str := "hdr" |});
                  (MkParameter false InOut
                       (TypStruct
                        [( {| stags := NoInfo; str := "index0" |},
-                          (TypBit 32) );
+                          (TypBit 32%N) );
                         ( {| stags := NoInfo; str := "index1" |},
-                          (TypBit 32) );
+                          (TypBit 32%N) );
                         ( {| stags := NoInfo; str := "index2" |},
-                          (TypBit 32) );
+                          (TypBit 32%N) );
                         ( {| stags := NoInfo; str := "member0" |},
-                          (TypBit 1) );
+                          (TypBit 1%N) );
                         ( {| stags := NoInfo; str := "member1" |},
-                          (TypBit 1) );
+                          (TypBit 1%N) );
                         ( {| stags := NoInfo; str := "member2" |},
-                          (TypBit 1) )]) None
+                          (TypBit 1%N) )]) None
                       {| stags := NoInfo; str := "meta" |});
                  (MkParameter false InOut
                       (TypStruct
                        [( {| stags := NoInfo; str := "ingress_port" |},
-                          (TypBit 9) );
+                          (TypBit 9%N) );
                         ( {| stags := NoInfo; str := "egress_spec" |},
-                          (TypBit 9) );
+                          (TypBit 9%N) );
                         ( {| stags := NoInfo; str := "egress_port" |},
-                          (TypBit 9) );
+                          (TypBit 9%N) );
                         ( {| stags := NoInfo; str := "instance_type" |},
-                          (TypBit 32) );
+                          (TypBit 32%N) );
                         ( {| stags := NoInfo; str := "packet_length" |},
-                          (TypBit 32) );
+                          (TypBit 32%N) );
                         ( {| stags := NoInfo; str := "enq_timestamp" |},
-                          (TypBit 32) );
+                          (TypBit 32%N) );
                         ( {| stags := NoInfo; str := "enq_qdepth" |},
-                          (TypBit 19) );
+                          (TypBit 19%N) );
                         ( {| stags := NoInfo; str := "deq_timedelta" |},
-                          (TypBit 32) );
+                          (TypBit 32%N) );
                         ( {| stags := NoInfo; str := "deq_qdepth" |},
-                          (TypBit 19) );
+                          (TypBit 19%N) );
                         ( {| stags := NoInfo;
                              str := "ingress_global_timestamp" |},
-                          (TypBit 48) );
+                          (TypBit 48%N) );
                         ( {| stags := NoInfo;
                              str := "egress_global_timestamp" |},
-                          (TypBit 48) );
+                          (TypBit 48%N) );
                         ( {| stags := NoInfo; str := "mcast_grp" |},
-                          (TypBit 16) );
+                          (TypBit 16%N) );
                         ( {| stags := NoInfo; str := "egress_rid" |},
-                          (TypBit 16) );
+                          (TypBit 16%N) );
                         ( {| stags := NoInfo; str := "checksum_error" |},
-                          (TypBit 1) );
+                          (TypBit 1%N) );
                         ( {| stags := NoInfo; str := "parser_error" |},
                           TypError );
                         ( {| stags := NoInfo; str := "priority" |},
-                          (TypBit 3) )]) None
+                          (TypBit 3%N) )]) None
                       {| stags := NoInfo; str := "standard_metadata" |})]))
           Directionless);
      (MkExpression NoInfo
@@ -2664,24 +2680,24 @@ Definition main := DeclInstantiation NoInfo
                        [( {| stags := NoInfo; str := "myHeader" |},
                           (TypHeader
                            [( {| stags := NoInfo; str := "rw" |},
-                              (TypBit 8) );
+                              (TypBit 8%N) );
                             ( {| stags := NoInfo; str := "data" |},
-                              (TypBit 16) )]) )]) None
+                              (TypBit 16%N) )]) )]) None
                       {| stags := NoInfo; str := "hdr" |});
                  (MkParameter false InOut
                       (TypStruct
                        [( {| stags := NoInfo; str := "index0" |},
-                          (TypBit 32) );
+                          (TypBit 32%N) );
                         ( {| stags := NoInfo; str := "index1" |},
-                          (TypBit 32) );
+                          (TypBit 32%N) );
                         ( {| stags := NoInfo; str := "index2" |},
-                          (TypBit 32) );
+                          (TypBit 32%N) );
                         ( {| stags := NoInfo; str := "member0" |},
-                          (TypBit 1) );
+                          (TypBit 1%N) );
                         ( {| stags := NoInfo; str := "member1" |},
-                          (TypBit 1) );
+                          (TypBit 1%N) );
                         ( {| stags := NoInfo; str := "member2" |},
-                          (TypBit 1) )]) None
+                          (TypBit 1%N) )]) None
                       {| stags := NoInfo; str := "meta" |})])) Directionless);
      (MkExpression NoInfo
           (ExpNamelessInstantiation
@@ -2699,9 +2715,9 @@ Definition main := DeclInstantiation NoInfo
                        [( {| stags := NoInfo; str := "myHeader" |},
                           (TypHeader
                            [( {| stags := NoInfo; str := "rw" |},
-                              (TypBit 8) );
+                              (TypBit 8%N) );
                             ( {| stags := NoInfo; str := "data" |},
-                              (TypBit 16) )]) )]) None
+                              (TypBit 16%N) )]) )]) None
                       {| stags := NoInfo; str := "hdr" |})])) Directionless)]
     {| stags := NoInfo; str := "main" |} nil.
 

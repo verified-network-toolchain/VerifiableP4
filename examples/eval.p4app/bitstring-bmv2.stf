@@ -1,2 +1,2 @@
-packet 0 01010101
-expect 1 FFF00101
+packet 0 ABCDFFFF
+expect 1 ABCDABCD
