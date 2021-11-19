@@ -12,14 +12,14 @@ Require Import Poulet4.Semantics.
 Require Import Poulet4.SimplExpr.
 Require Import Poulet4.V1Model.
 Require Import ProD3.core.Hoare.
-Require Import ProD3.core.HoareSoundness.
+(* Require Import ProD3.core.HoareSoundness. *)
 Require Import ProD3.core.AssertionLang.
 Require Import ProD3.core.V1ModelLang.
-Require Import ProD3.core.ConcreteHoare.
+(* Require Import ProD3.core.ConcreteHoare. *)
 
 Instance target : @Target Info (@Expression Info) := V1Model.
 
-Opaque IdentMap.empty IdentMap.set PathMap.empty PathMap.set.
+Opaque (*IdentMap.empty IdentMap.set*) PathMap.empty PathMap.set.
 
 (* Global environment *)
 Definition ge := Eval compute in gen_ge prog.
@@ -45,11 +45,42 @@ Notation ext_assertion := (@ext_assertion Info).
 
 Module Experiment1.
 
+Axiom dummy_fundef : (@fundef Info).
+
 Definition MyIngress_fundef := Eval compute in
   match PathMap.get [!"MyIngress"] (ge_func ge) with
   | Some x => x
   | None => dummy_fundef
   end.
+
+Axiom dummy_type : (@P4Type Info).
+
+(* Definition header_type := Eval compute in
+  match main with
+  | DeclInstantiation _ _ 
+      (_::_::(MkExpression _ _ (TypControl (MkControlType _ 
+        [MkParameter _ _ htyp _ _; _; _])) _)::_) _ _ =>
+          htyp
+  | _ =>  dummy_type
+  end.
+
+Definition meta_type := Eval compute in
+  match main with
+  | DeclInstantiation _ _ 
+      (_::_::(MkExpression _ _ (TypControl (MkControlType _ 
+        [_; MkParameter _ _ mtyp _ _; _])) _)::_) _ _ =>
+          mtyp
+  | _ =>  dummy_type
+  end.
+
+Definition stdmeta_type := Eval compute in
+  match main with
+  | DeclInstantiation _ _ 
+      (_::_::(MkExpression _ _ (TypControl (MkControlType _ 
+        [_; _; MkParameter _ _ smtyp _ _])) _)::_) _ _ =>
+          smtyp
+  | _ =>  dummy_type
+  end. *)
 
 Definition this : path := !["main"; "ig"].
 
@@ -86,8 +117,8 @@ Definition bloom2 (bst : bloomfilter_state) : list Z :=
     /\ filter_match st !["bloom1"] bloom1
     /\ filter_match st !["bloom2"] bloom2. *)
 
-Definition header_encodes (hdr : Val) (rw : Z) (data : Z) : Prop :=
-  hdr = ValBaseStruct [(!"myHeader", ValBaseHeader [(!"rw", ValBaseBit 8%nat rw); (!"data", ValBaseBit 16%nat data)] true)].
+(* Definition header_encodes (hdr : Val) (rw : Z) (data : Z) : Prop :=
+  hdr = ValBaseStruct [(!"myHeader", ValBaseHeader [(!"rw", ValBaseBit 8%nat rw); (!"data", ValBaseBit 16%nat data)] true)]. *)
 
 Section Experiment1.
 
@@ -98,14 +129,20 @@ Variable meta : Val.
 Variable standard_metadata : Val. *)
 Variable bst : bloomfilter_state.
 
-Definition pre_arg_assertion : arg_assertion :=
+(* Definition pre_arg_assertion : assertion :=
   [
-    ArgVal (0%Z, ["myHeader"; "rw"]) (ValBaseBit 8%nat rw);
-    ArgVal (0%Z, ["myHeader"; "data"]) (ValBaseBit 16%nat data);
+    uninit_sval_of_typ (Some true) header_type
+
+
+    (["hdr"; "myHeader"; "rw"], ValBaseBit (to_loptbool 8 data));
+    (["hdr"; "myHeader"; "data"], ValBaseBit (to_loptbool 16 data));
+    
+    
+
     ArgType (0%Z, []) (TypTypeName (BareName !"headers"));
     ArgType (1%Z, []) (TypTypeName (BareName !"custom_metadata_t"));
     ArgType (2%Z, []) (TypTypeName (BareName !"standard_metadata_t"))
-  ].
+  ]. *)
 
 Definition pre_ext_assertion : ext_assertion :=
   [
