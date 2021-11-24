@@ -665,7 +665,7 @@ Definition Add := DeclControl NoInfo {| stags := NoInfo; str := "Add" |} nil
                    (MkExpression NoInfo
                         (ExpName
                          (BareName {| stags := NoInfo; str := "hash" |})
-                         (LGlobal [{| stags := NoInfo; str := "hash" |}]))
+                         (LGlobal ["hash"]))
                         (TypFunction
                          (MkFunctionType
                               [{| stags := NoInfo; str := "O" |};
@@ -712,9 +712,7 @@ Definition Add := DeclControl NoInfo {| stags := NoInfo; str := "Add" |} nil
                                     (ExpName
                                      (BareName
                                       {| stags := NoInfo; str := "meta" |})
-                                     (LInstance
-                                          [{| stags := NoInfo;
-                                              str := "meta" |}]))
+                                     (LInstance ["meta"]))
                                     (TypTypeName
                                      (BareName
                                       {| stags := NoInfo;
@@ -758,9 +756,7 @@ Definition Add := DeclControl NoInfo {| stags := NoInfo; str := "Add" |} nil
                                                       (BareName
                                                        {| stags := NoInfo;
                                                           str := "hdr" |})
-                                                      (LInstance
-                                                           [{| stags := NoInfo;
-                                                               str := "hdr" |}]))
+                                                      (LInstance ["hdr"]))
                                                      (TypTypeName
                                                       (BareName
                                                        {| stags := NoInfo;
@@ -797,8 +793,7 @@ Definition Add := DeclControl NoInfo {| stags := NoInfo; str := "Add" |} nil
                         (MkExpression NoInfo
                              (ExpName
                               (BareName {| stags := NoInfo; str := "hash" |})
-                              (LGlobal
-                                   [{| stags := NoInfo; str := "hash" |}]))
+                              (LGlobal ["hash"]))
                              (TypFunction
                               (MkFunctionType
                                    [{| stags := NoInfo; str := "O" |};
@@ -849,9 +844,7 @@ Definition Add := DeclControl NoInfo {| stags := NoInfo; str := "Add" |} nil
                                           (BareName
                                            {| stags := NoInfo;
                                               str := "meta" |})
-                                          (LInstance
-                                               [{| stags := NoInfo;
-                                                   str := "meta" |}]))
+                                          (LInstance ["meta"]))
                                          (TypTypeName
                                           (BareName
                                            {| stags := NoInfo;
@@ -899,8 +892,7 @@ Definition Add := DeclControl NoInfo {| stags := NoInfo; str := "Add" |} nil
                                                             {| stags := NoInfo;
                                                                str := "hdr" |})
                                                            (LInstance
-                                                                [{| stags := NoInfo;
-                                                                    str := "hdr" |}]))
+                                                                ["hdr"]))
                                                           (TypTypeName
                                                            (BareName
                                                             {| stags := NoInfo;
@@ -940,8 +932,7 @@ Definition Add := DeclControl NoInfo {| stags := NoInfo; str := "Add" |} nil
                                   (ExpName
                                    (BareName
                                     {| stags := NoInfo; str := "hash" |})
-                                   (LGlobal
-                                        [{| stags := NoInfo; str := "hash" |}]))
+                                   (LGlobal ["hash"]))
                                   (TypFunction
                                    (MkFunctionType
                                         [{| stags := NoInfo; str := "O" |};
@@ -996,9 +987,7 @@ Definition Add := DeclControl NoInfo {| stags := NoInfo; str := "Add" |} nil
                                                (BareName
                                                 {| stags := NoInfo;
                                                    str := "meta" |})
-                                               (LInstance
-                                                    [{| stags := NoInfo;
-                                                        str := "meta" |}]))
+                                               (LInstance ["meta"]))
                                               (TypTypeName
                                                (BareName
                                                 {| stags := NoInfo;
@@ -1057,9 +1046,7 @@ Definition Add := DeclControl NoInfo {| stags := NoInfo; str := "Add" |} nil
                                                                  {| stags := NoInfo;
                                                                     str := "hdr" |})
                                                                 (LInstance
-                                                                    [{| 
-                                                                    stags := NoInfo;
-                                                                    str := "hdr" |}]))
+                                                                    ["hdr"]))
                                                                (TypTypeName
                                                                 (BareName
                                                                  {| stags := NoInfo;
@@ -1104,9 +1091,7 @@ Definition Add := DeclControl NoInfo {| stags := NoInfo; str := "Add" |} nil
                                                   (BareName
                                                    {| stags := NoInfo;
                                                       str := "bloom0" |})
-                                                  (LGlobal
-                                                       [{| stags := NoInfo;
-                                                           str := "bloom0" |}]))
+                                                  (LGlobal ["bloom0"]))
                                                  (TypSpecializedType
                                                       (TypExtern
                                                        {| stags := NoInfo;
@@ -1135,9 +1120,7 @@ Definition Add := DeclControl NoInfo {| stags := NoInfo; str := "Add" |} nil
                                                     (BareName
                                                      {| stags := NoInfo;
                                                         str := "meta" |})
-                                                    (LInstance
-                                                         [{| stags := NoInfo;
-                                                             str := "meta" |}]))
+                                                    (LInstance ["meta"]))
                                                    (TypTypeName
                                                     (BareName
                                                      {| stags := NoInfo;
@@ -1168,9 +1151,7 @@ Definition Add := DeclControl NoInfo {| stags := NoInfo; str := "Add" |} nil
                                                        (BareName
                                                         {| stags := NoInfo;
                                                            str := "bloom0" |})
-                                                       (LGlobal
-                                                            [{| stags := NoInfo;
-                                                                str := "bloom0" |}]))
+                                                       (LGlobal ["bloom0"]))
                                                       (TypSpecializedType
                                                            (TypExtern
                                                             {| stags := NoInfo;
@@ -1201,9 +1182,7 @@ Definition Add := DeclControl NoInfo {| stags := NoInfo; str := "Add" |} nil
                                                          (BareName
                                                           {| stags := NoInfo;
                                                              str := "meta" |})
-                                                         (LInstance
-                                                              [{| stags := NoInfo;
-                                                                  str := "meta" |}]))
+                                                         (LInstance ["meta"]))
                                                         (TypTypeName
                                                          (BareName
                                                           {| stags := NoInfo;
@@ -1236,9 +1215,7 @@ Definition Add := DeclControl NoInfo {| stags := NoInfo; str := "Add" |} nil
                                                              {| stags := NoInfo;
                                                                 str := "bloom0" |})
                                                             (LGlobal
-                                                                 [{| 
-                                                                  stags := NoInfo;
-                                                                  str := "bloom0" |}]))
+                                                                 ["bloom0"]))
                                                            (TypSpecializedType
                                                                 (TypExtern
                                                                  {| stags := NoInfo;
@@ -1270,9 +1247,7 @@ Definition Add := DeclControl NoInfo {| stags := NoInfo; str := "Add" |} nil
                                                                {| stags := NoInfo;
                                                                   str := "meta" |})
                                                               (LInstance
-                                                                   [{| 
-                                                                    stags := NoInfo;
-                                                                    str := "meta" |}]))
+                                                                   ["meta"]))
                                                              (TypTypeName
                                                               (BareName
                                                                {| stags := NoInfo;
@@ -1312,7 +1287,7 @@ Definition Query := DeclControl NoInfo {| stags := NoInfo; str := "Query" |}
                    (MkExpression NoInfo
                         (ExpName
                          (BareName {| stags := NoInfo; str := "hash" |})
-                         (LGlobal [{| stags := NoInfo; str := "hash" |}]))
+                         (LGlobal ["hash"]))
                         (TypFunction
                          (MkFunctionType
                               [{| stags := NoInfo; str := "O" |};
@@ -1359,9 +1334,7 @@ Definition Query := DeclControl NoInfo {| stags := NoInfo; str := "Query" |}
                                     (ExpName
                                      (BareName
                                       {| stags := NoInfo; str := "meta" |})
-                                     (LInstance
-                                          [{| stags := NoInfo;
-                                              str := "meta" |}]))
+                                     (LInstance ["meta"]))
                                     (TypTypeName
                                      (BareName
                                       {| stags := NoInfo;
@@ -1405,9 +1378,7 @@ Definition Query := DeclControl NoInfo {| stags := NoInfo; str := "Query" |}
                                                       (BareName
                                                        {| stags := NoInfo;
                                                           str := "hdr" |})
-                                                      (LInstance
-                                                           [{| stags := NoInfo;
-                                                               str := "hdr" |}]))
+                                                      (LInstance ["hdr"]))
                                                      (TypTypeName
                                                       (BareName
                                                        {| stags := NoInfo;
@@ -1444,8 +1415,7 @@ Definition Query := DeclControl NoInfo {| stags := NoInfo; str := "Query" |}
                         (MkExpression NoInfo
                              (ExpName
                               (BareName {| stags := NoInfo; str := "hash" |})
-                              (LGlobal
-                                   [{| stags := NoInfo; str := "hash" |}]))
+                              (LGlobal ["hash"]))
                              (TypFunction
                               (MkFunctionType
                                    [{| stags := NoInfo; str := "O" |};
@@ -1496,9 +1466,7 @@ Definition Query := DeclControl NoInfo {| stags := NoInfo; str := "Query" |}
                                           (BareName
                                            {| stags := NoInfo;
                                               str := "meta" |})
-                                          (LInstance
-                                               [{| stags := NoInfo;
-                                                   str := "meta" |}]))
+                                          (LInstance ["meta"]))
                                          (TypTypeName
                                           (BareName
                                            {| stags := NoInfo;
@@ -1546,8 +1514,7 @@ Definition Query := DeclControl NoInfo {| stags := NoInfo; str := "Query" |}
                                                             {| stags := NoInfo;
                                                                str := "hdr" |})
                                                            (LInstance
-                                                                [{| stags := NoInfo;
-                                                                    str := "hdr" |}]))
+                                                                ["hdr"]))
                                                           (TypTypeName
                                                            (BareName
                                                             {| stags := NoInfo;
@@ -1587,8 +1554,7 @@ Definition Query := DeclControl NoInfo {| stags := NoInfo; str := "Query" |}
                                   (ExpName
                                    (BareName
                                     {| stags := NoInfo; str := "hash" |})
-                                   (LGlobal
-                                        [{| stags := NoInfo; str := "hash" |}]))
+                                   (LGlobal ["hash"]))
                                   (TypFunction
                                    (MkFunctionType
                                         [{| stags := NoInfo; str := "O" |};
@@ -1643,9 +1609,7 @@ Definition Query := DeclControl NoInfo {| stags := NoInfo; str := "Query" |}
                                                (BareName
                                                 {| stags := NoInfo;
                                                    str := "meta" |})
-                                               (LInstance
-                                                    [{| stags := NoInfo;
-                                                        str := "meta" |}]))
+                                               (LInstance ["meta"]))
                                               (TypTypeName
                                                (BareName
                                                 {| stags := NoInfo;
@@ -1704,9 +1668,7 @@ Definition Query := DeclControl NoInfo {| stags := NoInfo; str := "Query" |}
                                                                  {| stags := NoInfo;
                                                                     str := "hdr" |})
                                                                 (LInstance
-                                                                    [{| 
-                                                                    stags := NoInfo;
-                                                                    str := "hdr" |}]))
+                                                                    ["hdr"]))
                                                                (TypTypeName
                                                                 (BareName
                                                                  {| stags := NoInfo;
@@ -1751,9 +1713,7 @@ Definition Query := DeclControl NoInfo {| stags := NoInfo; str := "Query" |}
                                                   (BareName
                                                    {| stags := NoInfo;
                                                       str := "bloom0" |})
-                                                  (LGlobal
-                                                       [{| stags := NoInfo;
-                                                           str := "bloom0" |}]))
+                                                  (LGlobal ["bloom0"]))
                                                  (TypSpecializedType
                                                       (TypExtern
                                                        {| stags := NoInfo;
@@ -1782,9 +1742,7 @@ Definition Query := DeclControl NoInfo {| stags := NoInfo; str := "Query" |}
                                                     (BareName
                                                      {| stags := NoInfo;
                                                         str := "meta" |})
-                                                    (LInstance
-                                                         [{| stags := NoInfo;
-                                                             str := "meta" |}]))
+                                                    (LInstance ["meta"]))
                                                    (TypTypeName
                                                     (BareName
                                                      {| stags := NoInfo;
@@ -1801,9 +1759,7 @@ Definition Query := DeclControl NoInfo {| stags := NoInfo; str := "Query" |}
                                                     (BareName
                                                      {| stags := NoInfo;
                                                         str := "meta" |})
-                                                    (LInstance
-                                                         [{| stags := NoInfo;
-                                                             str := "meta" |}]))
+                                                    (LInstance ["meta"]))
                                                    (TypTypeName
                                                     (BareName
                                                      {| stags := NoInfo;
@@ -1823,9 +1779,7 @@ Definition Query := DeclControl NoInfo {| stags := NoInfo; str := "Query" |}
                                                        (BareName
                                                         {| stags := NoInfo;
                                                            str := "bloom0" |})
-                                                       (LGlobal
-                                                            [{| stags := NoInfo;
-                                                                str := "bloom0" |}]))
+                                                       (LGlobal ["bloom0"]))
                                                       (TypSpecializedType
                                                            (TypExtern
                                                             {| stags := NoInfo;
@@ -1856,9 +1810,7 @@ Definition Query := DeclControl NoInfo {| stags := NoInfo; str := "Query" |}
                                                          (BareName
                                                           {| stags := NoInfo;
                                                              str := "meta" |})
-                                                         (LInstance
-                                                              [{| stags := NoInfo;
-                                                                  str := "meta" |}]))
+                                                         (LInstance ["meta"]))
                                                         (TypTypeName
                                                          (BareName
                                                           {| stags := NoInfo;
@@ -1875,9 +1827,7 @@ Definition Query := DeclControl NoInfo {| stags := NoInfo; str := "Query" |}
                                                          (BareName
                                                           {| stags := NoInfo;
                                                              str := "meta" |})
-                                                         (LInstance
-                                                              [{| stags := NoInfo;
-                                                                  str := "meta" |}]))
+                                                         (LInstance ["meta"]))
                                                         (TypTypeName
                                                          (BareName
                                                           {| stags := NoInfo;
@@ -1898,9 +1848,7 @@ Definition Query := DeclControl NoInfo {| stags := NoInfo; str := "Query" |}
                                                              {| stags := NoInfo;
                                                                 str := "bloom0" |})
                                                             (LGlobal
-                                                                 [{| 
-                                                                  stags := NoInfo;
-                                                                  str := "bloom0" |}]))
+                                                                 ["bloom0"]))
                                                            (TypSpecializedType
                                                                 (TypExtern
                                                                  {| stags := NoInfo;
@@ -1932,9 +1880,7 @@ Definition Query := DeclControl NoInfo {| stags := NoInfo; str := "Query" |}
                                                                {| stags := NoInfo;
                                                                   str := "meta" |})
                                                               (LInstance
-                                                                   [{| 
-                                                                    stags := NoInfo;
-                                                                    str := "meta" |}]))
+                                                                   ["meta"]))
                                                              (TypTypeName
                                                               (BareName
                                                                {| stags := NoInfo;
@@ -1953,9 +1899,7 @@ Definition Query := DeclControl NoInfo {| stags := NoInfo; str := "Query" |}
                                                                {| stags := NoInfo;
                                                                   str := "meta" |})
                                                               (LInstance
-                                                                   [{| 
-                                                                    stags := NoInfo;
-                                                                    str := "meta" |}]))
+                                                                   ["meta"]))
                                                              (TypTypeName
                                                               (BareName
                                                                {| stags := NoInfo;
@@ -1981,9 +1925,7 @@ Definition Query := DeclControl NoInfo {| stags := NoInfo; str := "Query" |}
                                                                     stags := NoInfo;
                                                                     str := "hdr" |})
                                                                     (LInstance
-                                                                    [{| 
-                                                                    stags := NoInfo;
-                                                                    str := "hdr" |}]))
+                                                                    ["hdr"]))
                                                                     (TypTypeName
                                                                     (BareName
                                                                     {| 
@@ -2035,9 +1977,7 @@ Definition Query := DeclControl NoInfo {| stags := NoInfo; str := "Query" |}
                                                                     stags := NoInfo;
                                                                     str := "meta" |})
                                                                     (LInstance
-                                                                    [{| 
-                                                                    stags := NoInfo;
-                                                                    str := "meta" |}]))
+                                                                    ["meta"]))
                                                                     (TypTypeName
                                                                     (BareName
                                                                     {| 
@@ -2060,9 +2000,7 @@ Definition Query := DeclControl NoInfo {| stags := NoInfo; str := "Query" |}
                                                                     stags := NoInfo;
                                                                     str := "meta" |})
                                                                     (LInstance
-                                                                    [{| 
-                                                                    stags := NoInfo;
-                                                                    str := "meta" |}]))
+                                                                    ["meta"]))
                                                                     (TypTypeName
                                                                     (BareName
                                                                     {| 
@@ -2089,9 +2027,7 @@ Definition Query := DeclControl NoInfo {| stags := NoInfo; str := "Query" |}
                                                                     stags := NoInfo;
                                                                     str := "meta" |})
                                                                     (LInstance
-                                                                    [{| 
-                                                                    stags := NoInfo;
-                                                                    str := "meta" |}]))
+                                                                    ["meta"]))
                                                                     (TypTypeName
                                                                     (BareName
                                                                     {| 
@@ -2137,9 +2073,7 @@ Definition MyIngress := DeclControl NoInfo
                                          (BareName
                                           {| stags := NoInfo;
                                              str := "standard_metadata" |})
-                                         (LInstance
-                                              [{| stags := NoInfo;
-                                                  str := "standard_metadata" |}]))
+                                         (LInstance ["standard_metadata"]))
                                         (TypTypeName
                                          (BareName
                                           {| stags := NoInfo;
@@ -2152,10 +2086,7 @@ Definition MyIngress := DeclControl NoInfo
                               (ExpName
                                (BareName
                                 {| stags := NoInfo; str := "port" |})
-                               (LInstance
-                                    [{| stags := NoInfo;
-                                        str := "do_forward" |};
-                                     {| stags := NoInfo; str := "port" |}]))
+                               (LInstance ["do_forward"; "port"]))
                               (TypTypeName
                                (BareName
                                 {| stags := NoInfo; str := "egressSpec_t" |}))
@@ -2175,9 +2106,7 @@ Definition MyIngress := DeclControl NoInfo
                                                         (BareName
                                                          {| stags := NoInfo;
                                                             str := "hdr" |})
-                                                        (LInstance
-                                                             [{| stags := NoInfo;
-                                                                 str := "hdr" |}]))
+                                                        (LInstance ["hdr"]))
                                                        (TypTypeName
                                                         (BareName
                                                          {| stags := NoInfo;
@@ -2198,8 +2127,7 @@ Definition MyIngress := DeclControl NoInfo
                                    (TypFunction
                                     (MkFunctionType nil nil FunBuiltin
                                          TypBool)) Directionless) nil nil)
-                         TypBool Directionless))
-                   (LInstance [{| stags := NoInfo; str := "t'0" |}]))
+                         TypBool Directionless)) (LInstance ["t'0"]))
               StmVoid)
          (BlockCons
               (MkStatement NoInfo
@@ -2212,9 +2140,7 @@ Definition MyIngress := DeclControl NoInfo
                                          (BareName
                                           {| stags := NoInfo;
                                              str := "do_forward" |})
-                                         (LInstance
-                                              [{| stags := NoInfo;
-                                                  str := "do_forward" |}]))
+                                         (LInstance ["do_forward"]))
                                         (TypAction nil
                                              [(MkParameter false
                                                    Directionless
@@ -2253,9 +2179,7 @@ Definition MyIngress := DeclControl NoInfo
                                                           (BareName
                                                            {| stags := NoInfo;
                                                               str := "hdr" |})
-                                                          (LInstance
-                                                               [{| stags := NoInfo;
-                                                                   str := "hdr" |}]))
+                                                          (LInstance ["hdr"]))
                                                          (TypTypeName
                                                           (BareName
                                                            {| stags := NoInfo;
@@ -2267,8 +2191,7 @@ Definition MyIngress := DeclControl NoInfo
                                                            {| stags := NoInfo;
                                                               str := "meta" |})
                                                           (LInstance
-                                                               [{| stags := NoInfo;
-                                                                   str := "meta" |}]))
+                                                               ["meta"]))
                                                          (TypTypeName
                                                           (BareName
                                                            {| stags := NoInfo;
@@ -2292,9 +2215,7 @@ Definition MyIngress := DeclControl NoInfo
                                                                    str := "hdr" |})
                                                                (LInstance
                                                                     [
-                                                                    {| 
-                                                                    stags := NoInfo;
-                                                                    str := "hdr" |}]))
+                                                                    "hdr"]))
                                                               (TypTypeName
                                                                (BareName
                                                                 {| stags := NoInfo;
@@ -2307,9 +2228,7 @@ Definition MyIngress := DeclControl NoInfo
                                                                    str := "meta" |})
                                                                (LInstance
                                                                     [
-                                                                    {| 
-                                                                    stags := NoInfo;
-                                                                    str := "meta" |}]))
+                                                                    "meta"]))
                                                               (TypTypeName
                                                                (BareName
                                                                 {| stags := NoInfo;
@@ -2352,9 +2271,7 @@ Definition MyDeparser := DeclControl NoInfo
                                   (ExpName
                                    (BareName
                                     {| stags := NoInfo; str := "packet" |})
-                                   (LInstance
-                                        [{| stags := NoInfo;
-                                            str := "packet" |}]))
+                                   (LInstance ["packet"]))
                                   (TypTypeName
                                    (BareName
                                     {| stags := NoInfo;
@@ -2379,9 +2296,7 @@ Definition MyDeparser := DeclControl NoInfo
                                     (ExpName
                                      (BareName
                                       {| stags := NoInfo; str := "hdr" |})
-                                     (LInstance
-                                          [{| stags := NoInfo;
-                                              str := "hdr" |}]))
+                                     (LInstance ["hdr"]))
                                     (TypTypeName
                                      (BareName
                                       {| stags := NoInfo; str := "headers" |}))
