@@ -13,12 +13,11 @@ Notation Val := (@ValueBase bool).
 Notation Sval := (@ValueBase (option bool)).
 Notation Lval := ValueLvalue.
 
-Notation ident := (P4String.t tags_t).
-Notation path := (list ident).
+Notation path := (list string).
 Notation P4Int := (P4Int.t tags_t).
 Notation P4String := (P4String.t tags_t).
 Notation P4Type := (@P4Type tags_t).
-Notation mem := (@Semantics.mem tags_t).
+Notation mem := Semantics.mem.
 
 Context `{@Target tags_t (@Expression tags_t)}.
 
@@ -30,6 +29,61 @@ Definition Lval : Type := Locator * list Field. *)
 Definition assertion_unit := path * Sval.
 
 Definition assertion := list assertion_unit.
+
+(* Current behavior:
+    validate a header regardless of the sucess of writing *)
+Fixpoint upd_sval_once (v: Sval) (p: path) (f: Sval) : Sval :=
+  match v, p with
+  | _, [] => f
+  | ValBaseStruct fields, hd :: tl =>
+      match AList.get fields hd with
+      | Some v' => 
+          match AList.set fields hd (upd_sval_once v' tl f) with
+          | Some fields' => ValBaseStruct fields'
+          | None => v (* Impossible *)
+          end
+      | None => v
+      end
+  | ValBaseRecord fields, hd :: tl =>
+      match AList.get fields hd with
+      | Some v' => 
+          match AList.set fields hd (upd_sval_once v' tl f) with
+          | Some fields' => ValBaseRecord fields'
+          | None => v (* Impossible *)
+          end
+      | None => v
+      end
+  | ValBaseUnion fields, hd :: tl =>
+      match AList.get fields hd with
+      | Some v' => 
+          match AList.set fields hd (upd_sval_once v' tl f) with
+          | Some fields' => ValBaseUnion fields'
+          | None => v (* Impossible *)
+          end
+      | None => v
+      end
+  | ValBaseHeader fields vbit, hd :: tl =>
+      match AList.get fields hd with
+      | Some v' => 
+          match AList.set fields hd (upd_sval_once v' tl f) with
+          | Some fields' => ValBaseHeader fields' (Some true)
+          | None => v (* Impossible *)
+          end
+      | None => v
+      end
+  | _, _ => v
+  end.
+
+Definition upd_sval (v: Sval) (upds: list (path * Sval)): Sval :=
+  List.fold_left (fun v pf => upd_sval_once v (fst pf) (snd pf)) upds v.
+
+Definition gen_sval (typ: P4Type) (upds: list (path * Sval)): option Sval :=
+  match uninit_sval_of_typ (Some false) typ with
+  | Some v =>
+      Some (List.fold_left (fun v pf => upd_sval_once v (fst pf) (snd pf)) upds v)
+  | None =>
+      None
+  end.
 
 (* Notation alist_get l s := (AList.get l (P4String.Build_t _ default s)).
 

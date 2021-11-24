@@ -11,10 +11,11 @@ Require Import Poulet4.Maps.
 Require Import Poulet4.Semantics.
 Require Import Poulet4.SimplExpr.
 Require Import Poulet4.V1Model.
+Require Import Poulet4.P4Arith.
 Require Import ProD3.core.Hoare.
 (* Require Import ProD3.core.HoareSoundness. *)
 Require Import ProD3.core.AssertionLang.
-Require Import ProD3.core.V1ModelLang.
+(* Require Import ProD3.core.V1ModelLang. *)
 (* Require Import ProD3.core.ConcreteHoare. *)
 
 Instance target : @Target Info (@Expression Info) := V1Model.
@@ -34,26 +35,24 @@ Definition init_es := Eval compute in snd instantiation.
 
 Transparent IdentMap.empty IdentMap.set PathMap.empty PathMap.set.
 
-Notation ident := (P4String.t Info).
-Notation path := (list ident).
-Notation Val := (@ValueBase Info).
+Notation path := (list string).
+Notation Val := (@ValueBase bool).
+Notation Sval := (@ValueBase (option bool)).
 
-Notation assertion := (@assertion Info).
+(* Notation assertion := (@assertion Info).
 Notation arg_assertion := (@arg_assertion Info).
-Notation ret_assertion := (@ret_assertion Info).
-Notation ext_assertion := (@ext_assertion Info).
+Notation ret_assertion := (@ret_assertion Info). *)
+(* Notation ext_assertion := (@ext_assertion Info). *)
 
 Module Experiment1.
 
 Axiom dummy_fundef : (@fundef Info).
 
 Definition MyIngress_fundef := Eval compute in
-  match PathMap.get [!"MyIngress"] (ge_func ge) with
+  match PathMap.get ["MyIngress"] (ge_func ge) with
   | Some x => x
   | None => dummy_fundef
   end.
-
-Axiom dummy_type : (@P4Type Info).
 
 (* Definition header_type := Eval compute in
   match main with
@@ -82,7 +81,7 @@ Definition stdmeta_type := Eval compute in
   | _ =>  dummy_type
   end. *)
 
-Definition this : path := !["main"; "ig"].
+Definition this : path := ["main"; "ig"].
 
 Definition NUM_ENTRY : Z := 1024.
 
@@ -129,22 +128,49 @@ Variable meta : Val.
 Variable standard_metadata : Val. *)
 Variable bst : bloomfilter_state.
 
-(* Definition pre_arg_assertion : assertion :=
-  [
-    uninit_sval_of_typ (Some true) header_type
+Definition myHeader := 
+  ValBaseStruct
+    [("myHeader",
+      ValBaseHeader
+        [("rw", ValBaseBit (to_loptbool 8 rw));
+         ("data", ValBaseBit (to_loptbool 8 data))]
+         (Some true))].
 
+Axiom dummy_type : (@P4Type Info).
 
-    (["hdr"; "myHeader"; "rw"], ValBaseBit (to_loptbool 8 data));
-    (["hdr"; "myHeader"; "data"], ValBaseBit (to_loptbool 16 data));
-    
-    
+Definition custom_metadata_t := Eval compute in
+  match IdentMap.get "custom_metadata_t" (ge_typ ge) with
+  | Some typ => typ
+  | None => dummy_type
+  end.
 
-    ArgType (0%Z, []) (TypTypeName (BareName !"headers"));
-    ArgType (1%Z, []) (TypTypeName (BareName !"custom_metadata_t"));
-    ArgType (2%Z, []) (TypTypeName (BareName !"standard_metadata_t"))
-  ]. *)
+Definition standard_metadata_t := Eval compute in
+  match IdentMap.get "standard_metadata_t" (ge_typ ge) with
+  | Some typ => typ
+  | None => dummy_type
+  end.
 
-Definition pre_ext_assertion : ext_assertion :=
+Axiom dummy_sval : Sval.
+
+Definition meta := Eval compute in
+  match gen_sval custom_metadata_t [] with
+  | Some v => v
+  | None => dummy_sval
+  end.
+
+Definition standard_metadata := Eval compute in
+  match gen_sval standard_metadata_t [] with
+  | Some v => v
+  | None => dummy_sval
+  end.
+
+Definition pre_arg_assertion : assertion :=
+  [ (["hdr"], myHeader);
+    (["meta"], meta);
+    (["standard_metadata"], standard_metadata)
+  ].
+
+(* Definition pre_ext_assertion : ext_assertion :=
   [
     (LGlobal !["bloom0"], ObjRegister (mk_register 1%nat NUM_ENTRY (bloom0 bst)));
     (LGlobal !["bloom1"], ObjRegister (mk_register 1%nat NUM_ENTRY (bloom1 bst)));
@@ -153,7 +179,7 @@ Definition pre_ext_assertion : ext_assertion :=
 
 Definition pre (args : list Val) (st : state) :=
   arg_to_shallow_assertion pre_arg_assertion args /\
-    to_shallow_assertion_continue this ([], pre_ext_assertion) st.
+    to_shallow_assertion_continue this ([], pre_ext_assertion) st. *)
 
 Axiom CRC : Z -> Z.
 Axiom CRC_range : forall data, 0 <= CRC data < NUM_ENTRY.
@@ -164,18 +190,19 @@ Definition process (rw data : Z) (bst : bloomfilter_state) : (bloomfilter_state 
   else
     (bst, bool_to_Z (bloomfilter.query Z CRC CRC CRC bst data)).
 
-Definition post_arg_assertion : arg_assertion :=
+Definition post_arg_assertion : assertion :=
   let (bst', rw') := process rw data bst in
   [
-    ArgVal (0%Z, ["myHeader"; "rw"]) (ValBaseBit 8%nat rw');
-    ArgVal (0%Z, ["myHeader"; "data"]) (ValBaseBit 16%nat data);
-    ArgVal (2%Z, ["egress_spec"]) (ValBaseBit 9%nat 1);
-    ArgType (0%Z, []) (TypTypeName (BareName !"headers"));
-    ArgType (1%Z, []) (TypTypeName (BareName !"custom_metadata_t"));
-    ArgType (2%Z, []) (TypTypeName (BareName !"standard_metadata_t"))
+    (["hdr"], upd_sval myHeader [(["myHeader"; "rw"], ValBaseBit (to_loptbool 8 rw'))]); 
+    (* The full specification of meta requires updates to all the six fields,
+       which need to be computed from process. 
+       Not sure if it is a good design. 
+       Or maybe we should change meta's direction to In? *)
+    (* (["meta"], upd_sval meta [(["index0"], ValBaseBit (to_loptbool 16 data))]); *)
+    (["standard_metadata"], upd_sval standard_metadata [(["egress_spec"], ValBaseBit (to_loptbool 9 1))])
   ].
 
-Definition post_ext_assertion : ext_assertion :=
+(* Definition post_ext_assertion : ext_assertion :=
   let (bst', rw') := process rw data bst in
   [
     (LGlobal !["bloom0"], ObjRegister (mk_register 1%nat NUM_ENTRY (bloom0 bst')));
@@ -185,7 +212,7 @@ Definition post_ext_assertion : ext_assertion :=
 
 Definition post (args : list Val) (ret : Val) (st : state) :=
   arg_to_shallow_assertion post_arg_assertion args /\
-    to_shallow_assertion_continue this ([], post_ext_assertion) st.
+    to_shallow_assertion_continue this ([], post_ext_assertion) st. *)
 
 Lemma body_bloomfilter : hoare_func ge inst_m this pre MyIngress_fundef nil post.
 Proof.
