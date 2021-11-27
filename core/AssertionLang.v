@@ -4,6 +4,8 @@ Require Import Poulet4.Syntax.
 Require Import Poulet4.Semantics.
 Require Import Poulet4.Value.
 Require Import ProD3.core.Coqlib.
+Require Import ProD3.core.Hoare.
+Require Import Coq.Numbers.BinNums.
 Open Scope type_scope.
 
 Section AssertionLang.
@@ -13,7 +15,8 @@ Notation Val := (@ValueBase bool).
 Notation Sval := (@ValueBase (option bool)).
 Notation Lval := ValueLvalue.
 
-Notation path := (list string).
+Notation ident := (string).
+Notation path := (list ident).
 Notation P4Int := (P4Int.t tags_t).
 Notation P4String := (P4String.t tags_t).
 Notation P4Type := (@P4Type tags_t).
@@ -21,14 +24,57 @@ Notation mem := Semantics.mem.
 
 Context `{@Target tags_t (@Expression tags_t)}.
 
-Variable this : path.
+Definition mem_unit := path * Sval.
 
-(* Definition Field : Type := string.
-Definition Lval : Type := Locator * list Field. *)
+Definition mem_assertion := list mem_unit.
 
-Definition assertion_unit := path * Sval.
+Definition mem_satisfies_unit (m : mem) (a_unit : mem_unit) : Prop :=
+  let (p, sv) := a_unit in
+  match PathMap.get p m with
+  | Some sv' => sval_refine sv sv'
+  | None => False
+  end.
 
-Definition assertion := list assertion_unit.
+Definition mem_satisfies (m : mem) (a : mem_assertion) : Prop :=
+  fold_right and True (map (mem_satisfies_unit m) a).
+
+Definition mem_denote (a : mem_assertion) : mem -> Prop :=
+  fun m => mem_satisfies m a.
+
+Definition arg_assertion := list Sval.
+
+Definition arg_satisfies (args : list Sval) (a : arg_assertion) : Prop :=
+  Forall2 sval_refine a args.
+
+Definition arg_denote (a : arg_assertion) : list Sval -> Prop :=
+  fun args => arg_satisfies args a.
+
+Definition ret_assertion := Sval.
+
+Definition ret_satisfies (retv : Sval) (a : ret_assertion) : Prop :=
+  sval_refine a retv.
+
+Definition ret_denote (a : ret_assertion) : Sval -> Prop :=
+  fun retv => ret_satisfies retv a.
+
+Definition ext_unit := path * extern_object.
+
+Definition ext_assertion := list ext_unit.
+
+Definition ext_satisfies_unit (es : extern_state) (a_unit : ext_unit) : Prop :=
+  let (p, eo) := a_unit in
+  match PathMap.get p es with
+  | Some eo' => eo = eo'
+  | None => False
+  end.
+
+Definition ext_satisfies (es : extern_state) (a : ext_assertion) : Prop :=
+  fold_right and True (map (ext_satisfies_unit es) a).
+
+Definition ext_denote (a : ext_assertion) : extern_state -> Prop :=
+  fun es => ext_satisfies es a.
+
+(** * Update and Get *)
 
 (* Current behavior:
     validate a header regardless of the sucess of writing *)
@@ -85,28 +131,35 @@ Definition gen_sval (typ: P4Type) (upds: list (path * Sval)): option Sval :=
       None
   end.
 
-(* Notation alist_get l s := (AList.get l (P4String.Build_t _ default s)).
-
-Definition extract (v : Val) (f : Field) : option Val :=
+Definition extract (v : Val) (f : ident) : option Val :=
   match v with
   | ValBaseStruct fields =>
-      alist_get fields f
+      AList.get fields f
   | ValBaseHeader fields true =>
-      alist_get fields f
+      AList.get fields f
   | _ => None
   end.
 
-Definition extract_option (ov : option Val) (f : Field) : option Val :=
+Definition extract_option (ov : option Val) (f : ident) : option Val :=
   match ov with
   | Some v => extract v f
   | None => None
-  end. *)
+  end.
 
-Inductive bit_refine : option bool -> option bool -> Prop :=
-  | read_none : forall ob, bit_refine None ob
-  | read_some : forall b, bit_refine (Some b) (Some b).
+Definition extract_sval (v : Sval) (f : ident) : option Sval :=
+  match v with
+  | ValBaseStruct fields =>
+      AList.get fields f
+  | ValBaseHeader fields (Some true) =>
+      AList.get fields f
+  | _ => None
+  end.
 
-Definition sval_refine := exec_val bit_refine.
+Definition extract_option_sval (ov : option Sval) (f : ident) : option Sval :=
+  match ov with
+  | Some v => extract_sval v f
+  | None => None
+  end.
 
 (* Definition mem_eval_read (m : mem) (lv : Lval) : option Val :=
   let (loc, fl) := lv in
@@ -122,18 +175,6 @@ Definition mem_is_valid_field (m : mem) (lv : Lval) : bool :=
   let (loc, fl) := lv in
   isNil fl || isSome (mem_eval_read m lv). *)
 
-Definition satisfies_unit (m : mem) (a_unit : assertion_unit) : Prop :=
-  let (p, sv) := a_unit in
-  match PathMap.get p m with
-  | Some sv' => sval_refine sv sv'
-  | None => False
-  end.
-
-Definition satisfies (m : mem) (a : assertion) : Prop :=
-  fold_right and True (map (satisfies_unit m) a).
-
-Definition denote (a : assertion) : mem -> Prop :=
-  fun m => satisfies m a.
 
 (* Definition loc_no_overlapping (loc1 : Locator) (loc2 : Locator) : bool :=
   match loc1, loc2 with
@@ -234,65 +275,6 @@ Fixpoint implies (a1 a2 : assertion) :=
   | [] =>
       true
   end.
-
-(*************** Argument and return value assertion language **********)
-
-Import BinNums.
-
-Instance Inhabitant_option {T: Type} : Inhabitant (option T) := None.
-
-Definition Znth_option {T} n (l : list T) :=
-  Znth n (map Some l).
-
-Definition arg_Lval : Type := Z * list Field.
-
-Definition arg_eval_read (args : list Val) (lv : arg_Lval) : option Val :=
-  let (n, fl) := lv in
-  fold_left extract_option fl (Znth_option n args).
-
-Inductive arg_assertion_unit :=
-| ArgVal: arg_Lval -> Val -> arg_assertion_unit
-| ArgType : arg_Lval -> P4Type -> arg_assertion_unit.
-
-Definition arg_assertion := list arg_assertion_unit.
-
-Definition arg_satisfies_unit (args : list Val) (a_unit : arg_assertion_unit) : Prop :=
-  match a_unit with
-  | ArgVal lv v =>
-      arg_eval_read args lv = Some v
-  | ArgType lv typ =>
-      True
-  end.
-
-Definition arg_satisfies (args : list Val) (a : arg_assertion) : Prop :=
-  fold_right and True (map (arg_satisfies_unit args) a).
-
-Definition arg_to_shallow_assertion (a : arg_assertion) : list Val -> Prop :=
-  fun args => arg_satisfies args a.
-
-Definition ret_Lval : Type := list Field.
-
-Definition ret_eval_read (vret : Val) (lv : ret_Lval) : option Val :=
-  fold_left extract_option lv (Some vret).
-
-Inductive ret_assertion_unit :=
-| RetVal: ret_Lval -> Val -> ret_assertion_unit
-| RetType : ret_Lval -> P4Type -> ret_assertion_unit.
-
-Definition ret_assertion := list ret_assertion_unit.
-
-Definition ret_satisfies_unit (vret : Val) (a_unit : ret_assertion_unit) : Prop :=
-  match a_unit with
-  | RetVal lv v =>
-      ret_eval_read vret lv = Some v
-  | RetType lv typ =>
-      True
-  end.
-
-Definition ret_satisfies (vret : Val) (a : ret_assertion) : Prop :=
-  fold_right and True (map (ret_satisfies_unit vret) a).
-
-Definition ret_to_shallow_assertion (a : ret_assertion) : Val -> Prop :=
-  fun vret => ret_satisfies vret a. *)
+*)
 
 End AssertionLang.

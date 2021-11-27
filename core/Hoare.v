@@ -1,3 +1,4 @@
+Require Import Coq.NArith.BinNat.
 Require Import Poulet4.Typed.
 Require Import Poulet4.Syntax.
 Require Import Poulet4.Value.
@@ -12,9 +13,9 @@ Context {tags_t: Type} {tags_t_inhabitant : Inhabitant tags_t}.
 Notation Val := (@ValueBase bool).
 Notation Sval := (@ValueBase (option bool)).
 (* Notation ValSet := (@ValueSet tags_t). *)
-Notation Lval := ValueLvalue.
+Notation Lval := (@ValueLvalue tags_t).
 
-Notation ident := (P4String.t tags_t).
+Notation ident := (String.string).
 Notation path := (list ident).
 Notation P4Int := (P4Int.t tags_t).
 Notation P4String := (P4String.t tags_t).
@@ -44,22 +45,57 @@ Definition return_post_assertion (a : ret_assertion) : post_assertion :=
 Definition return_post_assertion_1 (a : ret_assertion) : post_assertion :=
   mk_post_assertion (a ValBaseNull) a.
 
-Definition hoare_expr (p : path) (pre : assertion) (expr : Expression) (v : Sval) :=
-  forall st v',
-    pre st ->
-    exec_expr ge read_ndetbit p st expr v' ->
-    v' = v.
+(* bit_refine a b means a includes b. *)
+Inductive bit_refine : option bool -> option bool -> Prop :=
+  | read_none : forall ob, bit_refine None ob
+  | read_some : forall b, bit_refine (Some b) (Some b).
 
-Definition hoare_expr_1 (p : path) (pre : assertion) (expr : Expression) (v : Sval) :=
+(* sval_refine a b means a includes b. *)
+Definition sval_refine := exec_val bit_refine.
+
+Definition hoare_expr (p : path) (pre : assertion) (expr : Expression) (sv : Sval) :=
+  forall st sv',
+    pre st ->
+    exec_expr ge read_ndetbit p st expr sv' ->
+    sval_refine sv sv'.
+
+Definition hoare_expr_1 (p : path) (pre : assertion) (expr : Expression) (sv : Sval) :=
   forall st,
     pre st ->
-    exec_expr ge read_ndetbit p st expr v.
+    exec_expr ge read_ndetbit p st expr sv.
+
+Definition hoare_expr_det (p : path) (pre : assertion) (expr : Expression) (sv : Sval) :=
+  forall st v' sv',
+    pre st ->
+    exec_expr_det ge read_ndetbit p st expr v' ->
+    val_to_sval v' sv' ->
+    sval_refine sv sv'.
+
+Definition locator_eqb (loc1 loc2 : Locator) : bool :=
+  match loc1, loc2 with
+  | LInstance p1, LInstance p2 => path_eqb p1 p2
+  | LGlobal p1, LGlobal p2 => path_eqb p1 p2
+  | _, _ => false
+  end.
+
+Fixpoint lval_eqb (lv1 lv2 : Lval) : bool :=
+  match lv1, lv2 with
+  | MkValueLvalue (ValLeftName _ loc1) _, MkValueLvalue (ValLeftName _ loc2) _ =>
+      locator_eqb loc1 loc2
+  | MkValueLvalue (ValLeftMember lv1 member1) _, MkValueLvalue (ValLeftMember lv2 member2) _ =>
+      lval_eqb lv1 lv2 && String.eqb member1 member2
+  | MkValueLvalue (ValLeftBitAccess lv1 msb1 lsb1) _, MkValueLvalue (ValLeftBitAccess lv2 msb2 lsb2) _ =>
+      lval_eqb lv1 lv2 && N.eqb msb1 msb2 && N.eqb lsb1 lsb2
+  | MkValueLvalue (ValLeftArrayAccess lv1 idx1) _, MkValueLvalue (ValLeftArrayAccess lv2 idx2) _ =>
+      lval_eqb lv1 lv2 && N.eqb idx1 idx2
+  | _, _ => false
+  end.
 
 Definition hoare_lexpr (p : path) (pre : assertion) (expr : Expression) (lv : Lval) :=
   forall st lv' sig,
     pre st ->
     exec_lexpr ge read_ndetbit p st expr lv' sig ->
-    sig = SContinue /\ lval_equivb lv' lv.
+    sig = SContinue /\ lval_eqb lv' lv.
 
 (* Definition hoare_loc_to_val (p : path) (pre : assertion) (loc : Locator) (v : Sval) :=
     forall st,
@@ -76,12 +112,13 @@ Definition hoare_read (p : path) (pre : assertion) (lv : Lval) (v : Sval) :=
   forall st v',
     pre st ->
     exec_read ge p st lv v' ->
-    v' = v.
+    sval_refine v v'.
 
-Definition hoare_write (p : path) (pre : assertion) (lv : Lval) (v : Sval) (post : assertion) :=
-  forall st st',
+Definition hoare_write (p : path) (pre : assertion) (lv : Lval) (sv : Sval) (post : assertion) :=
+  forall st sv' st',
     pre st ->
-    exec_write ge p st lv v st' ->
+    sval_refine sv sv' ->
+    exec_write ge p st lv sv' st' ->
     post st'.
 
 Definition satisfies_ret_assertion (post : ret_assertion) (sig : signal) (st : state) : Prop :=
@@ -126,6 +163,39 @@ Definition hoare_func (p : path) (pre : arg_assertion) (func : @fundef tags_t) (
 
 (* Hoare proof rules ass lemmas. *)
 
+Definition is_call_expression (expr : Expression) : bool :=
+  match expr with
+  | MkExpression _ (ExpFunctionCall _ _ _) _ _ => true
+  | _ => false
+  end.
+
+(* This is currently not true. *)
+Axiom lval_eqb_eq : forall (lv1 lv2 : Lval),
+  lval_eqb lv1 lv2 ->
+  lv1 = lv2.
+
+Lemma hoare_stmt_assign : forall p pre lhs lv rhs sv tags typ post,
+  hoare_lexpr p pre lhs lv ->
+  is_call_expression rhs = false ->
+  hoare_expr_det p pre rhs sv ->
+  hoare_write p pre lv sv (post_continue post) ->
+  hoare_stmt p pre (MkStatement tags (StatAssignment lhs rhs) typ) post.
+Proof.
+  unfold hoare_stmt. intros.
+  left.
+  inv H5. 2 : {
+    (* rule out the call case *)
+    inv H14; inv H1.
+  }
+  specialize (H0 _ _ _ H4 H15).
+  inv H0.
+  split; only 1 : split.
+  apply lval_eqb_eq in H6. subst lv0.
+  specialize (H2 _ _ _ H4 H12 H16).
+  specialize (H3 _ _ _ H4 H2 H17).
+  apply H3.
+Qed.
+
 Definition implies (pre post : assertion) :=
   forall st, pre st -> post st.
 
@@ -168,7 +238,7 @@ Admitted.
 
 Fixpoint _in (x : ident) (al : list ident) : bool :=
   match al with
-  | y :: al => P4String.equivb x y || _in x al
+  | y :: al => String.eqb x y || _in x al
   | [] => false
   end.
 
