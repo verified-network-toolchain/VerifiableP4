@@ -169,6 +169,98 @@ Definition is_call_expression (expr : Expression) : bool :=
   | _ => false
   end.
 
+Lemma sval_refine_trans : forall sv1 sv2 sv3,
+  sval_refine sv1 sv2 ->
+  sval_refine sv2 sv3 ->
+  sval_refine sv1 sv3.
+Proof.
+  clear H ge.
+Admitted.
+
+Lemma bit_to_nbit_to_bit : forall nb b nb',
+  read_ndetbit nb b ->
+  read_detbit b nb' ->
+  bit_refine nb nb'.
+Proof.
+  intros.
+  destruct b; inv H0; inv H1; constructor.
+Qed.
+
+Hint Resolve bit_to_nbit_to_bit : core.
+
+Lemma bits_to_nbits_to_bits : forall nbs bs nbs',
+  Forall2 read_ndetbit nbs bs ->
+  Forall2 read_detbit bs nbs' ->
+  Forall2 bit_refine nbs nbs'.
+Proof.
+  intros nbs bs; revert nbs.
+  induction bs; intros.
+  - inv H0; inv H1; constructor.
+  - inv H0; inv H1; constructor; eauto.
+Qed.
+
+Hint Resolve bits_to_nbits_to_bits : core.
+
+Lemma sval_to_val_to_sval_case1 : forall (svs : list Sval) (vs : list Val) (svs' : list Sval),
+  Forall
+    (fun v : Val =>
+       forall sv sv' : Sval,
+       sval_to_val read_ndetbit sv v -> val_to_sval v sv' -> sval_refine sv sv') vs ->
+  Forall2 (exec_val read_ndetbit) svs vs ->
+  Forall2 (exec_val read_detbit) vs svs' ->
+  Forall2 (exec_val bit_refine) svs svs'.
+Proof.
+  intros svs vs; revert svs.
+  induction vs; intros; inv H2; inv H1; inv H0; constructor; only 1 : apply H3; auto.
+Qed.
+
+Lemma sval_to_val_to_sval_case2 : forall (svs : list (ident * Sval))
+  (vs : list (ident * Val)) (svs' : list (ident * Sval)),
+  Forall
+    (fun '(_, v) =>
+      forall sv sv' : Sval,
+      sval_to_val read_ndetbit sv v -> val_to_sval v sv' -> sval_refine sv sv') vs ->
+  AList.all_values (exec_val read_ndetbit) svs vs ->
+  AList.all_values (exec_val read_detbit) vs svs' ->
+  AList.all_values (exec_val bit_refine) svs svs'.
+Proof.
+  intros svs vs; revert svs.
+  induction vs; intros; inv H2; inv H1; inv H0; constructor.
+  - destruct H5; destruct H6; split.
+    + congruence.
+    + destruct a; apply H3; auto.
+  - apply IHvs; auto.
+Qed.
+
+Lemma sval_to_val_to_sval : forall (sv : Sval) (v : Val) (sv' : Sval),
+  sval_to_val read_ndetbit sv v ->
+  val_to_sval v sv' ->
+  sval_refine sv sv'.
+Proof.
+  intros sv v; revert sv.
+  induction v using custom_ValueBase_ind; intros * H_sval_to_val H_val_to_sval;
+    inv H_sval_to_val; inv H_val_to_sval;
+    constructor; eauto.
+  - eapply sval_to_val_to_sval_case1; eauto.
+  - eapply sval_to_val_to_sval_case2; eauto.
+  - eapply sval_to_val_to_sval_case2; eauto.
+  - eapply sval_to_val_to_sval_case2; eauto.
+  - eapply sval_to_val_to_sval_case2; eauto.
+  - eapply sval_to_val_to_sval_case1; eauto.
+  - eapply IHv; eauto.
+Qed.
+
+Lemma hoare_expr_det_intro : forall (p : path) (pre : assertion) (expr : Expression) (sv : Sval),
+  hoare_expr p pre expr sv ->
+  hoare_expr_det p pre expr sv.
+Proof.
+  unfold hoare_expr, hoare_expr_det. intros.
+  inv H2.
+  eapply sval_refine_trans.
+  - eapply H0; eauto.
+  - eapply sval_to_val_to_sval; eauto.
+Qed.
+
 (* This is currently not true. *)
 Axiom lval_eqb_eq : forall (lv1 lv2 : Lval),
   lval_eqb lv1 lv2 ->
