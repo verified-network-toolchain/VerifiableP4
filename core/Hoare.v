@@ -26,7 +26,8 @@ Context `{@Target tags_t Expression}.
 
 Variable ge : (@genv tags_t _).
 
-Definition assertion := state -> Prop. (* shallow assertion *)
+(* shallow assertions *)
+Definition assertion := state -> Prop.
 Definition arg_assertion := list Sval -> state -> Prop.
 Definition ret_assertion := Val -> state -> Prop.
 Definition arg_ret_assertion := list Sval -> Val -> state -> Prop.
@@ -42,8 +43,8 @@ Definition continue_post_assertion (a : assertion) : post_assertion :=
 Definition return_post_assertion (a : ret_assertion) : post_assertion :=
   mk_post_assertion (fun _ => False) a.
 
-Definition return_post_assertion_1 (a : ret_assertion) : post_assertion :=
-  mk_post_assertion (a ValBaseNull) a.
+(* Definition return_post_assertion_1 (a : ret_assertion) : post_assertion :=
+  mk_post_assertion (a ValBaseNull) a. *)
 
 (* bit_refine a b means a includes b. *)
 Inductive bit_refine : option bool -> option bool -> Prop :=
@@ -266,7 +267,7 @@ Axiom lval_eqb_eq : forall (lv1 lv2 : Lval),
   lval_eqb lv1 lv2 ->
   lv1 = lv2.
 
-Lemma hoare_stmt_assign : forall p pre lhs lv rhs sv tags typ post,
+Lemma hoare_stmt_assign : forall p pre tags lhs rhs typ post lv sv,
   hoare_lexpr p pre lhs lv ->
   is_call_expression rhs = false ->
   hoare_expr_det p pre rhs sv ->
@@ -286,6 +287,69 @@ Proof.
   specialize (H2 _ _ _ H4 H12 H16).
   specialize (H3 _ _ _ H4 H2 H17).
   apply H3.
+Qed.
+
+Lemma hoare_stmt_if_true : forall p pre tags cond tru ofls typ post,
+  hoare_expr_det p pre cond (ValBaseBool (Some true)) ->
+  hoare_stmt p pre tru post ->
+  hoare_stmt p pre (MkStatement tags (StatConditional cond tru ofls) typ) post.
+Proof.
+Admitted.
+
+Lemma hoare_stmt_if_false : forall p pre tags cond tru ofls typ post,
+  hoare_expr_det p pre cond (ValBaseBool (Some false)) ->
+  hoare_stmt p pre (force empty_statement ofls) post ->
+  hoare_stmt p pre (MkStatement tags (StatConditional cond tru ofls) typ) post.
+Proof.
+Admitted.
+
+Lemma hoare_stmt_if : forall p pre tags cond tru ofls typ post b,
+  hoare_expr_det p pre cond (ValBaseBool (Some b)) ->
+  (if b then
+      hoare_stmt p pre tru post
+   else
+      hoare_stmt p pre (force empty_statement ofls) post
+  ) ->
+  hoare_stmt p pre (MkStatement tags (StatConditional cond tru ofls) typ) post.
+Proof.
+  intros. destruct b.
+  - apply hoare_stmt_if_true; auto.
+  - apply hoare_stmt_if_false; auto.
+Qed.
+
+Lemma hoare_stmt_block : forall p pre tags block typ post,
+  hoare_block p pre block post ->
+  hoare_stmt p pre (MkStatement tags (StatBlock block) typ) post.
+Proof.
+  unfold hoare_block, hoare_stmt; intros.
+  inv H2; eauto.
+Qed.
+
+(* These two lemmas about return statements may need adjustment. *)
+
+Lemma hoare_stmt_return_none : forall p (pre : assertion) tags typ post,
+  (forall st, pre st -> (post_return post) ValBaseNull st) ->
+  hoare_stmt p pre (MkStatement tags (StatReturn None) typ) post.
+Proof.
+  unfold hoare_stmt; intros.
+  inv H2; right; apply H0; eauto.
+Qed.
+
+(* Maybe need some change in the lemma body. *)
+Lemma hoare_stmt_return_some : forall p (pre : assertion) tags e typ post sv,
+  hoare_expr_det p pre e sv ->
+  (forall st v, pre st -> (forall sv', val_to_sval v sv' -> sval_refine sv sv') -> (post_return post) v st) ->
+  hoare_stmt p pre (MkStatement tags (StatReturn (Some e)) typ) post.
+Proof.
+  unfold hoare_expr_det, hoare_stmt; intros.
+  inv H3. right; eapply H1; eauto.
+Qed.
+
+Lemma hoare_stmt_empty : forall p post tags typ,
+  hoare_stmt p (post_continue post) (MkStatement tags StatEmpty typ) post.
+Proof.
+  unfold hoare_stmt; intros.
+  inv H1; auto.
 Qed.
 
 Definition implies (pre post : assertion) :=
