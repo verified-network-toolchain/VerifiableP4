@@ -170,13 +170,92 @@ Definition is_call_expression (expr : Expression) : bool :=
   | _ => false
   end.
 
+Definition rel_trans {A B C} (f : A -> B -> Prop) (g : B -> C -> Prop) (h : A -> C -> Prop) :=
+  forall a b c,
+    f a b ->
+    g b c ->
+    h a c.
+
+Section exec_val_trans.
+  Context {A B C : Type} (f : A -> B -> Prop) (g : B -> C -> Prop) (h : A -> C -> Prop).
+  Hypothesis H_rel_trans : rel_trans f g h.
+
+  Lemma Forall2_trans : forall v1 v2 v3,
+    Forall2 f v1 v2 ->
+    Forall2 g v2 v3 ->
+    Forall2 h v1 v3.
+  Proof.
+    intros v1 v2; revert v1.
+    induction v2; intros.
+    - inv H0; inv H1; constructor.
+    - inv H0; inv H1; constructor; eauto.
+  Qed.
+
+  Hint Resolve Forall2_trans : core.
+
+  Lemma exec_val_trans_case1 : forall vs1 vs2 vs3,
+    Forall
+      (fun v2 : ValueBase =>
+        forall v1 v3 : ValueBase, exec_val f v1 v2 -> exec_val g v2 v3 -> exec_val h v1 v3) vs2 ->
+    Forall2 (exec_val f) vs1 vs2 ->
+    Forall2 (exec_val g) vs2 vs3 ->
+    Forall2 (exec_val h) vs1 vs3.
+  Proof.
+    intros vs1 vs2; revert vs1.
+    induction vs2; intros; inv H2; inv H1; inv H0; constructor; only 1 : apply H3; auto.
+  Qed.
+
+  Lemma exec_val_trans_case2 : forall (vs1 : list (ident * ValueBase)) vs2 vs3,
+    Forall
+      (fun '(_, v2) =>
+        forall v1 v3 : ValueBase, exec_val f v1 v2 -> exec_val g v2 v3 -> exec_val h v1 v3) vs2 ->
+    AList.all_values (exec_val f) vs1 vs2 ->
+    AList.all_values (exec_val g) vs2 vs3 ->
+    AList.all_values (exec_val h) vs1 vs3.
+  Proof.
+    intros vs1 vs2; revert vs1.
+    induction vs2; intros; inv H2; inv H1; inv H0; constructor.
+    - destruct H5; destruct H6; split.
+      + congruence.
+      + destruct a; apply H3; auto.
+    - apply IHvs2; auto.
+  Qed.
+
+  (* rel_trans (exec_val f) (exec_val g) (exec_val h) *)
+  Lemma exec_val_trans : forall v1 v2 v3,
+    exec_val f v1 v2 ->
+    exec_val g v2 v3 ->
+    exec_val h v1 v3.
+  Proof.
+    intros v1 v2; revert v1.
+    induction v2 using custom_ValueBase_ind; intros * H_f H_g;
+      inv H_f; inv H_g;
+      constructor; eauto.
+    - eapply exec_val_trans_case1; eauto.
+    - eapply exec_val_trans_case2; eauto.
+    - eapply exec_val_trans_case2; eauto.
+    - eapply exec_val_trans_case2; eauto.
+    - eapply exec_val_trans_case2; eauto.
+    - eapply exec_val_trans_case1; eauto.
+  Qed.
+End exec_val_trans.
+
+Lemma bit_refine_trans : forall b1 b2 b3 : option bool,
+  bit_refine b1 b2 ->
+  bit_refine b2 b3 ->
+  bit_refine b1 b3.
+Proof.
+  intros.
+  inv H0; inv H1; constructor.
+Qed.
+
 Lemma sval_refine_trans : forall sv1 sv2 sv3,
   sval_refine sv1 sv2 ->
   sval_refine sv2 sv3 ->
   sval_refine sv1 sv3.
 Proof.
-  clear H ge.
-Admitted.
+  apply exec_val_trans. exact bit_refine_trans.
+Qed.
 
 Lemma bit_to_nbit_to_bit : forall nb b nb',
   read_ndetbit nb b ->
@@ -184,53 +263,7 @@ Lemma bit_to_nbit_to_bit : forall nb b nb',
   bit_refine nb nb'.
 Proof.
   intros.
-  destruct b; inv H0; inv H1; constructor.
-Qed.
-
-Hint Resolve bit_to_nbit_to_bit : core.
-
-Lemma bits_to_nbits_to_bits : forall nbs bs nbs',
-  Forall2 read_ndetbit nbs bs ->
-  Forall2 read_detbit bs nbs' ->
-  Forall2 bit_refine nbs nbs'.
-Proof.
-  intros nbs bs; revert nbs.
-  induction bs; intros.
-  - inv H0; inv H1; constructor.
-  - inv H0; inv H1; constructor; eauto.
-Qed.
-
-Hint Resolve bits_to_nbits_to_bits : core.
-
-Lemma sval_to_val_to_sval_case1 : forall (svs : list Sval) (vs : list Val) (svs' : list Sval),
-  Forall
-    (fun v : Val =>
-       forall sv sv' : Sval,
-       sval_to_val read_ndetbit sv v -> val_to_sval v sv' -> sval_refine sv sv') vs ->
-  Forall2 (exec_val read_ndetbit) svs vs ->
-  Forall2 (exec_val read_detbit) vs svs' ->
-  Forall2 (exec_val bit_refine) svs svs'.
-Proof.
-  intros svs vs; revert svs.
-  induction vs; intros; inv H2; inv H1; inv H0; constructor; only 1 : apply H3; auto.
-Qed.
-
-Lemma sval_to_val_to_sval_case2 : forall (svs : list (ident * Sval))
-  (vs : list (ident * Val)) (svs' : list (ident * Sval)),
-  Forall
-    (fun '(_, v) =>
-      forall sv sv' : Sval,
-      sval_to_val read_ndetbit sv v -> val_to_sval v sv' -> sval_refine sv sv') vs ->
-  AList.all_values (exec_val read_ndetbit) svs vs ->
-  AList.all_values (exec_val read_detbit) vs svs' ->
-  AList.all_values (exec_val bit_refine) svs svs'.
-Proof.
-  intros svs vs; revert svs.
-  induction vs; intros; inv H2; inv H1; inv H0; constructor.
-  - destruct H5; destruct H6; split.
-    + congruence.
-    + destruct a; apply H3; auto.
-  - apply IHvs; auto.
+  inv H0; inv H1; constructor.
 Qed.
 
 Lemma sval_to_val_to_sval : forall (sv : Sval) (v : Val) (sv' : Sval),
@@ -238,17 +271,7 @@ Lemma sval_to_val_to_sval : forall (sv : Sval) (v : Val) (sv' : Sval),
   val_to_sval v sv' ->
   sval_refine sv sv'.
 Proof.
-  intros sv v; revert sv.
-  induction v using custom_ValueBase_ind; intros * H_sval_to_val H_val_to_sval;
-    inv H_sval_to_val; inv H_val_to_sval;
-    constructor; eauto.
-  - eapply sval_to_val_to_sval_case1; eauto.
-  - eapply sval_to_val_to_sval_case2; eauto.
-  - eapply sval_to_val_to_sval_case2; eauto.
-  - eapply sval_to_val_to_sval_case2; eauto.
-  - eapply sval_to_val_to_sval_case2; eauto.
-  - eapply sval_to_val_to_sval_case1; eauto.
-  - eapply IHv; eauto.
+  apply exec_val_trans. exact bit_to_nbit_to_bit.
 Qed.
 
 Lemma hoare_expr_det_intro : forall (p : path) (pre : assertion) (expr : Expression) (sv : Sval),
