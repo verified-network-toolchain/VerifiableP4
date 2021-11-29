@@ -312,6 +312,46 @@ Proof.
   apply H3.
 Qed.
 
+Lemma exec_expr_not_call : forall read_one_bit p st expr sv,
+  exec_expr ge read_one_bit p st expr sv ->
+  is_call_expression expr = false.
+Proof.
+  intros. inv H0; auto.
+Qed.
+
+Lemma exec_expr_det_not_call : forall read_one_bit p st expr v,
+  exec_expr_det ge read_one_bit p st expr v ->
+  is_call_expression expr = false.
+Proof.
+  intros. inv H0; eapply exec_expr_not_call; eauto.
+Qed.
+
+Lemma hoare_stmt_assign_call : forall p pre tags lhs rhs typ post lv mid sv,
+  hoare_lexpr p pre lhs lv ->
+  is_call_expression rhs = true ->
+  hoare_call p pre rhs (fun v st => mid st /\ (forall sv', val_to_sval v sv' -> sval_refine sv sv')) ->
+  hoare_write p mid lv sv (post_continue post) ->
+  hoare_stmt p pre (MkStatement tags (StatAssignment lhs rhs) typ) post.
+Proof.
+  unfold hoare_stmt. intros.
+  left.
+  inv H5. 1 : {
+    (* rule out the non-call case *)
+    pose proof (exec_expr_det_not_call _ _ _ _ _ H12).
+    congruence.
+  }
+  specialize (H0 _ _ _ H4 H15).
+  inv H0.
+  apply lval_eqb_eq in H6. subst lv0.
+  specialize (H2 _ _ _ H4 H14).
+  destruct sig'; only 1, 3, 4 : solve[inv H2].
+  destruct H2. destruct H16 as [? []].
+  split; only 1 : auto.
+  inv H5.
+  specialize (H3 _ _ _ H0 (H2 _ H9) H6).
+  apply H3.
+Qed.
+
 Lemma hoare_stmt_if_true : forall p pre tags cond tru ofls typ post,
   hoare_expr_det p pre cond (ValBaseBool (Some true)) ->
   hoare_stmt p pre tru post ->
