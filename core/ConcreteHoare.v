@@ -39,6 +39,13 @@ Variable this : path.
 
 Definition assertion : Type := mem_assertion * ext_assertion.
 
+int<8> f(in int<8> y){
+    int<8> ret;
+    return ret;
+}
+
+x = f(y);
+
 Record post_assertion := mk_post_assertion {
   post_continue :> assertion;
   post_return : ret_assertion * (mem_assertion * ext_assertion)

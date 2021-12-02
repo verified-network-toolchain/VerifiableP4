@@ -35,7 +35,8 @@ Definition init_es := Eval compute in snd instantiation.
 
 Transparent IdentMap.empty IdentMap.set PathMap.empty PathMap.set.
 
-Notation path := (list string).
+Notation ident := (string)
+Notation path := (list ident).
 Notation Val := (@ValueBase bool).
 Notation Sval := (@ValueBase (option bool)).
 
@@ -216,6 +217,23 @@ Definition post (args : list Val) (ret : Val) (st : state) :=
 
 Lemma body_bloomfilter : hoare_func ge inst_m this pre MyIngress_fundef nil post.
 Proof.
+  (* remove AType and represent everything as Sval
+  To make it easier for structs, add a strucuture to represent structs with updated fields
+    (type soundness may be neeeded here)
+  struct rec has value rec_v
+  rec.x := 1
+  struct rec has value (update "x" 1 rec_v)
+  Return value as a special out parameter called "return"
+  Make function call reusable
+  Then we will need a frame rule
+  Extern objects
+  After generating an assertion from the symbolic executor, we need to evaluate the computational function.
+    But in this procedure, we should keep the user-defined Coq expressions untouched.
+  We need to face goals like
+    [("x", val_to_sval (Int v)), ("y", val_to_sval (Int (v + 1)))]
+    sval_add (val_to_sval (Int v)) (val_to_sval (Int 1)) = val_to_sval (Int (v + 1))
+    *)
+    
   apply deep_hoare_func_sound.
   eapply deep_hoare_func_internal.
   { (* copy_in *)
@@ -306,6 +324,9 @@ Proof.
       eapply ret_assertion_to_assertion_sound.
       constructor.
     }
+    x has value (v)
+    y has value (v+1)
+    
     {
 (* Qed. *)
 Abort.

@@ -4,6 +4,7 @@ Require Import Poulet4.Syntax.
 Require Import Poulet4.Semantics.
 Require Import Poulet4.Value.
 Require Import ProD3.core.Coqlib.
+(* Only depends on Hoare for sval_refine. *)
 Require Import ProD3.core.Hoare.
 Require Import Coq.Numbers.BinNums.
 Open Scope type_scope.

@@ -10,6 +10,7 @@ Require Import Poulet4.Semantics.
 Require Import Poulet4.SimplExpr.
 Require Import Poulet4.V1Model.
 Require Import ProD3.core.Hoare.
+Require Import ProD3.core.HoareSoundness.
 Require Import ProD3.core.AssertionLang.
 Require Import ProD3.core.ConcreteHoare.
 
@@ -164,15 +165,24 @@ Definition myStmt := Eval compute in
 Ltac inv H := inversion H; clear H; subst.
 
 Lemma eval_block: Hoare.hoare_block ge inst_m this
-  (* pre: *) (to_shallow_assertion this [(LInstance !["var"], [], ValBaseBit 8%nat x)])
+  (* pre: *) (to_shallow_assertion_continue this ([AVal (LInstance !["var"], []) (ValBaseBit 8%nat x)], []))
   myBlock
-  (* post: *) (to_shallow_assertion this [(LInstance !["var"], [], ValBaseBit 8%nat (x+1))]).
+  (* post: *) (continue_post_assertion (to_shallow_assertion_continue this ([AVal (LInstance !["var"], []) (ValBaseBit 8%nat (x+1))], []))).
 Proof.
-  apply hoare_block_sound; only 1 : auto.
+  apply deep_hoare_block_sound.
+  eapply deep_hoare_block_cons with (mid := to_shallow_post_assertion _ (mk_post_assertion _ _)).
+  {
+    eapply hoare_stmt_sound; only 1 : constructor.
+    eapply hoare_stmt_assignment.
+    - constructor.
+    - constructor.
+    - do 2 constructor.
+  }
+  (* eapply deep_hoare_stmt_fallback.
   repeat econstructor.
   assert ((P4Arith.BitArith.plus_mod (Pos.of_nat 8) x
               (P4Arith.BitArith.mod_bound (Pos.of_nat 8) (value {| tags := NoInfo; value := 1; width_signed := None |}))) = x + 1) by admit.
-  rewrite H.
+  rewrite H. *)
   (* need unification rather than evaluation here. *)
   (* econstructor. *)
 Abort.
