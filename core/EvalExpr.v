@@ -11,6 +11,8 @@ Require Import Coq.ZArith.BinInt.
 Require Import Hammer.Tactics.Tactics.
 Require Import Hammer.Plugin.Hammer.
 
+Open Scope string_scope.
+
 Section EvalExpr.
 
 Context {tags_t: Type} {tags_t_inhabitant : Inhabitant tags_t}.
@@ -159,6 +161,50 @@ Lemma eval_expr_sound : forall ge p a expr sv,
 Proof.
   unfold hoare_expr; intros.
   eapply eval_expr_sound'; eauto.
+Qed.
+
+Definition dummy_name := BareName (P4String.Build_t tags_t default "").
+Global Opaque dummy_name.
+
+(* Evaluate lvalue expressions. *)
+Fixpoint eval_lexpr (expr : Expression) : option Lval :=
+  match expr with
+  | MkExpression _ (ExpName _ loc) _ _ =>
+      Some (MkValueLvalue (ValLeftName dummy_name loc) dummy_type)
+  | MkExpression _ (ExpExpressionMember expr member) _ _ =>
+      match eval_lexpr expr with
+      | Some lv =>
+          if (String.eqb (P4String.str member) "next") then
+            None
+          else
+            Some (MkValueLvalue (ValLeftMember lv (P4String.str member)) dummy_type)
+      | None => None
+      end
+  | _ => None
+  end.
+
+Axiom locator_eqb_refl : forall (loc : Locator),
+  locator_eqb loc loc.
+Hint Resolve locator_eqb_refl : core.
+
+Lemma eval_lexpr_sound : forall ge p a expr lv,
+  eval_lexpr expr = Some lv ->
+  hoare_lexpr ge p (fun st => mem_denote a (fst st)) expr lv.
+Proof.
+  unfold hoare_lexpr; intros.
+  generalize dependent lv.
+  induction H2; intros; try solve [inv H0].
+  - inv H0. simpl; auto.
+  - simpl in H3. rewrite H0 in H3.
+    destruct (eval_lexpr expr) as [lv_base |]. 2 : inv H3.
+    specialize (IHexec_lexpr ltac:(auto) _ ltac:(eauto)).
+    inv H3.
+    simpl. rewrite String.eqb_refl.
+    destruct IHexec_lexpr. split. 1 : auto.
+    apply Reflect.andE; split; auto.
+  - simpl in H5. rewrite H0 in H5. destruct (eval_lexpr expr); inv H5.
+  - inv H5.
+  - inv H5.
 Qed.
 
 End EvalExpr.
