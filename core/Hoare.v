@@ -4,6 +4,7 @@ Require Import Poulet4.Syntax.
 Require Import Poulet4.Value.
 Require Import Poulet4.Semantics.
 Require Import ProD3.core.Coqlib.
+Require Import ProD3.core.SvalRefine.
 Require Import Poulet4.SyntaxUtil.
 Require Import Hammer.Plugin.Hammer.
 
@@ -45,14 +46,6 @@ Definition return_post_assertion (a : ret_assertion) : post_assertion :=
 
 (* Definition return_post_assertion_1 (a : ret_assertion) : post_assertion :=
   mk_post_assertion (a ValBaseNull) a. *)
-
-(* bit_refine a b means a includes b. *)
-Inductive bit_refine : option bool -> option bool -> Prop :=
-  | read_none : forall ob, bit_refine None ob
-  | read_some : forall b, bit_refine (Some b) (Some b).
-
-(* sval_refine a b means a includes b. *)
-Definition sval_refine := exec_val bit_refine.
 
 Definition hoare_expr (p : path) (pre : assertion) (expr : Expression) (sv : Sval) :=
   forall st sv',
@@ -169,93 +162,6 @@ Definition is_call_expression (expr : Expression) : bool :=
   | MkExpression _ (ExpFunctionCall _ _ _) _ _ => true
   | _ => false
   end.
-
-Definition rel_trans {A B C} (f : A -> B -> Prop) (g : B -> C -> Prop) (h : A -> C -> Prop) :=
-  forall a b c,
-    f a b ->
-    g b c ->
-    h a c.
-
-Section exec_val_trans.
-  Context {A B C : Type} (f : A -> B -> Prop) (g : B -> C -> Prop) (h : A -> C -> Prop).
-  Hypothesis H_rel_trans : rel_trans f g h.
-
-  Lemma Forall2_trans : forall v1 v2 v3,
-    Forall2 f v1 v2 ->
-    Forall2 g v2 v3 ->
-    Forall2 h v1 v3.
-  Proof.
-    intros v1 v2; revert v1.
-    induction v2; intros.
-    - inv H0; inv H1; constructor.
-    - inv H0; inv H1; constructor; eauto.
-  Qed.
-
-  Hint Resolve Forall2_trans : core.
-
-  Lemma exec_val_trans_case1 : forall vs1 vs2 vs3,
-    Forall
-      (fun v2 : ValueBase =>
-        forall v1 v3 : ValueBase, exec_val f v1 v2 -> exec_val g v2 v3 -> exec_val h v1 v3) vs2 ->
-    Forall2 (exec_val f) vs1 vs2 ->
-    Forall2 (exec_val g) vs2 vs3 ->
-    Forall2 (exec_val h) vs1 vs3.
-  Proof.
-    intros vs1 vs2; revert vs1.
-    induction vs2; intros; inv H2; inv H1; inv H0; constructor; only 1 : apply H3; auto.
-  Qed.
-
-  Lemma exec_val_trans_case2 : forall (vs1 : list (ident * ValueBase)) vs2 vs3,
-    Forall
-      (fun '(_, v2) =>
-        forall v1 v3 : ValueBase, exec_val f v1 v2 -> exec_val g v2 v3 -> exec_val h v1 v3) vs2 ->
-    AList.all_values (exec_val f) vs1 vs2 ->
-    AList.all_values (exec_val g) vs2 vs3 ->
-    AList.all_values (exec_val h) vs1 vs3.
-  Proof.
-    intros vs1 vs2; revert vs1.
-    induction vs2; intros; inv H2; inv H1; inv H0; constructor.
-    - destruct H5; destruct H6; split.
-      + congruence.
-      + destruct a; apply H3; auto.
-    - apply IHvs2; auto.
-  Qed.
-
-  (* rel_trans (exec_val f) (exec_val g) (exec_val h) *)
-  Lemma exec_val_trans : forall v1 v2 v3,
-    exec_val f v1 v2 ->
-    exec_val g v2 v3 ->
-    exec_val h v1 v3.
-  Proof.
-    intros v1 v2; revert v1.
-    induction v2 using custom_ValueBase_ind; intros * H_f H_g;
-      inv H_f; inv H_g;
-      constructor; eauto.
-    - eapply exec_val_trans_case1; eauto.
-    - eapply exec_val_trans_case2; eauto.
-    - eapply exec_val_trans_case2; eauto.
-    - eapply exec_val_trans_case2; eauto.
-    - eapply exec_val_trans_case2; eauto.
-    - eapply exec_val_trans_case1; eauto.
-  Qed.
-End exec_val_trans.
-
-Lemma bit_refine_trans : forall b1 b2 b3 : option bool,
-  bit_refine b1 b2 ->
-  bit_refine b2 b3 ->
-  bit_refine b1 b3.
-Proof.
-  intros.
-  inv H0; inv H1; constructor.
-Qed.
-
-Lemma sval_refine_trans : forall sv1 sv2 sv3,
-  sval_refine sv1 sv2 ->
-  sval_refine sv2 sv3 ->
-  sval_refine sv1 sv3.
-Proof.
-  apply exec_val_trans. exact bit_refine_trans.
-Qed.
 
 Lemma bit_to_nbit_to_bit : forall nb b nb',
   read_ndetbit nb b ->

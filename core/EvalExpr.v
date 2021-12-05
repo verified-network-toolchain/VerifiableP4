@@ -3,8 +3,10 @@ Require Import Poulet4.Typed.
 Require Import Poulet4.Syntax.
 Require Import Poulet4.Semantics.
 Require Import ProD3.core.Coqlib.
-Require Import ProD3.core.Hoare.
+Require Import ProD3.core.Members.
+Require Import ProD3.core.SvalRefine.
 Require Import ProD3.core.AssertionLang.
+Require Import ProD3.core.Hoare.
 Require Import Coq.ZArith.BinInt.
 Require Import Hammer.Tactics.Tactics.
 Require Import Hammer.Plugin.Hammer.
@@ -141,10 +143,8 @@ Proof.
     inv H3; try solve [inv H0]; auto.
   }
   rewrite <- H13.
-  admit.
-    (* sval_refine sv sv0 ->
-      sval_refine (get (P4String.str name) sv) (get (P4String.str name) sv0) *)
-Admitted.
+  apply sval_refine_get; auto.
+Qed.
 
 Lemma eval_expr_sound' : forall ge p a expr sv,
   eval_expr ge p a expr = Some sv ->
