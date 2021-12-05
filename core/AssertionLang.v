@@ -132,7 +132,66 @@ Definition gen_sval (typ: P4Type) (upds: list (path * Sval)): option Sval :=
       None
   end.
 
-Definition extract (v : Val) (f : ident) : option Val :=
+(* Another version of get and update. *)
+
+Definition has_field (f : ident) (sv : Sval) : bool :=
+  match sv with
+  | ValBaseStruct fields =>
+      is_some (AList.get fields f)
+  | ValBaseHeader fields (Some true) =>
+      is_some (AList.get fields f)
+  | _ => false
+  end.
+
+Definition get (f : ident) (sv : Sval) : Sval :=
+  match sv with
+  | ValBaseStruct fields =>
+      force ValBaseNull (AList.get fields f)
+  | ValBaseHeader fields _ =>
+      force ValBaseNull (AList.get fields f)
+  | _ => ValBaseNull
+  end.
+
+Definition update (f : ident) (f_sv : Sval) (sv : Sval) : Sval :=
+  match sv with
+  | ValBaseStruct fields =>
+      ValBaseStruct (force fields (AList.set fields f f_sv))
+  | ValBaseHeader fields (Some true) =>
+      ValBaseHeader (force fields (AList.set fields f f_sv)) (Some true)
+  | _ => sv
+  end.
+
+Lemma get_some_get_set : forall {A} (l : AList.StringAList A) k (l' : AList.StringAList A) v1 v2,
+  AList.get l k = Some v1 ->
+  AList.get (force l' (AList.set l k v2)) k = Some v2.
+Proof.
+  intros.
+  erewrite AList.get_some_set by eauto.
+  apply AList.set_some_get.
+Qed.
+
+Lemma get_update : forall sv f f_sv,
+  has_field f sv ->
+  get f (update f f_sv sv) = f_sv.
+Proof.
+  intros.
+  destruct sv; try solve [inv H0].
+  - unfold get, update, has_field in *.
+    destruct (AList.get fields f) eqn:?.
+    + erewrite get_some_get_set by eauto.
+      auto.
+    + inv H0.
+  - destruct is_valid as [[] | ].
+    * unfold get, update, has_field in *.
+      destruct (AList.get fields f) eqn:?.
+      + erewrite get_some_get_set by eauto.
+        auto.
+      + inv H0.
+    * inv H0.
+    * inv H0.
+Qed.
+
+(* Definition extract (v : Val) (f : ident) : option Val :=
   match v with
   | ValBaseStruct fields =>
       AList.get fields f
@@ -160,7 +219,7 @@ Definition extract_option_sval (ov : option Sval) (f : ident) : option Sval :=
   match ov with
   | Some v => extract_sval v f
   | None => None
-  end.
+  end. *)
 
 (* Definition mem_eval_read (m : mem) (lv : Lval) : option Val :=
   let (loc, fl) := lv in
