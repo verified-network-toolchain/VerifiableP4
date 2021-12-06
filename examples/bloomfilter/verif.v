@@ -15,6 +15,7 @@ Require Import Poulet4.P4Arith.
 Require Import ProD3.core.Hoare.
 (* Require Import ProD3.core.HoareSoundness. *)
 Require Import ProD3.core.AssertionLang.
+Require Import ProD3.core.AssertionNotations.
 (* Require Import ProD3.core.V1ModelLang. *)
 (* Require Import ProD3.core.ConcreteHoare. *)
 
@@ -35,7 +36,7 @@ Definition init_es := Eval compute in snd instantiation.
 
 Transparent IdentMap.empty IdentMap.set PathMap.empty PathMap.set.
 
-Notation ident := (string)
+Notation ident := string.
 Notation path := (list ident).
 Notation Val := (@ValueBase bool).
 Notation Sval := (@ValueBase (option bool)).
@@ -165,22 +166,24 @@ Definition standard_metadata := Eval compute in
   | None => dummy_sval
   end.
 
-Definition pre_arg_assertion : assertion :=
+(* Definition pre_arg_assertion : assertion :=
   [ (["hdr"], myHeader);
     (["meta"], meta);
     (["standard_metadata"], standard_metadata)
-  ].
+  ]. *)
 
-(* Definition pre_ext_assertion : ext_assertion :=
+Definition pre_arg_assertion : arg_assertion :=
+  [myHeader; meta; standard_metadata].
+
+Definition pre_ext_assertion : ext_assertion :=
   [
-    (LGlobal !["bloom0"], ObjRegister (mk_register 1%nat NUM_ENTRY (bloom0 bst)));
-    (LGlobal !["bloom1"], ObjRegister (mk_register 1%nat NUM_ENTRY (bloom1 bst)));
-    (LGlobal !["bloom2"], ObjRegister (mk_register 1%nat NUM_ENTRY (bloom2 bst)))
+    (["bloom0"], ObjRegister (map ValBaseBit (map (P4Arith.to_lbool 1) (bloom0 bst))));
+    (["bloom1"], ObjRegister (map ValBaseBit (map (P4Arith.to_lbool 1) (bloom1 bst))));
+    (["bloom2"], ObjRegister (map ValBaseBit (map (P4Arith.to_lbool 1) (bloom2 bst))))
   ].
 
-Definition pre (args : list Val) (st : state) :=
-  arg_to_shallow_assertion pre_arg_assertion args /\
-    to_shallow_assertion_continue this ([], pre_ext_assertion) st. *)
+Definition pre :=
+  ARG pre_arg_assertion (MEM [] (EXT pre_ext_assertion)).
 
 Axiom CRC : Z -> Z.
 Axiom CRC_range : forall data, 0 <= CRC data < NUM_ENTRY.
@@ -191,31 +194,30 @@ Definition process (rw data : Z) (bst : bloomfilter_state) : (bloomfilter_state 
   else
     (bst, bool_to_Z (bloomfilter.query Z CRC CRC CRC bst data)).
 
-Definition post_arg_assertion : assertion :=
+Definition post_arg_assertion : arg_assertion :=
   let (bst', rw') := process rw data bst in
   [
-    (["hdr"], upd_sval myHeader [(["myHeader"; "rw"], ValBaseBit (to_loptbool 8 rw'))]); 
+    upd_sval myHeader [(["myHeader"; "rw"], ValBaseBit (to_loptbool 8 rw'))];
     (* The full specification of meta requires updates to all the six fields,
        which need to be computed from process. 
        Not sure if it is a good design. 
        Or maybe we should change meta's direction to In? *)
     (* (["meta"], upd_sval meta [(["index0"], ValBaseBit (to_loptbool 16 data))]); *)
-    (["standard_metadata"], upd_sval standard_metadata [(["egress_spec"], ValBaseBit (to_loptbool 9 1))])
+    upd_sval standard_metadata [(["egress_spec"], ValBaseBit (to_loptbool 9 1))]
   ].
 
-(* Definition post_ext_assertion : ext_assertion :=
+Definition post_ext_assertion : ext_assertion :=
   let (bst', rw') := process rw data bst in
   [
-    (LGlobal !["bloom0"], ObjRegister (mk_register 1%nat NUM_ENTRY (bloom0 bst')));
-    (LGlobal !["bloom1"], ObjRegister (mk_register 1%nat NUM_ENTRY (bloom1 bst')));
-    (LGlobal !["bloom2"], ObjRegister (mk_register 1%nat NUM_ENTRY (bloom2 bst')))
+    (["bloom0"], ObjRegister (map ValBaseBit (map (P4Arith.to_lbool 1) (bloom0 bst'))));
+    (["bloom1"], ObjRegister (map ValBaseBit (map (P4Arith.to_lbool 1) (bloom1 bst'))));
+    (["bloom2"], ObjRegister (map ValBaseBit (map (P4Arith.to_lbool 1) (bloom2 bst'))))
   ].
 
-Definition post (args : list Val) (ret : Val) (st : state) :=
-  arg_to_shallow_assertion post_arg_assertion args /\
-    to_shallow_assertion_continue this ([], post_ext_assertion) st. *)
+Definition post :=
+  ARG_RET post_arg_assertion ValBaseNull (MEM [] (EXT post_ext_assertion)).
 
-Lemma body_bloomfilter : hoare_func ge inst_m this pre MyIngress_fundef nil post.
+Lemma body_bloomfilter : hoare_func ge this pre MyIngress_fundef nil post.
 Proof.
   (* remove AType and represent everything as Sval
   To make it easier for structs, add a strucuture to represent structs with updated fields
