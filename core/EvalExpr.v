@@ -13,6 +13,10 @@ Require Import Hammer.Plugin.Hammer.
 
 Open Scope string_scope.
 
+Lemma lift_option_map_some: forall {A: Type} (al: list A),
+    lift_option (map Some al) = Some al.
+Proof. intros. induction al; simpl; [|rewrite IHal]; easy. Qed.
+
 Section EvalExpr.
 
 Context {tags_t: Type} {tags_t_inhabitant : Inhabitant tags_t}.
@@ -30,13 +34,153 @@ Notation Expression := (@Expression tags_t).
 Context `{@Target tags_t Expression}.
 
 (* Convert Sval to Val only when all bits are known. *)
-Axiom eval_sval_to_val : Sval -> option Val.
+Fixpoint eval_sval_to_val (sval: Sval): option Val :=
+  let fix sval_to_vals (sl: list Sval): option (list Val) :=
+    match sl with
+    | [] => Some []
+    | s :: rest => match eval_sval_to_val s with
+                   | None => None
+                   | Some v => match sval_to_vals rest with
+                               | Some l' => Some (v :: l')
+                               | None => None
+                               end
+                   end
+    end in
+  let fix sval_to_avals (sl: AList.StringAList Sval): option (AList.StringAList Val) :=
+    match sl with
+    | [] => Some []
+    | (k, s) :: rest => match eval_sval_to_val s with
+                        | None => None
+                        | Some v => match sval_to_avals rest with
+                                    | None => None
+                                    | Some l' => Some ((k, v) :: l')
+                                    end
+                        end
+    end in
+  match sval with
+  | ValBaseNull => Some ValBaseNull
+  | ValBaseBool (Some b) => Some (ValBaseBool b)
+  | ValBaseBool None => None
+  | ValBaseInteger z => Some (ValBaseInteger z)
+  | ValBaseBit bits => match lift_option bits with
+                       | Some l => Some (ValBaseBit l)
+                       | None => None
+                       end
+  | ValBaseInt bits => match lift_option bits with
+                       | Some l => Some (ValBaseInt l)
+                       | None => None
+                       end
+  | ValBaseVarbit n bits => match lift_option bits with
+                            | Some l => Some (ValBaseVarbit n l)
+                            | None => None
+                            end
+  | ValBaseString s => Some (ValBaseString s)
+  | ValBaseTuple l => match sval_to_vals l with
+                      | Some l' => Some (ValBaseTuple l')
+                      | None => None
+                      end
+  | ValBaseRecord l => match sval_to_avals l with
+                       | Some l' => Some (ValBaseRecord l')
+                       | None => None
+                       end
+  | ValBaseError err => Some (ValBaseError err)
+  | ValBaseMatchKind k => Some (ValBaseMatchKind k)
+  | ValBaseStruct l => match sval_to_avals l with
+                       | Some l' => Some (ValBaseStruct l')
+                       | None => None
+                       end
+  | ValBaseHeader _ None => None
+  | ValBaseHeader l (Some b) => match sval_to_avals l with
+                                | Some l' => Some (ValBaseHeader l' b)
+                                | None => None
+                                end
+  | ValBaseUnion l => match sval_to_avals l with
+                      | Some l' => Some (ValBaseUnion l')
+                      | None => None
+                      end
+  | ValBaseStack l s n => match sval_to_vals l with
+                          | Some l' => Some (ValBaseStack l' s n)
+                          | None => None
+                          end
+  | ValBaseEnumField s1 s2 => Some (ValBaseEnumField s1 s2)
+  | ValBaseSenumField s1 s2 s => match eval_sval_to_val s with
+                                 | None => None
+                                 | Some v => Some (ValBaseSenumField s1 s2 v)
+                                 end
+  end.
+
+Definition opt_to_bool (op: option bool) : bool :=
+  match op with
+  | None => false
+  | Some b => b
+  end.
 
 (* Convert Sval to Val, convert unknown bits to false. *)
-Axiom force_sval_to_val : Sval -> Val.
+Fixpoint force_sval_to_val (sval: Sval): Val :=
+  let fix sval_to_vals (sl: list Sval): list Val :=
+    match sl with
+    | [] => []
+    | s :: rest => force_sval_to_val s :: sval_to_vals rest
+    end in
+  let fix sval_to_avals (sl: AList.StringAList Sval): AList.StringAList Val :=
+    match sl with
+    | [] => []
+    | (k, s) :: rest => (k, force_sval_to_val s) :: sval_to_avals rest
+    end in
+  match sval with
+  | ValBaseNull => ValBaseNull
+  | ValBaseBool (Some b) => ValBaseBool b
+  | ValBaseBool None => ValBaseBool false
+  | ValBaseInteger z => ValBaseInteger z
+  | ValBaseBit bits => ValBaseBit (map opt_to_bool bits)
+  | ValBaseInt bits => ValBaseInt (map opt_to_bool bits)
+  | ValBaseVarbit n bits => ValBaseVarbit n (map opt_to_bool bits)
+  | ValBaseString s => ValBaseString s
+  | ValBaseTuple l => ValBaseTuple (sval_to_vals l)
+  | ValBaseRecord l => ValBaseRecord (sval_to_avals l)
+  | ValBaseError err => ValBaseError err
+  | ValBaseMatchKind k => ValBaseMatchKind k
+  | ValBaseStruct l => ValBaseStruct (sval_to_avals l)
+  | ValBaseHeader l valid => ValBaseHeader (sval_to_avals l) (opt_to_bool valid)
+  | ValBaseUnion l => ValBaseUnion (sval_to_avals l)
+  | ValBaseStack l s n => ValBaseStack (sval_to_vals l) s n
+  | ValBaseEnumField s1 s2 => ValBaseEnumField s1 s2
+  | ValBaseSenumField s1 s2 s => ValBaseSenumField s1 s2 (force_sval_to_val s)
+  end.
+
+Definition bool_to_none: bool -> option bool := fun _ => None.
 
 (* Convert Val to Sval, but convert all bits to unknown. *)
-Axiom val_to_liberal_sval : Val -> Sval.
+Fixpoint val_to_liberal_sval (val: Val): Sval :=
+  let fix sval_to_vals (sl: list Val): list Sval :=
+    match sl with
+    | [] => []
+    | s :: rest => val_to_liberal_sval s :: sval_to_vals rest
+    end in
+  let fix sval_to_avals (sl: AList.StringAList Val): AList.StringAList Sval :=
+    match sl with
+    | [] => []
+    | (k, s) :: rest => (k, val_to_liberal_sval s) :: sval_to_avals rest
+    end in
+  match val with
+  | ValBaseNull => ValBaseNull
+  | ValBaseBool b => ValBaseBool None
+  | ValBaseInteger z => ValBaseInteger z
+  | ValBaseBit bits => ValBaseBit (map bool_to_none bits)
+  | ValBaseInt bits => ValBaseInt (map bool_to_none bits)
+  | ValBaseVarbit n bits => ValBaseVarbit n (map bool_to_none bits)
+  | ValBaseString s => ValBaseString s
+  | ValBaseTuple l => ValBaseTuple (sval_to_vals l)
+  | ValBaseRecord l => ValBaseRecord (sval_to_avals l)
+  | ValBaseError err => ValBaseError err
+  | ValBaseMatchKind k => ValBaseMatchKind k
+  | ValBaseStruct l => ValBaseStruct (sval_to_avals l)
+  | ValBaseHeader l valid => ValBaseHeader (sval_to_avals l) (bool_to_none valid)
+  | ValBaseUnion l => ValBaseUnion (sval_to_avals l)
+  | ValBaseStack l s n => ValBaseStack (sval_to_vals l) s n
+  | ValBaseEnumField s1 s2 => ValBaseEnumField s1 s2
+  | ValBaseSenumField s1 s2 s => ValBaseSenumField s1 s2 (val_to_liberal_sval s)
+  end.
 
 Definition build_abs_unary_op (actual_unary_op : Val -> option Val) : Sval -> Sval :=
   fun sv =>
@@ -75,6 +219,12 @@ Axiom abs_plus_bit : forall w i1 i2,
     (ValBaseBit (P4Arith.to_loptbool w i1))
     (ValBaseBit (P4Arith.to_loptbool w i2))
   = (ValBaseBit (P4Arith.to_loptbool w (i1 + i2))).
+
+Axiom abs_plus_int : forall w i1 i2,
+  abs_plus
+    (ValBaseInt (P4Arith.to_loptbool w i1))
+    (ValBaseInt (P4Arith.to_loptbool w i2))
+  = (ValBaseInt (P4Arith.to_loptbool w (i1 + i2))).
 
 Fixpoint eval_read (a : mem_assertion) (p : path) : option Sval :=
   match a with
