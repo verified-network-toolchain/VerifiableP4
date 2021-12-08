@@ -12,7 +12,7 @@ Require Import Coq.ZArith.BinInt.
 Require Import Hammer.Tactics.Tactics.
 Require Import Hammer.Plugin.Hammer.
 
-Open Scope string_scope.
+Local Open Scope string_scope.
 
 Lemma lift_option_map_some: forall {A: Type} (al: list A),
     lift_option (map Some al) = Some al.
@@ -285,11 +285,11 @@ Fixpoint eval_expr (ge : genv) (p : path) (a : mem_assertion) (expr : Expression
           | Some largv, Some rargv => Some (build_abs_binary_op (Ops.eval_binary_op op) largv rargv)
           | _, _ => None
           end
-      (* | ExpCast newtyp arg =>
-          match eval_expr_gen hook arg, get_real_type newtyp with
-          | Some argv, Some real_typ => Ops.eval_cast real_typ argv
+      | ExpCast newtyp arg =>
+          match eval_expr ge p a arg, get_real_type ge newtyp with
+          | Some argv, Some real_typ => Some (build_abs_unary_op (Ops.eval_cast real_typ) argv)
           | _, _ => None
-          end *)
+          end
       | ExpExpressionMember expr name =>
           match eval_expr ge p a expr with
           | Some sv =>
@@ -334,12 +334,13 @@ Lemma eval_expr_sound' : forall ge p a expr sv,
     sval_refine sv sv'.
 Admitted.
 
-Lemma eval_expr_sound : forall ge p a expr sv,
-  eval_expr ge p a expr = Some sv ->
-  hoare_expr ge p (fun st => mem_denote a (fst st)) expr sv.
+Lemma eval_expr_sound : forall ge p a_mem a_ext expr sv,
+  eval_expr ge p a_mem expr = Some sv ->
+  hoare_expr ge p (MEM a_mem (EXT a_ext)) expr sv.
 Proof.
   unfold hoare_expr; intros.
   eapply eval_expr_sound'; eauto.
+  destruct st; destruct H1; eauto.
 Qed.
 
 Definition dummy_name := BareName (P4String.Build_t tags_t default "").
@@ -482,11 +483,11 @@ Proof.
       * auto.
 Qed.
 
-Lemma eval_write_vars_sound : forall a_mem a_ext ps svs a_mem',
+Lemma eval_write_vars_sound' : forall a_mem a_ext ps svs a_mem',
   length ps = length svs ->
   NoDup (map fst a_mem) ->
   eval_write_vars a_mem ps svs = a_mem' ->
-  hoare_write_vars (MEM a_mem (EXT a_ext)) ps svs (MEM a_mem' (EXT a_ext)).
+  hoare_write_vars' (MEM a_mem (EXT a_ext)) ps svs (MEM a_mem' (EXT a_ext)).
 Proof.
   intros until ps. generalize a_mem. induction ps; intros.
   - destruct svs; try solve [inv H0].
@@ -496,6 +497,26 @@ Proof.
     + apply eval_write_var_sound; auto.
     + apply IHps; auto.
       apply eval_write_var_preserve_NoDup; auto.
+Qed.
+
+Lemma eval_write_vars_sound : forall a_mem a_ext ps svs a_mem',
+  length ps = length svs ->
+  NoDup (map fst a_mem) ->
+  eval_write_vars a_mem ps svs = a_mem' ->
+  hoare_write_vars (MEM a_mem (EXT a_ext)) ps svs (MEM a_mem' (EXT a_ext)).
+Proof.
+  intros; apply hoare_write_vars_intro, eval_write_vars_sound'; auto.
+Qed.
+
+Lemma hoare_func_copy_in_intro : forall a_arg a_mem a_ext params a_mem',
+  length (filter_in params) = length a_arg ->
+  NoDup (map fst a_mem) ->
+  eval_write_vars a_mem (filter_in params) a_arg = a_mem' ->
+  hoare_func_copy_in (ARG a_arg (MEM a_mem (EXT a_ext))) params (MEM a_mem' (EXT a_ext)).
+Proof.
+  unfold hoare_func_copy_in, bind_parameters. intros.
+  eapply eval_write_vars_sound in H1. 2, 3 : eassumption.
+  destruct H3; eauto.
 Qed.
 
 End EvalExpr.

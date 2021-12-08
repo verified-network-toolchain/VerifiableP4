@@ -13,6 +13,7 @@ Require Import Poulet4.SimplExpr.
 Require Import Poulet4.V1Model.
 Require Import Poulet4.P4Arith.
 Require Import ProD3.core.Hoare.
+Require Import ProD3.core.EvalExpr.
 (* Require Import ProD3.core.HoareSoundness. *)
 Require Import ProD3.core.AssertionLang.
 Require Import ProD3.core.AssertionNotations.
@@ -24,12 +25,12 @@ Instance target : @Target Info (@Expression Info) := V1Model.
 Opaque (*IdentMap.empty IdentMap.set*) PathMap.empty PathMap.set.
 
 (* Global environment *)
-Definition ge := Eval compute in gen_ge prog.
+Definition ge : genv := Eval compute in gen_ge prog.
 
 Definition instantiation := Eval compute in instantiate_prog ge prog.
 
 (* inst_m *)
-Definition inst_m := Eval compute in fst instantiation.
+(* Definition inst_m := Eval compute in fst instantiation. *)
 
 (* Initial extern state *)
 Definition init_es := Eval compute in snd instantiation.
@@ -46,9 +47,9 @@ Notation arg_assertion := (@arg_assertion Info).
 Notation ret_assertion := (@ret_assertion Info). *)
 (* Notation ext_assertion := (@ext_assertion Info). *)
 
-Module Experiment1.
-
 Axiom dummy_fundef : (@fundef Info).
+
+Module Experiment1.
 
 Definition MyIngress_fundef := Eval compute in
   match PathMap.get ["MyIngress"] (ge_func ge) with
@@ -237,9 +238,28 @@ Proof.
     *)
 
   eapply hoare_func_internal.
-  2 : { apply hoare_block_nil. apply implies_refl. }
-  simpl.
-  eapply deep_hoare_func_internal.
+  apply hoare_func_copy_in_intro.
+  { (* length *)
+    auto.
+  }
+  {
+    (* NoDup *)
+    constructor.
+  }
+  {
+    (* compute the assertion. Need better simpl. *)
+    unfold pre_arg_assertion. simpl. auto.
+  }
+  apply hoare_block_nil. apply implies_refl_post.
+  eapply hoare_block_cons.
+  {
+    instantiate (1 := (
+        MEM [(["hdr"], myHeader); (["meta"], meta); (["standard_metadata"], standard_metadata);
+            (["t'0"], ValBaseBool (Some true))]
+       (EXT pre_ext_assertion))).
+    admit.
+  }
+  (* eapply deep_hoare_func_internal.
   { (* copy_in *)
     eapply hoare_copy_in_sound with (pre := (_, (_, _))).
     repeat constructor.
@@ -330,11 +350,63 @@ Proof.
     }
     x has value (v)
     y has value (v+1)
-    
+
     {
-(* Qed. *)
+Qed. *)
 Abort.
 
 End Experiment1.
 
 End Experiment1.
+
+Module Experiment2.
+
+Section Experiment2.
+
+Definition this := ["main"; "ig"; "Query"].
+
+Definition Query_fundef := Eval compute in
+  match PathMap.get ["Query"] (ge_func ge) with
+  | Some x => x
+  | None => dummy_fundef
+  end.
+
+Axiom dummy_stmt : (@Statement Info).
+
+Definition assign_stmt := Eval compute in
+  match Query_fundef with
+  | FInternal _ _ (BlockCons _ (BlockCons _ (BlockCons _ (BlockCons _ (BlockCons _ (BlockCons _ (BlockCons stat _))))))) =>
+    stat
+  | _ => dummy_stmt
+  end.
+
+Variable hdr : Sval.
+Variable meta : Sval.
+Hypothesis H_member0 : Members.get "member0" meta = (ValBaseBit [Some true]).
+Hypothesis H_member1 : Members.get "member1" meta = (ValBaseBit [Some true]).
+Hypothesis H_member2 : Members.get "member2" meta = (ValBaseBit [Some true]).
+
+Definition pre :=
+  MEM [(["hdr"], hdr); (["meta"], meta)] (EXT []).
+
+Lemma body_bloomfilter : exists post, hoare_stmt ge this pre assign_stmt post.
+Proof.
+  econstructor.
+  eapply hoare_stmt_assign.
+  - (* lexpr *)
+    apply eval_lexpr_sound. simpl. auto.
+  - (* is_call_expression *)
+    auto.
+  - (* hoare_expr_det *)
+    apply hoare_expr_det_intro.
+    apply eval_expr_sound. simpl; auto.
+  - (* hoare_write *)
+    (* TODO *)
+    rewrite H_member0, H_member1, H_member2.
+    simpl build_abs_binary_op.
+(* Qed. *)
+Abort.
+
+End Experiment2.
+
+End Experiment2.

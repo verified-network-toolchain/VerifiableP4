@@ -129,16 +129,33 @@ Definition hoare_write (pre : assertion) (lv : Lval) (sv : Sval) (post : asserti
     exec_write ge st lv sv' st' ->
     post st'.
 
-Definition hoare_read_vars (pre : assertion) (ps : list path) (svs : list Sval) :=
+Definition hoare_read_vars' (pre : assertion) (ps : list path) (svs : list Sval) :=
   Forall2 (hoare_read_var pre) ps svs.
 
 Definition hoare_write_vars (pre : assertion) (ps : list path) (svs : list Sval) (post : assertion) :=
+  forall st svs' st',
+    pre st ->
+    Forall2 sval_refine svs svs' ->
+    update_memory (PathMap.sets ps svs') st = st' ->
+    post st'.
+
+Definition hoare_write_vars' (pre : assertion) (ps : list path) (svs : list Sval) (post : assertion) :=
   Forall2_fold hoare_write_var pre ps svs post.
 
-Definition hoare_reads (pre : assertion) (lvs : list Lval) (svs : list Sval) :=
+Lemma hoare_write_vars_intro : forall pre ps svs post,
+  hoare_write_vars' pre ps svs post ->
+  hoare_write_vars pre ps svs post.
+Proof.
+  induction 1.
+  - unfold hoare_write_vars; intros. subst; destruct st; auto.
+  - unfold hoare_write_vars in *; intros.
+    subst; inv H3; destruct st; eapply IHForall2_fold; eauto.
+Qed.
+
+Definition hoare_reads' (pre : assertion) (lvs : list Lval) (svs : list Sval) :=
   Forall2 (hoare_read pre) lvs svs.
 
-Definition hoare_writes (pre : assertion) (lvs : list Lval) (svs : list Sval) (post : assertion) :=
+Definition hoare_writes' (pre : assertion) (lvs : list Lval) (svs : list Sval) (post : assertion) :=
   Forall2_fold hoare_write pre lvs svs post.
 
 Definition satisfies_ret_assertion (post : ret_assertion) (sig : signal) (st : state) : Prop :=
@@ -408,7 +425,6 @@ Proof.
   destruct sig0; inv H10.
   destruct H1. 2 : { inv H1. }
   destruct H1 as [_ H1].
-
   specialize (H2 _ _ _ H1 H13).
   destruct H2.
   - destruct H2 as [? H2]; subst sig'.
@@ -417,13 +433,19 @@ Proof.
     apply H2; auto.
 Qed.
 
-Section DeepEmbeddedHoare.
-
 Lemma implies_refl : forall (pre : assertion),
   implies pre pre.
 Proof.
-  clear ge. admit.
-Admitted.
+  unfold implies. intros; auto.
+Qed.
+
+Lemma implies_refl_post : forall (pre : assertion),
+  implies pre (continue_post_assertion pre).
+Proof.
+  exact implies_refl.
+Qed.
+
+Section DeepEmbeddedHoare.
 
 Lemma implies_trans : forall (pre mid post : assertion),
   implies pre mid ->
