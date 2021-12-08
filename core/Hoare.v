@@ -44,8 +44,9 @@ Definition continue_post_assertion (a : assertion) : post_assertion :=
 Definition return_post_assertion (a : ret_assertion) : post_assertion :=
   mk_post_assertion (fun _ => False) a.
 
-(* Definition return_post_assertion_1 (a : ret_assertion) : post_assertion :=
-  mk_post_assertion (a ValBaseNull) a. *)
+(* Either finish with a return statement or return (ValBaseNull) by default. *)
+Definition return_post_assertion_1 (a : ret_assertion) : post_assertion :=
+  mk_post_assertion (a ValBaseNull) a.
 
 Definition hoare_expr (p : path) (pre : assertion) (expr : Expression) (sv : Sval) :=
   forall st sv',
@@ -91,10 +92,10 @@ Definition hoare_lexpr (p : path) (pre : assertion) (expr : Expression) (lv : Lv
     exec_lexpr ge read_ndetbit p st expr lv' sig ->
     sig = SContinue /\ lval_eqb lv' lv.
 
-(* Definition hoare_loc_to_val (p : path) (pre : assertion) (loc : Locator) (v : Sval) :=
+Definition hoare_loc_to_sval (p : path) (pre : assertion) (loc : Locator) (v : Sval) :=
     forall st,
     pre st ->
-    loc_to_val p loc st = Some v. *)
+    loc_to_sval ge p loc st = Some v.
 
 Definition hoare_update_val_by_loc (p : path) (pre : assertion) (loc : Locator) (v : Sval) (post : assertion) :=
     forall st st',
@@ -343,6 +344,52 @@ Proof.
   - inv H11. hauto.
   - inv H11. hauto.
   - inv H11. hauto.
+Qed.
+
+Definition hoare_loc_to_sval_list (p : path) (pre : assertion) (locs : list Locator) (svs : list Sval) : Prop :=
+  Forall2 (hoare_loc_to_sval p pre) locs svs.
+
+Inductive hoare_update_val_by_loc_list : path -> assertion -> (list Locator) -> (list Sval) -> assertion -> Prop :=
+  | hoare_update_val_by_loc_nil : forall p pre,
+      hoare_update_val_by_loc_list p pre nil nil pre
+  | hoare_update_val_by_loc_cons : forall p pre loc locs v vs mid post,
+      hoare_update_val_by_loc p pre loc v mid ->
+      hoare_update_val_by_loc_list p mid locs vs post ->
+      hoare_update_val_by_loc_list p pre (loc :: locs) (v :: vs) post.
+
+Definition hoare_func_copy_in (pre : arg_assertion) (params : list (path * direction)) (post : assertion) : Prop :=
+  forall args st st',
+    pre args st ->
+    bind_parameters params args st st' ->
+    post st'.
+
+Definition generate_post_condition (out_params : list path) (post : arg_ret_assertion) : ret_assertion :=
+  fun retv st =>
+    forall args,
+      extract_parameters out_params st = Some args ->
+      post args retv st.
+
+Lemma hoare_func_internal : forall p pre params init body targs mid1 mid2 post,
+  hoare_func_copy_in pre params mid1 ->
+  hoare_block p mid1 init (continue_post_assertion mid2) ->
+  hoare_block p mid2 body (return_post_assertion_1 (generate_post_condition (filter_out params) post)) ->
+  hoare_func p pre (FInternal params init body) targs post.
+Proof.
+  unfold hoare_func_copy_in, hoare_block, hoare_func.
+  intros.
+  inv H4.
+  specialize (H0 _ _ _ H3 H8).
+  specialize (H1 _ _ _ H0 H9).
+  destruct sig0; inv H10.
+  destruct H1. 2 : { inv H1. }
+  destruct H1 as [_ H1].
+
+  specialize (H2 _ _ _ H1 H13).
+  destruct H2.
+  - destruct H2 as [? H2]; subst sig'.
+    apply H2; auto.
+  - destruct sig'; try solve [inv H2].
+    apply H2; auto.
 Qed.
 
 Section DeepEmbeddedHoare.

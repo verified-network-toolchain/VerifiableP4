@@ -226,10 +226,10 @@ Axiom abs_plus_int : forall w i1 i2,
     (ValBaseInt (P4Arith.to_loptbool w i2))
   = (ValBaseInt (P4Arith.to_loptbool w (i1 + i2))).
 
-Fixpoint eval_read (a : mem_assertion) (p : path) : option Sval :=
+Fixpoint eval_var (a : mem_assertion) (p : path) : option Sval :=
   match a with
   | (p', v) :: tl =>
-      if path_eqb p p' then Some v else eval_read tl p
+      if path_eqb p p' then Some v else eval_var tl p
   | [] => None
   end.
 
@@ -241,7 +241,7 @@ Fixpoint eval_expr (ge : genv) (p : path) (a : mem_assertion) (expr : Expression
       | ExpName _ loc =>
           if is_directional dir then
             match loc with
-            | LInstance p => eval_read a p
+            | LInstance p => eval_var a p
             | _ => None
             end
           else

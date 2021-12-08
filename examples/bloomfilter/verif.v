@@ -235,8 +235,10 @@ Proof.
     [("x", val_to_sval (Int v)), ("y", val_to_sval (Int (v + 1)))]
     sval_add (val_to_sval (Int v)) (val_to_sval (Int 1)) = val_to_sval (Int (v + 1))
     *)
-    
-  apply deep_hoare_func_sound.
+
+  eapply hoare_func_internal.
+  2 : { apply hoare_block_nil. apply implies_refl. }
+  simpl.
   eapply deep_hoare_func_internal.
   { (* copy_in *)
     eapply hoare_copy_in_sound with (pre := (_, (_, _))).
