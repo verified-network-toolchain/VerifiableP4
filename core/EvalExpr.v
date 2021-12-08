@@ -445,4 +445,57 @@ Proof.
         inv H0; auto.
 Qed.
 
+Definition eval_write_vars (a : mem_assertion) (ps : list path) (svs : list Sval) : mem_assertion :=
+  fold_left (fun a '(p, sv) => eval_write_var a p sv) (combine ps svs) a.
+
+Lemma eval_write_var_key_range : forall a p sv x,
+  In x (map fst (eval_write_var a p sv)) ->
+  x = p \/ In x (map fst a).
+Proof.
+  intros. induction a.
+  - inv H0; auto.
+  - destruct a as [p' sv'].
+    simpl in H0. destruct (EquivDec.list_eqdec EquivUtil.StringEqDec p p') as [H_p | H_p].
+    + red in H_p. subst.
+      auto.
+    + cbv in H_p.
+      destruct H0.
+      * simpl. auto.
+      * hauto.
+Qed.
+
+Lemma eval_write_var_preserve_NoDup : forall a p sv,
+  NoDup (map fst a) ->
+  NoDup (map fst (eval_write_var a p sv)).
+Proof.
+  intros. induction a.
+  - repeat constructor. auto.
+  - destruct a as [p' sv'].
+    simpl. destruct (EquivDec.list_eqdec EquivUtil.StringEqDec p p') as [H_p | H_p].
+    + red in H_p. subst.
+      apply H0.
+    + cbv in H_p.
+      inv H0. specialize (IHa ltac:(auto)).
+      simpl. constructor.
+      * intro. apply eval_write_var_key_range in H0.
+        hauto.
+      * auto.
+Qed.
+
+Lemma eval_write_vars_sound : forall a_mem a_ext ps svs a_mem',
+  length ps = length svs ->
+  NoDup (map fst a_mem) ->
+  eval_write_vars a_mem ps svs = a_mem' ->
+  hoare_write_vars (MEM a_mem (EXT a_ext)) ps svs (MEM a_mem' (EXT a_ext)).
+Proof.
+  intros until ps. generalize a_mem. induction ps; intros.
+  - destruct svs; try solve [inv H0].
+    subst; econstructor.
+  - destruct svs; try solve [inv H0].
+    econstructor.
+    + apply eval_write_var_sound; auto.
+    + apply IHps; auto.
+      apply eval_write_var_preserve_NoDup; auto.
+Qed.
+
 End EvalExpr.
