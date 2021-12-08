@@ -215,25 +215,84 @@ Definition abs_plus : Sval -> Sval -> Sval :=
 Definition abs_minus : Sval -> Sval -> Sval :=
   build_abs_binary_op (Ops.eval_binary_op Minus).
 
+Definition abs_mul : Sval -> Sval -> Sval :=
+  build_abs_binary_op (Ops.eval_binary_op Mul).
+
+Definition abs_bitand : Sval -> Sval -> Sval :=
+  build_abs_binary_op (Ops.eval_binary_op BitAnd).
+
+Lemma abs_bin_op_bit: forall op w i1 i2,
+    ~ In op [Shl; Shr; Eq; NotEq; PlusPlus] ->
+    build_abs_binary_op (Ops.eval_binary_op op)
+                        (ValBaseBit (P4Arith.to_loptbool w i1))
+                        (ValBaseBit (P4Arith.to_loptbool w i2))
+    = eval_val_to_sval
+        (force ValBaseNull
+               (Ops.eval_binary_op_bit op w (P4Arith.BitArith.mod_bound w i1)
+                                       (P4Arith.BitArith.mod_bound w i2))).
+Proof.
+  intros. unfold P4Arith.to_loptbool.
+  unfold build_abs_binary_op. unfold eval_sval_to_val.
+  rewrite !lift_option_map_some.
+  unfold Ops.eval_binary_op.
+  destruct op; try rewrite !P4Arith.bit_from_to_bool;
+    try rewrite BinNat.N.eqb_refl; auto; exfalso; apply H0.
+  - now left.
+  - right. now left.
+  - do 2 right. now left.
+  - do 3 right. now left.
+  - do 4 right. now left.
+Qed.
+
 Lemma abs_plus_bit : forall w i1 i2,
   abs_plus
     (ValBaseBit (P4Arith.to_loptbool w i1))
     (ValBaseBit (P4Arith.to_loptbool w i2))
-  = (ValBaseBit (P4Arith.to_loptbool w (i1 + i2))).
+  = ValBaseBit (P4Arith.to_loptbool w (i1 + i2)).
 Proof.
-  intros. unfold abs_plus. unfold P4Arith.to_loptbool.
-  unfold build_abs_binary_op. unfold eval_sval_to_val.
-  rewrite !lift_option_map_some. Opaque P4Arith.BitArith.from_lbool.
-  simpl. rewrite !P4Arith.bit_from_to_bool. Transparent P4Arith.BitArith.from_lbool.
-  rewrite BinNat.N.eqb_refl, P4Arith.BitArith.plus_mod_mod. simpl.
-  now rewrite P4Arith.to_lbool_bit_plus.
+  intros. unfold abs_plus. rewrite abs_bin_op_bit.
+  - simpl. rewrite P4Arith.BitArith.plus_mod_mod.
+    now rewrite P4Arith.to_lbool_bit_plus.
+  - intro. inversion H0; inversion H1; inversion H2; inversion H3;
+      inversion H4; inversion H5.
 Qed.
 
-Axiom abs_plus_int : forall w i1 i2,
+Lemma abs_minus_bit : forall w i1 i2,
+  abs_minus
+    (ValBaseBit (P4Arith.to_loptbool w i1))
+    (ValBaseBit (P4Arith.to_loptbool w i2))
+  = (ValBaseBit (P4Arith.to_loptbool w (i1 - i2))).
+Proof.
+  intros. unfold abs_minus. rewrite abs_bin_op_bit.
+  - simpl. rewrite P4Arith.BitArith.minus_mod_mod.
+    now rewrite P4Arith.to_lbool_bit_minus.
+  - intro. inversion H0; inversion H1; inversion H2; inversion H3;
+      inversion H4; inversion H5.
+Qed.
+
+Lemma abs_mul_bit : forall w i1 i2,
+  abs_mul
+    (ValBaseBit (P4Arith.to_loptbool w i1))
+    (ValBaseBit (P4Arith.to_loptbool w i2))
+  = (ValBaseBit (P4Arith.to_loptbool w (i1 * i2))).
+Proof.
+  intros. unfold abs_mul. rewrite abs_bin_op_bit.
+  - simpl. rewrite P4Arith.BitArith.mult_mod_mod.
+    now rewrite P4Arith.to_lbool_bit_mult.
+  - intro. inversion H0; inversion H1; inversion H2; inversion H3;
+      inversion H4; inversion H5.
+Qed.
+
+Lemma abs_plus_int : forall w i1 i2,
   abs_plus
     (ValBaseInt (P4Arith.to_loptbool w i1))
     (ValBaseInt (P4Arith.to_loptbool w i2))
   = (ValBaseInt (P4Arith.to_loptbool w (i1 + i2))).
+Proof.
+  intros. unfold abs_plus. unfold P4Arith.to_loptbool, build_abs_binary_op.
+  unfold eval_sval_to_val. rewrite !lift_option_map_some.
+  Opaque P4Arith.IntArith.from_lbool. simpl.
+Abort.
 
 Fixpoint eval_read_var (a : mem_assertion) (p : path) : option Sval :=
   match a with
