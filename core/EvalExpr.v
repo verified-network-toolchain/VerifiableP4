@@ -6,6 +6,7 @@ Require Import ProD3.core.Coqlib.
 Require Import ProD3.core.Members.
 Require Import ProD3.core.SvalRefine.
 Require Import ProD3.core.AssertionLang.
+Require Import ProD3.core.AssertionNotations.
 Require Import ProD3.core.Hoare.
 Require Import Coq.ZArith.BinInt.
 Require Import Hammer.Tactics.Tactics.
@@ -234,12 +235,32 @@ Axiom abs_plus_int : forall w i1 i2,
     (ValBaseInt (P4Arith.to_loptbool w i2))
   = (ValBaseInt (P4Arith.to_loptbool w (i1 + i2))).
 
-Fixpoint eval_var (a : mem_assertion) (p : path) : option Sval :=
+Fixpoint eval_read_var (a : mem_assertion) (p : path) : option Sval :=
   match a with
   | (p', v) :: tl =>
-      if path_eqb p p' then Some v else eval_var tl p
+      if path_eqb p p' then Some v else eval_read_var tl p
   | [] => None
   end.
+
+Axiom path_eqb_eq : forall (p1 p2 : path), path_eqb p1 p2 -> p1 = p2.
+
+Lemma eval_read_var_sound : forall a_mem a_ext p sv,
+  eval_read_var a_mem p = Some sv ->
+  hoare_read_var (MEM a_mem (EXT a_ext)) p sv.
+Proof.
+  unfold hoare_read_var; intros.
+  induction a_mem.
+  - inv H0.
+  - destruct a as [p' ?]. simpl in H0.
+    destruct st as [m es]; destruct H1.
+    simpl in H1, H2. unfold mem_denote, mem_satisfies in H1; simpl in H1.
+    destruct (path_eqb p p') eqn:H_p.
+    + apply path_eqb_eq in H_p; subst.
+      inv H0.
+      rewrite H2 in H1. tauto.
+    + apply IHa_mem; auto.
+      split; tauto.
+Qed.
 
 Fixpoint eval_expr (ge : genv) (p : path) (a : mem_assertion) (expr : Expression) : option Sval :=
   match expr with
@@ -249,7 +270,7 @@ Fixpoint eval_expr (ge : genv) (p : path) (a : mem_assertion) (expr : Expression
       | ExpName _ loc =>
           if is_directional dir then
             match loc with
-            | LInstance p => eval_var a p
+            | LInstance p => eval_read_var a p
             | _ => None
             end
           else
@@ -345,9 +366,9 @@ Axiom locator_eqb_refl : forall (loc : Locator),
   locator_eqb loc loc.
 Hint Resolve locator_eqb_refl : core.
 
-Lemma eval_lexpr_sound : forall ge p a expr lv,
+Lemma eval_lexpr_sound : forall ge p a_mem a_ext expr lv,
   eval_lexpr expr = Some lv ->
-  hoare_lexpr ge p (fun st => mem_denote a (fst st)) expr lv.
+  hoare_lexpr ge p (MEM a_mem (EXT a_ext)) expr lv.
 Proof.
   unfold hoare_lexpr; intros.
   generalize dependent lv.
@@ -363,6 +384,65 @@ Proof.
   - simpl in H5. rewrite H0 in H5. destruct (eval_lexpr expr); inv H5.
   - inv H5.
   - inv H5.
+Qed.
+
+Definition eval_write_var (a : mem_assertion) (p : path) (sv : Sval) : mem_assertion :=
+  AList.set_some a p sv.
+
+Lemma get_set_same : forall {A} (p : path) (a : A) (m : PathMap.t A),
+  PathMap.get p (PathMap.set p a m) = Some a.
+Proof.
+Admitted.
+
+Lemma get_set_diff : forall {A} (p p' : path) (a : A) (m : PathMap.t A),
+  p <> p' ->
+  PathMap.get p (PathMap.set p' a m) = PathMap.get p m.
+Proof.
+Admitted.
+
+Lemma mem_assertion_set_disjoint : forall a_mem p sv m,
+  ~In p (map fst a_mem) ->
+  mem_denote a_mem m ->
+  mem_denote a_mem (PathMap.set p sv m).
+Proof.
+  intros.
+  induction a_mem.
+  - auto.
+  - split.
+    + destruct a; unfold mem_satisfies_unit.
+      rewrite get_set_diff. 2 : { simpl in H0. tauto. }
+      apply (proj1 H1).
+    + apply IHa_mem.
+      * simpl in H0; tauto.
+      * destruct H1. auto.
+Qed.
+
+Lemma eval_write_var_sound : forall a_mem a_ext p sv a_mem',
+  NoDup (map fst a_mem) ->
+  eval_write_var a_mem p sv = a_mem' ->
+  hoare_write_var (MEM a_mem (EXT a_ext)) p sv (MEM a_mem' (EXT a_ext)).
+Proof.
+  unfold hoare_write_var; intros.
+  destruct st as [m es]; destruct st' as [m' es'].
+  inv H4. destruct H2.
+  split; auto.
+  induction a_mem.
+  - split; auto.
+    unfold mem_satisfies_unit. rewrite get_set_same; auto.
+  - simpl. destruct H1.
+    destruct a as [p' sv''].
+    destruct (EquivDec.list_eqdec EquivUtil.StringEqDec p p') as [H_p | H_p].
+    + red in H_p.
+      split.
+      * simpl. rewrite get_set_same; auto.
+      * apply mem_assertion_set_disjoint; auto.
+        inv H0; auto.
+    + cbv in H_p.
+      split.
+      * unfold mem_satisfies_unit.
+        rewrite get_set_diff; auto.
+      * apply IHa_mem; auto.
+        inv H0; auto.
 Qed.
 
 End EvalExpr.

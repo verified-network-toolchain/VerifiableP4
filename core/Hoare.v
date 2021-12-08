@@ -103,18 +103,43 @@ Definition hoare_update_val_by_loc (p : path) (pre : assertion) (loc : Locator) 
     update_val_by_loc st loc v = st' ->
     post st'.
 
-Definition hoare_read (p : path) (pre : assertion) (lv : Lval) (v : Sval) :=
-  forall st v',
+Definition hoare_read_var (pre : assertion) (p : path) (sv : Sval) :=
+  forall st sv',
     pre st ->
-    exec_read ge st lv v' ->
-    sval_refine v v'.
+    PathMap.get p (fst st) = Some sv' ->
+    sval_refine sv sv'.
 
-Definition hoare_write (p : path) (pre : assertion) (lv : Lval) (sv : Sval) (post : assertion) :=
+Definition hoare_write_var (pre : assertion) (p : path) (sv : Sval) (post : assertion) :=
+  forall st sv' st',
+    pre st ->
+    sval_refine sv sv' ->
+    update_memory (PathMap.set p sv') st = st' ->
+    post st'.
+
+Definition hoare_read (pre : assertion) (lv : Lval) (sv : Sval) :=
+  forall st sv',
+    pre st ->
+    exec_read ge st lv sv' ->
+    sval_refine sv sv'.
+
+Definition hoare_write (pre : assertion) (lv : Lval) (sv : Sval) (post : assertion) :=
   forall st sv' st',
     pre st ->
     sval_refine sv sv' ->
     exec_write ge st lv sv' st' ->
     post st'.
+
+Definition hoare_read_vars (pre : assertion) (ps : list path) (svs : list Sval) :=
+  Forall2 (hoare_read_var pre) ps svs.
+
+Definition hoare_write_vars (pre : assertion) (ps : list path) (svs : list Sval) (post : assertion) :=
+  Forall2_fold hoare_write_var pre ps svs post.
+
+Definition hoare_reads (pre : assertion) (lvs : list Lval) (svs : list Sval) :=
+  Forall2 (hoare_read pre) lvs svs.
+
+Definition hoare_writes (pre : assertion) (lvs : list Lval) (svs : list Sval) (post : assertion) :=
+  Forall2_fold hoare_write pre lvs svs post.
 
 Definition satisfies_ret_assertion (post : ret_assertion) (sig : signal) (st : state) : Prop :=
   match sig with
@@ -201,7 +226,7 @@ Lemma hoare_stmt_assign : forall p pre tags lhs rhs typ post lv sv,
   hoare_lexpr p pre lhs lv ->
   is_call_expression rhs = false ->
   hoare_expr_det p pre rhs sv ->
-  hoare_write p pre lv sv (post_continue post) ->
+  hoare_write pre lv sv (post_continue post) ->
   hoare_stmt p pre (MkStatement tags (StatAssignment lhs rhs) typ) post.
 Proof.
   unfold hoare_stmt. intros.
@@ -237,7 +262,7 @@ Lemma hoare_stmt_assign_call : forall p pre tags lhs rhs typ post lv mid sv,
   hoare_lexpr p pre lhs lv ->
   is_call_expression rhs = true ->
   hoare_call p pre rhs (fun v st => mid st /\ (forall sv', val_to_sval v sv' -> sval_refine sv sv')) ->
-  hoare_write p mid lv sv (post_continue post) ->
+  hoare_write mid lv sv (post_continue post) ->
   hoare_stmt p pre (MkStatement tags (StatAssignment lhs rhs) typ) post.
 Proof.
   unfold hoare_stmt. intros.
