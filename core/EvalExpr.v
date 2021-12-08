@@ -214,11 +214,19 @@ Definition abs_plus : Sval -> Sval -> Sval :=
 Definition abs_minus : Sval -> Sval -> Sval :=
   build_abs_binary_op (Ops.eval_binary_op Minus).
 
-Axiom abs_plus_bit : forall w i1 i2,
+Lemma abs_plus_bit : forall w i1 i2,
   abs_plus
     (ValBaseBit (P4Arith.to_loptbool w i1))
     (ValBaseBit (P4Arith.to_loptbool w i2))
   = (ValBaseBit (P4Arith.to_loptbool w (i1 + i2))).
+Proof.
+  intros. unfold abs_plus. unfold P4Arith.to_loptbool.
+  unfold build_abs_binary_op. unfold eval_sval_to_val.
+  rewrite !lift_option_map_some. Opaque P4Arith.BitArith.from_lbool.
+  simpl. rewrite !P4Arith.bit_from_to_bool. Transparent P4Arith.BitArith.from_lbool.
+  rewrite BinNat.N.eqb_refl, P4Arith.BitArith.plus_mod_mod. simpl.
+  now rewrite P4Arith.to_lbool_bit_plus.
+Qed.
 
 Axiom abs_plus_int : forall w i1 i2,
   abs_plus

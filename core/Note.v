@@ -1,4 +1,4 @@
-i : Z
+(*i : Z
 ValueBaseInt (to_lobool w i)
 ValueBaseInt (to_lobool w 1)
 Ops.add (ValueBaseInt (to_lobool w i)) (ValueBaseInt (to_lobool w 1))
@@ -31,3 +31,4 @@ mem_assertion
 lsv := P4Arith.to_loptbool w x 
 eval_sval_to_val (ValBasebit (P4Arith.to_loptbool w x)) = Some (ValBasebit (P4Arith.to_lbool w x))
 (ValBasebit (P4Arith.to_loptbool w (x+1)))
+*)

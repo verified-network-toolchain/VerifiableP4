@@ -95,25 +95,25 @@ Definition hoare_lexpr (p : path) (pre : assertion) (expr : Expression) (lv : Lv
 Definition hoare_loc_to_sval (p : path) (pre : assertion) (loc : Locator) (v : Sval) :=
     forall st,
     pre st ->
-    loc_to_sval ge p loc st = Some v.
+    loc_to_sval loc st = Some v.
 
 Definition hoare_update_val_by_loc (p : path) (pre : assertion) (loc : Locator) (v : Sval) (post : assertion) :=
     forall st st',
     pre st ->
-    update_val_by_loc p st loc v = st' ->
+    update_val_by_loc st loc v = st' ->
     post st'.
 
 Definition hoare_read (p : path) (pre : assertion) (lv : Lval) (v : Sval) :=
   forall st v',
     pre st ->
-    exec_read ge p st lv v' ->
+    exec_read ge st lv v' ->
     sval_refine v v'.
 
 Definition hoare_write (p : path) (pre : assertion) (lv : Lval) (sv : Sval) (post : assertion) :=
   forall st sv' st',
     pre st ->
     sval_refine sv sv' ->
-    exec_write ge p st lv sv' st' ->
+    exec_write ge st lv sv' st' ->
     post st'.
 
 Definition satisfies_ret_assertion (post : ret_assertion) (sig : signal) (st : state) : Prop :=
