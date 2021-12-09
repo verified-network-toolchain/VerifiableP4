@@ -389,21 +389,32 @@ Hypothesis H_member2 : Members.get "member2" meta = (ValBaseBit [Some true]).
 Definition pre :=
   MEM [(["hdr"], hdr); (["meta"], meta)] (EXT []).
 
-Lemma body_bloomfilter : exists post, hoare_stmt ge this pre assign_stmt post.
+Axiom post : post_assertion.
+
+Lemma body_assign : hoare_block ge this pre (BlockCons assign_stmt BlockNil) post.
 Proof.
-  econstructor.
-  eapply hoare_stmt_assign.
-  - (* lexpr *)
-    apply eval_lexpr_sound. simpl. auto.
-  - (* is_call_expression *)
-    auto.
-  - (* hoare_expr_det *)
-    apply hoare_expr_det_intro.
-    apply eval_expr_sound. simpl; auto.
-  - (* hoare_write *)
-    (* TODO *)
-    rewrite H_member0, H_member1, H_member2.
-    simpl build_abs_binary_op.
+  eapply hoare_block_cons.
+  {
+    eapply hoare_stmt_assign.
+    - (* is_call_expression *)
+      reflexivity.
+    - (* lexpr *)
+      apply eval_lexpr_sound. reflexivity.
+    - (* hoare_expr_det *)
+      apply hoare_expr_det_intro.
+      apply eval_expr_sound. reflexivity.
+    - (* hoare_write *)
+      eapply eval_write_sound. reflexivity.
+  }
+  simpl str. rewrite H_member0, H_member1, H_member2.
+  change (build_abs_unary_op _ _)
+   (* (build_abs_binary_op (Ops.eval_binary_op BitAnd)
+      (build_abs_binary_op (Ops.eval_binary_op BitAnd) (ValBaseBit [Some true])
+         (ValBaseBit [Some true])) (ValBaseBit [Some true]))) *) with
+  (ltac: (let x := eval cbv in (build_abs_unary_op (fun oldv : Val => Ops.bit_of_val 8 oldv)
+   (build_abs_binary_op (Ops.eval_binary_op BitAnd)
+      (build_abs_binary_op (Ops.eval_binary_op BitAnd) (ValBaseBit [Some true])
+         (ValBaseBit [Some true])) (ValBaseBit [Some true]))) in exact x)).
 (* Qed. *)
 Abort.
 

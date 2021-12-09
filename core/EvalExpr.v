@@ -23,7 +23,7 @@ Section EvalExpr.
 Context {tags_t: Type} {tags_t_inhabitant : Inhabitant tags_t}.
 Notation Val := (@ValueBase bool).
 Notation Sval := (@ValueBase (option bool)).
-Notation Lval := (ValueLvalue).
+Notation Lval := (@ValueLvalue tags_t).
 
 Notation ident := (string).
 Notation path := (list ident).
@@ -577,5 +577,42 @@ Proof.
   eapply eval_write_vars_sound in H1. 2, 3 : eassumption.
   destruct H3; eauto.
 Qed.
+
+Fixpoint eval_read (a : mem_assertion) (lv : Lval) : option Sval :=
+  let '(MkValueLvalue lv _) := lv in
+  match lv with
+  | ValLeftName _ (LInstance p) => eval_read_var a p
+  | ValLeftName _ (LGlobal _) => None
+  | ValLeftMember lv' member => option_map (get member) (eval_read a lv')
+  | ValLeftBitAccess lv' hi lo => None (* TODO *)
+  | ValLeftArrayAccess lv' pos => None (* TODO *)
+  end.
+
+Lemma eval_read_sound : forall ge a_mem a_ext lv sv,
+  eval_read a_mem lv = Some sv ->
+  hoare_read ge (MEM a_mem (EXT a_ext)) lv sv.
+Admitted.
+
+Definition option_join {A} (ooa : option (option A)) : option A :=
+  match ooa with
+  | Some (Some a) => Some a
+  | _ => None
+  end.
+
+Fixpoint eval_write (a : mem_assertion) (lv : Lval) (sv : Sval) : option mem_assertion :=
+  let '(MkValueLvalue lv _) := lv in
+  match lv with
+  | ValLeftName _ (LInstance p) => Some (eval_write_var a p sv)
+  | ValLeftName _ (LGlobal _) => None
+  | ValLeftMember lv' member =>
+      option_join (option_map (eval_write a lv') (option_map (update member sv) (eval_read a lv')))
+  | ValLeftBitAccess lv' hi lo => None (* TODO *)
+  | ValLeftArrayAccess lv' pos => None (* TODO *)
+  end.
+
+Lemma eval_write_sound : forall ge a_mem a_ext lv sv a_mem',
+  eval_write a_mem lv sv = Some a_mem' ->
+  hoare_write ge (MEM a_mem (EXT a_ext)) lv sv (MEM a_mem' (EXT a_ext)).
+Admitted.
 
 End EvalExpr.

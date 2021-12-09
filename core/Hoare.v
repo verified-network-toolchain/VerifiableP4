@@ -240,8 +240,8 @@ Axiom lval_eqb_eq : forall (lv1 lv2 : Lval),
   lv1 = lv2.
 
 Lemma hoare_stmt_assign : forall p pre tags lhs rhs typ post lv sv,
-  hoare_lexpr p pre lhs lv ->
   is_call_expression rhs = false ->
+  hoare_lexpr p pre lhs lv ->
   hoare_expr_det p pre rhs sv ->
   hoare_write pre lv sv (post_continue post) ->
   hoare_stmt p pre (MkStatement tags (StatAssignment lhs rhs) typ) post.
@@ -250,10 +250,10 @@ Proof.
   left.
   inv H5. 2 : {
     (* rule out the call case *)
-    inv H14; inv H1.
+    inv H14; inv H0.
   }
-  specialize (H0 _ _ _ H4 H15).
-  inv H0.
+  specialize (H1 _ _ _ H4 H15).
+  inv H1.
   split; only 1 : split.
   apply lval_eqb_eq in H6. subst lv0.
   specialize (H2 _ _ _ H4 H12 H16).
@@ -276,8 +276,8 @@ Proof.
 Qed.
 
 Lemma hoare_stmt_assign_call : forall p pre tags lhs rhs typ post lv mid sv,
-  hoare_lexpr p pre lhs lv ->
   is_call_expression rhs = true ->
+  hoare_lexpr p pre lhs lv ->
   hoare_call p pre rhs (fun v st => mid st /\ (forall sv', val_to_sval v sv' -> sval_refine sv sv')) ->
   hoare_write mid lv sv (post_continue post) ->
   hoare_stmt p pre (MkStatement tags (StatAssignment lhs rhs) typ) post.
@@ -289,15 +289,15 @@ Proof.
     pose proof (exec_expr_det_not_call _ _ _ _ _ H12).
     congruence.
   }
-  specialize (H0 _ _ _ H4 H15).
-  inv H0.
+  specialize (H1 _ _ _ H4 H15).
+  inv H1.
   apply lval_eqb_eq in H6. subst lv0.
   specialize (H2 _ _ _ H4 H14).
   destruct sig'; only 1, 3, 4 : solve[inv H2].
   destruct H2. destruct H16 as [? []].
   split; only 1 : auto.
   inv H5.
-  specialize (H3 _ _ _ H0 (H2 _ H9) H6).
+  specialize (H3 _ _ _ H1 (H2 _ H9) H6).
   apply H3.
 Qed.
 
