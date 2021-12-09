@@ -23,18 +23,18 @@ Notation mem := Semantics.mem.
 
 Definition has_field (f : ident) (sv : Sval) : bool :=
   match sv with
-  | ValBaseStruct fields =>
-      is_some (AList.get fields f)
-  | ValBaseHeader fields (Some true) =>
+  | ValBaseStruct fields
+  | ValBaseHeader fields (Some true)
+  | ValBaseUnion fields =>
       is_some (AList.get fields f)
   | _ => false
   end.
 
 Definition get (f : ident) (sv : Sval) : Sval :=
   match sv with
-  | ValBaseStruct fields =>
-      force ValBaseNull (AList.get fields f)
-  | ValBaseHeader fields _ =>
+  | ValBaseStruct fields
+  | ValBaseHeader fields _
+  | ValBaseUnion fields =>
       force ValBaseNull (AList.get fields f)
   | _ => ValBaseNull
   end.
@@ -45,6 +45,8 @@ Definition update (f : ident) (f_sv : Sval) (sv : Sval) : Sval :=
       ValBaseStruct (force fields (AList.set fields f f_sv))
   | ValBaseHeader fields (Some true) =>
       ValBaseHeader (force fields (AList.set fields f f_sv)) (Some true)
+  | ValBaseUnion fields =>
+      ValBaseUnion (force fields (AList.set fields f f_sv))
   | _ => sv
   end.
 
@@ -76,6 +78,11 @@ Proof.
       + inv H.
     * inv H.
     * inv H.
+  - unfold get, update, has_field in *.
+    destruct (AList.get fields f) eqn:?.
+    + erewrite get_some_get_set by eauto.
+      auto.
+    + inv H.
 Qed.
 
 End Members.

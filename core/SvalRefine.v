@@ -188,6 +188,14 @@ Proof.
     + epose proof (all_values_get_some_is_some' _ _ _ _ _ ltac:(eauto) ltac:(eauto)) as H.
       rewrite H_get1 in H. inv H.
     + constructor.
+  - unfold get.
+    destruct (AList.get kvs f) eqn:H_get1; destruct (AList.get kvs' f) eqn:H_get2.
+    + eapply all_values_get_some_rel; eauto.
+    + epose proof (all_values_get_some_is_some _ _ _ _ _ ltac:(eauto) ltac:(eauto)) as H.
+      rewrite H_get2 in H. inv H.
+    + epose proof (all_values_get_some_is_some' _ _ _ _ _ ltac:(eauto) ltac:(eauto)) as H.
+      rewrite H_get1 in H. inv H.
+    + constructor.
 Qed.
 
 End SvalRefine.

@@ -588,10 +588,48 @@ Fixpoint eval_read (a : mem_assertion) (lv : Lval) : option Sval :=
   | ValLeftArrayAccess lv' pos => None (* TODO *)
   end.
 
+Scheme custom_ValuePreLvalue_ind := Induction for ValuePreLvalue Sort Prop
+  with custom_ValueLvalue_ind := Induction for ValueLvalue Sort Prop.
+
 Lemma eval_read_sound : forall ge a_mem a_ext lv sv,
   eval_read a_mem lv = Some sv ->
-  hoare_read ge (MEM a_mem (EXT a_ext)) lv sv.
-Admitted.
+  hoare_read ge (MEM a_mem (EXT a_ext)) lv sv
+with eval_read_sound_preT : forall ge a_mem a_ext lv typ sv,
+  eval_read a_mem (MkValueLvalue lv typ) = Some sv ->
+  hoare_read ge (MEM a_mem (EXT a_ext)) (MkValueLvalue lv typ) sv.
+Proof.
+  - destruct lv; apply eval_read_sound_preT.
+  - destruct lv; unfold hoare_read; intros.
+    + destruct loc; only 1 : inv H0.
+      inv H2.
+      eapply eval_read_var_sound; eauto.
+    + simpl in H0.
+      destruct (eval_read a_mem expr) eqn:?. 2 : inv H0.
+      inv H2. inv H8.
+      * (* struct *)
+        assert (get name (ValBaseStruct fields) = sv'). {
+          simpl. rewrite H3. auto.
+        }
+        inv H0.
+        apply sval_refine_get.
+        eapply eval_read_sound; eauto.
+      * (* header *)
+        assert (get name (ValBaseHeader fields is_valid) = sv'). {
+          simpl. rewrite H3. auto.
+        }
+        inv H0.
+        apply sval_refine_get.
+        eapply eval_read_sound; eauto.
+      * (* union *)
+        assert (get name (ValBaseUnion fields) = sv'). {
+          simpl. rewrite H3. auto.
+        }
+        inv H0.
+        apply sval_refine_get.
+        eapply eval_read_sound; eauto.
+    + inv H0.
+    + inv H0.
+Qed.
 
 Definition option_join {A} (ooa : option (option A)) : option A :=
   match ooa with
