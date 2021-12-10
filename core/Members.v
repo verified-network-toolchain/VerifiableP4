@@ -45,6 +45,9 @@ Definition update (f : ident) (f_sv : Sval) (sv : Sval) : Sval :=
       ValBaseStruct (force fields (AList.set fields f f_sv))
   | ValBaseHeader fields (Some true) =>
       ValBaseHeader (force fields (AList.set fields f f_sv)) (Some true)
+  | ValBaseHeader fields is_valid (* None or (Some false) *) =>
+      let uninit_f_sv' := uninit_sval_of_sval None f_sv in
+      ValBaseHeader (force fields (AList.set fields f uninit_f_sv')) is_valid
   | ValBaseUnion fields =>
       ValBaseUnion (force fields (AList.set fields f f_sv))
   | _ => sv

@@ -149,9 +149,9 @@ Proof.
       auto.
 Qed.
 
-Lemma all_values_get_some_is_some' : forall {A} (kvl kvl' : AList.StringAList A) f rel v,
+Lemma all_values_get_some_is_some' : forall {A} (kvl kvl' : AList.StringAList A) f rel v',
   AList.all_values rel kvl kvl' ->
-  AList.get kvl' f = Some v ->
+  AList.get kvl' f = Some v' ->
   is_some (AList.get kvl f).
 Proof.
   intros.
@@ -164,6 +164,18 @@ Proof.
       auto.
     + rewrite AList.get_neq_cons in H0 |- * by auto.
       auto.
+Qed.
+
+Lemma all_values_get_is_some : forall {A} (kvl kvl' : AList.StringAList A) f rel,
+  AList.all_values rel kvl kvl' ->
+  is_some (AList.get kvl f) = is_some (AList.get kvl' f).
+Proof.
+  intros.
+  destruct (AList.get kvl f) eqn:H_get1; destruct (AList.get kvl' f) eqn:H_get2; auto.
+  - epose proof (all_values_get_some_is_some _ _ _ _ _ ltac:(eauto) ltac:(eauto)) as H0; auto.
+    rewrite H_get2 in H0. inv H0.
+  - epose proof (all_values_get_some_is_some' _ _ _ _ _ ltac:(eauto) ltac:(eauto)) as H0; auto.
+    rewrite H_get1 in H0. inv H0.
 Qed.
 
 Lemma sval_refine_get : forall sv sv' f,

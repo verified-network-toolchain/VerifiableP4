@@ -648,9 +648,113 @@ Fixpoint eval_write (a : mem_assertion) (lv : Lval) (sv : Sval) : option mem_ass
   | ValLeftArrayAccess lv' pos => None (* TODO *)
   end.
 
-Lemma eval_write_sound : forall ge a_mem a_ext lv sv a_mem',
-  eval_write a_mem lv sv = Some a_mem' ->
-  hoare_write ge (MEM a_mem (EXT a_ext)) lv sv (MEM a_mem' (EXT a_ext)).
+Lemma all_values_set_some_rel : forall {A} rel (kvl kvl' : AList.StringAList A) f v new_kvl v' new_kvl',
+  AList.all_values rel kvl kvl' ->
+  AList.set kvl f v = Some new_kvl ->
+  AList.set kvl' f v' = Some new_kvl' ->
+  rel v v' ->
+  AList.all_values rel new_kvl new_kvl'.
+Proof.
+  intros * H0. revert new_kvl new_kvl'.
+  induction H0; intros.
+  - inv H0.
+  - destruct x as [kx vx]; destruct y as [ky vy].
+    destruct H0. simpl in H0. subst ky.
+    simpl in H2, H3.
+    destruct (EquivUtil.StringEqDec f kx).
+    + inv H2; inv H3.
+      constructor; auto.
+    + destruct (AList.set l f v); inv H2.
+      destruct (AList.set l' f v'); inv H3.
+      constructor. eauto.
+      eapply IHForall2; eauto.
+Qed.
+
+Lemma Some_is_some : forall {A} x (y : A),
+  x = Some y ->
+  is_some x.
+Proof.
+  intros. rewrite H0. auto.
+Qed.
+
+Lemma all_values_set_some_is_some : forall {A} rel (kvl kvl' : AList.StringAList A) f v new_kvl v',
+  AList.all_values rel kvl kvl' ->
+  AList.set kvl f v = Some new_kvl ->
+  is_some (AList.set kvl' f v').
+Proof.
+  intros. apply Some_is_some in H1.
+  rewrite <- AList.get_set_is_some in H1 |- *.
+  erewrite all_values_get_is_some in H1; eauto.
+Qed.
+
+Lemma all_values_set_some_is_some' : forall {A} rel (kvl kvl' : AList.StringAList A) f v new_kvl' v',
+  AList.all_values rel kvl kvl' ->
+  AList.set kvl' f v' = Some new_kvl' ->
+  is_some (AList.set kvl f v).
+Proof.
+  intros. apply Some_is_some in H1.
+  rewrite <- AList.get_set_is_some in H1 |- *.
+  erewrite all_values_get_is_some; eauto.
+Qed.
+
+Lemma update_sound : forall sv f f_sv sv' abs_sv abs_f_sv,
+  sval_refine abs_sv sv ->
+  sval_refine abs_f_sv f_sv ->
+  update_member sv f f_sv sv' ->
+  sval_refine (update f abs_f_sv abs_sv) sv'.
+Proof.
+  induction 3.
+  - inv H0.
+    simpl. destruct (AList.set kvs fname abs_f_sv) eqn:H_set. 2 : {
+      epose proof (all_values_set_some_is_some' _ _ _ _ _ _ _ ltac:(eauto) ltac:(eauto)) as H0.
+      rewrite H_set in H0. inv H0.
+    }
+    constructor.
+    eapply all_values_set_some_rel; eauto.
+  - inv H2; inv H0.
+    + inv H5.
+      { simpl. admit.
+        (* TODO This is the case that the symbolic is_valid is None and the real is_valid is true.
+          real value requires something to be written. *)
+      }
+      simpl. destruct (AList.set kvs fname abs_f_sv) eqn:H_set. 2 : {
+        epose proof (all_values_set_some_is_some' _ _ _ _ _ _ _ ltac:(eauto) ltac:(eauto)) as H0.
+        rewrite H_set in H0. inv H0.
+      }
+      constructor. 1 : constructor.
+      eapply all_values_set_some_rel; eauto.
+    + (* inv H5; (constructor; [constructor | eauto]). *)
+      admit. (* TODO Same as above*)
+    + (* inv H5; (constructor; [constructor | eauto]). *)
+      admit. (* TODO Same as above*)
+  - admit. (* TODO *)
 Admitted.
+
+Lemma eval_write_sound : forall ge a_mem a_ext lv sv a_mem',
+  NoDup (map fst a_mem) ->
+  eval_write a_mem lv sv = Some a_mem' ->
+  hoare_write ge (MEM a_mem (EXT a_ext)) lv sv (MEM a_mem' (EXT a_ext))
+with eval_write_sound_preT : forall ge a_mem a_ext lv typ sv a_mem',
+  NoDup (map fst a_mem) ->
+  eval_write a_mem (MkValueLvalue lv typ) sv = Some a_mem' ->
+  hoare_write ge (MEM a_mem (EXT a_ext)) (MkValueLvalue lv typ) sv (MEM a_mem' (EXT a_ext)).
+Proof.
+  - destruct lv; apply eval_write_sound_preT.
+  - destruct lv; unfold hoare_write; intros.
+    + destruct loc; only 1 : inv H1.
+      inv H1. inv H4.
+      eapply eval_write_var_sound; eauto.
+    + simpl in H1.
+      destruct (eval_read a_mem expr) eqn:H_eval_read. 2 : inv H1.
+      simpl in H1.
+      destruct (eval_write a_mem expr (update name sv v)) eqn:H_eval_write. 2 : inv H1.
+      inv H4.
+      pose proof (eval_read_sound _ _ _ _ _ H_eval_read _ _ ltac:(eassumption) ltac:(eassumption)).
+      epose proof (update_sound _ _ _ _ _ _ H4 H3 ltac:(eassumption)).
+      inv H1.
+      eapply eval_write_sound; eauto.
+    + inv H1.
+    + inv H1.
+Qed.
 
 End EvalExpr.
