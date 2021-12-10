@@ -404,7 +404,7 @@ Proof.
       apply hoare_expr_det_intro.
       apply eval_expr_sound. reflexivity.
     - (* hoare_write *)
-      eapply eval_write_sound. reflexivity.
+      eapply eval_write_sound; [apply is_no_dup_NoDup; reflexivity | reflexivity].
   }
   simpl str. rewrite H_member0, H_member1, H_member2.
   change (build_abs_unary_op _ _)

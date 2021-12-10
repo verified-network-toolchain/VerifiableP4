@@ -455,17 +455,50 @@ Proof.
   clear ge. admit.
 Admitted.
 
-Fixpoint _in (x : ident) (al : list ident) : bool :=
+(* It's possible to make these functinos and lemmas generic, but that's currently unneeded. *)
+
+Fixpoint is_in (x : path) (al : list path) : bool :=
   match al with
-  | y :: al => String.eqb x y || _in x al
+  | y :: al => path_eqb y x || is_in x al
   | [] => false
   end.
 
-Fixpoint no_dup (al : list ident) : bool :=
+Fixpoint is_no_dup (al : list path) : bool :=
   match al with
-  | x :: al => ~~(_in x al) && no_dup al
+  | x :: al => ~~(is_in x al) && is_no_dup al
   | [] => true
   end.
+
+Lemma path_eqb_refl : forall (p : path),
+  path_eqb p p.
+Proof.
+  unfold path_eqb, list_eqb.
+  induction p.
+  - auto.
+  - simpl. rewrite String.eqb_refl. auto.
+Qed.
+
+Lemma not_is_in_not_In : forall x (al : list path),
+  ~~(is_in x al) -> ~In x al.
+Proof.
+  induction al; intros.
+  - auto.
+  - simpl in H0. rewrite Reflect.negE, Reflect.orE in H0.
+    intros [].
+    + subst. rewrite path_eqb_refl in H0. auto.
+    + rewrite Reflect.negE in IHal. apply IHal; auto.
+Qed.
+
+Lemma is_no_dup_NoDup : forall (al : list path),
+  is_no_dup al -> NoDup al.
+Proof.
+  induction al; intros.
+  - constructor.
+  - simpl in H0. rewrite Reflect.andE in H0. destruct H0.
+    constructor.
+    + apply not_is_in_not_In; auto.
+    + auto.
+Qed.
 
 (* Inductive deep_hoare_loc_to_val : path -> assertion -> Locator -> Val -> Prop :=
   | deep_hoare_loc_to_val_intro : forall p pre loc v,
