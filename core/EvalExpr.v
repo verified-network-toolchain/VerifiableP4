@@ -449,17 +449,6 @@ Qed.
 Definition eval_write_var (a : mem_assertion) (p : path) (sv : Sval) : mem_assertion :=
   AList.set_some a p sv.
 
-Lemma get_set_same : forall {A} (p : path) (a : A) (m : PathMap.t A),
-  PathMap.get p (PathMap.set p a m) = Some a.
-Proof.
-Admitted.
-
-Lemma get_set_diff : forall {A} (p p' : path) (a : A) (m : PathMap.t A),
-  p <> p' ->
-  PathMap.get p (PathMap.set p' a m) = PathMap.get p m.
-Proof.
-Admitted.
-
 Lemma mem_assertion_set_disjoint : forall a_mem p sv m,
   ~In p (map fst a_mem) ->
   mem_denote a_mem m ->
@@ -470,7 +459,7 @@ Proof.
   - auto.
   - split.
     + destruct a; unfold mem_satisfies_unit.
-      rewrite get_set_diff. 2 : { simpl in H0. tauto. }
+      rewrite PathMap.get_set_diff. 2 : { simpl in H0. tauto. }
       apply (proj1 H1).
     + apply IHa_mem.
       * simpl in H0; tauto.
@@ -488,19 +477,19 @@ Proof.
   split; auto.
   induction a_mem.
   - split; auto.
-    unfold mem_satisfies_unit. rewrite get_set_same; auto.
+    unfold mem_satisfies_unit. rewrite PathMap.get_set_same; auto.
   - simpl. destruct H1.
     destruct a as [p' sv''].
     destruct (EquivDec.list_eqdec EquivUtil.StringEqDec p p') as [H_p | H_p].
     + red in H_p.
       split.
-      * simpl. rewrite get_set_same; auto.
+      * simpl. rewrite PathMap.get_set_same; auto.
       * apply mem_assertion_set_disjoint; auto.
         inv H0; auto.
     + cbv in H_p.
       split.
       * unfold mem_satisfies_unit.
-        rewrite get_set_diff; auto.
+        rewrite PathMap.get_set_diff; auto.
       * apply IHa_mem; auto.
         inv H0; auto.
 Qed.
