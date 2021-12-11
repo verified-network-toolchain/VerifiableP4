@@ -596,28 +596,10 @@ Proof.
       eapply eval_read_var_sound; eauto.
     + simpl in H0.
       destruct (eval_read a_mem expr) eqn:?. 2 : inv H0.
-      inv H2. inv H8.
-      * (* struct *)
-        assert (get name (ValBaseStruct fields) = sv'). {
-          simpl. rewrite H3. auto.
-        }
-        inv H0.
-        apply sval_refine_get.
-        eapply eval_read_sound; eauto.
-      * (* header *)
-        assert (get name (ValBaseHeader fields is_valid) = sv'). {
-          simpl. rewrite H3. auto.
-        }
-        inv H0.
-        apply sval_refine_get.
-        eapply eval_read_sound; eauto.
-      * (* union *)
-        assert (get name (ValBaseUnion fields) = sv'). {
-          simpl. rewrite H3. auto.
-        }
-        inv H0.
-        apply sval_refine_get.
-        eapply eval_read_sound; eauto.
+      inv H2. inv H0.
+      apply get_sound in H9. subst.
+      apply sval_refine_get.
+      eapply eval_read_sound; eauto.
     + inv H0.
     + inv H0.
 Qed.
@@ -688,6 +670,31 @@ Proof.
   erewrite all_values_get_is_some; eauto.
 Qed.
 
+Lemma all_values_set_some_rel' : forall {A} rel (kvl kvl' : AList.StringAList A) f v new_kvl' v' dummy_new_kvl,
+  AList.all_values rel kvl kvl' ->
+  AList.set kvl' f v' = Some new_kvl' ->
+  rel v v' ->
+  AList.all_values rel (force dummy_new_kvl (AList.set kvl f v)) new_kvl'.
+Proof.
+  intros.
+  destruct (AList.set kvl f v) eqn:H_set. 2 : {
+    eapply all_values_set_some_is_some' with (v0 := v) in H1. 2 : apply H0.
+    rewrite H_set in H1. inv H1.
+  }
+  eapply all_values_set_some_rel; eauto.
+Qed.
+
+Lemma sval_refine_uninit_sval_of_sval : forall sv,
+  sval_refine (uninit_sval_of_sval None sv) sv.
+Proof.
+Admitted.
+
+Lemma sval_refine_uninit_sval_of_sval_trans : forall sv1 sv2,
+  sval_refine sv1 sv2 ->
+  sval_refine (uninit_sval_of_sval None sv1) (uninit_sval_of_sval None sv2).
+Proof.
+Admitted.
+
 Lemma update_sound : forall sv f f_sv sv' abs_sv abs_f_sv,
   sval_refine abs_sv sv ->
   sval_refine abs_f_sv f_sv ->
@@ -696,29 +703,29 @@ Lemma update_sound : forall sv f f_sv sv' abs_sv abs_f_sv,
 Proof.
   induction 3.
   - inv H0.
-    simpl. destruct (AList.set kvs fname abs_f_sv) eqn:H_set. 2 : {
-      epose proof (all_values_set_some_is_some' _ _ _ _ _ _ _ ltac:(eauto) ltac:(eauto)) as H0.
-      rewrite H_set in H0. inv H0.
-    }
     constructor.
-    eapply all_values_set_some_rel; eauto.
+    eapply all_values_set_some_rel'; eauto.
   - inv H2; inv H0.
-    + inv H5.
-      { simpl. admit.
-        (* TODO This is the case that the symbolic is_valid is None and the real is_valid is true.
-          real value requires something to be written. *)
-      }
-      simpl. destruct (AList.set kvs fname abs_f_sv) eqn:H_set. 2 : {
-        epose proof (all_values_set_some_is_some' _ _ _ _ _ _ _ ltac:(eauto) ltac:(eauto)) as H0.
-        rewrite H_set in H0. inv H0.
-      }
-      constructor. 1 : constructor.
-      eapply all_values_set_some_rel; eauto.
-    + (* inv H5; (constructor; [constructor | eauto]). *)
-      admit. (* TODO Same as above*)
-    + (* inv H5; (constructor; [constructor | eauto]). *)
-      admit. (* TODO Same as above*)
-  - admit. (* TODO *)
+    + inv H5; simpl.
+      * constructor. 1 : constructor.
+        eapply all_values_set_some_rel'; eauto.
+        eapply sval_refine_trans.
+        --apply sval_refine_uninit_sval_of_sval.
+        --auto.
+      * constructor. 1 : constructor.
+        eapply all_values_set_some_rel'; eauto.
+    + inv H5; simpl.
+      * constructor. 1 : constructor.
+        eapply all_values_set_some_rel'; eauto.
+        apply sval_refine_uninit_sval_of_sval_trans. auto.
+      * constructor. 1 : constructor.
+        eapply all_values_set_some_rel'; eauto.
+        apply sval_refine_uninit_sval_of_sval_trans. auto.
+    + inv H5; simpl.
+      * constructor. 1 : constructor.
+        eapply all_values_set_some_rel'; eauto.
+        apply sval_refine_uninit_sval_of_sval_trans. auto.
+  - admit. (* TODO union case *)
 Admitted.
 
 Lemma eval_write_sound : forall ge a_mem a_ext lv sv a_mem',
