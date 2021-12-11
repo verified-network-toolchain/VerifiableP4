@@ -1,3 +1,4 @@
+Require Import Coq.Strings.String.
 Require Import Coq.NArith.BinNat.
 Require Import Poulet4.Typed.
 Require Import Poulet4.Syntax.
@@ -25,6 +26,63 @@ Inductive bit_refine : option bool -> option bool -> Prop :=
 
 (* sval_refine a b means a includes b. *)
 Definition sval_refine := exec_val bit_refine.
+
+Section exec_val_refl.
+  Context {A : Type} (f : A -> A -> Prop).
+  Hypothesis H_f_refl : forall x, f x x.
+
+  Lemma Forall2_refl : forall v,
+    Forall2 f v v.
+  Proof.
+    induction v; intros.
+    - constructor.
+    - constructor; eauto.
+  Qed.
+
+  Hint Resolve Forall2_refl : core.
+
+  Lemma exec_val_refl_case1 : forall vs,
+    Forall (fun v : ValueBase => exec_val f v v) vs ->
+    Forall2 (exec_val f) vs vs.
+  Proof.
+    induction vs; intros; inv H; constructor; auto.
+  Qed.
+
+  Lemma exec_val_refl_case2 : forall (vs : list (ident * ValueBase)),
+    Forall (fun '(_, v) => exec_val f v v) vs ->
+    AList.all_values (exec_val f) vs vs.
+  Proof.
+    induction vs; intros; inv H; constructor.
+    - destruct a; auto.
+    - apply IHvs; auto.
+  Qed.
+
+  Lemma exec_val_refl : forall v,
+    exec_val f v v.
+  Proof.
+    intros v.
+    induction v using custom_ValueBase_ind;
+      constructor; eauto.
+    - eapply exec_val_refl_case1; eauto.
+    - eapply exec_val_refl_case2; eauto.
+    - eapply exec_val_refl_case2; eauto.
+    - eapply exec_val_refl_case2; eauto.
+    - eapply exec_val_refl_case2; eauto.
+    - eapply exec_val_refl_case1; eauto.
+  Qed.
+End exec_val_refl.
+
+Lemma bit_refine_refl : forall b : option bool,
+  bit_refine b b.
+Proof.
+  destruct b as [[] | ]; constructor.
+Qed.
+
+Lemma sval_refine_refl : forall sv,
+  sval_refine sv sv.
+Proof.
+  apply exec_val_refl. exact bit_refine_refl.
+Qed.
 
 Definition rel_trans {A B C} (f : A -> B -> Prop) (g : B -> C -> Prop) (h : A -> C -> Prop) :=
   forall a b c,
@@ -178,36 +236,30 @@ Proof.
     rewrite H_get1 in H0. inv H0.
 Qed.
 
+Lemma sval_refine_get_case1 : forall f kvs kvs',
+  AList.all_values (exec_val bit_refine) kvs kvs' ->
+  sval_refine (force ValBaseNull (AList.get kvs f)) (force ValBaseNull (AList.get kvs' f)).
+Proof.
+  intros.
+  destruct (AList.get kvs f) eqn:H_get1; destruct (AList.get kvs' f) eqn:H_get2.
+  + eapply all_values_get_some_rel; eauto.
+  + epose proof (all_values_get_some_is_some _ _ _ _ _ ltac:(eauto) ltac:(eauto)) as H0.
+    rewrite H_get2 in H0. inv H0.
+  + epose proof (all_values_get_some_is_some' _ _ _ _ _ ltac:(eauto) ltac:(eauto)) as H0.
+    rewrite H_get1 in H0. inv H0.
+  + constructor.
+Qed.
+
 Lemma sval_refine_get : forall sv sv' f,
   sval_refine sv sv' ->
   sval_refine (get f sv) (get f sv').
 Proof.
   intros.
-  inv H; try solve [constructor].
+  inv H; try solve [constructor | apply sval_refine_get_case1; auto].
   - unfold get.
-    destruct (AList.get kvs f) eqn:H_get1; destruct (AList.get kvs' f) eqn:H_get2.
-    + eapply all_values_get_some_rel; eauto.
-    + epose proof (all_values_get_some_is_some _ _ _ _ _ ltac:(eauto) ltac:(eauto)) as H.
-      rewrite H_get2 in H. inv H.
-    + epose proof (all_values_get_some_is_some' _ _ _ _ _ ltac:(eauto) ltac:(eauto)) as H.
-      rewrite H_get1 in H. inv H.
-    + constructor.
-  - unfold get.
-    destruct (AList.get kvs f) eqn:H_get1; destruct (AList.get kvs' f) eqn:H_get2.
-    + eapply all_values_get_some_rel; eauto.
-    + epose proof (all_values_get_some_is_some _ _ _ _ _ ltac:(eauto) ltac:(eauto)) as H.
-      rewrite H_get2 in H. inv H.
-    + epose proof (all_values_get_some_is_some' _ _ _ _ _ ltac:(eauto) ltac:(eauto)) as H.
-      rewrite H_get1 in H. inv H.
-    + constructor.
-  - unfold get.
-    destruct (AList.get kvs f) eqn:H_get1; destruct (AList.get kvs' f) eqn:H_get2.
-    + eapply all_values_get_some_rel; eauto.
-    + epose proof (all_values_get_some_is_some _ _ _ _ _ ltac:(eauto) ltac:(eauto)) as H.
-      rewrite H_get2 in H. inv H.
-    + epose proof (all_values_get_some_is_some' _ _ _ _ _ ltac:(eauto) ltac:(eauto)) as H.
-      rewrite H_get1 in H. inv H.
-    + constructor.
+    destruct (String.eqb f "size");
+      only 2 : destruct (String.eqb f "lastIndex");
+      apply sval_refine_refl.
 Qed.
 
 End SvalRefine.

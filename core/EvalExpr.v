@@ -359,30 +359,32 @@ Fixpoint eval_expr (ge : genv) (p : path) (a : mem_assertion) (expr : Expression
       end
   end.
 
-Lemma get_member_sound : forall sv f sv',
-  match sv with ValBaseStruct _ | ValBaseHeader _ _ => true | _ => false end ->
+Lemma get_sound : forall sv f sv',
   get_member sv f sv' ->
   get f sv = sv'.
 Proof.
   intros.
-  destruct sv; try solve [inv H0]; inv H1.
-  - unfold get. rewrite H3. auto.
-  - unfold get. rewrite H6. auto.
+  inv H0.
+  - unfold get. rewrite H1. auto.
+  - unfold get. rewrite H1. auto.
+  - unfold get. rewrite H1. auto.
+  - unfold get. rewrite H1. auto.
+  - reflexivity.
+  - unfold get.
+    destruct (BinNat.N.eqb next N0);
+      inv H1; reflexivity.
 Qed.
 
 Lemma eval_expr_member_sound : forall ge p a tags expr typ dir name sv,
-  match sv with ValBaseStruct _ | ValBaseHeader _ _ => true | _ => false end ->
   hoare_expr ge p a expr sv ->
   hoare_expr ge p a (MkExpression tags (ExpExpressionMember expr name) typ dir) (get (P4String.str name) sv).
 Proof.
   unfold hoare_expr.
   intros.
-  inv H3.
-  assert (sval_refine sv sv0) by (eapply H1; eauto).
-  apply get_member_sound in H13. 2 : {
-    inv H3; try solve [inv H0]; auto.
-  }
-  rewrite <- H13.
+  inv H2.
+  assert (sval_refine sv sv0) by (eapply H0; eauto).
+  apply get_sound in H12.
+  rewrite <- H12.
   apply sval_refine_get; auto.
 Qed.
 

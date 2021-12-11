@@ -4,7 +4,8 @@ Require Import Poulet4.Syntax.
 Require Import Poulet4.Semantics.
 Require Import Poulet4.Value.
 Require Import ProD3.core.Coqlib.
-Require Import Coq.Numbers.BinNums.
+Require Import Coq.ZArith.BinInt.
+Require Import Coq.NArith.BinNat.
 Open Scope type_scope.
 
 Section Members.
@@ -21,6 +22,7 @@ Notation P4String := (P4String.t tags_t).
 Notation P4Type := (@P4Type tags_t).
 Notation mem := Semantics.mem.
 
+(* Test whether sv has a WRITABLE field f. *)
 Definition has_field (f : ident) (sv : Sval) : bool :=
   match sv with
   | ValBaseStruct fields
@@ -32,10 +34,20 @@ Definition has_field (f : ident) (sv : Sval) : bool :=
 
 Definition get (f : ident) (sv : Sval) : Sval :=
   match sv with
+  | ValBaseRecord fields
   | ValBaseStruct fields
   | ValBaseHeader fields _
   | ValBaseUnion fields =>
       force ValBaseNull (AList.get fields f)
+  | ValBaseStack headers size next =>
+      if String.eqb f "size" then
+        ValBaseBit (P4Arith.to_loptbool 32%N (Z.of_N size))
+      else if String.eqb f "lastIndex" then
+        (if (next =? 0)%N 
+        then (ValBaseBit (Zrepeat (@None bool) 32%Z))
+        else (ValBaseBit (P4Arith.to_loptbool 32%N (Z.of_N (next - 1)))))
+      else
+        ValBaseNull
   | _ => ValBaseNull
   end.
 
