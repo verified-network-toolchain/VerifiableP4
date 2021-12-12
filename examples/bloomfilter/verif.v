@@ -13,12 +13,12 @@ Require Import Poulet4.SimplExpr.
 Require Import Poulet4.V1Model.
 Require Import Poulet4.P4Arith.
 Require Import ProD3.core.Hoare.
+Require Import ProD3.core.ConcreteHoare.
 Require Import ProD3.core.EvalExpr.
 (* Require Import ProD3.core.HoareSoundness. *)
 Require Import ProD3.core.AssertionLang.
 Require Import ProD3.core.AssertionNotations.
 (* Require Import ProD3.core.V1ModelLang. *)
-(* Require Import ProD3.core.ConcreteHoare. *)
 
 Instance target : @Target Info (@Expression Info) := V1Model.
 
@@ -395,16 +395,17 @@ Lemma body_assign : hoare_block ge this pre (BlockCons assign_stmt BlockNil) pos
 Proof.
   eapply hoare_block_cons.
   {
-    eapply hoare_stmt_assign.
+    eapply hoare_stmt_assign'.
     - (* is_call_expression *)
       reflexivity.
-    - (* lexpr *)
-      apply eval_lexpr_sound. reflexivity.
-    - (* hoare_expr_det *)
-      apply hoare_expr_det_intro.
-      apply eval_expr_sound. reflexivity.
+    - (* is_no_dup *)
+      reflexivity.
+    - (* eval_lexpr *)
+      reflexivity.
+    - (* eval_expr *)
+      reflexivity.
     - (* hoare_write *)
-      eapply eval_write_sound; [apply is_no_dup_NoDup; reflexivity | reflexivity].
+      reflexivity.
   }
   simpl str. rewrite H_member0, H_member1, H_member2.
   change (build_abs_unary_op _ _)
