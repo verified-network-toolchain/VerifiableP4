@@ -85,7 +85,7 @@ Notation "'EX' x .. y , P " :=
 Inductive inv_func_copy_out (out_params : list path) : Hoare.ret_assertion -> Hoare.arg_ret_assertion -> Prop :=
   | inv_func_copy_out_base : forall a_arg a_ret a_mem a_ext,
       length out_params = length a_arg ->
-      NoDup (out_params ++ (map fst a_mem)) ->
+      is_no_dup (out_params ++ (map fst a_mem)) ->
       inv_func_copy_out out_params
         (RET a_ret (MEM (eval_write_vars a_mem out_params a_arg) (EXT a_ext)))
         (ARG_RET a_arg a_ret (MEM a_mem (EXT a_ext)))
@@ -274,6 +274,7 @@ Proof.
   intros.
   induction H0.
   - apply inv_func_copy_out_sound_part1; auto.
+    apply is_no_dup_NoDup; auto.
   - unfold hoare_func_copy_out. intros.
     destruct H2 as [x ?].
     exists x.

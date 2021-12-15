@@ -203,7 +203,7 @@ Definition post_arg_assertion : arg_assertion :=
        which need to be computed from process. 
        Not sure if it is a good design. 
        Or maybe we should change meta's direction to In? *)
-    (* (["meta"], upd_sval meta [(["index0"], ValBaseBit (to_loptbool 16 data))]); *)
+    (upd_sval meta [(["index0"], ValBaseBit (to_loptbool 16 data))]);
     upd_sval standard_metadata [(["egress_spec"], ValBaseBit (to_loptbool 9 1))]
   ].
 
@@ -237,20 +237,26 @@ Proof.
     sval_add (val_to_sval (Int v)) (val_to_sval (Int 1)) = val_to_sval (Int (v + 1))
     *)
 
-  eapply hoare_func_internal.
-  apply hoare_func_copy_in_intro.
+  eapply hoare_func_internal'.
   { (* length *)
-    auto.
+    reflexivity.
   }
   {
     (* NoDup *)
-    constructor.
+    reflexivity.
   }
   {
+    (* eval_write_vars *)
     (* compute the assertion. Need better simpl. *)
-    unfold pre_arg_assertion. simpl. auto.
+    reflexivity.
   }
-  apply hoare_block_nil. apply implies_refl_post.
+  3 : {
+    (* inv_func_copy_out *)
+    constructor.
+    { unfold post_arg_assertion. destruct (process rw data bst). reflexivity. }
+    { reflexivity. }
+  }
+  { apply hoare_block_nil. apply implies_refl_post. }
   eapply hoare_block_cons.
   {
     instantiate (1 := (
