@@ -129,8 +129,25 @@ Definition hoare_write (pre : assertion) (lv : Lval) (sv : Sval) (post : asserti
     exec_write ge st lv sv' st' ->
     post st'.
 
+Definition hoare_read_vars (pre : assertion) (ps : list path) (svs : list Sval) :=
+  forall st svs',
+    pre st ->
+    PathMap.gets ps (fst st) = map Some svs' ->
+    Forall2 sval_refine svs svs'.
+
 Definition hoare_read_vars' (pre : assertion) (ps : list path) (svs : list Sval) :=
   Forall2 (hoare_read_var pre) ps svs.
+
+Lemma hoare_read_vars_intro : forall pre ps svs,
+  hoare_read_vars' pre ps svs ->
+  hoare_read_vars pre ps svs.
+Proof.
+  induction 1.
+  - unfold hoare_read_vars; intros. destruct svs'; inv H1. constructor.
+  - unfold hoare_read_vars in *; intros.
+    destruct svs'; inv H3.
+    constructor; eauto.
+Qed.
 
 Definition hoare_write_vars (pre : assertion) (ps : list path) (svs : list Sval) (post : assertion) :=
   forall st svs' st',
@@ -405,19 +422,26 @@ Definition hoare_func_copy_in (pre : arg_assertion) (params : list (path * direc
     bind_parameters params args st st' ->
     post st'.
 
+Definition hoare_func_copy_out (pre : ret_assertion) (params : list (path * direction)) (post : arg_ret_assertion) : Prop :=
+  forall retv st,
+    pre retv st ->
+    forall args,
+      extract_parameters (filter_out params) st = Some args ->
+      post args retv st.
+
 Definition generate_post_condition (out_params : list path) (post : arg_ret_assertion) : ret_assertion :=
   fun retv st =>
     forall args,
       extract_parameters out_params st = Some args ->
       post args retv st.
 
-Lemma hoare_func_internal : forall p pre params init body targs mid1 mid2 post,
+Lemma hoare_func_internal : forall p pre params init body targs mid1 mid2 mid3 post,
   hoare_func_copy_in pre params mid1 ->
-  hoare_block p mid1 init (continue_post_assertion mid2) ->
-  hoare_block p mid2 body (return_post_assertion_1 (generate_post_condition (filter_out params) post)) ->
+  hoare_block p mid1 init (mk_post_assertion mid2 mid3) ->
+  hoare_block p mid2 body (return_post_assertion_1 mid3) ->
   hoare_func p pre (FInternal params init body) targs post.
 Proof.
-  unfold hoare_func_copy_in, hoare_block, hoare_func.
+  (* unfold hoare_func_copy_in, hoare_block, hoare_func.
   intros.
   inv H4.
   specialize (H0 _ _ _ H3 H8).
@@ -430,8 +454,9 @@ Proof.
   - destruct H2 as [? H2]; subst sig'.
     apply H2; auto.
   - destruct sig'; try solve [inv H2].
-    apply H2; auto.
-Qed.
+    apply H2; auto. *)
+(* Qed. *)
+Admitted.
 
 Lemma implies_refl : forall (pre : assertion),
   implies pre pre.

@@ -349,20 +349,46 @@ Proof.
   - intro. inversion H0; inversion H1; inversion H2; inversion H3.
 Qed.
 
-Fixpoint eval_read_var (a : mem_assertion) (p : path) : option Sval :=
+Definition eval_read_var (a : mem_assertion) (p : path) : option Sval :=
+  AList.get a p.
+
+Fixpoint eval_read_var' (a : mem_assertion) (p : path) : option Sval :=
   match a with
   | (p', v) :: tl =>
-      if path_eqb p p' then Some v else eval_read_var tl p
+      if path_eqb p p' then Some v else eval_read_var' tl p
   | [] => None
   end.
 
+Definition eval_read_vars (a : mem_assertion) (ps : list path) : list (option Sval) :=
+  map (eval_read_var a) ps.
+
 Axiom path_eqb_eq : forall (p1 p2 : path), path_eqb p1 p2 -> p1 = p2.
+
+Lemma eval_read_var'_spec : forall a p,
+  eval_read_var' a p = eval_read_var a p.
+Proof.
+  induction a; intros.
+  - auto.
+  - destruct a. simpl.
+    unfold eval_read_var.
+    destruct (path_eqb p l) eqn:?.
+    + symmetry. apply AList.get_eq_cons. auto.
+      apply path_eqb_eq. auto.
+    + replace (AList.get ((l, v) :: a0) p) with (AList.get a0 p). 2 : {
+        symmetry. apply AList.get_neq_cons.
+        intro. red in H0. subst.
+        rewrite path_eqb_refl in Heqb.
+        inv Heqb.
+      }
+      apply IHa.
+Qed.
 
 Lemma eval_read_var_sound : forall a_mem a_ext p sv,
   eval_read_var a_mem p = Some sv ->
   hoare_read_var (MEM a_mem (EXT a_ext)) p sv.
 Proof.
   unfold hoare_read_var; intros.
+  rewrite <- eval_read_var'_spec in H0.
   induction a_mem.
   - inv H0.
   - destruct a as [p' ?]. simpl in H0.
@@ -374,6 +400,27 @@ Proof.
       rewrite H2 in H1. tauto.
     + apply IHa_mem; auto.
       split; tauto.
+Qed.
+
+Lemma eval_read_vars_sound' : forall a_mem a_ext ps svs,
+  eval_read_vars a_mem ps = map Some svs ->
+  hoare_read_vars' (MEM a_mem (EXT a_ext)) ps svs.
+Proof.
+  induction ps; intros.
+  - destruct svs. 2 : inv H0.
+    constructor.
+  - destruct svs. 1 : inv H0.
+    inv H0.
+    constructor.
+    + apply eval_read_var_sound; auto.
+    + apply IHps. auto.
+Qed.
+
+Lemma eval_read_vars_sound : forall a_mem a_ext ps svs,
+  eval_read_vars a_mem ps = map Some svs ->
+  hoare_read_vars (MEM a_mem (EXT a_ext)) ps svs.
+Proof.
+  intros. apply hoare_read_vars_intro, eval_read_vars_sound'; auto.
 Qed.
 
 Fixpoint eval_expr (ge : genv) (p : path) (a : mem_assertion) (expr : Expression) : option Sval :=
