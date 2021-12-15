@@ -289,6 +289,13 @@ Lemma hoare_func_internal' : forall p pre_arg pre_mem pre_ext params init body t
   inv_func_copy_out (filter_out params) mid3 post ->
   hoare_func ge p (ARG pre_arg (MEM pre_mem (EXT pre_ext))) (FInternal params init body) targs post.
 Proof.
-Admitted.
+  intros.
+  eapply hoare_func_internal.
+  - eapply hoare_func_copy_in_intro; eauto.
+    apply is_no_dup_NoDup; auto.
+  - eauto.
+  - eauto.
+  - apply inv_func_copy_out_sound; auto.
+Qed.
 
 End ConcreteHoare.

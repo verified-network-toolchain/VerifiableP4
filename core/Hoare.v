@@ -439,24 +439,24 @@ Lemma hoare_func_internal : forall p pre params init body targs mid1 mid2 mid3 p
   hoare_func_copy_in pre params mid1 ->
   hoare_block p mid1 init (mk_post_assertion mid2 mid3) ->
   hoare_block p mid2 body (return_post_assertion_1 mid3) ->
+  hoare_func_copy_out mid3 params post ->
   hoare_func p pre (FInternal params init body) targs post.
 Proof.
-  (* unfold hoare_func_copy_in, hoare_block, hoare_func.
+  unfold hoare_func_copy_in, hoare_block, hoare_func_copy_out, hoare_func.
   intros.
-  inv H4.
-  specialize (H0 _ _ _ H3 H8).
-  specialize (H1 _ _ _ H0 H9).
-  destruct sig0; inv H10.
+  inv H5.
+  specialize (H0 _ _ _ H4 H9).
+  specialize (H1 _ _ _ H0 H10).
+  destruct sig0; inv H11.
   destruct H1. 2 : { inv H1. }
   destruct H1 as [_ H1].
-  specialize (H2 _ _ _ H1 H13).
+  specialize (H2 _ _ _ H1 H14).
   destruct H2.
   - destruct H2 as [? H2]; subst sig'.
-    apply H2; auto.
+    apply H3; auto.
   - destruct sig'; try solve [inv H2].
-    apply H2; auto. *)
-(* Qed. *)
-Admitted.
+    apply H3; auto.
+Qed.
 
 Lemma implies_refl : forall (pre : assertion),
   implies pre pre.
