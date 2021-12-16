@@ -318,6 +318,28 @@ Proof.
   apply H3.
 Qed.
 
+Lemma hoare_stmt_var_call : forall p pre tags typ' name e loc typ post mid sv,
+  is_call_expression e = true ->
+  hoare_call p pre e (fun v st => mid st /\ (forall sv', val_to_sval v sv' -> sval_refine sv sv')) ->
+  hoare_write mid (MkValueLvalue (ValLeftName (BareName name) loc) typ') sv (post_continue post) ->
+  hoare_stmt p pre (MkStatement tags (StatVariable typ' name (Some e) loc) typ) post.
+Proof.
+  unfold hoare_stmt. intros.
+  left.
+  inv H4. 1 : {
+    (* rule out the non-call case *)
+    pose proof (exec_expr_det_not_call _ _ _ _ _ ltac:(eassumption)).
+    congruence.
+  }
+  specialize (H1 _ _ _ ltac:(eassumption) ltac:(eassumption)).
+  destruct sig0; only 1, 3, 4 : solve[inv H1].
+  destruct H1. destruct H16.
+  split; only 1 : auto.
+  inv H5.
+  specialize (H2 _ _ _ H1 (H4 _ H8) ltac:(eassumption)).
+  auto.
+Qed.
+
 Lemma hoare_stmt_if_true : forall p pre tags cond tru ofls typ post,
   hoare_expr_det p pre cond (ValBaseBool (Some true)) ->
   hoare_stmt p pre tru post ->

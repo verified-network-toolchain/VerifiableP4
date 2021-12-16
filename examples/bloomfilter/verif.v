@@ -258,12 +258,20 @@ Proof.
   }
   { apply hoare_block_nil. apply implies_refl_post. }
   eapply hoare_block_cons.
-  {
-    instantiate (1 := (
+  { (* t'0 = hdr.myHeader.isValid() *)
+    eapply hoare_stmt_var_call.
+    { (* is_call_expression *)
+      reflexivity.
+    }
+    { (* hoare_call *)
+      admit. (* TODO *)
+    }
+    { admit. }
+    (* instantiate (1 := (
         MEM [(["hdr"], myHeader); (["meta"], meta); (["standard_metadata"], standard_metadata);
             (["t'0"], ValBaseBool (Some true))]
        (EXT pre_ext_assertion))).
-    admit.
+    admit. *)
   }
   (* eapply deep_hoare_func_internal.
   { (* copy_in *)

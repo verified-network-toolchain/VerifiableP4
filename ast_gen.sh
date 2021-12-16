@@ -19,6 +19,6 @@ else
     petr4 typecheck -json \
         $1 \
         -I "$include_dir" -exportp4 \
-        -export-file ${1%.p4}.v \
+        -export-file ${1%basic.p4}p4ast.v \
         -normalize -gen-loc
 fi
