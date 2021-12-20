@@ -52,7 +52,7 @@ Axiom dummy_fundef : (@fundef Info).
 Module Experiment1.
 
 Definition MyIngress_fundef := Eval compute in
-  match PathMap.get ["MyIngress"] (ge_func ge) with
+  match PathMap.get ["MyIngress"; "apply"] (ge_func ge) with
   | Some x => x
   | None => dummy_fundef
   end.
@@ -380,7 +380,7 @@ Section Experiment2.
 Definition this := ["main"; "ig"; "Query"].
 
 Definition Query_fundef := Eval compute in
-  match PathMap.get ["Query"] (ge_func ge) with
+  match PathMap.get ["Query"; "apply"] (ge_func ge) with
   | Some x => x
   | None => dummy_fundef
   end.
