@@ -510,12 +510,12 @@ Definition dummy_name := BareName (P4String.Build_t tags_t default "").
 Global Opaque dummy_name.
 
 (* Evaluate lvalue expressions. *)
-Fixpoint eval_lexpr (expr : Expression) : option Lval :=
+Fixpoint eval_lexpr (ge : genv) (p : path) (a : mem_assertion) (expr : Expression) : option Lval :=
   match expr with
   | MkExpression _ (ExpName _ loc) _ _ =>
       Some (MkValueLvalue (ValLeftName dummy_name loc) dummy_type)
   | MkExpression _ (ExpExpressionMember expr member) _ _ =>
-      match eval_lexpr expr with
+      match eval_lexpr ge p a expr with
       | Some lv =>
           if (String.eqb (P4String.str member) "next") then
             None
@@ -531,7 +531,7 @@ Axiom locator_eqb_refl : forall (loc : Locator),
 Hint Resolve locator_eqb_refl : core.
 
 Lemma eval_lexpr_sound : forall ge p a_mem a_ext expr lv,
-  eval_lexpr expr = Some lv ->
+  eval_lexpr ge p a_mem expr = Some lv ->
   hoare_lexpr ge p (MEM a_mem (EXT a_ext)) expr lv.
 Proof.
   unfold hoare_lexpr; intros.
@@ -539,13 +539,13 @@ Proof.
   induction H2; intros; try solve [inv H0].
   - inv H0. simpl; auto.
   - simpl in H3. rewrite H0 in H3.
-    destruct (eval_lexpr expr) as [lv_base |]. 2 : inv H3.
+    destruct (eval_lexpr ge this a_mem expr) as [lv_base |]. 2 : inv H3.
     specialize (IHexec_lexpr ltac:(auto) _ ltac:(eauto)).
     inv H3.
     simpl. rewrite String.eqb_refl.
     destruct IHexec_lexpr. split. 1 : auto.
     apply Reflect.andE; split; auto.
-  - simpl in H5. rewrite H0 in H5. destruct (eval_lexpr expr); inv H5.
+  - simpl in H5. rewrite H0 in H5. destruct (eval_lexpr ge this a_mem expr); inv H5.
   - inv H5.
   - inv H5.
 Qed.
@@ -856,5 +856,14 @@ Proof.
     + inv H1.
     + inv H1.
 Qed.
+
+Definition eval_args (ge : genv) (p : path) (a : mem_assertion) (args : list (option Expression))
+  (dir : list direction) : option (list (@argument tags_t)).
+Admitted.
+
+Lemma eval_args_sound : forall ge p a_mem a_ext (args : list (option Expression)) dirs argvals,
+  eval_args ge p a_mem args dirs = Some argvals ->
+  hoare_args ge p (MEM a_mem (EXT a_ext)) args dirs argvals.
+Admitted.
 
 End EvalExpr.

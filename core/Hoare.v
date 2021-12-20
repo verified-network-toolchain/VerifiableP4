@@ -428,31 +428,6 @@ Proof.
   - inv H11. hauto.
 Qed.
 
-(* | exec_call_builtin : forall this_path s tags tags' lhs fname tparams params typ' args typ dir argvals s' sig sig' sig'' lv,
-      let dirs := map get_param_dir params in
-      exec_lexpr read_one_bit this_path s lhs lv sig ->
-      exec_args read_one_bit this_path s args dirs argvals sig' ->
-      (if not_continue sig then s' = s /\ sig'' = sig
-       else if not_continue sig' then s' = s /\ sig'' = sig'
-       else exec_builtin read_one_bit this_path s lv fname (extract_invals argvals) s' sig'') ->
-      (* As far as we know, built-in functions do not have out/inout parameters. So there's not a caller
-        copy-out step. Also exec_args should never raise any signal other than continue. *)
-      exec_call read_one_bit this_path s (MkExpression tags (ExpFunctionCall
-          (MkExpression tags' (ExpExpressionMember lhs (P4String.Build_t tags_t inhabitant_tags_t fname)) (TypFunction (MkFunctionType tparams params FunBuiltin typ')) dir)
-          nil args) typ dir) s' sig'' *)
-
-(* Definition hoare_expr (p : path) (pre : assertion) (expr : Expression) (sv : Sval) :=
-  forall st sv',
-    pre st ->
-    exec_expr ge read_ndetbit p st expr sv' ->
-    sval_refine sv sv'.
-
-Definition hoare_lexpr (p : path) (pre : assertion) (expr : Expression) (lv : Lval) :=
-  forall st lv' sig,
-    pre st ->
-    exec_lexpr ge read_ndetbit p st expr lv' sig ->
-    sig = SContinue /\ lval_eqb lv' lv. *)
-
 Definition arg_refine (arg arg' : argument) :=
   match arg, arg' with
   | (osv, olv), (osv', olv') =>
@@ -496,7 +471,7 @@ Proof.
   - destruct dirs as [ | [] ?]; destruct x as []; destruct y as [].
 Admitted.
 
-Lemma hoare_call_builtin : forall p pre tags tags' expr fname tparams params typ' args typ dir post lv argvals,
+Lemma hoare_call_builtin : forall p pre tags tags' expr fname tparams params typ' dir' args typ dir post lv argvals,
   let dirs := map get_param_dir params in
   hoare_lexpr p pre expr lv ->
   hoare_args p pre args dirs argvals ->
@@ -504,7 +479,7 @@ Lemma hoare_call_builtin : forall p pre tags tags' expr fname tparams params typ
   hoare_call p pre
     (MkExpression tags (ExpFunctionCall
       (MkExpression tags' (ExpExpressionMember expr fname) (TypFunction (MkFunctionType tparams params FunBuiltin typ')) dir)
-      nil args) typ dir)
+      nil args) typ dir')
     post.
 Proof.
   unfold hoare_lexpr, hoare_args, hoare_builtin, hoare_call.
