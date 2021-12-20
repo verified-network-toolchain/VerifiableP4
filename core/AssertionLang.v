@@ -4,7 +4,7 @@ Require Import Poulet4.Syntax.
 Require Import Poulet4.Semantics.
 Require Import Poulet4.Value.
 Require Import ProD3.core.Coqlib.
-Require Import ProD3.core.Hoare.
+Require Import ProD3.core.SvalRefine.
 Require Import Coq.Numbers.BinNums.
 Open Scope type_scope.
 
@@ -131,7 +131,7 @@ Definition gen_sval (typ: P4Type) (upds: list (path * Sval)): option Sval :=
       None
   end.
 
-Definition extract (v : Val) (f : ident) : option Val :=
+(* Definition extract (v : Val) (f : ident) : option Val :=
   match v with
   | ValBaseStruct fields =>
       AList.get fields f
@@ -159,7 +159,7 @@ Definition extract_option_sval (ov : option Sval) (f : ident) : option Sval :=
   match ov with
   | Some v => extract_sval v f
   | None => None
-  end.
+  end. *)
 
 (* Definition mem_eval_read (m : mem) (lv : Lval) : option Val :=
   let (loc, fl) := lv in

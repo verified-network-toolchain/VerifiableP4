@@ -4,9 +4,9 @@ Require Import Poulet4.Semantics.
 Require Import ProD3.core.Coqlib.
 Require Import ProD3.core.Hoare.
 Require Import ProD3.core.AssertionLang.
-Require Import ProD3.core.AssertionLangSoundness.
+Require Import ProD3.core.AssertionNotations.
+Require Import ProD3.core.EvalExpr.
 Require Import Poulet4.V1Model.
-Require Import ProD3.core.V1ModelLang.
 Require Import Hammer.Tactics.Tactics.
 Require Import Hammer.Plugin.Hammer.
 Require Import Coq.ZArith.BinInt.
@@ -14,421 +14,289 @@ Require Import Coq.ZArith.BinInt.
 Section ConcreteHoare.
 
 Context {tags_t: Type} {tags_t_inhabitant : Inhabitant tags_t}.
-Notation Val := (@ValueBase tags_t).
-Notation SemLval := (@ValueLvalue tags_t).
-Notation Lval := (@AssertionLang.Lval tags_t).
+Notation Val := (@ValueBase bool).
+Notation Sval := (@ValueBase (option bool)).
+(* Notation ValSet := (@ValueSet tags_t). *)
+Notation Lval := (@ValueLvalue tags_t).
 
-Notation ident := (P4String.t tags_t).
+Notation ident := (String.string).
 Notation path := (list ident).
 Notation P4Int := (P4Int.t tags_t).
 Notation P4String := (P4String.t tags_t).
-Notation signal := (@signal tags_t).
-Notation arg_assertion := (@arg_assertion tags_t).
-Notation ret_assertion := (@ret_assertion tags_t).
-Notation mem_assertion := (@AssertionLang.assertion tags_t).
-Notation ext_assertion := (@ext_assertion tags_t).
+Notation Expression := (@Expression tags_t).
+Notation argument := (@argument tags_t).
 
-Notation state := (@state tags_t V1Model).
+Context `{@Target tags_t Expression}.
 
-Variable ge : (@genv tags_t).
-Variable inst_m : (@inst_mem tags_t).
+Variable ge : (@genv tags_t _).
 
-Section WithThisPath.
-
-Variable this : path.
-
-Definition assertion : Type := mem_assertion * ext_assertion.
-
-Record post_assertion := mk_post_assertion {
-  post_continue :> assertion;
-  post_return : ret_assertion * (mem_assertion * ext_assertion)
-}.
-
-Definition to_shallow_assertion_continue (a : assertion) :=
-  match a with (a_mem, a_ext) =>
-  (fun (st : state) => let (m, es) := st in
-    to_shallow_assertion this a_mem m /\
-    ext_to_shallow_assertion this a_ext es)
-  end.
-
-Definition to_shallow_assertion_return (a : ret_assertion * (mem_assertion * ext_assertion)) :=
-  match a with (a_ret, (a_mem, a_ext)) =>
-  (fun vret (st : state) => let (m, es) := st in
-    ret_to_shallow_assertion a_ret vret /\
-    to_shallow_assertion this a_mem m /\
-    ext_to_shallow_assertion this a_ext es)
-  end.
-
-Definition to_shallow_post_assertion (post : post_assertion) : Hoare.post_assertion :=
-  match post with mk_post_assertion a_continue a_return =>
-  Hoare.mk_post_assertion (to_shallow_assertion_continue a_continue) (to_shallow_assertion_return a_return)
-  end.
-
-Definition to_shallow_arg_assertion (a : arg_assertion * (mem_assertion * ext_assertion)) : Hoare.arg_assertion :=
-  match a with (a_arg, (a_mem, a_ext)) =>
-  (fun args (st : state) =>
-    arg_to_shallow_assertion a_arg args /\
-    to_shallow_assertion_continue (a_mem, a_ext) st)
-  end.
-
-Definition to_shallow_arg_ret_assertion (a : arg_assertion * ret_assertion * (mem_assertion * ext_assertion)) : Hoare.arg_ret_assertion :=
-  match a with (a_arg, a_ret, (a_mem, a_ext)) =>
-  (fun args vret (st : state) =>
-    arg_to_shallow_assertion a_arg args /\
-    ret_to_shallow_assertion a_ret vret /\
-    to_shallow_assertion_continue (a_mem, a_ext) st)
-  end.
-
-Definition to_shallow_ret_assertion (a : ret_assertion * (mem_assertion * ext_assertion)) : Hoare.ret_assertion :=
-  match a with (a_ret, (a_mem, a_ext)) =>
-  (fun vret (st : state) =>
-    ret_to_shallow_assertion a_ret vret /\
-    to_shallow_assertion_continue (a_mem, a_ext) st)
-  end.
-
-Definition implies (pre : assertion) (post : assertion) : bool :=
-  AssertionLang.implies (fst pre) (fst post) && ext_implies (snd pre) (snd post).
-
-Lemma implies_sound : forall (pre post : assertion),
-  implies pre post ->
-  Hoare.implies (to_shallow_assertion_continue pre) (to_shallow_assertion_continue post).
+Lemma hoare_stmt_assign' : forall p a_mem a_ext tags lhs rhs typ a_mem' ret_post lv sv,
+  is_call_expression rhs = false ->
+  is_no_dup (map fst a_mem) ->
+  eval_lexpr lhs = Some lv ->
+  eval_expr ge p a_mem rhs = Some sv ->
+  eval_write a_mem lv sv = Some a_mem' ->
+  hoare_stmt ge p (MEM a_mem (EXT a_ext)) (MkStatement tags (StatAssignment lhs rhs) typ)
+      (mk_post_assertion (MEM a_mem' (EXT a_ext)) ret_post).
 Proof.
-  intros * H_implies. destruct pre; destruct post.
-  apply Reflect.andE in H_implies. destruct H_implies.
-  intros [] []. split.
-  - eapply AssertionLangSoundness.implies_sound; eassumption.
-  - eapply ext_implies_sound; eassumption.
+  intros.
+  eapply hoare_stmt_assign.
+  - assumption.
+  - apply eval_lexpr_sound; eassumption.
+  - apply hoare_expr_det_intro, eval_expr_sound; eassumption.
+  - apply eval_write_sound; only 1 : apply is_no_dup_NoDup; eassumption.
 Qed.
 
-Lemma implies_refl : forall (a : assertion),
-  implies a a.
+(* Inductive Disjoint {A} : list A -> list A -> Prop :=
+  | Disjoint_nil : forall al', Disjoint  [] al'
+  | Disjoint_cons : forall a al al', ~In a al' -> Disjoint al al' -> Disjoint (a :: al) al'.
+
+Fixpoint is_disjoint (al bl : list path) : bool :=
+  match al with
+  | x :: al => ~~(is_in x bl) && is_disjoint al bl
+  | [] => true
+  end.
+
+Lemma is_disjoint_Disjoint : forall (al bl : list path),
+  is_disjoint al bl -> Disjoint al bl.
 Proof.
-  clear ge inst_m this. admit.
-Admitted.
-
-Definition hoare_expr (pre : assertion) (expr : Expression) (v : Val) : Prop :=
-  eval_expr ge (fst pre) expr = Some v.
-
-Lemma hoare_expr_sound : forall (pre : assertion) expr v,
-  wellformed (fst pre) ->
-  hoare_expr pre expr v ->
-  Hoare.hoare_expr ge this (to_shallow_assertion_continue pre) expr v.
-Proof.
-  unfold Hoare.hoare_expr; intros.
-  destruct pre; destruct st; destruct H1.
-  eapply eval_expr_sound; try eassumption; eassumption.
-Qed.
-
-Definition hoare_lexpr (pre : assertion) (expr : Expression) (lv : Lval) : Prop :=
-  eval_lexpr expr = Some lv.
-
-Lemma hoare_lexpr_sound : forall pre expr lv,
-  hoare_lexpr pre expr lv ->
-  Hoare.hoare_lexpr ge this (to_shallow_assertion_continue pre) expr (lval_to_semlval lv).
-Proof.
-  unfold Hoare.hoare_lexpr; intros.
-  eapply eval_lexpr_sound; eassumption.
-Qed.
-
-Definition hoare_write (pre : assertion) (lv : Lval) (v : Val) (post : assertion) : Prop :=
-  is_writable_lval lv (fst pre) /\ (eval_write (fst pre) lv v, snd pre) = post.
-
-Lemma exec_write_preserve_extern_state : forall st lv v st',
-  exec_write (H := V1Model) this st lv v st' ->
-  snd st = snd st'.
-Proof.
-  intros * H_exec_write.
-  induction H_exec_write; only 2-5 : assumption.
-  destruct st; destruct st'. inversion H. constructor.
-Qed.
-
-Lemma hoare_write_sound : forall pre lv v post,
-  wellformed (fst pre) ->
-  hoare_write pre lv v post ->
-  Hoare.hoare_write this (to_shallow_assertion_continue pre) (lval_to_semlval lv) v (to_shallow_assertion_continue post).
-Proof.
-  unfold Hoare.hoare_write; intros.
-  destruct pre; destruct post;
-    destruct st as [m es]; destruct st' as [m' es'];
-    destruct H0 as [? []]; destruct H1; simpl in *; subst.
-  split.
-  - eapply (eval_write_sound (H := V1Model)) with (st := (m, es)) (st' := (m', es')); eassumption.
-  - pose proof (exec_write_preserve_extern_state _ _ _ _ (ltac:(eassumption))).
-    scongruence.
-Qed.
-
-End WithThisPath.
-
-Inductive hoare_stmt : path -> assertion -> (@Statement tags_t) -> post_assertion -> Prop :=
-  | hoare_stmt_assignment : forall p pre tags lhs rhs typ (post : post_assertion) lv v,
-      hoare_lexpr pre lhs lv ->
-      hoare_expr pre rhs v ->
-      hoare_write pre lv v post ->
-      hoare_stmt p pre (MkStatement tags (StatAssignment lhs rhs) typ) post.
-
-Inductive hoare_block : path -> assertion -> (@Block tags_t) -> post_assertion -> Prop :=
-  | hoare_block_nil : forall p pre (post : post_assertion) tags,
-      implies pre post ->
-      hoare_block p pre (BlockEmpty tags) post
-  | hoare_block_cons : forall p pre stmt rest mid (post : post_assertion),
-      hoare_stmt p pre stmt mid ->
-      wellformed (fst (mid : assertion)) ->
-      hoare_block p mid rest post ->
-      hoare_block p pre (BlockCons stmt rest) post.
-
-Definition option_to_list {A} (ox : option A) : list A :=
-  match ox with
-  | Some x => [x]
-  | None => nil
-  end.
-
-Definition eval_copy_in (pre : arg_assertion * assertion) (params : list Locator) : assertion :=
-  match pre with (pre_arg, (pre_mem, pre_ext)) =>
-    let pre_mem_1 := fold_left clear_loc params pre_mem in
-    let post_mem := fold_left
-        (fun post_mem a_unit => post_mem ++ option_to_list (arg_assertion_unit_to_assertion_unit params a_unit))
-        pre_arg
-        pre_mem_1 in
-    (post_mem, pre_ext)
-  end.
-
-Inductive hoare_copy_in : arg_assertion * assertion -> list Locator -> assertion -> Prop :=
-  | hoare_copy_in_intro : forall pre params post,
-      eval_copy_in pre params = post ->
-      hoare_copy_in pre params post.
-
-Fixpoint eval_outargs (* (pre : assertion) *) (dirs : list direction) (args : list (option Expression))
-    : option (list (option Lval)) :=
-  match dirs, args with
-  | [], [] => Some nil
-  | dir :: dirs, arg :: args =>
-      let olvs := eval_outargs (* pre *) dirs args in
-      match dir with
-      | Out | InOut =>
-          match arg with
-          | Some expr =>
-              match eval_lexpr expr with
-              | Some lv => option_map (cons (Some lv)) olvs
-              | None => None
-              end
-          | None => option_map (cons None) olvs
-          end
-      | _ => olvs
-      end
-  | _, _ => None
-  end.
-
-Inductive hoare_outargs : assertion -> list direction -> list (option Expression) -> list (option Lval) -> Prop :=
-  | hoare_outargs_intro : forall pre dirs args lvs,
-      eval_outargs dirs args = Some lvs ->
-      hoare_outargs pre dirs args lvs.
-
-(*   | exec_expr_name: forall name loc v this st tag typ dir,
-                    loc_to_val this loc st = Some v ->
-                    exec_expr this st
-                    (MkExpression tag (ExpName name loc) typ dir)
-                    v *)
-
-Definition assertion_unit_to_arg_assertion_unit (a_unit : @assertion_unit tags_t) (cnt : Z) : arg_assertion_unit :=
-  match a_unit with
-  | AVal (_, fl) v => ArgVal (cnt, fl) v
-  | AType (_, fl) typ => ArgType (cnt, fl) typ
-  end.
-
-Fixpoint filter_locator_replace (a : mem_assertion) (loc : Locator) (cnt : Z) : arg_assertion :=
-  match a with
-  | a_unit :: a =>
-      let loc' :=
-        match a_unit with
-        | AVal (loc', _) _ => loc'
-        | AType (loc', _) _ => loc'
-        end in
-      if locator_equivb loc' loc then
-        assertion_unit_to_arg_assertion_unit a_unit cnt :: filter_locator_replace a loc cnt
-      else
-        filter_locator_replace a loc cnt
-  | [] => []
-  end.
-
-Fixpoint eval_inargs (pre : assertion) (dirs : list direction) (args : list (option Expression)) (cnt : Z) : option arg_assertion :=
-  match dirs, args with
-  | [], [] => Some nil
-  | dir :: dirs, arg :: args =>
-      match dir with
-      | Typed.In | InOut =>
-          match arg with
-          | Some expr =>
-              match expr with
-              | MkExpression _ (ExpName _ loc) _ _ =>
-                  option_map (app (filter_locator_replace (fst pre) loc cnt)) (eval_inargs pre dirs args (cnt + 1))
-              | _ =>
-                  match eval_expr ge (fst pre) expr with
-                  | Some v => option_map (cons (ArgVal (cnt, []) v)) (eval_inargs pre dirs args (cnt + 1))
-                  | None => None
-                  end
-              end
-          | None => None
-          end
-      | _ => eval_inargs pre dirs args cnt
-      end
-  | _, _ => None
-  end.
-
-Inductive hoare_inargs : assertion -> list direction -> list (option Expression) -> arg_assertion * assertion -> Prop :=
-  | hoare_inargs_intro : forall pre dirs args post,
-      eval_inargs pre dirs args 0 = Some post ->
-      hoare_inargs pre dirs args (post, pre).
-
-Fixpoint eval_copy_out (pre : assertion) (params : list Locator) (cnt : Z) : arg_assertion :=
-  match params with
-  | param :: params =>
-      app (filter_locator_replace (fst pre) param cnt) (eval_copy_out pre params (cnt + 1))
-  | [] => []
-  end.
-
-Inductive hoare_copy_out : assertion -> list Locator -> arg_assertion * assertion -> Prop :=
-  | hoare_copy_out_intro : forall pre params post_arg,
-      eval_copy_out pre params 0 = post_arg ->
-      hoare_copy_out pre params (post_arg, pre).
-
-(* Definition eval_copy_in (pre : arg_assertion * assertion) (params : list Locator) : assertion :=
-  match pre with (pre_arg, (pre_mem, pre_ext)) =>
-    let pre_mem_1 := fold_left clear_loc params pre_mem in
-    let post_mem := fold_left
-        (fun post_mem a_unit => post_mem ++ option_to_list (arg_assertion_unit_to_assertion_unit params a_unit))
-        pre_arg
-        pre_mem_1 in
-    (post_mem, pre_ext)
-  end. *)
-
-(* Inductive hoare_copy_in : arg_assertion * assertion -> list Locator -> assertion -> Prop :=
-  | hoare_copy_in_intro : forall pre params post,
-      eval_copy_in pre params = post ->
-      hoare_copy_in pre params post. *)
-
-Fixpoint olvals_to_locs (outlvs : list (option Lval)) : option (list Locator) :=
-  match outlvs with
-  | lv :: outlvs =>
-      match lv with
-      | Some (loc, []) => option_map (cons loc) (olvals_to_locs outlvs)
-      | _ => None
-      end
-  | [] => Some []
-  end.
-
-Definition eval_write_copy_out (pre : arg_assertion * ret_assertion * assertion) (outlvs : list (option Lval)) : option (ret_assertion * assertion) :=
-  match olvals_to_locs outlvs with
-  | Some locs =>
-      match pre with (pre_arg, pre_ret, (pre_mem, pre_ext)) =>
-        let pre_mem_1 := fold_left clear_loc locs pre_mem in
-        let post_mem := fold_left
-            (fun post_mem a_unit => post_mem ++ option_to_list (arg_assertion_unit_to_assertion_unit locs a_unit))
-            pre_arg
-            pre_mem_1 in
-        Some (pre_ret, (post_mem, pre_ext))
-      end
-  | None => None
-  end.
-
-Inductive hoare_write_copy_out : arg_assertion * ret_assertion * assertion -> list (option Lval) -> ret_assertion * assertion -> Prop :=
-  | hoare_write_copy_out_intro : forall pre outlvs post,
-      eval_write_copy_out pre outlvs = Some post ->
-      hoare_write_copy_out pre outlvs post.
-
-Definition ret_assertion_to_assertion (a : ret_assertion * assertion) : assertion :=
-  snd a.
-
-Lemma hoare_stmt_sound : forall p pre stmt post,
-  wellformed (fst pre) ->
-  hoare_stmt p pre stmt post ->
-  Hoare.deep_hoare_stmt ge inst_m p (to_shallow_assertion_continue p pre) stmt (to_shallow_post_assertion p post).
-Proof.
-  intros * H_wellformed H_hoare_stmt.
-  apply deep_hoare_stmt_fallback.
-  induction H_hoare_stmt.
-  - hnf. intros. pinv @exec_stmt.
-    + assert (is_valid_field (fst pre) lv). {
-        destruct H1. hauto unfold: is_true, is_writable_lval, andb, fst, assertion.
-      }
-      repeat lazymatch goal with
-      | H : hoare_lexpr _ _ _ |- _ => apply hoare_lexpr_sound with (this := p) in H
-      | H : hoare_expr _ _ _ |- _ => apply hoare_expr_sound with (this := p) in H; only 2 : assumption
-      | H : hoare_write _ _ _ _ |- _ => eapply hoare_write_sound with (this := p) in H; only 2 : assumption
-      end.
-      specialize (H _ _ _ H2 H14) as [? H]; subst sig0.
-      specialize (H0 _ _ H2 H13); subst v0.
-      eapply exec_write_congruent in H15.
-        3 : eassumption.
-        2 : {
-          destruct st; destruct pre; destruct H2.
-          eapply mem_is_valid_field_sound, is_valid_field_sound; eassumption.
-        }
-      specialize (H1 _ _ H2 H15). simpl. destruct post; sfirstorder.
-    + pinv @exec_call; pinv hoare_expr.
-    Unshelve. all : exact V1Model. (* try remove this *)
-Qed.
-
-Lemma hoare_block_sound : forall p pre block post,
-  wellformed (fst pre) ->
-  hoare_block p pre block post ->
-  Hoare.deep_hoare_block ge inst_m p (to_shallow_assertion_continue p pre) block (to_shallow_post_assertion p post).
-Proof.
-  intros * H_wellformed H_hoare_block.
-  induction H_hoare_block.
+  induction al; intros.
   - constructor.
-    destruct post. intros st ?; eapply implies_sound; eassumption.
-  - apply hoare_stmt_sound in H; only 2 : assumption.
-    destruct mid; econstructor; eauto.
+  - simpl in H0. rewrite Reflect.andE in H0. destruct H0.
+    constructor.
+    + apply not_is_in_not_In; auto.
+    + auto.
+Qed. *)
+
+Definition ret_implies (P Q : Hoare.ret_assertion) :=
+  forall retv st, P retv st -> Q retv st.
+
+Definition ret_exists {A} (a : A -> Hoare.ret_assertion) : Hoare.ret_assertion :=
+  fun retv st => ex (fun x => a x retv st).
+
+Definition arg_ret_exists {A} (a : A -> Hoare.arg_ret_assertion) : Hoare.arg_ret_assertion :=
+  fun args retv st => ex (fun x => a x args retv st).
+
+Declare Scope post_cond.
+Delimit Scope post_cond with post_cond.
+Notation "'EX' x .. y , P " :=
+  (arg_ret_exists (fun x => .. (arg_ret_exists (fun y => P%post_cond)) ..)) (at level 65, x binder, y binder, right associativity) : post_cond.
+
+Inductive inv_func_copy_out (out_params : list path) : Hoare.ret_assertion -> Hoare.arg_ret_assertion -> Prop :=
+  | inv_func_copy_out_base : forall a_arg a_ret a_mem a_ext,
+      length out_params = length a_arg ->
+      is_no_dup (out_params ++ (map fst a_mem)) ->
+      inv_func_copy_out out_params
+        (RET a_ret (MEM (eval_write_vars a_mem out_params a_arg) (EXT a_ext)))
+        (ARG_RET a_arg a_ret (MEM a_mem (EXT a_ext)))
+  | inv_func_copy_out_ex : forall {A} (P : A -> Hoare.ret_assertion) Q,
+      (forall (x : A), inv_func_copy_out out_params (P x) (Q x)) ->
+      inv_func_copy_out out_params (ret_exists P) (arg_ret_exists Q).
+
+Axiom AList_get_set_some_neq : forall (a_mem : mem_assertion) (p p' : path) sv,
+  p <> p' ->
+  AList.get (AList.set_some a_mem p' sv) p = AList.get a_mem p.
+
+Lemma eval_read_var_eval_write_vars_disjoint : forall p ps vs a_mem,
+  ~In p ps ->
+  eval_read_var (eval_write_vars a_mem ps vs) p = eval_read_var a_mem p.
+Proof.
+  induction ps; intros.
+  - auto.
+  - destruct vs. { auto. }
+    change (eval_write_vars a_mem (a :: ps) (v :: vs)) with
+      (eval_write_vars (eval_write_var a_mem a v) ps vs).
+    rewrite IHps. 2 : { intro. apply H0. right. auto. }
+    apply AList_get_set_some_neq.
+    intro. subst. apply H0. left. auto.
 Qed.
 
-Lemma hoare_copy_in_sound : forall p pre params post,
-  hoare_copy_in pre params post ->
-  Hoare.deep_hoare_copy_in p (to_shallow_arg_assertion p pre) params (to_shallow_assertion_continue p post).
+Lemma eval_write_vars_cons : forall p ps v vs a_mem,
+  eval_write_vars a_mem (p :: ps) (v :: vs) = eval_write_vars (eval_write_var a_mem p v) ps vs.
 Proof.
-  clear ge inst_m.
-  admit.
-Admitted.
+  reflexivity.
+Qed.
 
-Lemma hoare_outargs_sound : forall p pre dirs args lvs,
-  hoare_outargs pre dirs args lvs ->
-  Hoare.deep_hoare_outargs (H := V1Model) ge p (to_shallow_assertion_continue p pre) dirs args
-      (map (option_map lval_to_semlval) lvs).
+Lemma eval_read_var_eval_write_var : forall a_mem p v,
+  eval_read_var (eval_write_var a_mem p v) p = Some v.
 Proof.
-  clear inst_m.
-  admit.
-Admitted.
+  intros. eapply AList.set_some_get.
+Qed.
 
-Lemma hoare_inargs_sound : forall p pre dirs args post,
-  hoare_inargs pre dirs args post ->
-  Hoare.deep_hoare_inargs (H := V1Model) ge p (to_shallow_assertion_continue p pre) dirs args
-      (to_shallow_arg_assertion p post).
+Lemma eval_read_vars_eval_write_vars : forall out_params a_arg a_mem,
+  length out_params = length a_arg ->
+  NoDup out_params ->
+  eval_read_vars (eval_write_vars a_mem out_params a_arg) out_params = map Some a_arg.
 Proof.
-  clear inst_m.
-  admit.
-Admitted.
+  induction out_params; intros.
+  - destruct a_arg; only 2 : inv H0.
+    auto.
+  - destruct a_arg; only 1 : inv H0.
+    simpl. f_equal.
+    + rewrite eval_write_vars_cons.
+      rewrite eval_read_var_eval_write_vars_disjoint.
+      * apply eval_read_var_eval_write_var.
+      * inv H1. auto.
+    + change (eval_write_vars a_mem (a :: out_params) (v :: a_arg)) with
+        (eval_write_vars (eval_write_var a_mem a v) out_params a_arg).
+      apply IHout_params.
+      * auto.
+      * inv H1. auto.
+Qed.
 
-Lemma hoare_copy_out_sound : forall p pre params post,
-  hoare_copy_out pre params post ->
-  Hoare.implies (to_shallow_assertion_continue p pre) (return_post_assertion_1 (generate_post_condition p params (to_shallow_arg_ret_assertion p (fst post, [], snd post)))).
+Lemma lift_option_inv : forall {A} (xl : list (option A)) (al : list A),
+  lift_option xl = Some al ->
+  xl = map Some al.
 Proof.
-  clear ge inst_m.
-  admit.
-Admitted.
+  induction xl; intros.
+  - inv H0. auto.
+  - destruct a.
+    + simpl in H0. destruct (lift_option xl).
+      * inv H0. simpl; f_equal; auto.
+      * inv H0.
+    + inv H0.
+Qed.
 
-Lemma hoare_write_copy_out_sound : forall p pre outlvs post,
-  hoare_write_copy_out pre outlvs post ->
-  deep_hoare_write_copy_out p (to_shallow_arg_ret_assertion p pre) (map (option_map lval_to_semlval) outlvs) (to_shallow_ret_assertion p post) .
+Lemma eval_write_var_disjoint : forall a_mem p sv,
+  ~In p (map fst a_mem) ->
+  eval_write_var a_mem p sv = a_mem ++ [(p, sv)].
 Proof.
-  clear ge inst_m.
-  admit.
-Admitted.
+  induction a_mem; intros.
+  - auto.
+  - simpl. destruct a as [p' sv'].
+    destruct (EquivDec.list_eqdec EquivUtil.StringEqDec p p') as [H_eqb | H_eqb].
+    + cbv in H_eqb. subst. exfalso. apply H0. constructor. auto.
+    + rewrite IHa_mem; auto.
+      intro. apply H0. right. apply H1.
+Qed.
 
-Lemma ret_assertion_to_assertion_sound : forall p pre post,
-  ret_assertion_to_assertion pre = post ->
-  Hoare.ret_assertion_to_assertion (to_shallow_ret_assertion p pre) = (to_shallow_assertion_continue p post).
+Lemma eval_write_vars_disjoint' : forall a_mem pvs,
+  NoDup (map fst pvs ++ map fst a_mem) ->
+  fold_left (fun a '(p, sv) => eval_write_var a p sv) pvs a_mem = a_mem ++ pvs.
 Proof.
-  clear ge inst_m.
-  admit.
-Admitted.
+  intros a_mem pvs; revert a_mem.
+  induction pvs; intros.
+  - simpl. rewrite app_nil_r. auto.
+  - simpl.
+    destruct a as [p sv].
+    rewrite eval_write_var_disjoint. 2 : {
+      inv H0.
+      intro. apply H3. apply in_app_iff. auto.
+    }
+    rewrite IHpvs.
+    + rewrite <- app_assoc. auto.
+    + (* some stupid NoDup proof *)
+      eapply Permutation.Permutation_NoDup. 2 : { apply H0. }
+      apply Permutation.Permutation_trans with ((map fst pvs ++ [p]) ++ map fst a_mem).
+      { apply Permutation.Permutation_app.
+        - apply Permutation.Permutation_cons_append.
+        - apply Permutation.Permutation_refl.
+      }
+      rewrite <- app_assoc.
+      apply Permutation.Permutation_app.
+      * apply Permutation.Permutation_refl.
+      * rewrite map_app. apply Permutation.Permutation_cons_append.
+Qed.
+
+Lemma eval_write_vars_disjoint : forall a_mem ps svs,
+  length ps = length svs ->
+  NoDup (ps ++ (map fst a_mem)) ->
+  eval_write_vars a_mem ps svs = a_mem ++ (combine ps svs).
+Proof.
+  unfold eval_write_vars.
+  intros. apply eval_write_vars_disjoint'.
+  rewrite Utils.map_fst_combine; auto.
+Qed.
+
+Lemma eval_write_vars_implies' : forall a_mem out_params a_arg,
+  length out_params = length a_arg ->
+  NoDup (out_params ++ (map fst a_mem)) ->
+  forall m,
+    mem_denote (eval_write_vars a_mem out_params a_arg) m ->
+    mem_denote a_mem m.
+Proof.
+  intros. rewrite eval_write_vars_disjoint in H2; auto.
+  clear H0 H1.
+  induction a_mem; intros.
+  - constructor.
+  - constructor.
+    + apply H2.
+    + apply IHa_mem, H2.
+Qed.
+
+Lemma eval_write_vars_implies : forall a_mem out_params a_arg a_ext,
+  length out_params = length a_arg ->
+  NoDup (out_params ++ (map fst a_mem)) ->
+  implies
+    (MEM (eval_write_vars a_mem out_params a_arg) (EXT a_ext))
+    (MEM a_mem (EXT a_ext)).
+Proof.
+  unfold implies; intros.
+  destruct st; destruct H2; split.
+  - eapply eval_write_vars_implies'; eauto.
+  - auto.
+Qed.
+
+Lemma NoDup_app_remove_2 : forall {A} (l l' : list A),
+  NoDup (l ++ l') ->
+  NoDup l.
+Proof.
+  intros. induction l.
+  - constructor.
+  - inv H0.
+    constructor.
+    + rewrite in_app_iff in H3. auto.
+    + auto.
+Qed.
+
+Lemma inv_func_copy_out_sound_part1 : forall params a_arg a_ret a_mem a_ext,
+  length (filter_out params) = length a_arg ->
+  NoDup ((filter_out params) ++ (map fst a_mem)) ->
+  hoare_func_copy_out
+    (RET a_ret (MEM (eval_write_vars a_mem (filter_out params) a_arg) (EXT a_ext))) params
+    (ARG_RET a_arg a_ret (MEM a_mem (EXT a_ext))).
+Proof.
+  unfold hoare_func_copy_out; intros.
+  epose proof (eval_read_vars_eval_write_vars (filter_out params) _ _ H0 (NoDup_app_remove_2 _ _ H1)).
+  unfold extract_parameters in H3.
+  apply lift_option_inv in H3.
+  pose proof (eval_read_vars_sound _ _ _ _ H4 _ _ (proj2 H2) H3).
+  split. { auto. }
+  split. { apply H2. }
+  eapply eval_write_vars_implies; eauto.
+  apply H2.
+Qed.
+
+Lemma inv_func_copy_out_sound : forall params P Q,
+  inv_func_copy_out (filter_out params) P Q ->
+  hoare_func_copy_out P params Q.
+Proof.
+  intros.
+  induction H0.
+  - apply inv_func_copy_out_sound_part1; auto.
+    apply is_no_dup_NoDup; auto.
+  - unfold hoare_func_copy_out. intros.
+    destruct H2 as [x ?].
+    exists x.
+    apply H1; eauto.
+Qed.
+
+Lemma hoare_func_internal' : forall p pre_arg pre_mem pre_ext params init body targs mid1_mem mid2 mid3 post,
+  length (filter_in params) = length pre_arg ->
+  is_no_dup (map fst pre_mem) ->
+  eval_write_vars pre_mem (filter_in params) pre_arg = mid1_mem ->
+  hoare_block ge p (MEM mid1_mem (EXT pre_ext)) init (mk_post_assertion mid2 mid3) ->
+  hoare_block ge p mid2 body (return_post_assertion_1 mid3) ->
+  inv_func_copy_out (filter_out params) mid3 post ->
+  hoare_func ge p (ARG pre_arg (MEM pre_mem (EXT pre_ext))) (FInternal params init body) targs post.
+Proof.
+  intros.
+  eapply hoare_func_internal.
+  - eapply hoare_func_copy_in_intro; eauto.
+    apply is_no_dup_NoDup; auto.
+  - eauto.
+  - eauto.
+  - apply inv_func_copy_out_sound; auto.
+Qed.
 
 End ConcreteHoare.

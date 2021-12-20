@@ -10,9 +10,9 @@ Require Import Hammer.Plugin.Hammer.
 Section AssertionLangSoundness.
 
 Context {tags_t: Type} {tags_t_inhabitant : Inhabitant tags_t}.
-Notation Val := (@ValueBase tags_t).
-Notation Lval := (@Lval tags_t).
-Notation SemLval := (@ValueLvalue tags_t).
+Notation Val := (@ValueBase tags_t bool).
+Notation Sval := (@ValueBase tags_t (option bool)).
+Notation Lval := (@ValueLvalue tags_t).
 
 Notation ident := (P4String.t tags_t).
 Notation path := (list ident).
@@ -32,12 +32,12 @@ Notation alist_get l s := (AList.get l (P4String.Build_t _ default s)).
 
 Variable this : path.
 
-Notation mem_eval_read := (mem_eval_read this).
+(* Notation mem_eval_read := (mem_eval_read this).
 Notation mem_is_valid_field := (mem_is_valid_field this).
 Notation satisfies_unit := (satisfies_unit this).
-Notation to_shallow_assertion := (to_shallow_assertion this).
+Notation to_shallow_assertion := (to_shallow_assertion this). *)
 
-Lemma mem_eval_read_snoc m loc fl f :
+(* Lemma mem_eval_read_snoc m loc fl f :
   mem_eval_read m (loc, fl ++ [f]) =
     extract_option (mem_eval_read m (loc, fl)) f .
 Proof.
@@ -67,9 +67,9 @@ Fixpoint semlval_to_lval (slv : SemLval) : option Lval :=
   | _ => None
   end.
 
-Definition dummy_type : P4Type := TypBool.
+Definition dummy_type : P4Type := TypBool. *)
 
-Definition lval_to_semlval (lv : Lval) : SemLval :=
+(* Definition lval_to_semlval (lv : Lval) : SemLval :=
   let (loc, fl) := lv in
   let acc := MkValueLvalue (ValLeftName (BareName (P4String.Build_t tags_t default "")) loc) dummy_type in
   let step acc f :=
@@ -135,9 +135,9 @@ Proof.
   - hauto b: on.
   - hauto b: on.
   - hauto b: on.
-Qed.
+Qed. *)
 
-Axiom loc_to_val_update_val_by_loc_same : forall st loc1 loc2 v,
+(* Axiom loc_to_val_update_val_by_loc_same : forall st loc1 loc2 v,
   locator_equivb loc1 loc2 ->
   loc_to_val this loc1 (Semantics.update_val_by_loc this st loc2 v) = Some v.
 
@@ -187,9 +187,9 @@ Axiom path_equivb_eq : forall (p1 p2 : path), path_equivb p1 p2 -> p1 = p2.
 
 Axiom locator_equivb_eq : forall (loc1 loc2 : Locator), locator_equivb loc1 loc2 -> loc1 = loc2.
 
-Axiom lval_equivb_eq : forall (lv1 lv2 : Lval), lval_equivb lv1 lv2 -> lv1 = lv2.
+Axiom lval_equivb_eq : forall (lv1 lv2 : Lval), lval_equivb lv1 lv2 -> lv1 = lv2. *)
 
-Lemma implies_unit_sound m a a_unit :
+(* Lemma implies_unit_sound m a a_unit :
   to_shallow_assertion a m ->
   implies_unit a a_unit ->
   satisfies_unit m a_unit.
@@ -209,9 +209,9 @@ Proof.
     + apply IHtl.
       * sfirstorder.
       * hauto.
-Qed.
+Qed. *)
 
-Lemma implies_sound m pre post :
+(* Lemma implies_sound m pre post :
   to_shallow_assertion pre m ->
   implies pre post ->
   to_shallow_assertion post m.
@@ -227,9 +227,9 @@ Qed.
 
 Lemma implies_refl (a : assertion) :
   implies a a.
-Admitted.
+Admitted. *)
 
-Fixpoint eval_write (a : assertion) (lv : Lval) (v : Val) : assertion :=
+(* Fixpoint eval_write (a : assertion) (lv : Lval) (v : Val) : assertion :=
   match a with
   | hd :: tl =>
       match hd with
@@ -242,9 +242,12 @@ Fixpoint eval_write (a : assertion) (lv : Lval) (v : Val) : assertion :=
           hd :: eval_write tl lv v
       end
   | [] => [AVal lv v]
-  end.
+  end. *)
 
-Lemma exec_write_1 st lv v st' :
+Definition eval_write  (a : assertion) (lv : Lval) (v : Val) : assertion.
+Admitted.
+
+(* Lemma exec_write_1 st lv v st' :
   exec_write this st (lval_to_semlval lv) v st' ->
   exists v',
     st' = update_val_by_loc this st (fst lv) v'.
@@ -258,9 +261,9 @@ Proof.
     inv H_exec_write.
     destruct (IHtl _ ltac:(eassumption)).
     sfirstorder.
-Qed.
+Qed. *)
 
-Axiom alist_get_equiv : forall {V} (l : P4String.AList tags_t V) (s1 s2 : P4String),
+(* Axiom alist_get_equiv : forall {V} (l : P4String.AList tags_t V) (s1 s2 : P4String),
   P4String.equivb s1 s2 ->
   AList.get l s1 = AList.get l s2.
 
@@ -280,9 +283,9 @@ Axiom P4String_equivb_same : forall (tags1 tags2 : tags_t) s1 s2,
 
 Axiom P4String_equivb_diff : forall (tags1 tags2 : tags_t) s1 s2,
   s1 <> s2 ->
-  ~~(P4String.equivb (P4String.Build_t _ tags1 s1) (P4String.Build_t _ tags2 s2)).
+  ~~(P4String.equivb (P4String.Build_t _ tags1 s1) (P4String.Build_t _ tags2 s2)). *)
 
-Hint Resolve alist_get_set_same alist_get_set_diff P4String_equivb_same P4String_equivb_diff : core.
+(* Hint Resolve alist_get_set_same alist_get_set_diff P4String_equivb_same P4String_equivb_diff : core.
 
 Lemma satisfies_unit_helper_header st loc fl f fields v :
   satisfies_unit st (AVal (loc, fl) (ValBaseHeader fields true)) ->
@@ -338,23 +341,23 @@ Proof.
       eapply alist_get_set_same; eauto.
     + rewrite H_mem_eval_read in H_mem_is_valid_field.
       hauto b: on.
-Qed.
+Qed. *)
 
 (* Things will be easier if we use the reversed order in exec_write. *)
 
-Lemma satisfies_unit_child m loc fl f fields v :
+(* Lemma satisfies_unit_child m loc fl f fields v :
   satisfies_unit m (AVal (loc, fl) fields) ->
   extract_option (Some fields) f = Some v ->
   satisfies_unit m (AVal (loc, fl ++ [f]) v).
 Proof.
   simpl. rewrite fold_left_app. hauto lq: on.
-Qed.
+Qed. *)
 
 (* Proving the following lemma should be enough. For exec_write_no_overlapping_unit,
   it is easy to remove a last field from either lv1 or lv2, so we can reach the part that
   only one field is different. *)
 
-Lemma exec_write_2 st loc fl f1 f2 v1 v2 st' :
+(* Lemma exec_write_2 st loc fl f1 f2 v1 v2 st' :
   f1 <> f2 ->
   satisfies_unit (fst st) (AVal (loc, fl ++ [f1]) v1) ->
   exec_write this st (lval_to_semlval (loc, fl ++ [f2])) v2 st' ->
@@ -386,9 +389,9 @@ Proof.
       apply (alist_get_set_diff _ _ _ _ _ H0).
       srun eauto use: P4String_equivb_diff unfold: default.
     + inv H_pre.
-Qed.
+Qed. *)
 
-Lemma exec_write_3 st loc fl1 fl2 v st' :
+(* Lemma exec_write_3 st loc fl1 fl2 v st' :
   exec_write this st (lval_to_semlval (loc, fl1 ++ fl2)) v st' ->
   exists v',
     exec_write this st (lval_to_semlval (loc, fl1)) v' st'.
@@ -400,9 +403,9 @@ Proof.
   - simpl rev in H_exec_write. rewrite app_assoc in H_exec_write.
     unfold lval_to_semlval in *. rewrite fold_left_app in H_exec_write.
     inv H_exec_write; eauto.
-Qed.
+Qed. *)
 
-Lemma exec_write_no_overlapping_unit_case_1 st loc fl f1 f2 v1 v2 st' :
+(* Lemma exec_write_no_overlapping_unit_case_1 st loc fl f1 f2 v1 v2 st' :
   let lv1 := (loc, fl ++ [f1]) in
   let lv2 := (loc, fl ++ [f2]) in
   lval_no_overlapping lv1 lv2 ->
@@ -420,9 +423,9 @@ Proof.
   induction fl.
   - simpl in H_field_list_no_overlapping. hauto use: eqb_refl, eqb_neq, Bool.orb_false_l unfold: negb, Field, is_true.
   - apply IHfl. simpl in H_field_list_no_overlapping. hauto use: eqb_eq unfold: negb, orb, Field, is_true.
-Qed.
+Qed. *)
 
-Lemma satisfies_unit_child_iff m loc fl f v :
+(* Lemma satisfies_unit_child_iff m loc fl f v :
   satisfies_unit m (AVal (loc, fl ++ [f]) v) <->
   exists v',
     satisfies_unit m (AVal (loc, fl) v') /\ extract v' f = Some v.
@@ -432,9 +435,9 @@ Proof.
     destruct (fold_left extract_option fl (PathMap.get (loc_to_path this loc) m)) as [v' | ]; only 2 : sfirstorder.
     exists v'; sfirstorder.
   - simpl. rewrite fold_left_app. hauto lq: on.
-Qed.
+Qed. *)
 
-Lemma exec_write_no_overlapping_unit_case_2 st loc fl1 f1 fl2 f2 v1 v2 st' :
+(* Lemma exec_write_no_overlapping_unit_case_2 st loc fl1 f1 fl2 f2 v1 v2 st' :
   let lv1 := (loc, fl1 ++ [f1] ++ fl2) in
   let lv2 := (loc, fl1 ++ [f2]) in
   f1 <> f2 ->
@@ -454,9 +457,9 @@ Proof.
     destruct H_pre as [v1' H_pre]; exists v1'.
     split; only 2 : sfirstorder.
     apply IHtl; sfirstorder.
-Qed.
+Qed. *)
 
-Lemma field_list_no_overlapping_spec fl1 fl2 :
+(* Lemma field_list_no_overlapping_spec fl1 fl2 :
   field_list_no_overlapping fl1 fl2 ->
   exists fl3 f1 f2 fl4 fl5,
     f1 <> f2 /\
@@ -474,9 +477,9 @@ Proof.
     + destruct (IHtl1 tl2 ltac:(sfirstorder)) as (fl3 & f1 & f2 & fl4 & fl5 & ?).
       assert (hd1 = hd2) by (hauto use: eqb_eq, Bool.eq_true_negb_classical, eqb_neq unfold: Field); subst hd2.
       exists (hd1 :: fl3). sauto.
-Qed.
+Qed. *)
 
-Lemma exec_write_no_overlapping_unit st lv1 v1 lv2 v2 st' :
+(* Lemma exec_write_no_overlapping_unit st lv1 v1 lv2 v2 st' :
   lval_no_overlapping lv1 lv2 ->
   satisfies_unit (fst st) (AVal lv1 v1) ->
   exec_write this st (lval_to_semlval lv2) v2 st' ->
@@ -503,9 +506,9 @@ Proof.
     eapply exec_write_3 in H_exec_write.
     clear v2; destruct H_exec_write as [v2 H_exec_write].
     eapply exec_write_no_overlapping_unit_case_2; eassumption.
-Qed.
+Qed. *)
 
-Lemma exec_write_no_overlapping st a lv v st' :
+(* Lemma exec_write_no_overlapping st a lv v st' :
   no_overlapping lv a ->
   to_shallow_assertion a (fst st) ->
   exec_write this st (lval_to_semlval lv) v st' ->
@@ -525,15 +528,15 @@ Proof.
     + apply IHtl.
       * destruct hd; hauto b: on.
       * sfirstorder.
-Qed.
+Qed. *)
 
-Lemma exec_write_same st lv v st' :
+(* Lemma exec_write_same st lv v st' :
   mem_is_valid_field (fst st) lv ->
   exec_write this st (lval_to_semlval lv) v st' ->
   satisfies_unit (fst st') (AVal lv v).
 Proof.
   apply exec_write_satisfies_unit.
-Qed.
+Qed. *)
 
 Fixpoint eval_read (a : assertion) (lv : Lval) : option Val :=
   match a with

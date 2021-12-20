@@ -13,29 +13,32 @@ Require Import Poulet4.SimplExpr.
 Require Import Poulet4.V1Model.
 Require Import Poulet4.P4Arith.
 Require Import ProD3.core.Hoare.
+Require Import ProD3.core.ConcreteHoare.
+Require Import ProD3.core.EvalExpr.
 (* Require Import ProD3.core.HoareSoundness. *)
 Require Import ProD3.core.AssertionLang.
+Require Import ProD3.core.AssertionNotations.
 (* Require Import ProD3.core.V1ModelLang. *)
-(* Require Import ProD3.core.ConcreteHoare. *)
 
 Instance target : @Target Info (@Expression Info) := V1Model.
 
 Opaque (*IdentMap.empty IdentMap.set*) PathMap.empty PathMap.set.
 
 (* Global environment *)
-Definition ge := Eval compute in gen_ge prog.
+Definition ge : genv := Eval compute in gen_ge prog.
 
 Definition instantiation := Eval compute in instantiate_prog ge prog.
 
 (* inst_m *)
-Definition inst_m := Eval compute in fst instantiation.
+(* Definition inst_m := Eval compute in fst instantiation. *)
 
 (* Initial extern state *)
 Definition init_es := Eval compute in snd instantiation.
 
 Transparent IdentMap.empty IdentMap.set PathMap.empty PathMap.set.
 
-Notation path := (list string).
+Notation ident := string.
+Notation path := (list ident).
 Notation Val := (@ValueBase bool).
 Notation Sval := (@ValueBase (option bool)).
 
@@ -44,12 +47,12 @@ Notation arg_assertion := (@arg_assertion Info).
 Notation ret_assertion := (@ret_assertion Info). *)
 (* Notation ext_assertion := (@ext_assertion Info). *)
 
-Module Experiment1.
-
 Axiom dummy_fundef : (@fundef Info).
 
+Module Experiment1.
+
 Definition MyIngress_fundef := Eval compute in
-  match PathMap.get ["MyIngress"] (ge_func ge) with
+  match PathMap.get ["MyIngress"; "apply"] (ge_func ge) with
   | Some x => x
   | None => dummy_fundef
   end.
@@ -164,22 +167,24 @@ Definition standard_metadata := Eval compute in
   | None => dummy_sval
   end.
 
-Definition pre_arg_assertion : assertion :=
+(* Definition pre_arg_assertion : assertion :=
   [ (["hdr"], myHeader);
     (["meta"], meta);
     (["standard_metadata"], standard_metadata)
-  ].
+  ]. *)
 
-(* Definition pre_ext_assertion : ext_assertion :=
+Definition pre_arg_assertion : arg_assertion :=
+  [myHeader; meta; standard_metadata].
+
+Definition pre_ext_assertion : ext_assertion :=
   [
-    (LGlobal !["bloom0"], ObjRegister (mk_register 1%nat NUM_ENTRY (bloom0 bst)));
-    (LGlobal !["bloom1"], ObjRegister (mk_register 1%nat NUM_ENTRY (bloom1 bst)));
-    (LGlobal !["bloom2"], ObjRegister (mk_register 1%nat NUM_ENTRY (bloom2 bst)))
+    (["bloom0"], ObjRegister (map ValBaseBit (map (P4Arith.to_lbool 1) (bloom0 bst))));
+    (["bloom1"], ObjRegister (map ValBaseBit (map (P4Arith.to_lbool 1) (bloom1 bst))));
+    (["bloom2"], ObjRegister (map ValBaseBit (map (P4Arith.to_lbool 1) (bloom2 bst))))
   ].
 
-Definition pre (args : list Val) (st : state) :=
-  arg_to_shallow_assertion pre_arg_assertion args /\
-    to_shallow_assertion_continue this ([], pre_ext_assertion) st. *)
+Definition pre :=
+  ARG pre_arg_assertion (MEM [] (EXT pre_ext_assertion)).
 
 Axiom CRC : Z -> Z.
 Axiom CRC_range : forall data, 0 <= CRC data < NUM_ENTRY.
@@ -190,34 +195,85 @@ Definition process (rw data : Z) (bst : bloomfilter_state) : (bloomfilter_state 
   else
     (bst, bool_to_Z (bloomfilter.query Z CRC CRC CRC bst data)).
 
-Definition post_arg_assertion : assertion :=
+Definition post_arg_assertion : arg_assertion :=
   let (bst', rw') := process rw data bst in
   [
-    (["hdr"], upd_sval myHeader [(["myHeader"; "rw"], ValBaseBit (to_loptbool 8 rw'))]); 
+    upd_sval myHeader [(["myHeader"; "rw"], ValBaseBit (to_loptbool 8 rw'))];
     (* The full specification of meta requires updates to all the six fields,
        which need to be computed from process. 
        Not sure if it is a good design. 
        Or maybe we should change meta's direction to In? *)
-    (* (["meta"], upd_sval meta [(["index0"], ValBaseBit (to_loptbool 16 data))]); *)
-    (["standard_metadata"], upd_sval standard_metadata [(["egress_spec"], ValBaseBit (to_loptbool 9 1))])
+    (upd_sval meta [(["index0"], ValBaseBit (to_loptbool 16 data))]);
+    upd_sval standard_metadata [(["egress_spec"], ValBaseBit (to_loptbool 9 1))]
   ].
 
-(* Definition post_ext_assertion : ext_assertion :=
+Definition post_ext_assertion : ext_assertion :=
   let (bst', rw') := process rw data bst in
   [
-    (LGlobal !["bloom0"], ObjRegister (mk_register 1%nat NUM_ENTRY (bloom0 bst')));
-    (LGlobal !["bloom1"], ObjRegister (mk_register 1%nat NUM_ENTRY (bloom1 bst')));
-    (LGlobal !["bloom2"], ObjRegister (mk_register 1%nat NUM_ENTRY (bloom2 bst')))
+    (["bloom0"], ObjRegister (map ValBaseBit (map (P4Arith.to_lbool 1) (bloom0 bst'))));
+    (["bloom1"], ObjRegister (map ValBaseBit (map (P4Arith.to_lbool 1) (bloom1 bst'))));
+    (["bloom2"], ObjRegister (map ValBaseBit (map (P4Arith.to_lbool 1) (bloom2 bst'))))
   ].
 
-Definition post (args : list Val) (ret : Val) (st : state) :=
-  arg_to_shallow_assertion post_arg_assertion args /\
-    to_shallow_assertion_continue this ([], post_ext_assertion) st. *)
+Definition post :=
+  ARG_RET post_arg_assertion ValBaseNull (MEM [] (EXT post_ext_assertion)).
 
-Lemma body_bloomfilter : hoare_func ge inst_m this pre MyIngress_fundef nil post.
+Lemma body_bloomfilter : hoare_func ge this pre MyIngress_fundef nil post.
 Proof.
-  apply deep_hoare_func_sound.
-  eapply deep_hoare_func_internal.
+  (* remove AType and represent everything as Sval
+  To make it easier for structs, add a strucuture to represent structs with updated fields
+    (type soundness may be neeeded here)
+  struct rec has value rec_v
+  rec.x := 1
+  struct rec has value (update "x" 1 rec_v)
+  Return value as a special out parameter called "return"
+  Make function call reusable
+  Then we will need a frame rule
+  Extern objects
+  After generating an assertion from the symbolic executor, we need to evaluate the computational function.
+    But in this procedure, we should keep the user-defined Coq expressions untouched.
+  We need to face goals like
+    [("x", val_to_sval (Int v)), ("y", val_to_sval (Int (v + 1)))]
+    sval_add (val_to_sval (Int v)) (val_to_sval (Int 1)) = val_to_sval (Int (v + 1))
+    *)
+
+  eapply hoare_func_internal'.
+  { (* length *)
+    reflexivity.
+  }
+  {
+    (* NoDup *)
+    reflexivity.
+  }
+  {
+    (* eval_write_vars *)
+    (* compute the assertion. Need better simpl. *)
+    reflexivity.
+  }
+  3 : {
+    (* inv_func_copy_out *)
+    constructor.
+    { unfold post_arg_assertion. destruct (process rw data bst). reflexivity. }
+    { reflexivity. }
+  }
+  { apply hoare_block_nil. apply implies_refl_post. }
+  eapply hoare_block_cons.
+  { (* t'0 = hdr.myHeader.isValid() *)
+    eapply hoare_stmt_var_call.
+    { (* is_call_expression *)
+      reflexivity.
+    }
+    { (* hoare_call *)
+      admit. (* TODO *)
+    }
+    { admit. }
+    (* instantiate (1 := (
+        MEM [(["hdr"], myHeader); (["meta"], meta); (["standard_metadata"], standard_metadata);
+            (["t'0"], ValBaseBool (Some true))]
+       (EXT pre_ext_assertion))).
+    admit. *)
+  }
+  (* eapply deep_hoare_func_internal.
   { (* copy_in *)
     eapply hoare_copy_in_sound with (pre := (_, (_, _))).
     repeat constructor.
@@ -306,10 +362,77 @@ Proof.
       eapply ret_assertion_to_assertion_sound.
       constructor.
     }
+    x has value (v)
+    y has value (v+1)
+
     {
-(* Qed. *)
+Qed. *)
 Abort.
 
 End Experiment1.
 
 End Experiment1.
+
+Module Experiment2.
+
+Section Experiment2.
+
+Definition this := ["main"; "ig"; "Query"].
+
+Definition Query_fundef := Eval compute in
+  match PathMap.get ["Query"; "apply"] (ge_func ge) with
+  | Some x => x
+  | None => dummy_fundef
+  end.
+
+Axiom dummy_stmt : (@Statement Info).
+
+Definition assign_stmt := Eval compute in
+  match Query_fundef with
+  | FInternal _ _ (BlockCons _ (BlockCons _ (BlockCons _ (BlockCons _ (BlockCons _ (BlockCons _ (BlockCons stat _))))))) =>
+    stat
+  | _ => dummy_stmt
+  end.
+
+Variable hdr : Sval.
+Variable meta : Sval.
+Hypothesis H_member0 : Members.get "member0" meta = (ValBaseBit [Some true]).
+Hypothesis H_member1 : Members.get "member1" meta = (ValBaseBit [Some true]).
+Hypothesis H_member2 : Members.get "member2" meta = (ValBaseBit [Some true]).
+
+Definition pre :=
+  MEM [(["hdr"], hdr); (["meta"], meta)] (EXT []).
+
+Axiom post : post_assertion.
+
+Lemma body_assign : hoare_block ge this pre (BlockCons assign_stmt BlockNil) post.
+Proof.
+  eapply hoare_block_cons.
+  {
+    eapply hoare_stmt_assign'.
+    - (* is_call_expression *)
+      reflexivity.
+    - (* is_no_dup *)
+      reflexivity.
+    - (* eval_lexpr *)
+      reflexivity.
+    - (* eval_expr *)
+      reflexivity.
+    - (* hoare_write *)
+      reflexivity.
+  }
+  simpl str. rewrite H_member0, H_member1, H_member2.
+  change (build_abs_unary_op _ _)
+   (* (build_abs_binary_op (Ops.eval_binary_op BitAnd)
+      (build_abs_binary_op (Ops.eval_binary_op BitAnd) (ValBaseBit [Some true])
+         (ValBaseBit [Some true])) (ValBaseBit [Some true]))) *) with
+  (ltac: (let x := eval cbv in (build_abs_unary_op (fun oldv : Val => Ops.bit_of_val 8 oldv)
+   (build_abs_binary_op (Ops.eval_binary_op BitAnd)
+      (build_abs_binary_op (Ops.eval_binary_op BitAnd) (ValBaseBit [Some true])
+         (ValBaseBit [Some true])) (ValBaseBit [Some true]))) in exact x)).
+(* Qed. *)
+Abort.
+
+End Experiment2.
+
+End Experiment2.

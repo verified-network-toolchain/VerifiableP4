@@ -4,6 +4,7 @@ Require Import Poulet4.Syntax.
 Require Import Poulet4.Value.
 Require Import Poulet4.Semantics.
 Require Import ProD3.core.Coqlib.
+Require Import ProD3.core.SvalRefine.
 Require Import Poulet4.SyntaxUtil.
 Require Import Hammer.Plugin.Hammer.
 
@@ -43,16 +44,9 @@ Definition continue_post_assertion (a : assertion) : post_assertion :=
 Definition return_post_assertion (a : ret_assertion) : post_assertion :=
   mk_post_assertion (fun _ => False) a.
 
-(* Definition return_post_assertion_1 (a : ret_assertion) : post_assertion :=
-  mk_post_assertion (a ValBaseNull) a. *)
-
-(* bit_refine a b means a includes b. *)
-Inductive bit_refine : option bool -> option bool -> Prop :=
-  | read_none : forall ob, bit_refine None ob
-  | read_some : forall b, bit_refine (Some b) (Some b).
-
-(* sval_refine a b means a includes b. *)
-Definition sval_refine := exec_val bit_refine.
+(* Either finish with a return statement or return (ValBaseNull) by default. *)
+Definition return_post_assertion_1 (a : ret_assertion) : post_assertion :=
+  mk_post_assertion (a ValBaseNull) a.
 
 Definition hoare_expr (p : path) (pre : assertion) (expr : Expression) (sv : Sval) :=
   forall st sv',
@@ -79,6 +73,7 @@ Definition locator_eqb (loc1 loc2 : Locator) : bool :=
   | _, _ => false
   end.
 
+(* lval_eqb ignores the "name" argument of ValLeftName, because I believe this field should be removed. *)
 Fixpoint lval_eqb (lv1 lv2 : Lval) : bool :=
   match lv1, lv2 with
   | MkValueLvalue (ValLeftName _ loc1) _, MkValueLvalue (ValLeftName _ loc2) _ =>
@@ -98,29 +93,88 @@ Definition hoare_lexpr (p : path) (pre : assertion) (expr : Expression) (lv : Lv
     exec_lexpr ge read_ndetbit p st expr lv' sig ->
     sig = SContinue /\ lval_eqb lv' lv.
 
-(* Definition hoare_loc_to_val (p : path) (pre : assertion) (loc : Locator) (v : Sval) :=
+Definition hoare_loc_to_sval (p : path) (pre : assertion) (loc : Locator) (v : Sval) :=
     forall st,
     pre st ->
-    loc_to_val p loc st = Some v. *)
+    loc_to_sval loc st = Some v.
 
 Definition hoare_update_val_by_loc (p : path) (pre : assertion) (loc : Locator) (v : Sval) (post : assertion) :=
     forall st st',
     pre st ->
-    update_val_by_loc p st loc v = st' ->
+    update_val_by_loc st loc v = st' ->
     post st'.
 
-Definition hoare_read (p : path) (pre : assertion) (lv : Lval) (v : Sval) :=
-  forall st v',
+Definition hoare_read_var (pre : assertion) (p : path) (sv : Sval) :=
+  forall st sv',
     pre st ->
-    exec_read ge p st lv v' ->
-    sval_refine v v'.
+    PathMap.get p (fst st) = Some sv' ->
+    sval_refine sv sv'.
 
-Definition hoare_write (p : path) (pre : assertion) (lv : Lval) (sv : Sval) (post : assertion) :=
+Definition hoare_write_var (pre : assertion) (p : path) (sv : Sval) (post : assertion) :=
   forall st sv' st',
     pre st ->
     sval_refine sv sv' ->
-    exec_write ge p st lv sv' st' ->
+    update_memory (PathMap.set p sv') st = st' ->
     post st'.
+
+Definition hoare_read (pre : assertion) (lv : Lval) (sv : Sval) :=
+  forall st sv',
+    pre st ->
+    exec_read ge st lv sv' ->
+    sval_refine sv sv'.
+
+Definition hoare_write (pre : assertion) (lv : Lval) (sv : Sval) (post : assertion) :=
+  forall st sv' st',
+    pre st ->
+    sval_refine sv sv' ->
+    exec_write ge st lv sv' st' ->
+    post st'.
+
+Definition hoare_read_vars (pre : assertion) (ps : list path) (svs : list Sval) :=
+  forall st svs',
+    pre st ->
+    PathMap.gets ps (fst st) = map Some svs' ->
+    Forall2 sval_refine svs svs'.
+
+Definition hoare_read_vars' (pre : assertion) (ps : list path) (svs : list Sval) :=
+  Forall2 (hoare_read_var pre) ps svs.
+
+Lemma hoare_read_vars_intro : forall pre ps svs,
+  hoare_read_vars' pre ps svs ->
+  hoare_read_vars pre ps svs.
+Proof.
+  induction 1.
+  - unfold hoare_read_vars; intros. destruct svs'; inv H1. constructor.
+  - unfold hoare_read_vars in *; intros.
+    destruct svs'; inv H3.
+    constructor; eauto.
+Qed.
+
+Definition hoare_write_vars (pre : assertion) (ps : list path) (svs : list Sval) (post : assertion) :=
+  forall st svs' st',
+    pre st ->
+    Forall2 sval_refine svs svs' ->
+    update_memory (PathMap.sets ps svs') st = st' ->
+    post st'.
+
+Definition hoare_write_vars' (pre : assertion) (ps : list path) (svs : list Sval) (post : assertion) :=
+  Forall2_fold hoare_write_var pre ps svs post.
+
+Lemma hoare_write_vars_intro : forall pre ps svs post,
+  hoare_write_vars' pre ps svs post ->
+  hoare_write_vars pre ps svs post.
+Proof.
+  induction 1.
+  - unfold hoare_write_vars; intros. subst; destruct st; auto.
+  - unfold hoare_write_vars in *; intros.
+    subst; inv H3; destruct st; eapply IHForall2_fold; eauto.
+Qed.
+
+Definition hoare_reads' (pre : assertion) (lvs : list Lval) (svs : list Sval) :=
+  Forall2 (hoare_read pre) lvs svs.
+
+Definition hoare_writes' (pre : assertion) (lvs : list Lval) (svs : list Sval) (post : assertion) :=
+  Forall2_fold hoare_write pre lvs svs post.
 
 Definition satisfies_ret_assertion (post : ret_assertion) (sig : signal) (st : state) : Prop :=
   match sig with
@@ -170,93 +224,6 @@ Definition is_call_expression (expr : Expression) : bool :=
   | _ => false
   end.
 
-Definition rel_trans {A B C} (f : A -> B -> Prop) (g : B -> C -> Prop) (h : A -> C -> Prop) :=
-  forall a b c,
-    f a b ->
-    g b c ->
-    h a c.
-
-Section exec_val_trans.
-  Context {A B C : Type} (f : A -> B -> Prop) (g : B -> C -> Prop) (h : A -> C -> Prop).
-  Hypothesis H_rel_trans : rel_trans f g h.
-
-  Lemma Forall2_trans : forall v1 v2 v3,
-    Forall2 f v1 v2 ->
-    Forall2 g v2 v3 ->
-    Forall2 h v1 v3.
-  Proof.
-    intros v1 v2; revert v1.
-    induction v2; intros.
-    - inv H0; inv H1; constructor.
-    - inv H0; inv H1; constructor; eauto.
-  Qed.
-
-  Hint Resolve Forall2_trans : core.
-
-  Lemma exec_val_trans_case1 : forall vs1 vs2 vs3,
-    Forall
-      (fun v2 : ValueBase =>
-        forall v1 v3 : ValueBase, exec_val f v1 v2 -> exec_val g v2 v3 -> exec_val h v1 v3) vs2 ->
-    Forall2 (exec_val f) vs1 vs2 ->
-    Forall2 (exec_val g) vs2 vs3 ->
-    Forall2 (exec_val h) vs1 vs3.
-  Proof.
-    intros vs1 vs2; revert vs1.
-    induction vs2; intros; inv H2; inv H1; inv H0; constructor; only 1 : apply H3; auto.
-  Qed.
-
-  Lemma exec_val_trans_case2 : forall (vs1 : list (ident * ValueBase)) vs2 vs3,
-    Forall
-      (fun '(_, v2) =>
-        forall v1 v3 : ValueBase, exec_val f v1 v2 -> exec_val g v2 v3 -> exec_val h v1 v3) vs2 ->
-    AList.all_values (exec_val f) vs1 vs2 ->
-    AList.all_values (exec_val g) vs2 vs3 ->
-    AList.all_values (exec_val h) vs1 vs3.
-  Proof.
-    intros vs1 vs2; revert vs1.
-    induction vs2; intros; inv H2; inv H1; inv H0; constructor.
-    - destruct H5; destruct H6; split.
-      + congruence.
-      + destruct a; apply H3; auto.
-    - apply IHvs2; auto.
-  Qed.
-
-  (* rel_trans (exec_val f) (exec_val g) (exec_val h) *)
-  Lemma exec_val_trans : forall v1 v2 v3,
-    exec_val f v1 v2 ->
-    exec_val g v2 v3 ->
-    exec_val h v1 v3.
-  Proof.
-    intros v1 v2; revert v1.
-    induction v2 using custom_ValueBase_ind; intros * H_f H_g;
-      inv H_f; inv H_g;
-      constructor; eauto.
-    - eapply exec_val_trans_case1; eauto.
-    - eapply exec_val_trans_case2; eauto.
-    - eapply exec_val_trans_case2; eauto.
-    - eapply exec_val_trans_case2; eauto.
-    - eapply exec_val_trans_case2; eauto.
-    - eapply exec_val_trans_case1; eauto.
-  Qed.
-End exec_val_trans.
-
-Lemma bit_refine_trans : forall b1 b2 b3 : option bool,
-  bit_refine b1 b2 ->
-  bit_refine b2 b3 ->
-  bit_refine b1 b3.
-Proof.
-  intros.
-  inv H0; inv H1; constructor.
-Qed.
-
-Lemma sval_refine_trans : forall sv1 sv2 sv3,
-  sval_refine sv1 sv2 ->
-  sval_refine sv2 sv3 ->
-  sval_refine sv1 sv3.
-Proof.
-  apply exec_val_trans. exact bit_refine_trans.
-Qed.
-
 Lemma bit_to_nbit_to_bit : forall nb b nb',
   read_ndetbit nb b ->
   read_detbit b nb' ->
@@ -291,20 +258,20 @@ Axiom lval_eqb_eq : forall (lv1 lv2 : Lval),
   lv1 = lv2.
 
 Lemma hoare_stmt_assign : forall p pre tags lhs rhs typ post lv sv,
-  hoare_lexpr p pre lhs lv ->
   is_call_expression rhs = false ->
+  hoare_lexpr p pre lhs lv ->
   hoare_expr_det p pre rhs sv ->
-  hoare_write p pre lv sv (post_continue post) ->
+  hoare_write pre lv sv (post_continue post) ->
   hoare_stmt p pre (MkStatement tags (StatAssignment lhs rhs) typ) post.
 Proof.
   unfold hoare_stmt. intros.
   left.
   inv H5. 2 : {
     (* rule out the call case *)
-    inv H14; inv H1.
+    inv H14; inv H0.
   }
-  specialize (H0 _ _ _ H4 H15).
-  inv H0.
+  specialize (H1 _ _ _ H4 H15).
+  inv H1.
   split; only 1 : split.
   apply lval_eqb_eq in H6. subst lv0.
   specialize (H2 _ _ _ H4 H12 H16).
@@ -327,10 +294,10 @@ Proof.
 Qed.
 
 Lemma hoare_stmt_assign_call : forall p pre tags lhs rhs typ post lv mid sv,
-  hoare_lexpr p pre lhs lv ->
   is_call_expression rhs = true ->
+  hoare_lexpr p pre lhs lv ->
   hoare_call p pre rhs (fun v st => mid st /\ (forall sv', val_to_sval v sv' -> sval_refine sv sv')) ->
-  hoare_write p mid lv sv (post_continue post) ->
+  hoare_write mid lv sv (post_continue post) ->
   hoare_stmt p pre (MkStatement tags (StatAssignment lhs rhs) typ) post.
 Proof.
   unfold hoare_stmt. intros.
@@ -340,16 +307,38 @@ Proof.
     pose proof (exec_expr_det_not_call _ _ _ _ _ H12).
     congruence.
   }
-  specialize (H0 _ _ _ H4 H15).
-  inv H0.
+  specialize (H1 _ _ _ H4 H15).
+  inv H1.
   apply lval_eqb_eq in H6. subst lv0.
   specialize (H2 _ _ _ H4 H14).
   destruct sig'; only 1, 3, 4 : solve[inv H2].
   destruct H2. destruct H16 as [? []].
   split; only 1 : auto.
   inv H5.
-  specialize (H3 _ _ _ H0 (H2 _ H9) H6).
+  specialize (H3 _ _ _ H1 (H2 _ H9) H6).
   apply H3.
+Qed.
+
+Lemma hoare_stmt_var_call : forall p pre tags typ' name e loc typ post mid sv,
+  is_call_expression e = true ->
+  hoare_call p pre e (fun v st => mid st /\ (forall sv', val_to_sval v sv' -> sval_refine sv sv')) ->
+  hoare_write mid (MkValueLvalue (ValLeftName (BareName name) loc) typ') sv (post_continue post) ->
+  hoare_stmt p pre (MkStatement tags (StatVariable typ' name (Some e) loc) typ) post.
+Proof.
+  unfold hoare_stmt. intros.
+  left.
+  inv H4. 1 : {
+    (* rule out the non-call case *)
+    pose proof (exec_expr_det_not_call _ _ _ _ _ ltac:(eassumption)).
+    congruence.
+  }
+  specialize (H1 _ _ _ ltac:(eassumption) ltac:(eassumption)).
+  destruct sig0; only 1, 3, 4 : solve[inv H1].
+  destruct H1. destruct H16.
+  split; only 1 : auto.
+  inv H5.
+  specialize (H2 _ _ _ H1 (H4 _ H8) ltac:(eassumption)).
+  auto.
 Qed.
 
 Lemma hoare_stmt_if_true : forall p pre tags cond tru ofls typ post,
@@ -439,13 +428,204 @@ Proof.
   - inv H11. hauto.
 Qed.
 
-Section DeepEmbeddedHoare.
+(* | exec_call_builtin : forall this_path s tags tags' lhs fname tparams params typ' args typ dir argvals s' sig sig' sig'' lv,
+      let dirs := map get_param_dir params in
+      exec_lexpr read_one_bit this_path s lhs lv sig ->
+      exec_args read_one_bit this_path s args dirs argvals sig' ->
+      (if not_continue sig then s' = s /\ sig'' = sig
+       else if not_continue sig' then s' = s /\ sig'' = sig'
+       else exec_builtin read_one_bit this_path s lv fname (extract_invals argvals) s' sig'') ->
+      (* As far as we know, built-in functions do not have out/inout parameters. So there's not a caller
+        copy-out step. Also exec_args should never raise any signal other than continue. *)
+      exec_call read_one_bit this_path s (MkExpression tags (ExpFunctionCall
+          (MkExpression tags' (ExpExpressionMember lhs (P4String.Build_t tags_t inhabitant_tags_t fname)) (TypFunction (MkFunctionType tparams params FunBuiltin typ')) dir)
+          nil args) typ dir) s' sig'' *)
+
+(* Definition hoare_expr (p : path) (pre : assertion) (expr : Expression) (sv : Sval) :=
+  forall st sv',
+    pre st ->
+    exec_expr ge read_ndetbit p st expr sv' ->
+    sval_refine sv sv'.
+
+Definition hoare_lexpr (p : path) (pre : assertion) (expr : Expression) (lv : Lval) :=
+  forall st lv' sig,
+    pre st ->
+    exec_lexpr ge read_ndetbit p st expr lv' sig ->
+    sig = SContinue /\ lval_eqb lv' lv. *)
+
+Definition arg_refine (arg arg' : argument) :=
+  match arg, arg' with
+  | (osv, olv), (osv', olv') =>
+      EquivUtil.relop sval_refine osv osv' /\ EquivUtil.relop (fun lv lv' => lval_eqb lv lv') olv olv'
+  end.
+
+Definition args_refine (args args' : list argument) :=
+  Forall2 arg_refine args args'.
+
+Definition hoare_builtin (p : path) (pre : arg_assertion) (lv : Lval) (fname : ident) (post : ret_assertion) :=
+  forall st inargs st' sig,
+    pre inargs st ->
+    exec_builtin ge read_ndetbit p st lv fname inargs st' sig ->
+    satisfies_ret_assertion post sig st'.
+
+Definition hoare_args (p : path) (pre : assertion) (args : list (option Expression)) dirs argvals :=
+  forall st argvals' sig,
+    pre st ->
+    exec_args ge read_ndetbit p st args dirs argvals' sig ->
+    sig = SContinue /\ args_refine argvals argvals'.
+
+Lemma args_refine_extract_invals : forall args args',
+  args_refine args args' ->
+  Forall2 sval_refine (extract_invals args) (extract_invals args').
+Proof.
+  intros.
+  induction H0.
+  - constructor.
+  - destruct x as [[] []]; destruct y as [[] []];
+      inv H0; inv H2; inv H3;
+      only 1, 2 : constructor; auto.
+Qed.
+
+Lemma args_refine_extract_outlvals : forall dirs args args',
+  args_refine args args' ->
+  extract_outlvals dirs args = extract_outlvals dirs args'.
+Proof.
+  intros.
+  induction H0.
+  - constructor.
+  - destruct dirs as [ | [] ?]; destruct x as []; destruct y as [].
+Admitted.
+
+Lemma hoare_call_builtin : forall p pre tags tags' expr fname tparams params typ' args typ dir post lv argvals,
+  let dirs := map get_param_dir params in
+  hoare_lexpr p pre expr lv ->
+  hoare_args p pre args dirs argvals ->
+  hoare_builtin p (fun inargs st => Forall2 sval_refine (extract_invals argvals) inargs /\ pre st) lv (P4String.str fname) post ->
+  hoare_call p pre
+    (MkExpression tags (ExpFunctionCall
+      (MkExpression tags' (ExpExpressionMember expr fname) (TypFunction (MkFunctionType tparams params FunBuiltin typ')) dir)
+      nil args) typ dir)
+    post.
+Proof.
+  unfold hoare_lexpr, hoare_args, hoare_builtin, hoare_call.
+  intros.
+  inv H4. 2 : { inv H11. }
+  specialize (H0 _ _ _ ltac:(eassumption) ltac:(eassumption)).
+  destruct H0 as [? H0]. subst.
+  specialize (H1 _ _ _ ltac:(eassumption) ltac:(eassumption)).
+  destruct H1 as [? H1]. subst.
+  assert (Forall2 sval_refine (extract_invals argvals) (extract_invals argvals0) /\ pre st). {
+    split; auto using args_refine_extract_invals.
+  }
+  apply lval_eqb_eq in H0; subst.
+  specialize (H2 _ _ _ _ ltac:(eassumption) H22).
+  assumption.
+Qed.
+
+Definition hoare_call_copy_out (pre : arg_ret_assertion) (dirs : list direction) (args : list argument) (post : ret_assertion) : Prop :=
+  forall outargs sig st st',
+    satisfies_arg_ret_assertion pre outargs sig st ->
+    exec_write_options ge st (extract_outlvals dirs args) outargs st' ->
+      satisfies_ret_assertion post sig st'.
+
+Lemma hoare_call_func : forall p (pre : assertion) tags func targs args typ dir post argvals obj_path fd
+    (mid1 : arg_assertion) mid2 mid3,
+  is_builtin_func func = false ->
+  let dirs := get_arg_directions func in
+  hoare_args p pre args dirs argvals ->
+  lookup_func ge p func = Some (obj_path, fd) ->
+  mid1 = (fun inargs st => Forall2 sval_refine (extract_invals argvals) inargs
+    /\ (if is_some obj_path then (fun '(m, es) => m = PathMap.empty /\ exists m', pre (m', es)) else pre) st) ->
+  hoare_func (force p obj_path) mid1 fd targs mid2 ->
+  mid3 = (
+    if is_some obj_path then
+      (fun outargs retv '(m, es) => (exists es', pre (m, es')) /\ (exists m', mid2 outargs retv (m', es)))
+    else
+      mid2) ->
+  hoare_call_copy_out mid3 dirs argvals post ->
+  hoare_call p pre (MkExpression tags (ExpFunctionCall func targs args) typ dir) post.
+Proof.
+  unfold hoare_args, hoare_func, hoare_call_copy_out, hoare_call.
+  intros.
+  inv H8. { inv H0. }
+  specialize (H1 _ _ _ ltac:(eassumption) ltac:(eassumption)).
+  destruct H1 as [? H1]. subst.
+  rewrite H2 in H19; inv H19.
+  unshelve epose proof (H4 _ _ _ _ _ ltac:(shelve) H23). {
+    split. { apply args_refine_extract_invals. auto. }
+    destruct (is_some obj_path0).
+    - destruct st. split; eauto.
+    - auto.
+  }
+  subst dirs.
+  erewrite <- args_refine_extract_outlvals in H25 by eauto.
+  unshelve epose proof (H6 _ sig' _ _ ltac:(shelve) H25). {
+    destruct (is_some obj_path0).
+    - destruct s3. destruct sig'; try solve [inv H3].
+      split.
+      + destruct st; eauto.
+      + eauto.
+    - auto.
+  }
+  inv H26.
+  assumption.
+Qed.
+
+Definition hoare_func_copy_in (pre : arg_assertion) (params : list (path * direction)) (post : assertion) : Prop :=
+  forall args st st',
+    pre args st ->
+    bind_parameters params args st st' ->
+    post st'.
+
+Definition hoare_func_copy_out (pre : ret_assertion) (params : list (path * direction)) (post : arg_ret_assertion) : Prop :=
+  forall retv st,
+    pre retv st ->
+    forall args,
+      extract_parameters (filter_out params) st = Some args ->
+      post args retv st.
+
+Definition generate_post_condition (out_params : list path) (post : arg_ret_assertion) : ret_assertion :=
+  fun retv st =>
+    forall args,
+      extract_parameters out_params st = Some args ->
+      post args retv st.
+
+Lemma hoare_func_internal : forall p pre params init body targs mid1 mid2 mid3 post,
+  hoare_func_copy_in pre params mid1 ->
+  hoare_block p mid1 init (mk_post_assertion mid2 mid3) ->
+  hoare_block p mid2 body (return_post_assertion_1 mid3) ->
+  hoare_func_copy_out mid3 params post ->
+  hoare_func p pre (FInternal params init body) targs post.
+Proof.
+  unfold hoare_func_copy_in, hoare_block, hoare_func_copy_out, hoare_func.
+  intros.
+  inv H5.
+  specialize (H0 _ _ _ H4 H9).
+  specialize (H1 _ _ _ H0 H10).
+  destruct sig0; inv H11.
+  destruct H1. 2 : { inv H1. }
+  destruct H1 as [_ H1].
+  specialize (H2 _ _ _ H1 H14).
+  destruct H2.
+  - destruct H2 as [? H2]; subst sig'.
+    apply H3; auto.
+  - destruct sig'; try solve [inv H2].
+    apply H3; auto.
+Qed.
 
 Lemma implies_refl : forall (pre : assertion),
   implies pre pre.
 Proof.
-  clear ge. admit.
-Admitted.
+  unfold implies. intros; auto.
+Qed.
+
+Lemma implies_refl_post : forall (pre : assertion),
+  implies pre (continue_post_assertion pre).
+Proof.
+  exact implies_refl.
+Qed.
+
+Section DeepEmbeddedHoare.
 
 Lemma implies_trans : forall (pre mid post : assertion),
   implies pre mid ->
@@ -455,17 +635,50 @@ Proof.
   clear ge. admit.
 Admitted.
 
-Fixpoint _in (x : ident) (al : list ident) : bool :=
+(* It's possible to make these functinos and lemmas generic, but that's currently unneeded. *)
+
+Fixpoint is_in (x : path) (al : list path) : bool :=
   match al with
-  | y :: al => String.eqb x y || _in x al
+  | y :: al => path_eqb y x || is_in x al
   | [] => false
   end.
 
-Fixpoint no_dup (al : list ident) : bool :=
+Fixpoint is_no_dup (al : list path) : bool :=
   match al with
-  | x :: al => ~~(_in x al) && no_dup al
+  | x :: al => ~~(is_in x al) && is_no_dup al
   | [] => true
   end.
+
+Lemma path_eqb_refl : forall (p : path),
+  path_eqb p p.
+Proof.
+  unfold path_eqb, list_eqb.
+  induction p.
+  - auto.
+  - simpl. rewrite String.eqb_refl. auto.
+Qed.
+
+Lemma not_is_in_not_In : forall x (al : list path),
+  ~~(is_in x al) -> ~In x al.
+Proof.
+  induction al; intros.
+  - auto.
+  - simpl in H0. rewrite Reflect.negE, Reflect.orE in H0.
+    intros [].
+    + subst. rewrite path_eqb_refl in H0. auto.
+    + rewrite Reflect.negE in IHal. apply IHal; auto.
+Qed.
+
+Lemma is_no_dup_NoDup : forall (al : list path),
+  is_no_dup al -> NoDup al.
+Proof.
+  induction al; intros.
+  - constructor.
+  - simpl in H0. rewrite Reflect.andE in H0. destruct H0.
+    constructor.
+    + apply not_is_in_not_In; auto.
+    + auto.
+Qed.
 
 (* Inductive deep_hoare_loc_to_val : path -> assertion -> Locator -> Val -> Prop :=
   | deep_hoare_loc_to_val_intro : forall p pre loc v,
