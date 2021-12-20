@@ -73,6 +73,7 @@ Definition locator_eqb (loc1 loc2 : Locator) : bool :=
   | _, _ => false
   end.
 
+(* lval_eqb ignores the "name" argument of ValLeftName, because I believe this field should be removed. *)
 Fixpoint lval_eqb (lv1 lv2 : Lval) : bool :=
   match lv1, lv2 with
   | MkValueLvalue (ValLeftName _ loc1) _, MkValueLvalue (ValLeftName _ loc2) _ =>
@@ -427,16 +428,148 @@ Proof.
   - inv H11. hauto.
 Qed.
 
-Definition hoare_loc_to_sval_list (p : path) (pre : assertion) (locs : list Locator) (svs : list Sval) : Prop :=
-  Forall2 (hoare_loc_to_sval p pre) locs svs.
+(* | exec_call_builtin : forall this_path s tags tags' lhs fname tparams params typ' args typ dir argvals s' sig sig' sig'' lv,
+      let dirs := map get_param_dir params in
+      exec_lexpr read_one_bit this_path s lhs lv sig ->
+      exec_args read_one_bit this_path s args dirs argvals sig' ->
+      (if not_continue sig then s' = s /\ sig'' = sig
+       else if not_continue sig' then s' = s /\ sig'' = sig'
+       else exec_builtin read_one_bit this_path s lv fname (extract_invals argvals) s' sig'') ->
+      (* As far as we know, built-in functions do not have out/inout parameters. So there's not a caller
+        copy-out step. Also exec_args should never raise any signal other than continue. *)
+      exec_call read_one_bit this_path s (MkExpression tags (ExpFunctionCall
+          (MkExpression tags' (ExpExpressionMember lhs (P4String.Build_t tags_t inhabitant_tags_t fname)) (TypFunction (MkFunctionType tparams params FunBuiltin typ')) dir)
+          nil args) typ dir) s' sig'' *)
 
-Inductive hoare_update_val_by_loc_list : path -> assertion -> (list Locator) -> (list Sval) -> assertion -> Prop :=
-  | hoare_update_val_by_loc_nil : forall p pre,
-      hoare_update_val_by_loc_list p pre nil nil pre
-  | hoare_update_val_by_loc_cons : forall p pre loc locs v vs mid post,
-      hoare_update_val_by_loc p pre loc v mid ->
-      hoare_update_val_by_loc_list p mid locs vs post ->
-      hoare_update_val_by_loc_list p pre (loc :: locs) (v :: vs) post.
+(* Definition hoare_expr (p : path) (pre : assertion) (expr : Expression) (sv : Sval) :=
+  forall st sv',
+    pre st ->
+    exec_expr ge read_ndetbit p st expr sv' ->
+    sval_refine sv sv'.
+
+Definition hoare_lexpr (p : path) (pre : assertion) (expr : Expression) (lv : Lval) :=
+  forall st lv' sig,
+    pre st ->
+    exec_lexpr ge read_ndetbit p st expr lv' sig ->
+    sig = SContinue /\ lval_eqb lv' lv. *)
+
+Definition arg_refine (arg arg' : argument) :=
+  match arg, arg' with
+  | (osv, olv), (osv', olv') =>
+      EquivUtil.relop sval_refine osv osv' /\ EquivUtil.relop (fun lv lv' => lval_eqb lv lv') olv olv'
+  end.
+
+Definition args_refine (args args' : list argument) :=
+  Forall2 arg_refine args args'.
+
+Definition hoare_builtin (p : path) (pre : arg_assertion) (lv : Lval) (fname : ident) (post : ret_assertion) :=
+  forall st inargs st' sig,
+    pre inargs st ->
+    exec_builtin ge read_ndetbit p st lv fname inargs st' sig ->
+    satisfies_ret_assertion post sig st'.
+
+Definition hoare_args (p : path) (pre : assertion) (args : list (option Expression)) dirs argvals :=
+  forall st argvals' sig,
+    pre st ->
+    exec_args ge read_ndetbit p st args dirs argvals' sig ->
+    sig = SContinue /\ args_refine argvals argvals'.
+
+Lemma args_refine_extract_invals : forall args args',
+  args_refine args args' ->
+  Forall2 sval_refine (extract_invals args) (extract_invals args').
+Proof.
+  intros.
+  induction H0.
+  - constructor.
+  - destruct x as [[] []]; destruct y as [[] []];
+      inv H0; inv H2; inv H3;
+      only 1, 2 : constructor; auto.
+Qed.
+
+Lemma args_refine_extract_outlvals : forall dirs args args',
+  args_refine args args' ->
+  extract_outlvals dirs args = extract_outlvals dirs args'.
+Proof.
+  intros.
+  induction H0.
+  - constructor.
+  - destruct dirs as [ | [] ?]; destruct x as []; destruct y as [].
+Admitted.
+
+Lemma hoare_call_builtin : forall p pre tags tags' expr fname tparams params typ' args typ dir post lv argvals,
+  let dirs := map get_param_dir params in
+  hoare_lexpr p pre expr lv ->
+  hoare_args p pre args dirs argvals ->
+  hoare_builtin p (fun inargs st => Forall2 sval_refine (extract_invals argvals) inargs /\ pre st) lv (P4String.str fname) post ->
+  hoare_call p pre
+    (MkExpression tags (ExpFunctionCall
+      (MkExpression tags' (ExpExpressionMember expr fname) (TypFunction (MkFunctionType tparams params FunBuiltin typ')) dir)
+      nil args) typ dir)
+    post.
+Proof.
+  unfold hoare_lexpr, hoare_args, hoare_builtin, hoare_call.
+  intros.
+  inv H4. 2 : { inv H11. }
+  specialize (H0 _ _ _ ltac:(eassumption) ltac:(eassumption)).
+  destruct H0 as [? H0]. subst.
+  specialize (H1 _ _ _ ltac:(eassumption) ltac:(eassumption)).
+  destruct H1 as [? H1]. subst.
+  assert (Forall2 sval_refine (extract_invals argvals) (extract_invals argvals0) /\ pre st). {
+    split; auto using args_refine_extract_invals.
+  }
+  apply lval_eqb_eq in H0; subst.
+  specialize (H2 _ _ _ _ ltac:(eassumption) H22).
+  assumption.
+Qed.
+
+Definition hoare_call_copy_out (pre : arg_ret_assertion) (dirs : list direction) (args : list argument) (post : ret_assertion) : Prop :=
+  forall outargs sig st st',
+    satisfies_arg_ret_assertion pre outargs sig st ->
+    exec_write_options ge st (extract_outlvals dirs args) outargs st' ->
+      satisfies_ret_assertion post sig st'.
+
+Lemma hoare_call_func : forall p (pre : assertion) tags func targs args typ dir post argvals obj_path fd
+    (mid1 : arg_assertion) mid2 mid3,
+  is_builtin_func func = false ->
+  let dirs := get_arg_directions func in
+  hoare_args p pre args dirs argvals ->
+  lookup_func ge p func = Some (obj_path, fd) ->
+  mid1 = (fun inargs st => Forall2 sval_refine (extract_invals argvals) inargs
+    /\ (if is_some obj_path then (fun '(m, es) => m = PathMap.empty /\ exists m', pre (m', es)) else pre) st) ->
+  hoare_func (force p obj_path) mid1 fd targs mid2 ->
+  mid3 = (
+    if is_some obj_path then
+      (fun outargs retv '(m, es) => (exists es', pre (m, es')) /\ (exists m', mid2 outargs retv (m', es)))
+    else
+      mid2) ->
+  hoare_call_copy_out mid3 dirs argvals post ->
+  hoare_call p pre (MkExpression tags (ExpFunctionCall func targs args) typ dir) post.
+Proof.
+  unfold hoare_args, hoare_func, hoare_call_copy_out, hoare_call.
+  intros.
+  inv H8. { inv H0. }
+  specialize (H1 _ _ _ ltac:(eassumption) ltac:(eassumption)).
+  destruct H1 as [? H1]. subst.
+  rewrite H2 in H19; inv H19.
+  unshelve epose proof (H4 _ _ _ _ _ ltac:(shelve) H23). {
+    split. { apply args_refine_extract_invals. auto. }
+    destruct (is_some obj_path0).
+    - destruct st. split; eauto.
+    - auto.
+  }
+  subst dirs.
+  erewrite <- args_refine_extract_outlvals in H25 by eauto.
+  unshelve epose proof (H6 _ sig' _ _ ltac:(shelve) H25). {
+    destruct (is_some obj_path0).
+    - destruct s3. destruct sig'; try solve [inv H3].
+      split.
+      + destruct st; eauto.
+      + eauto.
+    - auto.
+  }
+  inv H26.
+  assumption.
+Qed.
 
 Definition hoare_func_copy_in (pre : arg_assertion) (params : list (path * direction)) (post : assertion) : Prop :=
   forall args st st',
