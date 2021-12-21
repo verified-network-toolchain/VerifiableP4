@@ -91,7 +91,7 @@ Definition hoare_lexpr (p : path) (pre : assertion) (expr : Expression) (lv : Lv
   forall st lv' sig,
     pre st ->
     exec_lexpr ge read_ndetbit p st expr lv' sig ->
-    sig = SContinue /\ lval_eqb lv' lv.
+    sig = SContinue /\ lval_eqb lv lv'.
 
 Definition hoare_loc_to_sval (p : path) (pre : assertion) (loc : Locator) (v : Sval) :=
     forall st,
@@ -442,6 +442,12 @@ Definition hoare_builtin (p : path) (pre : arg_assertion) (lv : Lval) (fname : i
     pre inargs st ->
     exec_builtin ge read_ndetbit p st lv fname inargs st' sig ->
     satisfies_ret_assertion post sig st'.
+
+Definition hoare_arg (p : path) (pre : assertion) (arg : option Expression) dir argval :=
+  forall st argval' sig,
+    pre st ->
+    exec_arg ge read_ndetbit p st arg dir argval' sig ->
+    sig = SContinue /\ arg_refine argval argval'.
 
 Definition hoare_args (p : path) (pre : assertion) (args : list (option Expression)) dirs argvals :=
   forall st argvals' sig,

@@ -857,13 +857,91 @@ Proof.
     + inv H1.
 Qed.
 
+Definition eval_arg (ge : genv) (p : path) (a : mem_assertion) (arg : option Expression)
+    (dir : direction) : option (@argument tags_t) :=
+  match arg, dir with
+  | Some arg, Typed.In =>
+      match eval_expr ge p a arg with
+      | Some sv => Some (Some sv, None)
+      | _ => None
+      end
+  | Some arg, Out =>
+      match eval_lexpr ge p a arg with
+      | Some lv => Some (None, Some lv)
+      | _ => None
+      end
+  | None, Out =>
+      Some (None, None)
+  | Some arg, InOut =>
+      match eval_lexpr ge p a arg with
+      | Some lv =>
+          match eval_read a lv with
+          | Some sv => Some (Some sv, Some lv)
+          | _ => None
+          end
+      | _ => None
+      end
+  | _, _ => None
+  end.
+
+Lemma eval_arg_sound : forall ge p a_mem a_ext arg dir argval,
+  eval_arg ge p a_mem arg dir = Some argval ->
+  hoare_arg ge p (MEM a_mem (EXT a_ext)) arg dir argval.
+Proof.
+  unfold hoare_arg; intros.
+  inv H2.
+  - simpl in H0.
+    destruct (eval_expr ge p a_mem expr) eqn:H_eval_expr. 2 : inv H0.
+    inv H0.
+    repeat constructor.
+    eapply hoare_expr_det_intro; eauto.
+    eapply eval_expr_sound; auto.
+  - simpl in H0.
+    inv H0.
+    repeat constructor.
+  - simpl in H0.
+    destruct (eval_lexpr ge p a_mem expr) eqn:H_eval_lexpr. 2 : inv H0.
+    inv H0.
+    eapply eval_lexpr_sound in H_eval_lexpr.
+    edestruct H_eval_lexpr; eauto.
+    repeat constructor; eauto.
+  - simpl in H0.
+    destruct (eval_lexpr ge p a_mem expr) eqn:H_eval_lexpr. 2 : inv H0.
+    destruct (eval_read a_mem v0) eqn:H_eval_read. 2 : inv H0.
+    inv H0.
+    eapply eval_lexpr_sound in H_eval_lexpr.
+    edestruct H_eval_lexpr; eauto.
+    eapply eval_read_sound in H_eval_read.
+    repeat constructor; eauto.
+    eapply sval_refine_trans. 2 : {
+      eapply sval_to_val_to_sval; eauto.
+    }
+    apply lval_eqb_eq in H2. subst v0.
+    eapply H_eval_read; eauto.
+Qed.
+
 Definition eval_args (ge : genv) (p : path) (a : mem_assertion) (args : list (option Expression))
-  (dir : list direction) : option (list (@argument tags_t)).
-Admitted.
+    (dirs : list direction) : option (list (@argument tags_t)) :=
+  lift_option (map (fun '(arg, dir) => eval_arg ge p a arg dir) (combine args dirs)).
 
 Lemma eval_args_sound : forall ge p a_mem a_ext (args : list (option Expression)) dirs argvals,
   eval_args ge p a_mem args dirs = Some argvals ->
   hoare_args ge p (MEM a_mem (EXT a_ext)) args dirs argvals.
-Admitted.
+Proof.
+  unfold hoare_args; intros.
+  generalize dependent argvals.
+  induction H2; intros.
+  - inv H0. repeat constructor.
+  - unfold eval_args in H4. simpl in H4.
+    destruct (eval_arg ge p a_mem exp dir) eqn:H_eval_arg. 2 : inv H4.
+    eapply eval_arg_sound in H_eval_arg.
+    edestruct H_eval_arg; eauto; subst.
+    simpl in H3; subst.
+    change (lift_option _) with (eval_args ge p a_mem exps dirs) in H4.
+    destruct (eval_args ge p a_mem exps dirs) eqn:H_eval_args. 2 : inv H4.
+    edestruct IHexec_args; eauto.
+    inv H4.
+    repeat constructor; eauto.
+Qed.
 
 End EvalExpr.
