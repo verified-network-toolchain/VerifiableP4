@@ -666,7 +666,7 @@ Lemma hoare_func_copy_in_intro : forall a_arg a_mem a_ext params a_mem',
   eval_write_vars a_mem (filter_in params) a_arg = a_mem' ->
   hoare_func_copy_in (ARG a_arg (MEM a_mem (EXT a_ext))) params (MEM a_mem' (EXT a_ext)).
 Proof.
-  unfold hoare_func_copy_in, bind_parameters. intros.
+  unfold hoare_func_copy_in. intros.
   eapply eval_write_vars_sound in H1. 2, 3 : eassumption.
   destruct H3; eauto.
 Qed.

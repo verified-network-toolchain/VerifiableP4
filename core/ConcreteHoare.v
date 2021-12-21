@@ -80,13 +80,13 @@ Definition eval_write_options (a : mem_assertion) (lvs : list (option Lval)) (sv
   eval_write_options a lvs svs = Some a' ->
   hoare_write_options a lvs svs a'. *)
 
-Definition eval_call_copy_out (a : mem_assertion) (dirs : list direction) (args : list argument) (outargs : list Sval) :=
-  eval_write_options a (extract_outlvals dirs args) outargs.
+Definition eval_call_copy_out (a : mem_assertion) (args : list (option Lval * direction)) (outvals : list Sval) :=
+  eval_write_options a (filter_out args) outvals.
 
-Lemma eval_call_copy_out_sound : forall outargs vret a_mem a_ext dirs args a_mem',
+Lemma eval_call_copy_out_sound : forall outvals vret a_mem a_ext args a_mem',
   NoDup (map fst a_mem) ->
-  eval_call_copy_out a_mem dirs args outargs = Some a_mem' ->
-  hoare_call_copy_out ge (ARG_RET outargs vret (MEM a_mem (EXT a_ext))) dirs args (RET vret (MEM a_mem' (EXT a_ext))).
+  eval_call_copy_out a_mem args outvals = Some a_mem' ->
+  hoare_call_copy_out ge (ARG_RET outvals vret (MEM a_mem (EXT a_ext))) args (RET vret (MEM a_mem' (EXT a_ext))).
 Admitted.
 
 Lemma hoare_func_pre : forall ge p (pre pre' : Hoare.arg_assertion) fd targs post,
@@ -97,11 +97,11 @@ Proof.
   sfirstorder.
 Qed.
 
-Lemma hoare_call_copy_out_pre : forall ge (pre pre' : Hoare.arg_ret_assertion) dirs args post,
+Lemma hoare_call_copy_out_pre : forall ge (pre pre' : Hoare.arg_ret_assertion) args post,
   (forall args sig st, satisfies_arg_ret_assertion pre args sig st ->
       satisfies_arg_ret_assertion pre' args sig st) ->
-  hoare_call_copy_out ge pre' dirs args post ->
-  hoare_call_copy_out ge pre dirs args post.
+  hoare_call_copy_out ge pre' args post ->
+  hoare_call_copy_out ge pre args post.
 Proof.
   sfirstorder.
 Qed.
@@ -118,7 +118,7 @@ Lemma hoare_call_func' : forall p pre_mem pre_ext tags func targs args typ dir a
       fd targs
       (ARG_RET outargs vret (MEM mid_mem (EXT post_ext))) ->
   NoDup (map fst (if is_some obj_path then pre_mem else mid_mem)) ->
-  eval_call_copy_out (if is_some obj_path then pre_mem else mid_mem) dirs argvals outargs = Some post_mem ->
+  eval_call_copy_out (if is_some obj_path then pre_mem else mid_mem) (combine (map snd argvals) dirs) outargs = Some post_mem ->
   hoare_call ge p
     (MEM pre_mem (EXT pre_ext))
     (MkExpression tags (ExpFunctionCall func targs args) typ dir)
@@ -338,7 +338,7 @@ Lemma inv_func_copy_out_sound_part1 : forall params a_arg a_ret a_mem a_ext,
 Proof.
   unfold hoare_func_copy_out; intros.
   epose proof (eval_read_vars_eval_write_vars (filter_out params) _ _ H0 (NoDup_app_remove_2 _ _ H1)).
-  unfold extract_parameters in H3.
+  unfold exec_func_copy_out in H3.
   apply lift_option_inv in H3.
   pose proof (eval_read_vars_sound _ _ _ _ H4 _ _ (proj2 H2) H3).
   split. { auto. }
@@ -361,20 +361,18 @@ Proof.
     apply H1; eauto.
 Qed.
 
-Lemma hoare_func_internal' : forall p pre_arg pre_mem pre_ext params init body targs mid1_mem mid2 mid3 post,
+Lemma hoare_func_internal' : forall p pre_arg pre_mem pre_ext params body targs mid1_mem mid2 post,
   length (filter_in params) = length pre_arg ->
   is_no_dup (map fst pre_mem) ->
   eval_write_vars pre_mem (filter_in params) pre_arg = mid1_mem ->
-  hoare_block ge p (MEM mid1_mem (EXT pre_ext)) init (mk_post_assertion mid2 mid3) ->
-  hoare_block ge p mid2 body (return_post_assertion_1 mid3) ->
-  inv_func_copy_out (filter_out params) mid3 post ->
-  hoare_func ge p (ARG pre_arg (MEM pre_mem (EXT pre_ext))) (FInternal params init body) targs post.
+  hoare_block ge p (MEM mid1_mem (EXT pre_ext)) body (return_post_assertion_1 mid2) ->
+  inv_func_copy_out (filter_out params) mid2 post ->
+  hoare_func ge p (ARG pre_arg (MEM pre_mem (EXT pre_ext))) (FInternal params body) targs post.
 Proof.
   intros.
   eapply hoare_func_internal.
   - eapply hoare_func_copy_in_intro; eauto.
     apply is_no_dup_NoDup; auto.
-  - eauto.
   - eauto.
   - apply inv_func_copy_out_sound; auto.
 Qed.

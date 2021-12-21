@@ -461,15 +461,18 @@ Proof.
       only 1, 2 : constructor; auto.
 Qed.
 
-Lemma args_refine_extract_outlvals : forall dirs args args',
+Lemma args_refine_map_snd : forall args args',
   args_refine args args' ->
-  extract_outlvals dirs args = extract_outlvals dirs args'.
+  map snd args = map snd args'.
 Proof.
   intros.
   induction H0.
   - constructor.
-  - destruct dirs as [ | [] ?]; destruct x as []; destruct y as [].
-Admitted.
+  - destruct x; destruct y.
+    inv H0; inv H3; simpl; f_equal; auto.
+    apply lval_eqb_eq in H0.
+    f_equal; auto.
+Qed.
 
 Lemma hoare_call_builtin : forall p pre tags tags' expr fname tparams params typ' dir' args typ dir post lv argvals,
   let dirs := map get_param_dir params in
@@ -497,10 +500,10 @@ Proof.
   assumption.
 Qed.
 
-Definition hoare_call_copy_out (pre : arg_ret_assertion) (dirs : list direction) (args : list argument) (post : ret_assertion) : Prop :=
-  forall outargs sig st st',
-    satisfies_arg_ret_assertion pre outargs sig st ->
-    exec_write_options ge st (extract_outlvals dirs args) outargs st' ->
+Definition hoare_call_copy_out (pre : arg_ret_assertion) (args : list (option Lval * direction)) (post : ret_assertion) : Prop :=
+  forall outvals sig st st',
+    satisfies_arg_ret_assertion pre outvals sig st ->
+    exec_call_copy_out ge args outvals st  st' ->
       satisfies_ret_assertion post sig st'.
 
 Lemma hoare_call_func : forall p (pre : assertion) tags func targs args typ dir post argvals obj_path fd
@@ -517,7 +520,7 @@ Lemma hoare_call_func : forall p (pre : assertion) tags func targs args typ dir 
       (fun outargs retv '(m, es) => (exists es', pre (m, es')) /\ (exists m', mid2 outargs retv (m', es)))
     else
       mid2) ->
-  hoare_call_copy_out mid3 dirs argvals post ->
+  hoare_call_copy_out mid3 (combine (map snd argvals) dirs) post ->
   hoare_call p pre (MkExpression tags (ExpFunctionCall func targs args) typ dir) post.
 Proof.
   unfold hoare_args, hoare_func, hoare_call_copy_out, hoare_call.
@@ -533,7 +536,7 @@ Proof.
     - auto.
   }
   subst dirs.
-  erewrite <- args_refine_extract_outlvals in H25 by eauto.
+  erewrite <- args_refine_map_snd in H25 by eauto.
   unshelve epose proof (H6 _ sig' _ _ ltac:(shelve) H25). {
     destruct (is_some obj_path0).
     - destruct s3. destruct sig'; try solve [inv H3].
@@ -549,43 +552,38 @@ Qed.
 Definition hoare_func_copy_in (pre : arg_assertion) (params : list (path * direction)) (post : assertion) : Prop :=
   forall args st st',
     pre args st ->
-    bind_parameters params args st st' ->
+    exec_func_copy_in params args st = st' ->
     post st'.
 
 Definition hoare_func_copy_out (pre : ret_assertion) (params : list (path * direction)) (post : arg_ret_assertion) : Prop :=
   forall retv st,
     pre retv st ->
     forall args,
-      extract_parameters (filter_out params) st = Some args ->
+      exec_func_copy_out params st = Some args ->
       post args retv st.
 
-Definition generate_post_condition (out_params : list path) (post : arg_ret_assertion) : ret_assertion :=
+Definition generate_post_condition (params : list (path * direction)) (post : arg_ret_assertion) : ret_assertion :=
   fun retv st =>
     forall args,
-      extract_parameters out_params st = Some args ->
+      exec_func_copy_out params st = Some args ->
       post args retv st.
 
-Lemma hoare_func_internal : forall p pre params init body targs mid1 mid2 mid3 post,
+Lemma hoare_func_internal : forall p pre params body targs mid1 mid2 post,
   hoare_func_copy_in pre params mid1 ->
-  hoare_block p mid1 init (mk_post_assertion mid2 mid3) ->
-  hoare_block p mid2 body (return_post_assertion_1 mid3) ->
-  hoare_func_copy_out mid3 params post ->
-  hoare_func p pre (FInternal params init body) targs post.
+  hoare_block p mid1 body (return_post_assertion_1 mid2) ->
+  hoare_func_copy_out mid2 params post ->
+  hoare_func p pre (FInternal params body) targs post.
 Proof.
   unfold hoare_func_copy_in, hoare_block, hoare_func_copy_out, hoare_func.
   intros.
-  inv H5.
-  specialize (H0 _ _ _ H4 H9).
-  specialize (H1 _ _ _ H0 H10).
-  destruct sig0; inv H11.
-  destruct H1. 2 : { inv H1. }
-  destruct H1 as [_ H1].
-  specialize (H2 _ _ _ H1 H14).
-  destruct H2.
-  - destruct H2 as [? H2]; subst sig'.
-    apply H3; auto.
-  - destruct sig'; try solve [inv H2].
-    apply H3; auto.
+  inv H4.
+  specialize (H0 _ _ _ H3 ltac:(reflexivity)).
+  specialize (H1 _ _ _ H0 ltac:(eassumption)).
+  destruct H1.
+  - destruct H1 as [? H1]; subst.
+    apply H2; auto.
+  - destruct sig0; try solve [inv H1].
+    apply H2; auto.
 Qed.
 
 Lemma implies_refl : forall (pre : assertion),
