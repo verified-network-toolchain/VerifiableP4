@@ -1,5 +1,7 @@
 Require Import Coq.Strings.String.
+Require Import Coq.ZArith.ZArith.
 Require Import Coq.NArith.BinNat.
+Require Import Coq.micromega.Lia.
 Require Import Poulet4.Typed.
 Require Import Poulet4.Syntax.
 Require Import Poulet4.Value.
@@ -257,8 +259,15 @@ Proof.
   intros.
   inv H; try solve [constructor | apply sval_refine_get_case1; auto].
   - unfold get.
-    destruct (String.eqb f "size");
-      only 2 : destruct (String.eqb f "lastIndex");
+    destruct (String.eqb f "size").
+    {
+      apply Utils.Forall2_length in H0.
+      pose proof (Zlength_correct lv).
+      pose proof (Zlength_correct lv').
+      replace (Zlength lv) with (Zlength lv') by lia.
+      apply sval_refine_refl.
+    }
+    destruct (String.eqb f "lastIndex");
       apply sval_refine_refl.
 Qed.
 

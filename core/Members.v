@@ -3,8 +3,10 @@ Require Import Poulet4.Typed.
 Require Import Poulet4.Syntax.
 Require Import Poulet4.Semantics.
 Require Import Poulet4.Value.
+Require Import Poulet4.Sublist.
 Require Import ProD3.core.Coqlib.
 Require Import Coq.ZArith.BinInt.
+Require Import Coq.ZArith.ZArith.
 Require Import Coq.NArith.BinNat.
 Open Scope type_scope.
 
@@ -39,9 +41,9 @@ Definition get (f : ident) (sv : Sval) : Sval :=
   | ValBaseHeader fields _
   | ValBaseUnion fields =>
       force ValBaseNull (AList.get fields f)
-  | ValBaseStack headers size next =>
+  | ValBaseStack headers next =>
       if String.eqb f "size" then
-        ValBaseBit (P4Arith.to_loptbool 32%N (Z.of_N size))
+        ValBaseBit (P4Arith.to_loptbool 32%N (Zlength headers))
       else if String.eqb f "lastIndex" then
         (if (next =? 0)%N 
         then (ValBaseBit (Zrepeat (@None bool) 32%Z))

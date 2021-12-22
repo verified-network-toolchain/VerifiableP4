@@ -95,7 +95,8 @@ Proof.
   - simpl.
     inv H.
       clear H3.
-      assert (Forall2 sval_refine (map snd kvs) (map snd fields)) as H3. { admit. (* pending list_solve *) }
+      assert (Forall2 sval_refine (map snd kvs) (map snd fields)) as H3. { admit. (* use list_solve *) }
+    (* use list_solve *)
     admit.
     (* destruct (lift_option (map header_isValid (map snd fields))) eqn:H_lift_option. 2 : constructor.
     apply lift_option_some_inv in H_lift_option.
@@ -127,19 +128,31 @@ Definition setInvalid (sv : Sval) : Sval :=
 
 Definition push_front (sv : Sval) (count : Z) : Sval :=
   match sv with
-  | ValBaseStack headers size next =>
-      let (headers', next') := push_front headers next count in
-      ValBaseStack headers' size next'
+  | ValBaseStack headers next =>
+      push_front headers next count
   | _ => sv
   end.
 
+Lemma push_front_sound : forall sv headers next count,
+  sval_refine sv (ValBaseStack headers next) ->
+  sval_refine (push_front sv count) (Semantics.push_front headers next count).
+Proof.
+  (* use list_solve *)
+Admitted.
+
 Definition pop_front (sv : Sval) (count : Z) : Sval :=
   match sv with
-  | ValBaseStack headers size next =>
-      let (headers', next') := pop_front headers next count in
-      ValBaseStack headers' size next'
+  | ValBaseStack headers next =>
+      pop_front headers next count
   | _ => sv
   end.
+
+Lemma pop_front_sound : forall sv headers next count,
+  sval_refine sv (ValBaseStack headers next) ->
+  sval_refine (pop_front sv count) (Semantics.pop_front headers next count).
+Proof.
+  (* use list_solve *)
+Admitted.
 
 Definition eval_builtin (a : mem_assertion) (lv : Lval) (fname : ident) (args : list Sval) : option (mem_assertion * Sval) :=
   if fname =? "isValid" then
@@ -148,14 +161,59 @@ Definition eval_builtin (a : mem_assertion) (lv : Lval) (fname : ident) (args : 
         Some (a, ValBaseBool (isValid hdr))
     | None => None
     end
+  else if fname =? "setValid" then
+    match eval_read a lv with
+    | Some hdr =>
+        match eval_write a lv (setValid hdr) with
+        | Some a' => Some (a', ValBaseNull)
+        | None => None
+        end
+    | None => None
+    end
+  else if fname =? "setInvalid" then
+    match eval_read a lv with
+    | Some hdr =>
+        match eval_write a lv (setInvalid hdr) with
+        | Some a' => Some (a', ValBaseNull)
+        | None => None
+        end
+    | None => None
+    end
+  else if fname =? "push_front" then
+    match args with
+    | [ValBaseInteger count] =>
+      match eval_read a lv with
+      | Some hdr =>
+          match eval_write a lv (push_front hdr count) with
+          | Some a' => Some (a', ValBaseNull)
+          | None => None
+          end
+      | None => None
+      end
+    | _ => None
+    end
+  else if fname =? "pop_front" then
+    match args with
+    | [ValBaseInteger count] =>
+      match eval_read a lv with
+      | Some hdr =>
+          match eval_write a lv (pop_front hdr count) with
+          | Some a' => Some (a', ValBaseNull)
+          | None => None
+          end
+      | None => None
+      end
+    | _ => None
+    end
   else
     None.
 
 Lemma eval_builtin_sound : forall ge p a_mem a_ext lv fname args a_mem' retv,
+  NoDup (map fst a_mem) ->
   eval_builtin a_mem lv fname args = Some (a_mem', retv) ->
   hoare_builtin ge p (ARG args (MEM a_mem (EXT a_ext))) lv fname (RET retv (MEM a_mem' (EXT a_ext))).
 Proof.
-  unfold hoare_builtin; intros.
+  unfold hoare_builtin; intros * H_NoDup; intros.
   inv H1.
   - unfold eval_builtin in H. simpl in H.
     destruct (eval_read a_mem lv) eqn:H_eval_read. 2 : inv H.
@@ -165,12 +223,57 @@ Proof.
     inv H.
     split. 2 : apply H0.
     intros.
+    inv H. constructor. inv H5. auto.
+  - unfold eval_builtin in H. simpl in H.
+    destruct (eval_read a_mem lv) eqn:H_eval_read. 2 : inv H.
+    eapply eval_read_sound in H_eval_read; eauto.
+    specialize (H_eval_read _ _ ltac:(apply H0) H2).
+    destruct (eval_write a_mem lv (setValid v)) eqn:H_eval_write. 2 : inv H.
+    eapply eval_write_sound in H_eval_write; eauto.
+    assert (sval_refine (setValid v) (ValBaseHeader fields (Some true))). {
+      inv H_eval_read.
+      constructor; [constructor | auto].
+    }
+    specialize (H_eval_write _ _ _ ltac:(apply H0) ltac:(eassumption) ltac:(eassumption)).
     inv H.
-    constructor. inv H5. auto.
-  - inv H.
-  - inv H.
-  - inv H.
-  - inv H.
+    split. 2 : auto.
+    intros. inv H. constructor.
+  - unfold eval_builtin in H. simpl in H.
+    destruct (eval_read a_mem lv) eqn:H_eval_read. 2 : inv H.
+    eapply eval_read_sound in H_eval_read; eauto.
+    specialize (H_eval_read _ _ ltac:(apply H0) H2).
+    destruct (eval_write a_mem lv (setInvalid v)) eqn:H_eval_write. 2 : inv H.
+    eapply eval_write_sound in H_eval_write; eauto.
+    assert (sval_refine (setInvalid v) (ValBaseHeader fields (Some false))). {
+      inv H_eval_read.
+      constructor; [constructor | auto].
+    }
+    specialize (H_eval_write _ _ _ ltac:(apply H0) ltac:(eassumption) ltac:(eassumption)).
+    inv H.
+    split. 2 : auto.
+    intros. inv H. constructor.
+  - unfold eval_builtin in H. simpl in H.
+    destruct H0. inv H0; inv H7; inv H8.
+    destruct (eval_read a_mem lv) eqn:H_eval_read. 2 : inv H.
+    eapply eval_read_sound in H_eval_read; eauto.
+    specialize (H_eval_read _ _ ltac:(apply H1) H2).
+    destruct (eval_write a_mem lv (push_front v count)) eqn:H_eval_write. 2 : inv H.
+    eapply eval_write_sound in H_eval_write; eauto.
+    specialize (H_eval_write _ _ _ ltac:(apply H1) ltac:(eapply push_front_sound; eassumption) ltac:(eassumption)).
+    inv H.
+    split. 2 : auto.
+    intros. inv H. constructor.
+  - unfold eval_builtin in H. simpl in H.
+    destruct H0. inv H0; inv H7; inv H8.
+    destruct (eval_read a_mem lv) eqn:H_eval_read. 2 : inv H.
+    eapply eval_read_sound in H_eval_read; eauto.
+    specialize (H_eval_read _ _ ltac:(apply H1) H2).
+    destruct (eval_write a_mem lv (pop_front v count)) eqn:H_eval_write. 2 : inv H.
+    eapply eval_write_sound in H_eval_write; eauto.
+    specialize (H_eval_write _ _ _ ltac:(apply H1) ltac:(eapply pop_front_sound; eassumption) ltac:(eassumption)).
+    inv H.
+    split. 2 : auto.
+    intros. inv H. constructor.
 Qed.
 
 End EvalBuiltin.

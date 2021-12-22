@@ -99,8 +99,8 @@ Fixpoint eval_sval_to_val (sval: Sval): option Val :=
                       | Some l' => Some (ValBaseUnion l')
                       | None => None
                       end
-  | ValBaseStack l s n => match sval_to_vals l with
-                          | Some l' => Some (ValBaseStack l' s n)
+  | ValBaseStack l n => match sval_to_vals l with
+                          | Some l' => Some (ValBaseStack l' n)
                           | None => None
                           end
   | ValBaseEnumField s1 s2 => Some (ValBaseEnumField s1 s2)
@@ -144,7 +144,7 @@ Fixpoint force_sval_to_val (sval: Sval): Val :=
   | ValBaseStruct l => ValBaseStruct (sval_to_avals l)
   | ValBaseHeader l valid => ValBaseHeader (sval_to_avals l) (opt_to_bool valid)
   | ValBaseUnion l => ValBaseUnion (sval_to_avals l)
-  | ValBaseStack l s n => ValBaseStack (sval_to_vals l) s n
+  | ValBaseStack l n => ValBaseStack (sval_to_vals l) n
   | ValBaseEnumField s1 s2 => ValBaseEnumField s1 s2
   | ValBaseSenumField s1 s2 s => ValBaseSenumField s1 s2 (force_sval_to_val s)
   end.
@@ -178,7 +178,7 @@ Fixpoint val_to_liberal_sval (val: Val): Sval :=
   | ValBaseStruct l => ValBaseStruct (sval_to_avals l)
   | ValBaseHeader l valid => ValBaseHeader (sval_to_avals l) (bool_to_none valid)
   | ValBaseUnion l => ValBaseUnion (sval_to_avals l)
-  | ValBaseStack l s n => ValBaseStack (sval_to_vals l) s n
+  | ValBaseStack l n => ValBaseStack (sval_to_vals l) n
   | ValBaseEnumField s1 s2 => ValBaseEnumField s1 s2
   | ValBaseSenumField s1 s2 s => ValBaseSenumField s1 s2 (val_to_liberal_sval s)
   end.

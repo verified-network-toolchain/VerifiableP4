@@ -6,6 +6,7 @@ Require Import ProD3.core.Hoare.
 Require Import ProD3.core.AssertionLang.
 Require Import ProD3.core.AssertionNotations.
 Require Import ProD3.core.EvalExpr.
+Require Import ProD3.core.EvalBuiltin.
 Require Import Poulet4.V1Model.
 Require Import Hammer.Tactics.Tactics.
 Require Import Hammer.Plugin.Hammer.
@@ -48,22 +49,24 @@ Proof.
 Qed.
 
 Lemma hoare_call_builtin' : forall p pre_mem pre_ext tags tags' dir' expr fname tparams params typ
-    args typ' dir post lv argvals,
+    args typ' dir post_mem retv lv argvals,
+  NoDup (map fst pre_mem) ->
   let dirs := map get_param_dir params in
   eval_lexpr ge p pre_mem expr = Some lv ->
   eval_args ge p pre_mem args dirs = Some argvals ->
-  hoare_builtin ge p (ARG (extract_invals argvals) (MEM pre_mem (EXT pre_ext))) lv (P4String.str fname) post ->
+  eval_builtin pre_mem lv (P4String.str fname) (extract_invals argvals) = Some (post_mem, retv) ->
+  (* hoare_builtin ge p (ARG (extract_invals argvals) (MEM pre_mem (EXT pre_ext))) lv (P4String.str fname) post -> *)
   hoare_call ge p (MEM pre_mem (EXT pre_ext))
     (MkExpression tags (ExpFunctionCall
       (MkExpression tags' (ExpExpressionMember expr fname) (TypFunction (MkFunctionType tparams params FunBuiltin typ')) dir')
       nil args) typ dir)
-    post.
+    (RET retv (MEM post_mem (EXT pre_ext))).
 Proof.
   intros.
   eapply hoare_call_builtin.
   - apply eval_lexpr_sound; eassumption.
   - apply eval_args_sound; eassumption.
-  - eassumption.
+  - apply eval_builtin_sound; eassumption.
 Qed.
 
 Definition eval_write_options (a : mem_assertion) (lvs : list (option Lval)) (svs : list Sval) : option mem_assertion :=
