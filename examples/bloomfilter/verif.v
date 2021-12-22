@@ -241,22 +241,18 @@ Proof.
   { (* length *)
     reflexivity.
   }
-  {
-    (* NoDup *)
+  { (* NoDup *)
     reflexivity.
   }
-  {
-    (* eval_write_vars *)
+  { (* eval_write_vars *)
     (* compute the assertion. Need better simpl. *)
     reflexivity.
   }
-  3 : {
-    (* inv_func_copy_out *)
+  2 : { (* inv_func_copy_out *)
     constructor.
     { unfold post_arg_assertion. destruct (process rw data bst). reflexivity. }
     { reflexivity. }
   }
-  { apply hoare_block_nil. apply implies_refl_post. }
   eapply hoare_block_cons.
   { (* t'0 = hdr.myHeader.isValid() *)
     eapply hoare_stmt_var_call.
@@ -264,9 +260,17 @@ Proof.
       reflexivity.
     }
     { (* hoare_call *)
+      eapply hoare_call_builtin'.
+      { (* eval_lexpr *)
+        reflexivity.
+      }
+      { (* eval_args *)
+        reflexivity.
+      }
+      
       admit. (* TODO *)
     }
-    { admit. }
+    { admit. (* eapply eval_write_sound. *) }
     (* instantiate (1 := (
         MEM [(["hdr"], myHeader); (["meta"], meta); (["standard_metadata"], standard_metadata);
             (["t'0"], ValBaseBool (Some true))]
@@ -389,7 +393,7 @@ Axiom dummy_stmt : (@Statement Info).
 
 Definition assign_stmt := Eval compute in
   match Query_fundef with
-  | FInternal _ _ (BlockCons _ (BlockCons _ (BlockCons _ (BlockCons _ (BlockCons _ (BlockCons _ (BlockCons stat _))))))) =>
+  | FInternal _ (BlockCons _ (BlockCons _ (BlockCons _ (BlockCons _ (BlockCons _ (BlockCons _ (BlockCons stat _))))))) =>
     stat
   | _ => dummy_stmt
   end.
