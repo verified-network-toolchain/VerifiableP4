@@ -31,14 +31,14 @@ Context `{@Target tags_t Expression}.
 
 Variable ge : (@genv tags_t _).
 
-Lemma hoare_stmt_assign' : forall p a_mem a_ext tags lhs rhs typ a_mem' ret_post lv sv,
+Lemma hoare_stmt_assign' : forall p pre_mem pre_ext tags lhs rhs typ post_mem ret_post lv sv,
   is_call_expression rhs = false ->
-  is_no_dup (map fst a_mem) ->
-  eval_lexpr ge p a_mem lhs = Some lv ->
-  eval_expr ge p a_mem rhs = Some sv ->
-  eval_write a_mem lv sv = Some a_mem' ->
-  hoare_stmt ge p (MEM a_mem (EXT a_ext)) (MkStatement tags (StatAssignment lhs rhs) typ)
-      (mk_post_assertion (MEM a_mem' (EXT a_ext)) ret_post).
+  is_no_dup (map fst pre_mem) ->
+  eval_lexpr ge p pre_mem lhs = Some lv ->
+  eval_expr ge p pre_mem rhs = Some sv ->
+  eval_write pre_mem lv sv = Some post_mem ->
+  hoare_stmt ge p (MEM pre_mem (EXT pre_ext)) (MkStatement tags (StatAssignment lhs rhs) typ)
+      (mk_post_assertion (MEM post_mem (EXT pre_ext)) ret_post).
 Proof.
   intros.
   eapply hoare_stmt_assign.
@@ -48,9 +48,26 @@ Proof.
   - apply eval_write_sound; only 1 : apply is_no_dup_NoDup; eassumption.
 Qed.
 
+Lemma hoare_stmt_var_call' : forall p pre_mem pre_ext tags typ' name expr loc typ vret mid_mem post_mem post_ext ret_post,
+  is_call_expression expr = true ->
+  hoare_call ge p (MEM pre_mem (EXT pre_ext)) expr (RET vret (MEM mid_mem (EXT post_ext))) ->
+  is_no_dup (map fst mid_mem) ->
+  eval_write mid_mem (MkValueLvalue (ValLeftName (BareName name) loc) typ') vret = Some post_mem ->
+  hoare_stmt ge p
+    (MEM pre_mem (EXT pre_ext))
+    (MkStatement tags (StatVariable typ' name (Some expr) loc) typ)
+    (mk_post_assertion (MEM post_mem (EXT post_ext)) ret_post).
+Proof.
+  intros.
+  eapply hoare_stmt_var_call.
+  - assumption.
+  - eassumption.
+  - apply eval_write_sound; only 1 : apply is_no_dup_NoDup; eassumption.
+Qed.
+
 Lemma hoare_call_builtin' : forall p pre_mem pre_ext tags tags' dir' expr fname tparams params typ
     args typ' dir post_mem retv lv argvals,
-  NoDup (map fst pre_mem) ->
+  is_no_dup (map fst pre_mem) ->
   let dirs := map get_param_dir params in
   eval_lexpr ge p pre_mem expr = Some lv ->
   eval_args ge p pre_mem args dirs = Some argvals ->
@@ -66,7 +83,9 @@ Proof.
   eapply hoare_call_builtin.
   - apply eval_lexpr_sound; eassumption.
   - apply eval_args_sound; eassumption.
-  - apply eval_builtin_sound; eassumption.
+  - apply eval_builtin_sound.
+    + apply is_no_dup_NoDup; eassumption.
+    + eassumption.
 Qed.
 
 Definition eval_write_options (a : mem_assertion) (lvs : list (option Lval)) (svs : list Sval) : option mem_assertion :=

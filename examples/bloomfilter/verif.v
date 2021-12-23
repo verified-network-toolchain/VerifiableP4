@@ -255,27 +255,31 @@ Proof.
   }
   eapply hoare_block_cons.
   { (* t'0 = hdr.myHeader.isValid() *)
-    eapply hoare_stmt_var_call.
+    eapply hoare_stmt_var_call'.
     { (* is_call_expression *)
       reflexivity.
     }
     { (* hoare_call *)
       eapply hoare_call_builtin'.
+      { (* is_no_dup *)
+        reflexivity.
+      }
       { (* eval_lexpr *)
         reflexivity.
       }
       { (* eval_args *)
         reflexivity.
       }
-      
-      admit. (* TODO *)
+      { (* eval_builtin *)
+        reflexivity.
+      }
     }
-    { admit. (* eapply eval_write_sound. *) }
-    (* instantiate (1 := (
-        MEM [(["hdr"], myHeader); (["meta"], meta); (["standard_metadata"], standard_metadata);
-            (["t'0"], ValBaseBool (Some true))]
-       (EXT pre_ext_assertion))).
-    admit. *)
+    { (* is_no_dup *)
+      reflexivity.
+    }
+    { (* eval_write *)
+      reflexivity.
+    }
   }
   (* eapply deep_hoare_func_internal.
   { (* copy_in *)

@@ -321,7 +321,7 @@ Qed.
 
 Lemma hoare_stmt_var_call : forall p pre tags typ' name e loc typ post mid sv,
   is_call_expression e = true ->
-  hoare_call p pre e (fun v st => mid st /\ (forall sv', val_to_sval v sv' -> sval_refine sv sv')) ->
+  hoare_call p pre e (fun v st => (forall sv', val_to_sval v sv' -> sval_refine sv sv') /\ mid st) ->
   hoare_write mid (MkValueLvalue (ValLeftName (BareName name) loc) typ') sv (post_continue post) ->
   hoare_stmt p pre (MkStatement tags (StatVariable typ' name (Some e) loc) typ) post.
 Proof.
@@ -337,7 +337,7 @@ Proof.
   destruct H1. destruct H16.
   split; only 1 : auto.
   inv H5.
-  specialize (H2 _ _ _ H1 (H4 _ H8) ltac:(eassumption)).
+  specialize (H2 _ _ _ H4 (H1 _ H8) ltac:(eassumption)).
   auto.
 Qed.
 
