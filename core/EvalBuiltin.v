@@ -1,4 +1,6 @@
 Require Import Coq.Strings.String.
+Require Import Coq.ZArith.ZArith.
+Require Import VST.zlist.Zlist.
 Require Import Poulet4.Utils.
 Require Import Poulet4.Typed.
 Require Import Poulet4.Syntax.
@@ -46,13 +48,13 @@ Definition isValid (sv : Sval) : option bool :=
 
 Lemma header_isValid_sound : forall sv sv' b,
   sval_refine sv sv' ->
-  exec_isValid read_ndetbit sv b ->
+  exec_isValid read_ndetbit sv' b ->
   bit_refine (header_isValid sv) (Some b).
 Proof.
   intros.
   inv H0.
-  - inv H; inv H3; inv H1; constructor.
-  - constructor.
+  - inv H; inv H4; inv H1; constructor.
+  - inv H. constructor.
 Qed.
 
 Lemma lift_option_some_inv : forall {A : Type} (ol : list (option A)) (al : list A),
@@ -84,6 +86,31 @@ Proof.
   - destruct bl; inv H; inv H3; f_equal; auto.
 Qed.
 
+Global Instance Inhabitant_string : Inhabitant string := "".
+Print Ltac range_rewrite.range_form.
+
+Lemma Forall2_forall_range2 : forall {A B : Type} {da : Inhabitant A} {db : Inhabitant B} al bl (P : A -> B -> Prop),
+  Forall2 P al bl <->
+    (Zlength al = Zlength bl /\ forall_range2 0 (Zlength al) 0 al bl P).
+Proof.
+  intros; split; intro.
+  - induction H.
+    + unfold forall_range2, forall_i. list_solve.
+    + unfold forall_range2, forall_i. destruct IHForall2. list_solve.
+  - generalize dependent bl; induction al; intros.
+    + assert (bl = []) by list_solve; subst.
+      constructor.
+    + destruct bl. 1 : list_solve.
+      constructor. {
+        destruct (H).
+        specialize (H1 0%Z ltac:(list_solve)).
+        list_solve.
+      }
+      apply IHal. unfold forall_range2, forall_i. destruct H. list_solve.
+Qed.
+
+Hint Rewrite @Forall2_forall_range2 : list_prop_rewrite.
+
 Lemma isValid_sound : forall sv sv' b,
   sval_refine sv sv' ->
   exec_isValid read_ndetbit sv' b ->
@@ -94,23 +121,39 @@ Proof.
   - inv H; inv H4; inv H1; constructor.
   - simpl.
     inv H.
-      clear H3.
-      assert (Forall2 sval_refine (map snd kvs) (map snd fields)) as H3. { admit. (* use list_solve *) }
-    (* use list_solve *)
-    admit.
-    (* destruct (lift_option (map header_isValid (map snd fields))) eqn:H_lift_option. 2 : constructor.
-    apply lift_option_some_inv in H_lift_option.
-    eapply Forall2_impl with (Q := (fun sv b => bit_refine (header_isValid sv) (Some b))) in H0.
-     2 : {
-      apply ListUtil.Forall2_duh.
-      - apply header_isValid_sound.
-      - eapply Forall2_length, H0.
+    assert (Forall2 sval_refine (map snd kvs) (map snd fields)) as H3'. {
+      unfold AList.all_values in H3.
+      range_form. destruct H1. destruct H3.
+      list_simplify.
+      intro; intros.
+      list_simplify.
+      clear -H13.
+      hauto use: Z.add_0_r unfold: sval_refine.
     }
-    rewrite Forall2_map in H0.
-    rewrite H_lift_option in H0.
-    apply Forall2_bit_refine_Some_inv in H0.
-    subst; constructor. *)
-Admitted.
+    clear H3. rename H3' into H3.
+    assert (Forall2 bit_refine (map header_isValid (map snd kvs)) (map Some valid_bits)). {
+      range_form.
+      list_simplify.
+      intro; intros.
+      destruct H1; destruct H3; list_simplify.
+      rewrite Z.add_0_r in H13, H14.
+      eapply header_isValid_sound; eassumption.
+    }
+    clear -H.
+    simpl.
+    destruct (lift_option (map header_isValid (map snd kvs))) eqn:H_list_option.
+    2 : constructor.
+    apply lift_option_some_inv in H_list_option.
+    rewrite H_list_option in H. clear H_list_option.
+    assert (l = valid_bits). {
+      list_simplify.
+      destruct H.
+      list_simplify.
+      inv H8. list_solve.
+    }
+    rewrite H0.
+    constructor.
+Qed.
 
 Definition setValid (sv : Sval) : Sval :=
   match sv with
@@ -134,9 +177,20 @@ Definition push_front (sv : Sval) (count : Z) : Sval :=
   end.
 
 Lemma push_front_sound : forall sv headers next count,
+  (* (count >= 0)%Z ->
+  (Zlength headers > 0)%Z -> *)
   sval_refine sv (ValBaseStack headers next) ->
   sval_refine (push_front sv count) (Semantics.push_front headers next count).
 Proof.
+  (* intros.
+  inv H1.
+  unfold push_front, Semantics.push_front.
+  constructor.
+  range_form. destruct H4. rewrite H1.
+  destruct (count <=? Zlength headers)%Z eqn:?.
+  - list_simplify.
+    intro; intros.
+    list_simplify. *)
   (* use list_solve *)
 Admitted.
 
@@ -148,6 +202,8 @@ Definition pop_front (sv : Sval) (count : Z) : Sval :=
   end.
 
 Lemma pop_front_sound : forall sv headers next count,
+  (* (count >= 0)%Z ->
+  (Zlength headers > 0)%Z -> *)
   sval_refine sv (ValBaseStack headers next) ->
   sval_refine (pop_front sv count) (Semantics.pop_front headers next count).
 Proof.
