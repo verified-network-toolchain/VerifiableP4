@@ -791,9 +791,9 @@ Lemma sval_refine_uninit_sval_of_sval : forall sv,
 Proof.
 Admitted.
 
-Lemma sval_refine_uninit_sval_of_sval_trans : forall sv1 sv2,
+Lemma sval_refine_uninit_sval_of_sval_trans : forall b sv1 sv2,
   sval_refine sv1 sv2 ->
-  sval_refine (uninit_sval_of_sval None sv1) (uninit_sval_of_sval None sv2).
+  sval_refine (uninit_sval_of_sval b sv1) (uninit_sval_of_sval b sv2).
 Proof.
 Admitted.
 

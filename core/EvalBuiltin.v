@@ -177,22 +177,27 @@ Definition push_front (sv : Sval) (count : Z) : Sval :=
   end.
 
 Lemma push_front_sound : forall sv headers next count,
-  (* (count >= 0)%Z ->
-  (Zlength headers > 0)%Z -> *)
+  (count >= 0)%Z ->
   sval_refine sv (ValBaseStack headers next) ->
   sval_refine (push_front sv count) (Semantics.push_front headers next count).
 Proof.
-  (* intros.
-  inv H1.
+  intros.
+  inv H0.
   unfold push_front, Semantics.push_front.
   constructor.
-  range_form. destruct H4. rewrite H1.
+  range_form. destruct H3. rewrite H0.
   destruct (count <=? Zlength headers)%Z eqn:?.
   - list_simplify.
-    intro; intros.
-    list_simplify. *)
-  (* use list_solve *)
-Admitted.
+    + intro; intros.
+      list_simplify. apply sval_refine_uninit_sval_of_sval_trans. auto.
+    + intro; intros.
+      list_solve.
+  - list_simplify.
+    + intro; intros.
+      list_simplify. apply sval_refine_uninit_sval_of_sval_trans. auto.
+    + intro; intros.
+      list_solve.
+Qed.
 
 Definition pop_front (sv : Sval) (count : Z) : Sval :=
   match sv with
@@ -202,13 +207,27 @@ Definition pop_front (sv : Sval) (count : Z) : Sval :=
   end.
 
 Lemma pop_front_sound : forall sv headers next count,
-  (* (count >= 0)%Z ->
-  (Zlength headers > 0)%Z -> *)
+  (count >= 0)%Z ->
   sval_refine sv (ValBaseStack headers next) ->
   sval_refine (pop_front sv count) (Semantics.pop_front headers next count).
 Proof.
-  (* use list_solve *)
-Admitted.
+  intros.
+  inv H0.
+  unfold pop_front, Semantics.pop_front.
+  constructor.
+  range_form. destruct H3. rewrite H0.
+  destruct (count <=? Zlength headers)%Z eqn:?.
+  - list_simplify.
+    + intro; intros.
+      list_simplify. apply sval_refine_uninit_sval_of_sval_trans. auto.
+    + intro; intros.
+      list_solve.
+  - list_simplify.
+    + intro; intros.
+      list_simplify. apply sval_refine_uninit_sval_of_sval_trans. auto.
+    + intro; intros.
+      list_solve.
+Qed.
 
 Definition eval_builtin (a : mem_assertion) (lv : Lval) (fname : ident) (args : list Sval) : option (mem_assertion * Sval) :=
   if fname =? "isValid" then
@@ -309,10 +328,10 @@ Proof.
     split. 2 : auto.
     intros. inv H. constructor.
   - unfold eval_builtin in H. simpl in H.
-    destruct H0. inv H0; inv H7; inv H8.
+    destruct H0. inv H0; inv H8; inv H9.
     destruct (eval_read a_mem lv) eqn:H_eval_read. 2 : inv H.
     eapply eval_read_sound in H_eval_read; eauto.
-    specialize (H_eval_read _ _ ltac:(apply H1) H2).
+    specialize (H_eval_read _ _ ltac:(apply H1) H3).
     destruct (eval_write a_mem lv (push_front v count)) eqn:H_eval_write. 2 : inv H.
     eapply eval_write_sound in H_eval_write; eauto.
     specialize (H_eval_write _ _ _ ltac:(apply H1) ltac:(eapply push_front_sound; eassumption) ltac:(eassumption)).
@@ -320,10 +339,10 @@ Proof.
     split. 2 : auto.
     intros. inv H. constructor.
   - unfold eval_builtin in H. simpl in H.
-    destruct H0. inv H0; inv H7; inv H8.
+    destruct H0. inv H0; inv H8; inv H9.
     destruct (eval_read a_mem lv) eqn:H_eval_read. 2 : inv H.
     eapply eval_read_sound in H_eval_read; eauto.
-    specialize (H_eval_read _ _ ltac:(apply H1) H2).
+    specialize (H_eval_read _ _ ltac:(apply H1) H3).
     destruct (eval_write a_mem lv (pop_front v count)) eqn:H_eval_write. 2 : inv H.
     eapply eval_write_sound in H_eval_write; eauto.
     specialize (H_eval_write _ _ _ ltac:(apply H1) ltac:(eapply pop_front_sound; eassumption) ltac:(eassumption)).
