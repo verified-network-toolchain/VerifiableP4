@@ -48,6 +48,23 @@ Proof.
   - apply eval_write_sound; only 1 : apply is_no_dup_NoDup; eassumption.
 Qed.
 
+Lemma hoare_stmt_assign_call' : forall p pre_mem pre_ext tags lhs rhs typ lv vret mid_mem post_mem post_ext ret_post,
+  is_call_expression rhs = true ->
+  eval_lexpr ge p pre_mem lhs = Some lv ->
+  hoare_call ge p (MEM pre_mem (EXT pre_ext)) rhs (RET vret (MEM mid_mem (EXT post_ext))) ->
+  is_no_dup (map fst mid_mem) ->
+  eval_write mid_mem lv vret = Some post_mem ->
+  hoare_stmt ge p (MEM pre_mem (EXT pre_ext)) (MkStatement tags (StatAssignment lhs rhs) typ)
+      (mk_post_assertion (MEM post_mem (EXT post_ext)) ret_post).
+Proof.
+  intros.
+  eapply hoare_stmt_assign_call.
+  - assumption.
+  - apply eval_lexpr_sound; eassumption.
+  - eassumption.
+  - apply eval_write_sound; only 1 : apply is_no_dup_NoDup; eassumption.
+Qed.
+
 Lemma hoare_stmt_var_call' : forall p pre_mem pre_ext tags typ' name expr loc typ vret mid_mem post_mem post_ext ret_post,
   is_call_expression expr = true ->
   hoare_call ge p (MEM pre_mem (EXT pre_ext)) expr (RET vret (MEM mid_mem (EXT post_ext))) ->

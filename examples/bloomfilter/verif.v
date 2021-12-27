@@ -15,9 +15,12 @@ Require Import Poulet4.P4Arith.
 Require Import ProD3.core.Hoare.
 Require Import ProD3.core.ConcreteHoare.
 Require Import ProD3.core.EvalExpr.
+Require Import ProD3.core.Members.
 (* Require Import ProD3.core.HoareSoundness. *)
 Require Import ProD3.core.AssertionLang.
 Require Import ProD3.core.AssertionNotations.
+Require Import ProD3.core.FuncSpec.
+Require Import ProD3.core.Tactics.
 (* Require Import ProD3.core.V1ModelLang. *)
 
 Instance target : @Target Info (@Expression Info) := V1Model.
@@ -50,6 +53,53 @@ Notation ret_assertion := (@ret_assertion Info). *)
 Axiom dummy_fundef : (@fundef Info).
 
 Module Experiment1.
+
+Definition MyIngress_do_forward_fundef := Eval compute in
+  force dummy_fundef (PathMap.get ["MyIngress"; "do_forward"] (ge_func ge)).
+
+Lemma MyIngress_do_forward_body : forall p (port : Z) (standard_metadata : Sval),
+  hoare_func ge p
+    (ARG [ValBaseBit (to_loptbool 9 port)]
+      (MEM [(["standard_metadata"], standard_metadata)] (EXT [])))
+    MyIngress_do_forward_fundef nil
+    (ARG_RET [] ValBaseNull
+      (MEM [(["standard_metadata"],
+          update "egress_spec" (ValBaseBit (to_loptbool 9 port)) standard_metadata)]
+        (EXT []))).
+Proof.
+  intros.
+  eapply hoare_func_internal'.
+  { (* length *)
+    reflexivity.
+  }
+  { (* NoDup *)
+    reflexivity.
+  }
+  { (* eval_write_vars *)
+    (* compute the assertion. Need better simpl. *)
+    reflexivity.
+  }
+  2 : { (* inv_func_copy_out *)
+    constructor.
+    { reflexivity. }
+    { reflexivity. }
+  }
+Admitted.
+
+Lemma MyIngress_do_forward_spec : forall p (port : Z) (standard_metadata : Sval),
+  hoare_func_spec ge p
+    (ARG [ValBaseBit (to_loptbool 9%N port)]
+      (MEM [(["standard_metadata"], standard_metadata)]
+        (EXT [])))
+    MyIngress_do_forward_fundef nil
+    (ARG_RET [] ValBaseNull
+      (MEM [(["standard_metadata"], (update "egress_spec" (ValBaseBit (to_loptbool 9%N port)) standard_metadata))]
+        (EXT [])))
+    [["standard_metadata"]] [].
+Proof.
+  intros.
+  split. apply MyIngress_do_forward_body.
+Admitted.
 
 Definition MyIngress_fundef := Eval compute in
   match PathMap.get ["MyIngress"; "apply"] (ge_func ge) with
@@ -253,34 +303,7 @@ Proof.
     { unfold post_arg_assertion. destruct (process rw data bst). reflexivity. }
     { reflexivity. }
   }
-  eapply hoare_block_cons.
-  { (* t'0 = hdr.myHeader.isValid() *)
-    eapply hoare_stmt_var_call'.
-    { (* is_call_expression *)
-      reflexivity.
-    }
-    { (* hoare_call *)
-      eapply hoare_call_builtin'.
-      { (* is_no_dup *)
-        reflexivity.
-      }
-      { (* eval_lexpr *)
-        reflexivity.
-      }
-      { (* eval_args *)
-        reflexivity.
-      }
-      { (* eval_builtin *)
-        reflexivity.
-      }
-    }
-    { (* is_no_dup *)
-      reflexivity.
-    }
-    { (* eval_write *)
-      reflexivity.
-    }
-  }
+  forward.
   eapply hoare_block_cons.
   {
     eapply hoare_stmt_if_true'.

@@ -296,7 +296,7 @@ Qed.
 Lemma hoare_stmt_assign_call : forall p pre tags lhs rhs typ post lv mid sv,
   is_call_expression rhs = true ->
   hoare_lexpr p pre lhs lv ->
-  hoare_call p pre rhs (fun v st => mid st /\ (forall sv', val_to_sval v sv' -> sval_refine sv sv')) ->
+  hoare_call p pre rhs (fun v st => (forall sv', val_to_sval v sv' -> sval_refine sv sv') /\ mid st) ->
   hoare_write mid lv sv (post_continue post) ->
   hoare_stmt p pre (MkStatement tags (StatAssignment lhs rhs) typ) post.
 Proof.
@@ -315,7 +315,7 @@ Proof.
   destruct H2. destruct H16 as [? []].
   split; only 1 : auto.
   inv H5.
-  specialize (H3 _ _ _ H1 (H2 _ H9) H6).
+  specialize (H3 _ _ _ H2 (H1 _ H9) H6).
   apply H3.
 Qed.
 
