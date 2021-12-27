@@ -6,6 +6,7 @@ Require Import ProD3.core.Hoare.
 Require Import ProD3.core.ConcreteHoare.
 Require Import ProD3.core.AssertionNotations.
 
+(* solves hoare_call for built-in functions *)
 Ltac forward_builtin :=
   lazymatch goal with
   | |- hoare_call _ _ _ _ _ =>
@@ -20,6 +21,7 @@ Ltac forward_builtin :=
       fail "Not a hoare_call"
   end.
 
+(* solves hoare_stmt *)
 Ltac forward_stmt :=
   lazymatch goal with
   | |- hoare_stmt _ _ (MEM _ (EXT _)) ?stmt _ =>
@@ -64,6 +66,7 @@ Ltac forward_stmt :=
   | _ => fail "The goal is not in the form of (hoare_stmt _ _ (MEM _ (EXT _)) _ _)"
   end.
 
+(* forwards hoare_block *)
 Ltac forward :=
   lazymatch goal with
   | |- hoare_block _ _ (MEM _ (EXT _)) ?block _ =>
@@ -74,4 +77,29 @@ Ltac forward :=
           only 1 : forward_stmt
       end
   | _ => fail "The goal is not in the form of (hoare_block _ _ (MEM _ (EXT _)) _ _)"
+  end.
+
+Ltac inv_func_copy_out :=
+  lazymatch goal with
+  | |- inv_func_copy_out _ _ _ =>
+      repeat apply inv_func_copy_out_ex;
+      apply inv_func_copy_out_base;
+        [ reflexivity (* length (filter_out params) = length post_arg *)
+        | reflexivity (* is_no_dup *)
+        ]
+  | _ => fail "The goal is not inv_func_copy_out"
+  end.
+
+Ltac start_function :=
+  lazymatch goal with
+  | |- hoare_func _ _ _ _ _ ?post =>
+      eapply hoare_func_internal';
+        [ reflexivity (* length (filter_in params) = length pre_arg *)
+        | reflexivity (* is_no_dup *)
+        | reflexivity (* eval_write_vars *)
+        | idtac (* hoare_block *)
+        | inv_func_copy_out (* inv_func_copy_out *)
+        ]
+  | _ => fail "The goal is not in the form of (hoare_func _ _ (ARG _ (MEM _ (EXT _))) _ _"
+    "(EX ... ARG_RET _ (MEM _ (EXT _)))"
   end.

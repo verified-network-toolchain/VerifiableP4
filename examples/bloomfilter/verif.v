@@ -68,22 +68,8 @@ Lemma MyIngress_do_forward_body : forall p (port : Z) (standard_metadata : Sval)
         (EXT []))).
 Proof.
   intros.
-  eapply hoare_func_internal'.
-  { (* length *)
-    reflexivity.
-  }
-  { (* NoDup *)
-    reflexivity.
-  }
-  { (* eval_write_vars *)
-    (* compute the assertion. Need better simpl. *)
-    reflexivity.
-  }
-  2 : { (* inv_func_copy_out *)
-    constructor.
-    { reflexivity. }
-    { reflexivity. }
-  }
+  start_function.
+  forward.
 Admitted.
 
 Lemma MyIngress_do_forward_spec : forall p (port : Z) (standard_metadata : Sval),
@@ -245,8 +231,10 @@ Definition process (rw data : Z) (bst : bloomfilter_state) : (bloomfilter_state 
   else
     (bst, bool_to_Z (bloomfilter.query Z CRC CRC CRC bst data)).
 
+Definition bst' := fst (process rw data bst).
+Definition rw' := snd (process rw data bst).
+
 Definition post_arg_assertion : arg_assertion :=
-  let (bst', rw') := process rw data bst in
   [
     upd_sval myHeader [(["myHeader"; "rw"], ValBaseBit (to_loptbool 8 rw'))];
     (* The full specification of meta requires updates to all the six fields,
@@ -258,7 +246,6 @@ Definition post_arg_assertion : arg_assertion :=
   ].
 
 Definition post_ext_assertion : ext_assertion :=
-  let (bst', rw') := process rw data bst in
   [
     (["bloom0"], ObjRegister (map ValBaseBit (map (P4Arith.to_lbool 1) (bloom0 bst'))));
     (["bloom1"], ObjRegister (map ValBaseBit (map (P4Arith.to_lbool 1) (bloom1 bst'))));
@@ -286,23 +273,7 @@ Proof.
     [("x", val_to_sval (Int v)), ("y", val_to_sval (Int (v + 1)))]
     sval_add (val_to_sval (Int v)) (val_to_sval (Int 1)) = val_to_sval (Int (v + 1))
     *)
-
-  eapply hoare_func_internal'.
-  { (* length *)
-    reflexivity.
-  }
-  { (* NoDup *)
-    reflexivity.
-  }
-  { (* eval_write_vars *)
-    (* compute the assertion. Need better simpl. *)
-    reflexivity.
-  }
-  2 : { (* inv_func_copy_out *)
-    constructor.
-    { unfold post_arg_assertion. destruct (process rw data bst). reflexivity. }
-    { reflexivity. }
-  }
+  start_function.
   forward.
   eapply hoare_block_cons.
   {
@@ -452,20 +423,8 @@ Axiom post : post_assertion.
 
 Lemma body_assign : hoare_block ge this pre (BlockCons assign_stmt BlockNil) post.
 Proof.
-  eapply hoare_block_cons.
-  {
-    eapply hoare_stmt_assign'.
-    - (* is_call_expression *)
-      reflexivity.
-    - (* is_no_dup *)
-      reflexivity.
-    - (* eval_lexpr *)
-      reflexivity.
-    - (* eval_expr *)
-      reflexivity.
-    - (* hoare_write *)
-      reflexivity.
-  }
+  unfold pre. unfold assign_stmt.
+  forward.
   simpl str. rewrite H_member0, H_member1, H_member2.
   change (build_abs_unary_op _ _)
    (* (build_abs_binary_op (Ops.eval_binary_op BitAnd)
