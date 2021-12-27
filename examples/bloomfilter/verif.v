@@ -281,6 +281,20 @@ Proof.
       reflexivity.
     }
   }
+  eapply hoare_block_cons.
+  {
+    eapply hoare_stmt_if_true'.
+    { (* eval_expr *)
+      reflexivity.
+    }
+    eapply hoare_stmt_block.
+    {
+      eapply hoare_block_cons.
+      {
+        admit.
+      }
+      admit.
+    }
   (* eapply deep_hoare_func_internal.
   { (* copy_in *)
     eapply hoare_copy_in_sound with (pre := (_, (_, _))).

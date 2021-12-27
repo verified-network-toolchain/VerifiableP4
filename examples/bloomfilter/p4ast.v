@@ -512,9 +512,7 @@ Definition custom_metadata_t := DeclStruct NoInfo
 Definition headers := DeclStruct NoInfo
     {| stags := NoInfo; str := "headers" |}
     [(MkDeclarationField NoInfo
-          (TypHeader
-           [( {| stags := NoInfo; str := "rw" |}, (TypBit 8%N) );
-            ( {| stags := NoInfo; str := "data" |}, (TypBit 16%N) )])
+          (TypTypeName {| stags := NoInfo; str := "myHeader_t" |})
           {| stags := NoInfo; str := "myHeader" |})].
 
 Definition MyParser := DeclParser NoInfo
@@ -2014,106 +2012,284 @@ Definition MyIngress := DeclControl NoInfo
               StmVoid)
          (BlockCons
               (MkStatement NoInfo
-                   (StatBlock
-                    (BlockCons
-                         (MkStatement NoInfo
-                              (StatMethodCall
-                                   (MkExpression NoInfo
-                                        (ExpName
-                                         (BareName
-                                          {| stags := NoInfo;
-                                             str := "do_forward" |})
-                                         (LInstance ["do_forward"]))
-                                        (TypAction nil
-                                             [(MkParameter false
-                                                   Directionless
-                                                   (TypTypeName
-                                                    {| stags := NoInfo;
-                                                       str := "egressSpec_t" |})
-                                                   None
-                                                   {| stags := NoInfo;
-                                                      str := "port" |})])
-                                        Directionless) nil
-                                   [(Some
-                                     (MkExpression NoInfo
-                                          (ExpCast (TypBit 9%N)
-                                               (MkExpression NoInfo
-                                                    (ExpInt
-                                                     {| itags := NoInfo;
-                                                        value := 1;
-                                                        width_signed := 
-                                                        None |}) TypInteger
-                                                    Directionless))
-                                          (TypBit 9%N) Directionless))])
-                              StmUnit)
-                         (BlockCons
-                              (MkStatement NoInfo
-                                   (StatBlock
-                                    (BlockCons
-                                         (MkStatement NoInfo
-                                              (StatDirectApplication
-                                                   (TypTypeName
-                                                    {| stags := NoInfo;
-                                                       str := "Query" |})
-                                                   [(MkExpression NoInfo
-                                                         (ExpName
-                                                          (BareName
-                                                           {| stags := NoInfo;
-                                                              str := "hdr" |})
-                                                          (LInstance ["hdr"]))
-                                                         (TypTypeName
-                                                          {| stags := NoInfo;
-                                                             str := "headers" |})
-                                                         InOut);
-                                                    (MkExpression NoInfo
-                                                         (ExpName
-                                                          (BareName
-                                                           {| stags := NoInfo;
-                                                              str := "meta" |})
-                                                          (LInstance
-                                                               ["meta"]))
-                                                         (TypTypeName
-                                                          {| stags := NoInfo;
-                                                             str := "custom_metadata_t" |})
-                                                         InOut)]) StmUnit)
-                                         (BlockEmpty NoInfo))) StmUnit)
+                   (StatConditional
+                        (MkExpression NoInfo
+                             (ExpName
+                              (BareName {| stags := NoInfo; str := "t'0" |})
+                              (LInstance ["t'0"])) TypBool InOut)
+                        (MkStatement NoInfo
+                             (StatBlock
                               (BlockCons
                                    (MkStatement NoInfo
-                                        (StatBlock
-                                         (BlockCons
-                                              (MkStatement NoInfo
-                                                   (StatDirectApplication
-                                                        (TypTypeName
-                                                         {| stags := NoInfo;
-                                                            str := "Add" |})
-                                                        [(MkExpression NoInfo
-                                                              (ExpName
-                                                               (BareName
-                                                                {| stags := NoInfo;
-                                                                   str := "hdr" |})
-                                                               (LInstance
-                                                                    [
-                                                                    "hdr"]))
-                                                              (TypTypeName
-                                                               {| stags := NoInfo;
-                                                                  str := "headers" |})
-                                                              InOut);
+                                        (StatMethodCall
+                                             (MkExpression NoInfo
+                                                  (ExpName
+                                                   (BareName
+                                                    {| stags := NoInfo;
+                                                       str := "do_forward" |})
+                                                   (LInstance ["do_forward"]))
+                                                  (TypAction nil
+                                                       [(MkParameter false
+                                                             Directionless
+                                                             (TypTypeName
+                                                              {| stags := NoInfo;
+                                                                 str := "egressSpec_t" |})
+                                                             None
+                                                             {| stags := NoInfo;
+                                                                str := "port" |})])
+                                                  Directionless) nil
+                                             [(Some
+                                               (MkExpression NoInfo
+                                                    (ExpCast (TypBit 9%N)
                                                          (MkExpression NoInfo
-                                                              (ExpName
-                                                               (BareName
-                                                                {| stags := NoInfo;
-                                                                   str := "meta" |})
-                                                               (LInstance
-                                                                    [
-                                                                    "meta"]))
-                                                              (TypTypeName
-                                                               {| stags := NoInfo;
-                                                                  str := "custom_metadata_t" |})
-                                                              InOut)])
-                                                   StmUnit)
-                                              (BlockEmpty NoInfo))) StmUnit)
-                                   (BlockEmpty NoInfo))))) StmUnit)
-              (BlockEmpty NoInfo))).
+                                                              (ExpInt
+                                                               {| itags := NoInfo;
+                                                                  value := 1;
+                                                                  width_signed := 
+                                                                  None |})
+                                                              TypInteger
+                                                              Directionless))
+                                                    (TypBit 9%N)
+                                                    Directionless))])
+                                        StmUnit)
+                                   (BlockCons
+                                        (MkStatement NoInfo
+                                             (StatConditional
+                                                  (MkExpression NoInfo
+                                                       (ExpBinaryOp Eq
+                                                            ( (MkExpression
+                                                                   NoInfo
+                                                                   (ExpExpressionMember
+                                                                    (MkExpression
+                                                                    NoInfo
+                                                                    (ExpExpressionMember
+                                                                    (MkExpression
+                                                                    NoInfo
+                                                                    (ExpName
+                                                                    (BareName
+                                                                    {| 
+                                                                    stags := NoInfo;
+                                                                    str := "hdr" |})
+                                                                    (LInstance
+                                                                    ["hdr"]))
+                                                                    (TypTypeName
+                                                                    {| 
+                                                                    stags := NoInfo;
+                                                                    str := "headers" |})
+                                                                    InOut)
+                                                                    {| stags := NoInfo;
+                                                                    str := "myHeader" |})
+                                                                    (TypHeader
+                                                                    [( 
+                                                                    {| 
+                                                                    stags := NoInfo;
+                                                                    str := "rw" |},
+                                                                    (
+                                                                    TypBit
+                                                                    8%N) );
+                                                                    ( 
+                                                                    {| 
+                                                                    stags := NoInfo;
+                                                                    str := "data" |},
+                                                                    (
+                                                                    TypBit
+                                                                    16%N) )])
+                                                                    Directionless)
+                                                                    {| stags := NoInfo;
+                                                                    str := "rw" |})
+                                                                   (TypBit
+                                                                    8%N)
+                                                                   Directionless),
+                                                              (MkExpression
+                                                                   NoInfo
+                                                                   (ExpCast
+                                                                    (TypBit
+                                                                    8%N)
+                                                                    (MkExpression
+                                                                    NoInfo
+                                                                    (ExpInt
+                                                                    {| 
+                                                                    itags := NoInfo;
+                                                                    value := 0;
+                                                                    width_signed := 
+                                                                    None |})
+                                                                    TypInteger
+                                                                    Directionless))
+                                                                   (TypBit
+                                                                    8%N)
+                                                                   Directionless) ))
+                                                       TypBool Directionless)
+                                                  (MkStatement NoInfo
+                                                       (StatBlock
+                                                        (BlockCons
+                                                             (MkStatement
+                                                                  NoInfo
+                                                                  (StatDirectApplication
+                                                                    (TypTypeName
+                                                                    {| 
+                                                                    stags := NoInfo;
+                                                                    str := "Query" |})
+                                                                    [(
+                                                                    MkExpression
+                                                                    NoInfo
+                                                                    (ExpName
+                                                                    (BareName
+                                                                    {| 
+                                                                    stags := NoInfo;
+                                                                    str := "hdr" |})
+                                                                    (LInstance
+                                                                    ["hdr"]))
+                                                                    (TypTypeName
+                                                                    {| 
+                                                                    stags := NoInfo;
+                                                                    str := "headers" |})
+                                                                    InOut);
+                                                                    (MkExpression
+                                                                    NoInfo
+                                                                    (ExpName
+                                                                    (BareName
+                                                                    {| 
+                                                                    stags := NoInfo;
+                                                                    str := "meta" |})
+                                                                    (LInstance
+                                                                    ["meta"]))
+                                                                    (TypTypeName
+                                                                    {| 
+                                                                    stags := NoInfo;
+                                                                    str := "custom_metadata_t" |})
+                                                                    InOut)])
+                                                                  StmUnit)
+                                                             (BlockEmpty
+                                                              NoInfo)))
+                                                       StmUnit)
+                                                  (Some
+                                                   (MkStatement NoInfo
+                                                        (StatConditional
+                                                             (MkExpression
+                                                                  NoInfo
+                                                                  (ExpBinaryOp
+                                                                    Eq
+                                                                    ( (
+                                                                    MkExpression
+                                                                    NoInfo
+                                                                    (ExpExpressionMember
+                                                                    (MkExpression
+                                                                    NoInfo
+                                                                    (ExpExpressionMember
+                                                                    (MkExpression
+                                                                    NoInfo
+                                                                    (ExpName
+                                                                    (BareName
+                                                                    {| 
+                                                                    stags := NoInfo;
+                                                                    str := "hdr" |})
+                                                                    (LInstance
+                                                                    ["hdr"]))
+                                                                    (TypTypeName
+                                                                    {| 
+                                                                    stags := NoInfo;
+                                                                    str := "headers" |})
+                                                                    InOut)
+                                                                    {| stags := NoInfo;
+                                                                    str := "myHeader" |})
+                                                                    (TypHeader
+                                                                    [( 
+                                                                    {| 
+                                                                    stags := NoInfo;
+                                                                    str := "rw" |},
+                                                                    (
+                                                                    TypBit
+                                                                    8%N) );
+                                                                    ( 
+                                                                    {| 
+                                                                    stags := NoInfo;
+                                                                    str := "data" |},
+                                                                    (
+                                                                    TypBit
+                                                                    16%N) )])
+                                                                    Directionless)
+                                                                    {| stags := NoInfo;
+                                                                    str := "rw" |})
+                                                                    (TypBit
+                                                                    8%N)
+                                                                    Directionless),
+                                                                    (MkExpression
+                                                                    NoInfo
+                                                                    (ExpCast
+                                                                    (TypBit
+                                                                    8%N)
+                                                                    (MkExpression
+                                                                    NoInfo
+                                                                    (ExpInt
+                                                                    {| 
+                                                                    itags := NoInfo;
+                                                                    value := 2;
+                                                                    width_signed := 
+                                                                    None |})
+                                                                    TypInteger
+                                                                    Directionless))
+                                                                    (TypBit
+                                                                    8%N)
+                                                                    Directionless) ))
+                                                                  TypBool
+                                                                  Directionless)
+                                                             (MkStatement
+                                                                  NoInfo
+                                                                  (StatBlock
+                                                                   (BlockCons
+                                                                    (MkStatement
+                                                                    NoInfo
+                                                                    (StatDirectApplication
+                                                                    (TypTypeName
+                                                                    {| 
+                                                                    stags := NoInfo;
+                                                                    str := "Add" |})
+                                                                    [(
+                                                                    MkExpression
+                                                                    NoInfo
+                                                                    (ExpName
+                                                                    (BareName
+                                                                    {| 
+                                                                    stags := NoInfo;
+                                                                    str := "hdr" |})
+                                                                    (LInstance
+                                                                    ["hdr"]))
+                                                                    (TypTypeName
+                                                                    {| 
+                                                                    stags := NoInfo;
+                                                                    str := "headers" |})
+                                                                    InOut);
+                                                                    (MkExpression
+                                                                    NoInfo
+                                                                    (ExpName
+                                                                    (BareName
+                                                                    {| 
+                                                                    stags := NoInfo;
+                                                                    str := "meta" |})
+                                                                    (LInstance
+                                                                    ["meta"]))
+                                                                    (TypTypeName
+                                                                    {| 
+                                                                    stags := NoInfo;
+                                                                    str := "custom_metadata_t" |})
+                                                                    InOut)])
+                                                                    StmUnit)
+                                                                    (BlockEmpty
+                                                                    NoInfo)))
+                                                                  StmUnit)
+                                                             (Some
+                                                              (MkStatement
+                                                                   NoInfo
+                                                                   (StatBlock
+                                                                    (
+                                                                    BlockEmpty
+                                                                    NoInfo))
+                                                                   StmUnit)))
+                                                        StmUnit))) StmUnit)
+                                        (BlockEmpty NoInfo)))) StmUnit)
+                        (Some
+                         (MkStatement NoInfo (StatBlock (BlockEmpty NoInfo))
+                              StmUnit))) StmUnit) (BlockEmpty NoInfo))).
 
 Definition MyEgress := DeclControl NoInfo
     {| stags := NoInfo; str := "MyEgress" |} nil

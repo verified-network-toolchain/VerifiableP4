@@ -65,6 +65,17 @@ Proof.
   - apply eval_write_sound; only 1 : apply is_no_dup_NoDup; eassumption.
 Qed.
 
+Lemma hoare_stmt_if_true' : forall p pre_mem pre_ext tags cond tru ofls typ post,
+  eval_expr ge p pre_mem cond = Some (ValBaseBool (Some true)) ->
+  hoare_stmt ge p (MEM pre_mem (EXT pre_ext)) tru post ->
+  hoare_stmt ge p (MEM pre_mem (EXT pre_ext))  (MkStatement tags (StatConditional cond tru ofls) typ) post.
+Proof.
+  intros.
+  eapply hoare_stmt_if_true.
+  - apply hoare_expr_det_intro. apply eval_expr_sound. assumption.
+  - assumption.
+Qed.
+
 Lemma hoare_call_builtin' : forall p pre_mem pre_ext tags tags' dir' expr fname tparams params typ
     args typ' dir post_mem retv lv argvals,
   is_no_dup (map fst pre_mem) ->

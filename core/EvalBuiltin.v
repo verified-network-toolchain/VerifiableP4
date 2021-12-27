@@ -87,7 +87,6 @@ Proof.
 Qed.
 
 Global Instance Inhabitant_string : Inhabitant string := "".
-Print Ltac range_rewrite.range_form.
 
 Lemma Forall2_forall_range2 : forall {A B : Type} {da : Inhabitant A} {db : Inhabitant B} al bl (P : A -> B -> Prop),
   Forall2 P al bl <->
