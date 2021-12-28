@@ -137,7 +137,7 @@ Proof.
 Qed.
 
 Lemma implies_simplify_ret : forall pre_mem pre_ext post_ret post_mem post_ext retv svps eops,
-  (forall sv' : Sval, val_to_sval retv sv' -> ret_denote post_ret sv') ->
+  ret_denote post_ret retv ->
   mem_implies_simplify pre_mem post_mem = Some svps ->
   Forall (uncurry sval_refine) svps ->
   ext_implies_simplify pre_ext post_ext = Some eops ->

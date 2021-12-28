@@ -296,7 +296,7 @@ Proof.
     pose proof (isValid_sound _ _ _ H_eval_read H3).
     inv H.
     split. 2 : apply H0.
-    intros.
+    intro; intros.
     inv H. constructor. inv H5. auto.
   - unfold eval_builtin in H. simpl in H.
     destruct (eval_read a_mem lv) eqn:H_eval_read. 2 : inv H.
@@ -311,7 +311,7 @@ Proof.
     specialize (H_eval_write _ _ _ ltac:(apply H0) ltac:(eassumption) ltac:(eassumption)).
     inv H.
     split. 2 : auto.
-    intros. inv H. constructor.
+    intro; intros. inv H. constructor.
   - unfold eval_builtin in H. simpl in H.
     destruct (eval_read a_mem lv) eqn:H_eval_read. 2 : inv H.
     eapply eval_read_sound in H_eval_read; eauto.
@@ -325,7 +325,7 @@ Proof.
     specialize (H_eval_write _ _ _ ltac:(apply H0) ltac:(eassumption) ltac:(eassumption)).
     inv H.
     split. 2 : auto.
-    intros. inv H. constructor.
+    intro; intros. inv H. constructor.
   - unfold eval_builtin in H. simpl in H.
     destruct H0. inv H0; inv H8; inv H9.
     destruct (eval_read a_mem lv) eqn:H_eval_read. 2 : inv H.
@@ -336,7 +336,7 @@ Proof.
     specialize (H_eval_write _ _ _ ltac:(apply H1) ltac:(eapply push_front_sound; eassumption) ltac:(eassumption)).
     inv H.
     split. 2 : auto.
-    intros. inv H. constructor.
+    intro; intros. inv H. constructor.
   - unfold eval_builtin in H. simpl in H.
     destruct H0. inv H0; inv H8; inv H9.
     destruct (eval_read a_mem lv) eqn:H_eval_read. 2 : inv H.
@@ -347,7 +347,7 @@ Proof.
     specialize (H_eval_write _ _ _ ltac:(apply H1) ltac:(eapply pop_front_sound; eassumption) ltac:(eassumption)).
     inv H.
     split. 2 : auto.
-    intros. inv H. constructor.
+    intro; intros. inv H. constructor.
 Qed.
 
 End EvalBuiltin.

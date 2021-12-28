@@ -52,10 +52,10 @@ Definition arg_denote (a : arg_assertion) : list Sval -> Prop :=
 
 Definition ret_assertion := Sval.
 
-Definition ret_satisfies (retv : Sval) (a : ret_assertion) : Prop :=
-  sval_refine a retv.
+Definition ret_satisfies (retv : Val) (a : ret_assertion) : Prop :=
+  (forall sv', val_to_sval retv sv' -> sval_refine a sv').
 
-Definition ret_denote (a : ret_assertion) : Sval -> Prop :=
+Definition ret_denote (a : ret_assertion) : Val -> Prop :=
   fun retv => ret_satisfies retv a.
 
 Definition ext_unit := path * extern_object.

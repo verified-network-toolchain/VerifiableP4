@@ -35,11 +35,11 @@ Definition ARG (a_arg : list Sval) (a : Hoare.assertion) : Hoare.arg_assertion :
   fun args st => arg_denote a_arg args /\ a st.
 
 Definition RET (a_ret : Sval) (a : Hoare.assertion) : Hoare.ret_assertion :=
-  fun retv st => (forall sv', val_to_sval retv sv' -> ret_denote a_ret sv') /\ a st.
+  fun retv st => ret_denote a_ret retv /\ a st.
 
 Definition ARG_RET (a_arg : list Sval) (a_ret : Sval) (a : Hoare.assertion) : Hoare.arg_ret_assertion :=
   fun args retv st => arg_denote a_arg args
-    /\ (forall sv', val_to_sval retv sv' -> ret_denote a_ret sv')
+    /\ ret_denote a_ret retv
     /\ a st.
 
 End AssertionNotations.
