@@ -3,6 +3,7 @@ Require Import Poulet4.Syntax.
 Require Import Poulet4.Value.
 Require Import Poulet4.Semantics.
 Require Import ProD3.core.Hoare.
+Require Import ProD3.core.Implies.
 Require Import ProD3.core.ConcreteHoare.
 Require Import ProD3.core.AssertionNotations.
 
@@ -71,7 +72,7 @@ Ltac forward :=
   lazymatch goal with
   | |- hoare_block _ _ (MEM _ (EXT _)) ?block _ =>
       lazymatch block with
-      | BlockEmpty _ => idtac (* TODO *)
+      | BlockEmpty _ => apply hoare_block_nil (* TODO *)
       | BlockCons _ _ =>
           eapply hoare_block_cons;
           only 1 : forward_stmt
@@ -102,4 +103,25 @@ Ltac start_function :=
         ]
   | _ => fail "The goal is not in the form of (hoare_func _ _ (ARG _ (MEM _ (EXT _))) _ _"
     "(EX ... ARG_RET _ (MEM _ (EXT _)))"
+  end.
+
+Ltac entailer :=
+  lazymatch goal with
+  | |- implies _ _ =>
+      first [
+        eapply implies_simplify;
+          [ reflexivity (* mem_implies_simplify *)
+          | idtac
+          | reflexivity (* ext_implies_simplify *)
+          | idtac
+          ]
+      | eapply implies_simplify_ret;
+          [ idtac (* retv *)
+          | reflexivity (* mem_implies_simplify *)
+          | idtac
+          | reflexivity (* ext_implies_simplify *)
+          | idtac
+          ]
+      ]
+  | _ => fail "The goal is not an entailment"
   end.

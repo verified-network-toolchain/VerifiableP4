@@ -256,19 +256,6 @@ Proof.
       * inv H1. auto.
 Qed.
 
-Lemma lift_option_inv : forall {A} (xl : list (option A)) (al : list A),
-  lift_option xl = Some al ->
-  xl = map Some al.
-Proof.
-  induction xl; intros.
-  - inv H0. auto.
-  - destruct a.
-    + simpl in H0. destruct (lift_option xl).
-      * inv H0. simpl; f_equal; auto.
-      * inv H0.
-    + inv H0.
-Qed.
-
 Lemma eval_write_var_disjoint : forall a_mem p sv,
   ~In p (map fst a_mem) ->
   eval_write_var a_mem p sv = a_mem ++ [(p, sv)].

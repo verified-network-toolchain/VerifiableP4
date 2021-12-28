@@ -14,10 +14,6 @@ Require Import Hammer.Plugin.Hammer.
 
 Local Open Scope string_scope.
 
-Lemma lift_option_map_some: forall {A: Type} (al: list A),
-    lift_option (map Some al) = Some al.
-Proof. intros. induction al; simpl; [|rewrite IHal]; easy. Qed.
-
 Section EvalExpr.
 
 Context {tags_t: Type} {tags_t_inhabitant : Inhabitant tags_t}.
@@ -352,54 +348,17 @@ Qed.
 Definition eval_read_var (a : mem_assertion) (p : path) : option Sval :=
   AList.get a p.
 
-Fixpoint eval_read_var' (a : mem_assertion) (p : path) : option Sval :=
-  match a with
-  | (p', v) :: tl =>
-      if path_eqb p p' then Some v else eval_read_var' tl p
-  | [] => None
-  end.
-
 Definition eval_read_vars (a : mem_assertion) (ps : list path) : list (option Sval) :=
   map (eval_read_var a) ps.
-
-Axiom path_eqb_eq : forall (p1 p2 : path), path_eqb p1 p2 -> p1 = p2.
-
-Lemma eval_read_var'_spec : forall a p,
-  eval_read_var' a p = eval_read_var a p.
-Proof.
-  induction a; intros.
-  - auto.
-  - destruct a. simpl.
-    unfold eval_read_var.
-    destruct (path_eqb p l) eqn:?.
-    + symmetry. apply AList.get_eq_cons. auto.
-      apply path_eqb_eq. auto.
-    + replace (AList.get ((l, v) :: a0) p) with (AList.get a0 p). 2 : {
-        symmetry. apply AList.get_neq_cons.
-        intro. red in H0. subst.
-        rewrite path_eqb_refl in Heqb.
-        inv Heqb.
-      }
-      apply IHa.
-Qed.
 
 Lemma eval_read_var_sound : forall a_mem a_ext p sv,
   eval_read_var a_mem p = Some sv ->
   hoare_read_var (MEM a_mem (EXT a_ext)) p sv.
 Proof.
   unfold hoare_read_var; intros.
-  rewrite <- eval_read_var'_spec in H0.
-  induction a_mem.
-  - inv H0.
-  - destruct a as [p' ?]. simpl in H0.
-    destruct st as [m es]; destruct H1.
-    simpl in H1, H2. unfold mem_denote, mem_satisfies in H1; simpl in H1.
-    destruct (path_eqb p p') eqn:H_p.
-    + apply path_eqb_eq in H_p; subst.
-      inv H0.
-      rewrite H2 in H1. tauto.
-    + apply IHa_mem; auto.
-      split; tauto.
+  destruct st as [m es].
+  eapply mem_denote_get in H0. 2 : apply H1.
+  hauto lq: on.
 Qed.
 
 Lemma eval_read_vars_sound' : forall a_mem a_ext ps svs,

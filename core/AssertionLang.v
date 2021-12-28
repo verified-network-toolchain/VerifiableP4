@@ -6,6 +6,7 @@ Require Import Poulet4.Value.
 Require Import ProD3.core.Coqlib.
 Require Import ProD3.core.SvalRefine.
 Require Import Coq.Numbers.BinNums.
+Require Import Hammer.Plugin.Hammer.
 Open Scope type_scope.
 
 Section AssertionLang.
@@ -73,6 +74,67 @@ Definition ext_satisfies (es : extern_state) (a : ext_assertion) : Prop :=
 
 Definition ext_denote (a : ext_assertion) : extern_state -> Prop :=
   fun es => ext_satisfies es a.
+
+(* Assertion language properties *)
+
+Axiom path_eqb_eq : forall (p1 p2 : path), path_eqb p1 p2 -> p1 = p2.
+
+Fixpoint alist_get' {A} (a : list (path * A)) (p : path) : option A :=
+  match a with
+  | (p', v) :: tl =>
+      if path_eqb p p' then Some v else alist_get' tl p
+  | [] => None
+  end.
+
+Lemma alist_get'_spec : forall {A} a p,
+  @alist_get' A a p = AList.get a p.
+Proof.
+  induction a; intros.
+  - auto.
+  - destruct a. simpl.
+    destruct (path_eqb p l) eqn:?.
+    + symmetry. apply AList.get_eq_cons. auto.
+      apply path_eqb_eq. auto.
+    + replace (AList.get ((l, a) :: a0) p) with (AList.get a0 p). 2 : {
+        symmetry. apply AList.get_neq_cons.
+        intro. red in H0. subst.
+        rewrite path_eqb_refl in Heqb.
+        inv Heqb.
+      }
+      apply IHa.
+Qed.
+
+Lemma mem_denote_get : forall (a : mem_assertion) p sv,
+  AList.get a p = Some sv ->
+  forall m, mem_denote a m ->
+  mem_satisfies_unit m (p, sv).
+Proof.
+  intros.
+  rewrite <- alist_get'_spec in H0.
+  induction a.
+  - inv H0.
+  - destruct a as [p' sv']. simpl in H0.
+    destruct (path_eqb p p') eqn:H_p.
+    + apply path_eqb_eq in H_p; subst.
+      inv H0. inv H1. auto.
+    + inv H1; apply IHa; auto.
+Qed.
+
+Lemma ext_denote_get : forall (a : ext_assertion) p eo,
+  AList.get a p = Some eo ->
+  forall es, ext_denote a es ->
+  ext_satisfies_unit es (p, eo).
+Proof.
+  intros.
+  rewrite <- alist_get'_spec in H0.
+  induction a.
+  - inv H0.
+  - destruct a as [p' sv']. simpl in H0.
+    destruct (path_eqb p p') eqn:H_p.
+    + apply path_eqb_eq in H_p; subst.
+      inv H0. inv H1. auto.
+    + inv H1; apply IHa; auto.
+Qed.
 
 (** * Update and Get *)
 
