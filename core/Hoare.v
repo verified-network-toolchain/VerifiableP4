@@ -822,3 +822,6 @@ End DeepEmbeddedHoare.
 
 End Hoare.
 
+Create HintDb hoare.
+Hint Resolve hoare_expr_det_intro : hoare.
+Hint Resolve is_no_dup_NoDup : hoare.

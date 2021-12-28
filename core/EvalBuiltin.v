@@ -351,3 +351,5 @@ Proof.
 Qed.
 
 End EvalBuiltin.
+
+Hint Resolve eval_builtin_sound : hoare.

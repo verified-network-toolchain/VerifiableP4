@@ -41,11 +41,7 @@ Lemma hoare_stmt_assign' : forall p pre_mem pre_ext tags lhs rhs typ post_mem re
       (mk_post_assertion (MEM post_mem (EXT pre_ext)) ret_post).
 Proof.
   intros.
-  eapply hoare_stmt_assign.
-  - assumption.
-  - apply eval_lexpr_sound; eassumption.
-  - apply hoare_expr_det_intro, eval_expr_sound; eassumption.
-  - apply eval_write_sound; only 1 : apply is_no_dup_NoDup; eassumption.
+  eapply hoare_stmt_assign; eauto with hoare.
 Qed.
 
 Lemma hoare_stmt_assign_call' : forall p pre_mem pre_ext tags lhs rhs typ lv vret mid_mem post_mem post_ext ret_post,
@@ -58,11 +54,7 @@ Lemma hoare_stmt_assign_call' : forall p pre_mem pre_ext tags lhs rhs typ lv vre
       (mk_post_assertion (MEM post_mem (EXT post_ext)) ret_post).
 Proof.
   intros.
-  eapply hoare_stmt_assign_call.
-  - assumption.
-  - apply eval_lexpr_sound; eassumption.
-  - eassumption.
-  - apply eval_write_sound; only 1 : apply is_no_dup_NoDup; eassumption.
+  eapply hoare_stmt_assign_call; eauto with hoare.
 Qed.
 
 Lemma hoare_stmt_var_call' : forall p pre_mem pre_ext tags typ' name expr loc typ vret mid_mem post_mem post_ext ret_post,
@@ -76,10 +68,7 @@ Lemma hoare_stmt_var_call' : forall p pre_mem pre_ext tags typ' name expr loc ty
     (mk_post_assertion (MEM post_mem (EXT post_ext)) ret_post).
 Proof.
   intros.
-  eapply hoare_stmt_var_call.
-  - assumption.
-  - eassumption.
-  - apply eval_write_sound; only 1 : apply is_no_dup_NoDup; eassumption.
+  eapply hoare_stmt_var_call; eauto with hoare.
 Qed.
 
 Lemma hoare_stmt_if_true' : forall p pre_mem pre_ext tags cond tru ofls typ post,
@@ -88,9 +77,7 @@ Lemma hoare_stmt_if_true' : forall p pre_mem pre_ext tags cond tru ofls typ post
   hoare_stmt ge p (MEM pre_mem (EXT pre_ext))  (MkStatement tags (StatConditional cond tru ofls) typ) post.
 Proof.
   intros.
-  eapply hoare_stmt_if_true.
-  - apply hoare_expr_det_intro. apply eval_expr_sound. assumption.
-  - assumption.
+  eapply hoare_stmt_if_true; eauto with hoare.
 Qed.
 
 Lemma hoare_call_builtin' : forall p pre_mem pre_ext tags tags' dir' expr fname tparams params typ
@@ -108,12 +95,7 @@ Lemma hoare_call_builtin' : forall p pre_mem pre_ext tags tags' dir' expr fname 
     (RET retv (MEM post_mem (EXT pre_ext))).
 Proof.
   intros.
-  eapply hoare_call_builtin.
-  - apply eval_lexpr_sound; eassumption.
-  - apply eval_args_sound; eassumption.
-  - apply eval_builtin_sound.
-    + apply is_no_dup_NoDup; eassumption.
-    + eassumption.
+  eapply hoare_call_builtin; eauto with hoare.
 Qed.
 
 Definition eval_write_options (a : mem_assertion) (lvs : list (option Lval)) (svs : list Sval) : option mem_assertion :=
@@ -403,8 +385,7 @@ Lemma inv_func_copy_out_sound : forall params P Q,
 Proof.
   intros.
   induction H0.
-  - apply inv_func_copy_out_sound_part1; auto.
-    apply is_no_dup_NoDup; auto.
+  - apply inv_func_copy_out_sound_part1; eauto with hoare.
   - unfold hoare_func_copy_out. intros.
     destruct H2 as [x ?].
     exists x.
@@ -421,8 +402,7 @@ Lemma hoare_func_internal' : forall p pre_arg pre_mem pre_ext params body targs 
 Proof.
   intros.
   eapply hoare_func_internal.
-  - eapply hoare_func_copy_in_intro; eauto.
-    apply is_no_dup_NoDup; auto.
+  - eapply hoare_func_copy_in_intro; eauto with hoare.
   - eauto.
   - apply inv_func_copy_out_sound; auto.
 Qed.

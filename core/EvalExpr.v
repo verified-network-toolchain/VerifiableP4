@@ -506,6 +506,8 @@ Proof.
   destruct st; destruct H1; eauto.
 Qed.
 
+Hint Resolve eval_expr_sound : hoare.
+
 Definition dummy_name := BareName (P4String.Build_t tags_t default "").
 Global Opaque dummy_name.
 
@@ -857,6 +859,8 @@ Proof.
     + inv H1.
 Qed.
 
+Hint Resolve eval_write_sound : hoare.
+
 Definition eval_arg (ge : genv) (p : path) (a : mem_assertion) (arg : option Expression)
     (dir : direction) : option (@argument tags_t) :=
   match arg, dir with
@@ -945,3 +949,6 @@ Proof.
 Qed.
 
 End EvalExpr.
+
+Hint Resolve eval_expr_sound eval_lexpr_sound eval_write_sound eval_arg_sound eval_args_sound : hoare.
+
