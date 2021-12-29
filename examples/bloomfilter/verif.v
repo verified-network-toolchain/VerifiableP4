@@ -72,11 +72,10 @@ Proof.
   forward.
   forward.
   entailer.
-  - admit.
   - constructor. { apply SvalRefine.sval_refine_refl. }
     constructor.
   - constructor.
-Admitted.
+Qed.
 
 Lemma MyIngress_do_forward_spec : forall p (port : Z) (standard_metadata : Sval),
   hoare_func_spec ge p

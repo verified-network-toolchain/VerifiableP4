@@ -180,8 +180,8 @@ Proof.
     + auto.
 Qed.
 
-(* Definition ret_implies (P Q : Hoare.ret_assertion) :=
-  forall retv st, P retv st -> Q retv st. *)
+Definition assr_exists {A} (a : A -> Hoare.assertion) : Hoare.assertion :=
+  fun st => ex (fun x => a x st).
 
 Definition ret_exists {A} (a : A -> Hoare.ret_assertion) : Hoare.ret_assertion :=
   fun retv st => ex (fun x => a x retv st).
@@ -379,18 +379,51 @@ Proof.
     apply H1; eauto.
 Qed.
 
-Lemma hoare_func_internal' : forall p pre_arg pre_mem pre_ext params body targs mid1_mem mid2 post,
+(* Another method of treating implicit (return None) is generate continue_post_condition as
+  hoare_stmt .. (return None) ... But here we choose a similar approach to inv_func_copy_out. *)
+Inductive inv_implicit_return : Hoare.assertion -> Hoare.ret_assertion -> Prop :=
+  | inv_implicit_return_base1 : forall a_mem a_ext,
+      inv_implicit_return
+        (MEM a_mem (EXT a_ext))
+        (RET ValBaseNull (MEM a_mem (EXT a_ext)))
+  | inv_implicit_return_base2 : forall a_ret a_mem a_ext,
+      inv_implicit_return
+        (fun st => False)
+        (RET a_ret (MEM a_mem (EXT a_ext)))
+  | inv_implicit_return_ex : forall {A} (P : A -> Hoare.assertion) Q,
+      (forall (x : A), inv_implicit_return (P x) (Q x)) ->
+      inv_implicit_return (assr_exists P) (ret_exists Q).
+
+Lemma inv_implicit_return_sound : forall P Q,
+  inv_implicit_return P Q ->
+  implies P (Q ValBaseNull).
+Proof.
+  induction 1.
+  - unfold implies; intros.
+    split; auto.
+    intro; intros. inv H1. apply SvalRefine.sval_refine_refl.
+  - unfold implies; intros.
+    inv H0.
+  - unfold implies; intros.
+    sfirstorder.
+Qed.
+
+Lemma hoare_func_internal' : forall p pre_arg pre_mem pre_ext params body targs mid1_mem mid2 mid2' post,
   length (filter_in params) = length pre_arg ->
   is_no_dup (map fst pre_mem) ->
   eval_write_vars pre_mem (filter_in params) pre_arg = mid1_mem ->
-  hoare_block ge p (MEM mid1_mem (EXT pre_ext)) body (return_post_assertion_1 mid2) ->
+  hoare_block ge p (MEM mid1_mem (EXT pre_ext)) body (mk_post_assertion mid2' mid2) ->
   inv_func_copy_out (filter_out params) mid2 post ->
+  inv_implicit_return mid2' mid2 ->
   hoare_func ge p (ARG pre_arg (MEM pre_mem (EXT pre_ext))) (FInternal params body) targs post.
 Proof.
   intros.
   eapply hoare_func_internal.
   - eapply hoare_func_copy_in_intro; eauto with hoare.
-  - eauto.
+  - eapply hoare_block_post. only 1 : eauto.
+    split.
+    + eapply inv_implicit_return_sound. eassumption.
+    + sfirstorder.
   - apply inv_func_copy_out_sound; auto.
 Qed.
 

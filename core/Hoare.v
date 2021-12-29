@@ -380,11 +380,12 @@ Qed.
 (* These two lemmas about return statements may need adjustment. *)
 
 Lemma hoare_stmt_return_none : forall p (pre : assertion) tags typ post,
-  (forall st, pre st -> (post_return post) ValBaseNull st) ->
+  (forall st v, pre st -> (forall sv', val_to_sval v sv' -> sval_refine ValBaseNull sv') -> (post_return post) v st) ->
   hoare_stmt p pre (MkStatement tags (StatReturn None) typ) post.
 Proof.
   unfold hoare_stmt; intros.
   inv H2; right; apply H0; eauto.
+  intros. inv H2. constructor.
 Qed.
 
 (* Maybe need some change in the lemma body. *)
@@ -426,6 +427,35 @@ Proof.
   - inv H11. hauto.
   - inv H11. hauto.
   - inv H11. hauto.
+Qed.
+
+Lemma hoare_block_pre : forall p pre pre' block post,
+  implies pre pre' ->
+  hoare_block p pre' block post ->
+  hoare_block p pre block post.
+Proof.
+  unfold implies, hoare_block.
+  sfirstorder.
+Qed.
+
+Definition ret_implies (P Q : ret_assertion) :=
+  forall retv st, P retv st -> Q retv st.
+
+Definition post_implies (pre post : post_assertion) :=
+  implies (post_continue pre) (post_continue post)
+    /\ ret_implies (post_return pre) (post_return post).
+
+Lemma hoare_block_post : forall p pre block post' post,
+  hoare_block p pre block post' ->
+  post_implies post' post ->
+  hoare_block p pre block post.
+Proof.
+  unfold implies, hoare_block; intros.
+  destruct post'; destruct post.
+  specialize (H0 _ _ _ ltac:(eassumption) ltac:(eassumption)).
+  destruct H0.
+  - left. sauto.
+  - right. destruct sig; only 1, 3, 4 : inv H0. sauto.
 Qed.
 
 Definition arg_refine (arg arg' : argument) :=

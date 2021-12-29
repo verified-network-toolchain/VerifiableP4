@@ -91,6 +91,17 @@ Ltac inv_func_copy_out :=
   | _ => fail "The goal is not inv_func_copy_out"
   end.
 
+Ltac inv_implicit_return :=
+  lazymatch goal with
+  | |- inv_implicit_return _ _ =>
+      repeat apply inv_implicit_return_ex;
+      first [
+        apply inv_implicit_return_base1
+      | apply inv_implicit_return_base2
+      ]
+  | _ => fail "The goal is not inv_implicit_return"
+  end.
+
 Ltac start_function :=
   lazymatch goal with
   | |- hoare_func _ _ _ _ _ ?post =>
@@ -100,6 +111,7 @@ Ltac start_function :=
         | reflexivity (* eval_write_vars *)
         | idtac (* hoare_block *)
         | inv_func_copy_out (* inv_func_copy_out *)
+        | inv_implicit_return
         ]
   | _ => fail "The goal is not in the form of (hoare_func _ _ (ARG _ (MEM _ (EXT _))) _ _"
     "(EX ... ARG_RET _ (MEM _ (EXT _)))"
