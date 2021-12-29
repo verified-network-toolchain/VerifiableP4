@@ -820,6 +820,30 @@ Qed.
 
 Hint Resolve eval_write_sound : hoare.
 
+Lemma eval_write_preserve_NoDup : forall (a : mem_assertion) (lv : Lval) sv a',
+  NoDup (map fst a) ->
+  eval_write a lv sv = Some a' ->
+  NoDup (map fst a')
+with eval_write_preserve_NoDup_preT : forall a lv typ sv a',
+  NoDup (map fst a) ->
+  eval_write a (MkValueLvalue lv typ) sv = Some a' ->
+  NoDup (map fst a').
+Proof.
+  - destruct lv; apply eval_write_preserve_NoDup_preT.
+  - destruct lv; intros.
+    + destruct loc; only 1 : inv H1.
+      inv H1.
+      auto using eval_write_var_preserve_NoDup.
+    + simpl in H1.
+      destruct (eval_read a expr) eqn:H_eval_read. 2 : inv H1.
+      simpl in H1.
+      destruct (eval_write a expr (update name sv v)) eqn:H_eval_write. 2 : inv H1.
+      inv H1.
+      eapply eval_write_preserve_NoDup; eauto.
+    + inv H1.
+    + inv H1.
+Qed.
+
 Definition eval_arg (ge : genv) (p : path) (a : mem_assertion) (arg : option Expression)
     (dir : direction) : option (@argument tags_t) :=
   match arg, dir with

@@ -74,10 +74,31 @@ Qed.
 Lemma hoare_stmt_if_true' : forall p pre_mem pre_ext tags cond tru ofls typ post,
   eval_expr ge p pre_mem cond = Some (ValBaseBool (Some true)) ->
   hoare_stmt ge p (MEM pre_mem (EXT pre_ext)) tru post ->
-  hoare_stmt ge p (MEM pre_mem (EXT pre_ext))  (MkStatement tags (StatConditional cond tru ofls) typ) post.
+  hoare_stmt ge p (MEM pre_mem (EXT pre_ext)) (MkStatement tags (StatConditional cond tru ofls) typ) post.
 Proof.
   intros.
   eapply hoare_stmt_if_true; eauto with hoare.
+Qed.
+
+Lemma hoare_stmt_if_false' : forall p pre_mem pre_ext tags cond tru ofls typ post,
+  eval_expr ge p pre_mem cond = Some (ValBaseBool (Some false)) ->
+  hoare_stmt ge p (MEM pre_mem (EXT pre_ext)) (force empty_statement ofls) post ->
+  hoare_stmt ge p (MEM pre_mem (EXT pre_ext)) (MkStatement tags (StatConditional cond tru ofls) typ) post.
+Proof.
+  intros.
+  eapply hoare_stmt_if_false; eauto with hoare.
+Qed.
+
+Lemma hoare_stmt_if' : forall p pre_mem pre_ext tags cond tru ofls typ post b,
+  eval_expr ge p pre_mem cond = Some (ValBaseBool (Some b)) ->
+  (b -> hoare_stmt ge p (MEM pre_mem (EXT pre_ext)) tru post) ->
+  (negb b -> hoare_stmt ge p (MEM pre_mem (EXT pre_ext)) (force empty_statement ofls) post) ->
+  hoare_stmt ge p (MEM pre_mem (EXT pre_ext)) (MkStatement tags (StatConditional cond tru ofls) typ) post.
+Proof.
+  intros.
+  destruct b.
+  - apply hoare_stmt_if_true'; eauto.
+  - apply hoare_stmt_if_false'; eauto.
 Qed.
 
 Lemma hoare_call_builtin' : forall p pre_mem pre_ext tags tags' dir' expr fname tparams params typ
@@ -87,7 +108,6 @@ Lemma hoare_call_builtin' : forall p pre_mem pre_ext tags tags' dir' expr fname 
   eval_lexpr ge p pre_mem expr = Some lv ->
   eval_args ge p pre_mem args dirs = Some argvals ->
   eval_builtin pre_mem lv (P4String.str fname) (extract_invals argvals) = Some (post_mem, retv) ->
-  (* hoare_builtin ge p (ARG (extract_invals argvals) (MEM pre_mem (EXT pre_ext))) lv (P4String.str fname) post -> *)
   hoare_call ge p (MEM pre_mem (EXT pre_ext))
     (MkExpression tags (ExpFunctionCall
       (MkExpression tags' (ExpExpressionMember expr fname) (TypFunction (MkFunctionType tparams params FunBuiltin typ')) dir')
@@ -98,19 +118,89 @@ Proof.
   eapply hoare_call_builtin; eauto with hoare.
 Qed.
 
+(* Start function lemmas *)
+
+Definition eval_write_option (a : mem_assertion) (lv : option Lval) (sv : Sval) : option mem_assertion :=
+  match lv with
+  | Some lv => eval_write a lv sv
+  | None => Some a
+  end.
+
+Lemma eval_write_option_NoDup : forall (a : mem_assertion) (lv : option Lval) sv a',
+  NoDup (map fst a) ->
+  eval_write_option a lv sv = Some a' ->
+  NoDup (map fst a').
+Proof.
+  intros. destruct lv.
+  - eapply eval_write_preserve_NoDup; eauto.
+  - inv H1; eauto.
+Qed.
+
+Lemma eval_write_option_sound : forall a_mem a_ext (lv : option Lval) sv a_mem',
+  NoDup (map fst a_mem) ->
+  eval_write_option a_mem lv sv = Some a_mem' ->
+  hoare_write_option ge (MEM a_mem (EXT a_ext)) lv sv (MEM a_mem' (EXT a_ext)).
+Proof.
+  unfold hoare_write_option; intros.
+  inv H4.
+  - eapply eval_write_sound; eauto.
+  - inv H1; eauto.
+Qed.
+
 Definition eval_write_options (a : mem_assertion) (lvs : list (option Lval)) (svs : list Sval) : option mem_assertion :=
   fold_left
     (fun a '(lv, sv) =>
-      match lv with
-      | Some lv => match a with Some a => eval_write a lv sv | None => None end
-      | None => a
+      match a with
+      | Some a => eval_write_option a lv sv
+      | None => None
       end)
     (combine lvs svs) (Some a).
 
-(* Lemma eval_write_options_sound : forall a lvs svs a',
-  NoDup (map fst a) ->
-  eval_write_options a lvs svs = Some a' ->
-  hoare_write_options a lvs svs a'. *)
+Lemma eval_write_options_inv : forall a lv lvs sv svs a',
+  eval_write_options a (lv :: lvs) (sv :: svs) = Some a' ->
+  exists a'',
+    eval_write_option a lv sv = Some a'' /\ eval_write_options a'' lvs svs = Some a'.
+Proof.
+  intros.
+  unfold eval_write_options in H0. simpl in H0.
+  destruct (eval_write_option a lv sv).
+  - eexists; eauto.
+  - assert (fold_left
+       (fun (a : option mem_assertion) '(lv, sv) =>
+        match a with
+        | Some a0 => eval_write_option a0 lv sv
+        | None => None
+        end) (combine lvs svs) None = None). {
+      clear H0. generalize dependent svs. clear.
+      induction lvs; intros.
+      - auto.
+      - destruct svs; auto.
+        apply IHlvs.
+    }
+    hauto.
+Qed.
+
+Lemma eval_write_options_sound : forall a_mem a_ext lvs svs a_mem',
+  NoDup (map fst a_mem) ->
+  eval_write_options a_mem lvs svs = Some a_mem' ->
+  hoare_write_options ge (MEM a_mem (EXT a_ext)) lvs svs (MEM a_mem' (EXT a_ext)).
+Proof.
+  intros a_mem a_ext lvs; revert a_mem a_ext; induction lvs; intros.
+  - inv H1.
+    unfold hoare_write_options; intros.
+    inv H3; auto.
+  - unfold hoare_write_options; intros.
+    inv H4; inv H3.
+    apply eval_write_options_inv in H1.
+    destruct H1 as [a_mem'' []].
+    epose proof (eval_write_option_sound _ _ _ _ _ ltac:(eassumption) ltac:(eassumption)).
+    eapply IHlvs.
+    + eapply eval_write_option_NoDup; eauto.
+    + eauto.
+    + eapply H4; eauto.
+    + eauto.
+    + eauto.
+Qed.
 
 Definition eval_call_copy_out (a : mem_assertion) (args : list (option Lval * direction)) (outvals : list Sval) :=
   eval_write_options a (filter_out args) outvals.
@@ -119,7 +209,13 @@ Lemma eval_call_copy_out_sound : forall outvals vret a_mem a_ext args a_mem',
   NoDup (map fst a_mem) ->
   eval_call_copy_out a_mem args outvals = Some a_mem' ->
   hoare_call_copy_out ge (ARG_RET outvals vret (MEM a_mem (EXT a_ext))) args (RET vret (MEM a_mem' (EXT a_ext))).
-Admitted.
+Proof.
+  unfold hoare_call_copy_out; intros.
+  destruct sig; only 1, 3, 4 : solve [inv H2].
+  destruct H2 as [? []].
+  split; eauto.
+  eapply eval_write_options_sound; eauto.
+Qed.
 
 Lemma hoare_func_pre : forall ge p (pre pre' : Hoare.arg_assertion) fd targs post,
   (forall args st, pre args st -> pre' args st) ->
@@ -332,7 +428,7 @@ Lemma eval_write_vars_implies : forall a_mem out_params a_arg a_ext,
 Proof.
   unfold implies; intros.
   destruct st; destruct H2; split.
-  - eapply eval_write_vars_implies'; eauto.
+  - eauto using eval_write_vars_implies'.
   - auto.
 Qed.
 

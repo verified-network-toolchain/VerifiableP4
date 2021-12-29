@@ -93,17 +93,6 @@ Definition hoare_lexpr (p : path) (pre : assertion) (expr : Expression) (lv : Lv
     exec_lexpr ge read_ndetbit p st expr lv' sig ->
     sig = SContinue /\ lval_eqb lv lv'.
 
-Definition hoare_loc_to_sval (p : path) (pre : assertion) (loc : Locator) (v : Sval) :=
-    forall st,
-    pre st ->
-    loc_to_sval loc st = Some v.
-
-Definition hoare_update_val_by_loc (p : path) (pre : assertion) (loc : Locator) (v : Sval) (post : assertion) :=
-    forall st st',
-    pre st ->
-    update_val_by_loc st loc v = st' ->
-    post st'.
-
 Definition hoare_read_var (pre : assertion) (p : path) (sv : Sval) :=
   forall st sv',
     pre st ->
@@ -170,11 +159,26 @@ Proof.
     subst; inv H3; destruct st; eapply IHForall2_fold; eauto.
 Qed.
 
+Definition hoare_write_option (pre : assertion) (lv : option Lval) (sv : Sval) (post : assertion) :=
+  forall st sv' st',
+    pre st ->
+    sval_refine sv sv' ->
+    exec_write_option ge st lv sv' st' ->
+    post st'.
+
+Definition hoare_write_options (pre : assertion) (lvs : list (option Lval)) (svs : list Sval) (post : assertion) :=
+  forall st svs' st',
+    pre st ->
+    Forall2 sval_refine svs svs' ->
+    exec_write_options ge st lvs svs' st' ->
+    post st'.
+
 Definition hoare_reads' (pre : assertion) (lvs : list Lval) (svs : list Sval) :=
   Forall2 (hoare_read pre) lvs svs.
 
 Definition hoare_writes' (pre : assertion) (lvs : list Lval) (svs : list Sval) (post : assertion) :=
   Forall2_fold hoare_write pre lvs svs post.
+
 
 Definition satisfies_ret_assertion (post : ret_assertion) (sig : signal) (st : state) : Prop :=
   match sig with

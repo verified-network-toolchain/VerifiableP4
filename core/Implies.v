@@ -136,7 +136,7 @@ Proof.
   - eapply ext_implies_simplify_sound; eauto.
 Qed.
 
-Lemma implies_simplify_ret : forall pre_mem pre_ext post_ret post_mem post_ext retv svps eops,
+(* Lemma implies_simplify_ret : forall pre_mem pre_ext post_ret post_mem post_ext retv svps eops,
   ret_denote post_ret retv ->
   mem_implies_simplify pre_mem post_mem = Some svps ->
   Forall (uncurry sval_refine) svps ->
@@ -150,6 +150,6 @@ Proof.
   - eauto.
   - eapply mem_implies_simplify_sound; eauto.
   - eapply ext_implies_simplify_sound; eauto.
-Qed.
+Qed. *)
 
 End Implies.

@@ -1,7 +1,9 @@
+Require Import Coq.Lists.List.
 Require Import Poulet4.Typed.
 Require Import Poulet4.Syntax.
 Require Import Poulet4.Value.
 Require Import Poulet4.Semantics.
+Require Import ProD3.core.SvalRefine.
 Require Import ProD3.core.Hoare.
 Require Import ProD3.core.Implies.
 Require Import ProD3.core.ConcreteHoare.
@@ -117,23 +119,49 @@ Ltac start_function :=
     "(EX ... ARG_RET _ (MEM _ (EXT _)))"
   end.
 
+Ltac Forall_uncurry_sval_refine :=
+  lazymatch goal with
+  | |- Forall (uncurry sval_refine) _ =>
+      first [
+        apply Forall_nil
+      | apply Forall_cons;
+        [ try apply sval_refine_refl
+        | Forall_uncurry_sval_refine
+        ]
+      ]
+  | _ => fail "The goal is not in the form of (Forall (uncurry sval_refine) _)"
+  end.
+
+Ltac Forall_uncurry_eq :=
+  lazymatch goal with
+  | |- Forall (uncurry eq) _ =>
+      first [
+        apply Forall_nil
+      | apply Forall_cons;
+        [ try reflexivity
+        | Forall_uncurry_sval_refine
+        ]
+      ]
+  | _ => fail "The goal is not in the form of (Forall (uncurry eq) _)"
+  end.
+
 Ltac entailer :=
   lazymatch goal with
   | |- implies _ _ =>
       first [
         eapply implies_simplify;
           [ reflexivity (* mem_implies_simplify *)
-          | idtac
+          | Forall_uncurry_sval_refine
           | reflexivity (* ext_implies_simplify *)
-          | idtac
+          | Forall_uncurry_eq
           ]
-      | eapply implies_simplify_ret;
+      (* | eapply implies_simplify_ret;
           [ idtac (* retv *)
           | reflexivity (* mem_implies_simplify *)
           | idtac
           | reflexivity (* ext_implies_simplify *)
           | idtac
-          ]
+          ] *)
       ]
   | _ => fail "The goal is not an entailment"
   end.
