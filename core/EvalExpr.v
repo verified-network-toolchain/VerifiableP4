@@ -14,6 +14,14 @@ Require Import Hammer.Plugin.Hammer.
 
 Local Open Scope string_scope.
 
+Lemma locator_eqb_refl : forall (loc : Locator),
+  locator_eqb loc loc.
+Proof.
+  destruct loc; simpl; auto.
+Qed.
+
+Hint Resolve locator_eqb_refl : core.
+
 Section EvalExpr.
 
 Context {tags_t: Type} {tags_t_inhabitant : Inhabitant tags_t}.
@@ -486,10 +494,6 @@ Fixpoint eval_lexpr (ge : genv) (p : path) (a : mem_assertion) (expr : Expressio
       end
   | _ => None
   end.
-
-Axiom locator_eqb_refl : forall (loc : Locator),
-  locator_eqb loc loc.
-Hint Resolve locator_eqb_refl : core.
 
 Lemma eval_lexpr_sound : forall ge p a_mem a_ext expr lv,
   eval_lexpr ge p a_mem expr = Some lv ->

@@ -8,6 +8,17 @@ Require Import ProD3.core.SvalRefine.
 Require Import Poulet4.SyntaxUtil.
 Require Import Hammer.Plugin.Hammer.
 
+Lemma path_eqb_refl : forall (p : list String.string),
+  path_eqb p p.
+Proof.
+  unfold path_eqb, list_eqb.
+  induction p.
+  - auto.
+  - simpl. rewrite String.eqb_refl. auto.
+Qed.
+
+Hint Resolve path_eqb_refl : core.
+
 Section Hoare.
 
 Context {tags_t: Type} {tags_t_inhabitant : Inhabitant tags_t}.
@@ -681,15 +692,6 @@ Fixpoint is_no_dup (al : list path) : bool :=
   | x :: al => ~~(is_in x al) && is_no_dup al
   | [] => true
   end.
-
-Lemma path_eqb_refl : forall (p : path),
-  path_eqb p p.
-Proof.
-  unfold path_eqb, list_eqb.
-  induction p.
-  - auto.
-  - simpl. rewrite String.eqb_refl. auto.
-Qed.
 
 Lemma not_is_in_not_In : forall x (al : list path),
   ~~(is_in x al) -> ~In x al.
