@@ -75,6 +75,40 @@ Definition ext_satisfies (es : extern_state) (a : ext_assertion) : Prop :=
 Definition ext_denote (a : ext_assertion) : extern_state -> Prop :=
   fun es => ext_satisfies es a.
 
+(* A lemma to handle assertion representations. *)
+
+Lemma fold_right_and_True : forall l,
+  fold_right and True l <-> Forall id l.
+Proof.
+  intros; induction l; only 2 : destruct IHl; split; intros.
+  - constructor.
+  - constructor.
+  - constructor; sfirstorder.
+  - inv H2; sfirstorder.
+Qed.
+
+Lemma mem_denote_app : forall a a' m,
+  mem_denote (a ++ a') m <-> mem_denote a m /\ mem_denote a' m.
+Proof.
+  intros.
+  unfold mem_denote, mem_satisfies.
+  rewrite !fold_right_and_True.
+  rewrite map_app.
+  rewrite Forall_app.
+  reflexivity.
+Qed.
+
+Lemma ext_denote_app : forall a a' es,
+  ext_denote (a ++ a') es <-> ext_denote a es /\ ext_denote a' es.
+Proof.
+  intros.
+  unfold ext_denote, ext_satisfies.
+  rewrite !fold_right_and_True.
+  rewrite map_app.
+  rewrite Forall_app.
+  reflexivity.
+Qed.
+
 (* Assertion language properties *)
 
 Axiom path_eqb_eq : forall (p1 p2 : path), path_eqb p1 p2 -> p1 = p2.

@@ -48,16 +48,6 @@ Qed.
 Definition mem_implies_simplify (a a' : mem_assertion) : option (list (Sval * Sval)) :=
   lift_option (map (mem_simplify_aux a) a').
 
-Lemma fold_right_and_True : forall l,
-  fold_right and True l <-> Forall id l.
-Proof.
-  intros; induction l; only 2 : destruct IHl; split; intros.
-  - constructor.
-  - constructor.
-  - constructor; sfirstorder.
-  - inv H1; sfirstorder.
-Qed.
-
 Lemma mem_implies_simplify_sound : forall a a' svps,
   mem_implies_simplify a a' = Some svps ->
   Forall (uncurry sval_refine) svps ->
