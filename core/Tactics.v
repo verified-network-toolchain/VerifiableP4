@@ -96,6 +96,24 @@ Ltac forward :=
   | _ => fail "The goal is not in the form of (hoare_block _ _ (MEM _ (EXT _)) _ _)"
   end.
 
+Ltac forward_if post :=
+  lazymatch goal with
+  | |- hoare_block _ _ (MEM _ (EXT _)) (BlockCons ?stmt _) _ =>
+      lazymatch stmt with
+      | MkStatement _ (StatConditional _ _ _) _ =>
+          eapply hoare_block_cons with (mid := post);
+          [ eapply hoare_stmt_if';
+              [ reflexivity (* eval_expr *)
+              | intro (* true branch *)
+              | intro (* false branch *)
+              ]
+          | idtac
+          ]
+      | _ => fail "The next statement is not an if-statement"
+      end
+  | _ => fail "The goal is not in the form of (hoare_block _ _ (MEM _ (EXT _)) (BlockCons _ _) _)"
+  end.
+
 Ltac inv_func_copy_out :=
   lazymatch goal with
   | |- inv_func_copy_out _ _ _ =>
@@ -153,7 +171,7 @@ Ltac Forall_uncurry_eq :=
         apply Forall_nil
       | apply Forall_cons;
         [ try reflexivity
-        | Forall_uncurry_sval_refine
+        | Forall_uncurry_eq
         ]
       ]
   | _ => fail "The goal is not in the form of (Forall (uncurry eq) _)"

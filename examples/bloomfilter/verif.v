@@ -319,104 +319,37 @@ Proof.
         }
       }
       {
-        admit.
-      (* A possible simpl: *)
-        (* Opaque pre_ext_assertion post_ext_assertion.
-        simpl MEM. *)
-  (* eapply deep_hoare_func_internal.
-  { (* copy_in *)
-    eapply hoare_copy_in_sound with (pre := (_, (_, _))).
-    repeat constructor.
-  }
-  { (* init block *)
-    simpl eval_copy_in.
-    constructor. apply implies_sound, implies_refl.
-  }
-  {
-    eapply deep_hoare_block_cons.
-    eapply deep_hoare_stmt_if_true.
-    { (* hdr.myHeader.isValid() == true *)
-      admit.
-    }
-    eapply deep_hoare_stmt_block.
-    eapply deep_hoare_block_cons with (mid := Hoare.mk_post_assertion _ _).
-    eapply deep_hoare_stmt_method_call.
-    eapply deep_hoare_call_sound.
-    eapply deep_hoare_call_func.
-    { (* deep_hoare_outargs *)
-      eapply hoare_outargs_sound.
-      repeat constructor.
-    }
-    { (* deep_hoare_inargs *)
-      eapply hoare_inargs_sound.
-      repeat constructor.
-    }
-    { (* lookup_func *)
-      constructor.
-    }
-    { (* deep_hoare_func *)
-      eapply deep_hoare_func_internal (* with
-        (post := to_shallow_arg_ret_assertion this ([], [], ([
-          AVal (LInstance !["hdr"], ["myHeader"; "rw"]) (ValBaseBit 8 rw);
-          AVal (LInstance !["hdr"], ["myHeader"; "data"]) (ValBaseBit 16 data);
-          AVal (LInstance !["standard_metadata"], ["egress_spec"]) (ValBaseBit 9 (P4Arith.BitArith.mod_bound 9 1));
-          AType (LInstance !["hdr"], []) (TypTypeName (BareName !"headers"));
-          AType (LInstance !["meta"], []) (TypTypeName (BareName !"custom_metadata_t"));
-          AType (LInstance !["standard_metadata"], []) (TypTypeName (BareName !"standard_metadata_t"))]
-          ,
-          pre_ext_assertion))) *).
-      { (* copy_in *)
-        eapply hoare_copy_in_sound.
-        repeat constructor.
-      }
-      { (* init block *)
-        simpl eval_copy_in.
-        constructor. apply implies_sound, implies_refl.
-      }
-      { (* body block *)
-        eapply deep_hoare_block_cons with (mid := Hoare.mk_post_assertion _ _).
-        eapply hoare_stmt_sound with (post := mk_post_assertion _ _).
-        { (* wellformed *)
-          constructor.
-        }
-        eapply hoare_stmt_assignment.
-        { (* hoare_lexpr *)
-          constructor.
-        }
-        { (* hoare_expr *)
-          constructor.
-        }
-        { (* hoare_write *)
-          constructor.
-          { (* is_writable_lval *)
-            admit. (* from type *)
-          }
-          constructor.
-        }
-        eapply deep_hoare_block_nil.
-        eapply Hoare.implies_trans.
+        (* A possible simpl: *)
+          (* Opaque pre_ext_assertion post_ext_assertion.
+          simpl MEM. *)
+        (* let post := constr:(MEM (eval_write_vars []
+              (filter_out [(["hdr"], InOut); (["meta"], InOut); (["standard_metadata"], InOut)])
+              post_arg_assertion) (EXT post_ext_assertion)) in
+        eapply hoare_block_cons with (mid := post).
         {
-          eapply hoare_copy_out_sound.
-          repeat constructor.
+          eapply hoare_stmt_if'. *)
+        forward_if (MEM
+           (eval_write_vars []
+              (filter_out [(["hdr"], InOut); (["meta"], InOut); (["standard_metadata"], InOut)])
+              post_arg_assertion) (EXT post_ext_assertion)).
+        { (* true branch *)
+          change (is_true (BitArith.lbool_to_val (to_lbool 8%N rw) 1 0 =? 0)) in H.
+          (* forward_call. *)
+          admit.
         }
-        apply Hoare.implies_refl.
+        { (* false branch *)
+          change (is_true (negb (BitArith.lbool_to_val (to_lbool 8%N rw) 1 0 =? 0))) in H.
+          (* forward_call. *)
+          admit.
+        }
+        forward.
+        simpl.
+        eapply implies_refl.
       }
     }
-    { (* deep_hoare_write_copy_out *)
-      simpl fst. simpl snd.
-      eapply hoare_write_copy_out_sound.
-      repeat constructor.
-    }
-    { (* ret_assertion_to_assertion *)
-      simpl fold_left.
-      eapply ret_assertion_to_assertion_sound.
-      constructor.
-    }
-    x has value (v)
-    y has value (v+1)
-
-    {
-Qed. *)
+  }
+  forward.
+  entailer.
 Abort.
 
 End Experiment1.
