@@ -57,6 +57,32 @@ Proof.
   eapply hoare_stmt_assign_call; eauto with hoare.
 Qed.
 
+Lemma hoare_stmt_method_call' : forall p pre_mem pre_ext tags func args typ vret post_mem post_ext ret_post,
+  hoare_call ge p
+    (MEM pre_mem (EXT pre_ext))
+    (MkExpression dummy_tags (ExpFunctionCall func nil args) TypVoid Directionless)
+    (RET vret (MEM post_mem (EXT post_ext))) ->
+  hoare_stmt ge p (MEM pre_mem (EXT pre_ext)) (MkStatement tags (StatMethodCall func [] args) typ)
+    (mk_post_assertion (MEM post_mem (EXT post_ext)) ret_post).
+Proof.
+  intros.
+  eapply hoare_stmt_method_call; eauto with hoare.
+Qed.
+
+Lemma hoare_stmt_var' : forall p pre_mem pre_ext tags typ' name expr loc typ post_mem ret_post sv,
+  is_call_expression expr = false ->
+  is_no_dup (map fst pre_mem) ->
+  eval_expr ge p pre_mem expr = Some sv ->
+  eval_write pre_mem (MkValueLvalue (ValLeftName (BareName name) loc) typ') sv = Some post_mem ->
+  hoare_stmt ge p
+    (MEM pre_mem (EXT pre_ext))
+    (MkStatement tags (StatVariable typ' name (Some expr) loc) typ)
+    (mk_post_assertion (MEM post_mem (EXT pre_ext)) ret_post).
+Proof.
+  intros.
+  eapply hoare_stmt_var; eauto with hoare.
+Qed.
+
 Lemma hoare_stmt_var_call' : forall p pre_mem pre_ext tags typ' name expr loc typ vret mid_mem post_mem post_ext ret_post,
   is_call_expression expr = true ->
   hoare_call ge p (MEM pre_mem (EXT pre_ext)) expr (RET vret (MEM mid_mem (EXT post_ext))) ->
@@ -245,7 +271,7 @@ Lemma hoare_call_func' : forall p pre_mem pre_ext tags func targs args typ dir a
       (ARG (extract_invals argvals) (MEM (if is_some obj_path then [] else pre_mem) (EXT pre_ext)))
       fd targs
       (ARG_RET outargs vret (MEM mid_mem (EXT post_ext))) ->
-  NoDup (map fst (if is_some obj_path then pre_mem else mid_mem)) ->
+  is_no_dup (map fst (if is_some obj_path then pre_mem else mid_mem)) ->
   eval_call_copy_out (if is_some obj_path then pre_mem else mid_mem) (combine (map snd argvals) dirs) outargs = Some post_mem ->
   hoare_call ge p
     (MEM pre_mem (EXT pre_ext))
@@ -267,7 +293,7 @@ Proof.
       auto.
     + destruct H0; split; assumption.
   - reflexivity.
-  - eapply hoare_call_copy_out_pre. 2 : { eapply eval_call_copy_out_sound; eassumption. }
+  - eapply hoare_call_copy_out_pre. 2 : { eapply eval_call_copy_out_sound; eauto with hoare. }
     clear; intros.
     destruct (is_some obj_path).
     + destruct sig; try solve [inv H0].

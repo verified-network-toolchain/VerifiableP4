@@ -115,21 +115,24 @@ Proof.
     eexists; eauto.
 Qed.
 
-Lemma func_spec_combine : forall ge p pre func targs post vars exts post' frame,
-  hoare_func_spec ge p pre func targs post' vars exts ->
+Lemma func_spec_combine : forall ge p pre pre' func targs post vars exts post' frame,
+  arg_implies pre pre' ->
+  hoare_func_spec ge p pre' func targs post' vars exts ->
   hoare_func_frame ge p pre func targs frame ->
   func_post_combine frame post' post ->
   hoare_func ge p pre func targs post.
 Proof.
   unfold hoare_func; intros.
-  destruct H.
-  epose proof (H _ _ _ _ _ ltac:(eassumption) ltac:(eassumption)).
-  destruct sig; only 1, 3, 4 : solve [inv H5].
-  eapply (func_post_combine_sound _ _ _ _ _ _ H1); eauto.
+  specialize (H _ _ H3).
+  destruct H0.
+  epose proof (H0 _ _ _ _ _ ltac:(eassumption) ltac:(eassumption)).
+  destruct sig; only 1, 3, 4 : solve [inv H6].
+  eapply (func_post_combine_sound _ _ _ _ _ _ H2); eauto.
 Qed.
 
-Lemma func_spec_combine' : forall ge p pre_arg pre_mem pre_ext func targs post vars exts post' f_mem f_ext,
-  hoare_func_spec ge p (ARG pre_arg (MEM pre_mem (EXT pre_ext))) func targs post' vars exts ->
+Lemma func_spec_combine' : forall ge p pre_arg pre_mem pre_ext pre_arg' pre_mem' pre_ext' func targs post vars exts post' f_mem f_ext,
+  hoare_func_spec ge p (ARG pre_arg' (MEM pre_mem' (EXT pre_ext'))) func targs post' vars exts ->
+  arg_implies (ARG pre_arg (MEM pre_mem (EXT pre_ext))) (ARG pre_arg' (MEM pre_mem' (EXT pre_ext'))) ->
   exclude vars pre_mem = f_mem ->
   exclude exts pre_ext = f_ext ->
   func_post_combine (MEM f_mem (EXT f_ext)) post' post ->

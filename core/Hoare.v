@@ -380,6 +380,38 @@ Proof.
   eapply H3; eauto.
 Qed.
 
+Lemma hoare_stmt_method_call : forall p pre tags func args typ post sv,
+  hoare_call p pre
+    (MkExpression dummy_tags (ExpFunctionCall func nil args) TypVoid Directionless)
+    (fun v st => (forall sv', val_to_sval v sv' -> sval_refine sv sv') /\ (post_continue post) st) ->
+  hoare_stmt p pre (MkStatement tags (StatMethodCall func [] args) typ) post.
+Proof.
+  unfold hoare_stmt. intros.
+  left.
+  inv H2.
+  specialize_hoare_call.
+  destruct sig0; only 1, 3, 4 : solve [inv H0].
+  destruct H0.
+  auto.
+Qed.
+
+Lemma hoare_stmt_var : forall p pre tags typ' name e loc typ post sv,
+  is_call_expression e = false ->
+  hoare_expr_det p pre e sv ->
+  hoare_write pre (MkValueLvalue (ValLeftName (BareName name) loc) typ') sv (post_continue post) ->
+  hoare_stmt p pre (MkStatement tags (StatVariable typ' name (Some e) loc) typ) post.
+Proof.
+  unfold hoare_stmt. intros.
+  left.
+  inv H4. 2 : {
+    (* rule out the call case *)
+    inv H15; inv H0.
+  }
+  specialize_hoare_expr_det.
+  specialize_hoare_write.
+  auto.
+Qed.
+
 Lemma hoare_stmt_var_call : forall p pre tags typ' name e loc typ post mid sv,
   is_call_expression e = true ->
   hoare_call p pre e (fun v st => (forall sv', val_to_sval v sv' -> sval_refine sv sv') /\ mid st) ->
@@ -520,6 +552,9 @@ Qed.
 
 Definition ret_implies (P Q : ret_assertion) :=
   forall retv st, P retv st -> Q retv st.
+
+Definition arg_implies (P Q : arg_assertion) :=
+  forall args st, P args st -> Q args st.
 
 Definition post_implies (pre post : post_assertion) :=
   implies (post_continue pre) (post_continue post)

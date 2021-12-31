@@ -29,6 +29,25 @@ Ltac forward_stmt :=
   lazymatch goal with
   | |- hoare_stmt _ _ (MEM _ (EXT _)) ?stmt _ =>
       lazymatch stmt with
+      (* Note that call expressions must be matched first. *)
+      (* hoare_stmt_assign_call' *)
+      | MkStatement _ (StatAssignment _ (MkExpression _ (ExpFunctionCall ?func _ _) _ _)) _ =>
+          eapply hoare_stmt_assign_call';
+            [ reflexivity (* is_call_expression *)
+            | reflexivity (* eval_lexpr *)
+            | forward_builtin (* hoare_call *)
+            | reflexivity (* is_no_dup *)
+            | reflexivity (* eval_write *)
+            ]
+      (* hoare_stmt_assign' *)
+      | MkStatement _ (StatAssignment _ _) _ =>
+          eapply hoare_stmt_assign';
+            [ reflexivity (* is_call_expression *)
+            | reflexivity (* is_no_dup *)
+            | reflexivity (* eval_lexpr *)
+            | reflexivity (* eval_expr *)
+            | reflexivity (* eval_write *)
+            ]
       (* hoare_stmt_var_call' *)
       | MkStatement _
             (StatVariable _ _
@@ -45,21 +64,16 @@ Ltac forward_stmt :=
             | reflexivity (* is_no_dup *)
             | reflexivity (* eval_write *)
             ]
-      (* hoare_stmt_assign_call' *)
-      | MkStatement _ (StatAssignment _ (MkExpression _ (ExpFunctionCall ?func _ _) _ _)) _ =>
-          eapply hoare_stmt_assign_call';
-            [ reflexivity (* is_call_expression *)
-            | reflexivity (* eval_lexpr *)
-            | forward_builtin (* hoare_call *)
-            | reflexivity (* is_no_dup *)
-            | reflexivity (* eval_write *)
-            ]
-      (* hoare_stmt_assign' *)
-      | MkStatement _ (StatAssignment _ _) _ =>
-          eapply hoare_stmt_assign';
+      (* hoare_stmt_var' *)
+      | MkStatement _ (StatVariable _ _ _ ?loc) _ =>
+          lazymatch loc with
+          | LInstance _ => idtac (* ok *)
+          | LGlobal _ => fail "Cannot declacre a variable with LGlobal locator"
+          | _ => fail "Unrecognized locator expression" loc
+          end;
+          eapply hoare_stmt_var';
             [ reflexivity (* is_call_expression *)
             | reflexivity (* is_no_dup *)
-            | reflexivity (* eval_lexpr *)
             | reflexivity (* eval_expr *)
             | reflexivity (* eval_write *)
             ]

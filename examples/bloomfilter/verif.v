@@ -20,6 +20,7 @@ Require Import ProD3.core.Members.
 Require Import ProD3.core.AssertionLang.
 Require Import ProD3.core.AssertionNotations.
 Require Import ProD3.core.FuncSpec.
+Require Import ProD3.core.Implies.
 Require Import ProD3.core.Tactics.
 (* Require Import ProD3.core.V1ModelLang. *)
 
@@ -95,33 +96,6 @@ Definition MyIngress_fundef := Eval compute in
   | None => dummy_fundef
   end.
 
-(* Definition header_type := Eval compute in
-  match main with
-  | DeclInstantiation _ _ 
-      (_::_::(MkExpression _ _ (TypControl (MkControlType _ 
-        [MkParameter _ _ htyp _ _; _; _])) _)::_) _ _ =>
-          htyp
-  | _ =>  dummy_type
-  end.
-
-Definition meta_type := Eval compute in
-  match main with
-  | DeclInstantiation _ _ 
-      (_::_::(MkExpression _ _ (TypControl (MkControlType _ 
-        [_; MkParameter _ _ mtyp _ _; _])) _)::_) _ _ =>
-          mtyp
-  | _ =>  dummy_type
-  end.
-
-Definition stdmeta_type := Eval compute in
-  match main with
-  | DeclInstantiation _ _ 
-      (_::_::(MkExpression _ _ (TypControl (MkControlType _ 
-        [_; _; MkParameter _ _ smtyp _ _])) _)::_) _ _ =>
-          smtyp
-  | _ =>  dummy_type
-  end. *)
-
 Definition this : path := ["main"; "ig"].
 
 Definition NUM_ENTRY : Z := 1024.
@@ -193,17 +167,21 @@ Definition standard_metadata_t := Eval compute in
 
 Axiom dummy_sval : Sval.
 
-Definition meta := Eval compute in
+Variable (meta : Sval).
+
+(* Definition meta := Eval compute in
   match gen_sval custom_metadata_t [] with
   | Some v => v
   | None => dummy_sval
-  end.
+  end. *)
 
-Definition standard_metadata := Eval compute in
+Variable (standard_metadata : Sval).
+
+(* Definition standard_metadata := Eval compute in
   match gen_sval standard_metadata_t [] with
   | Some v => v
   | None => dummy_sval
-  end.
+  end. *)
 
 (* Definition pre_arg_assertion : assertion :=
   [ (["hdr"], myHeader);
@@ -287,10 +265,64 @@ Proof.
     {
       eapply hoare_block_cons.
       {
-        admit.
+        eapply hoare_stmt_method_call'.
+        eapply hoare_call_func'.
+        { (* is_builtin_func *)
+          reflexivity.
+        }
+        { (* eval_args *)
+          reflexivity.
+        }
+        { (* lookup_func *)
+          reflexivity.
+        }
+        { (* hoare_func *)
+          eapply func_spec_combine'.
+          { (* hoare_func_spec *)
+            apply MyIngress_do_forward_spec.
+          }
+          { (* arg_implies *)
+            eapply arg_implies_simplify.
+            { (* Forall sval_refine *)
+              repeat constructor.
+            }
+            { (* mem_implies_simplify *)
+              reflexivity.
+            }
+            { (* Forall sval_refine *)
+              constructor.
+              apply SvalRefine.sval_refine_refl.
+              constructor.
+            }
+            { (* ext_implies_simplify *)
+              reflexivity.
+            }
+            { (* Forall eq *)
+              constructor.
+            }
+          }
+          { (* exclude *)
+            reflexivity.
+          }
+          { (* exclude *)
+            reflexivity.
+          }
+          { (* func_post_combine *)
+            constructor.
+          }
+        }
+        { (* is_no_dup *)
+          reflexivity.
+        }
+        { (* eval_call_copy_out *)
+          reflexivity.
+        }
       }
-      admit.
-    }
+      {
+        admit.
+      (* A possible simpl: *)
+        (* Opaque pre_ext_assertion post_ext_assertion.
+        simpl MEM. *)
   (* eapply deep_hoare_func_internal.
   { (* copy_in *)
     eapply hoare_copy_in_sound with (pre := (_, (_, _))).

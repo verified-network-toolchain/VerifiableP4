@@ -126,6 +126,22 @@ Proof.
   - eapply ext_implies_simplify_sound; eauto.
 Qed.
 
+Lemma arg_implies_simplify : forall pre_arg pre_mem pre_ext post_arg post_mem post_ext svps eops,
+  Forall2 sval_refine post_arg pre_arg ->
+  mem_implies_simplify pre_mem post_mem = Some svps ->
+  Forall (uncurry sval_refine) svps ->
+  ext_implies_simplify pre_ext post_ext = Some eops ->
+  Forall (uncurry eq) eops ->
+  arg_implies (ARG pre_arg (MEM pre_mem (EXT pre_ext))) (ARG post_arg (MEM post_mem (EXT post_ext))).
+Proof.
+  unfold implies; intros.
+  unfold arg_implies; intros.
+  destruct H4.
+  split. 2 : { eapply implies_simplify; eauto. }
+  eapply Forall2_trans. 1 : { unfold rel_trans. apply sval_refine_trans. }
+  all : eauto.
+Qed.
+
 (* Lemma implies_simplify_ret : forall pre_mem pre_ext post_ret post_mem post_ext retv svps eops,
   ret_denote post_ret retv ->
   mem_implies_simplify pre_mem post_mem = Some svps ->
