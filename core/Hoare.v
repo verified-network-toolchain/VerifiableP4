@@ -272,6 +272,54 @@ Axiom lval_eqb_eq : forall (lv1 lv2 : Lval),
   lval_eqb lv1 lv2 ->
   lv1 = lv2.
 
+Ltac specialize_hoare_block :=
+  lazymatch goal with
+  | H : hoare_block _ _ _ _ |- _ =>
+      specialize (H _ _ _ ltac:(eassumption) ltac:(eassumption))
+  | H : forall _ _ _, _ -> exec_block _ _ _ _ _ _ _ -> _ |- _ =>
+      specialize (H _ _ _ ltac:(eassumption) ltac:(eassumption))
+  end.
+
+Ltac specialize_hoare_stmt :=
+  lazymatch goal with
+  | H : hoare_stmt _ _ _ _ |- _ =>
+      specialize (H _ _ _ ltac:(eassumption) ltac:(eassumption))
+  | H : forall _ _ _, _ -> exec_stmt _ _ _ _ _ _ _ -> _ |- _ =>
+      specialize (H _ _ _ ltac:(eassumption) ltac:(eassumption))
+  end.
+
+Ltac specialize_hoare_expr_det :=
+  lazymatch goal with
+  | H : hoare_expr_det _ _ _ _ |- _ =>
+      specialize (H _ _ _ ltac:(eassumption) ltac:(eassumption) ltac:(first [eassumption | repeat constructor]))
+  | H : forall _ _ _, _ -> exec_expr_det _ _ _ _ _ _ -> _ |- _ =>
+      specialize (H _ _ _ ltac:(eassumption) ltac:(eassumption) ltac:(first [eassumption | repeat constructor]))
+  end.
+
+Ltac specialize_hoare_lexpr :=
+  lazymatch goal with
+  | H : hoare_lexpr _ _ _ _ |- _ =>
+      specialize (H _ _ _ ltac:(eassumption) ltac:(eassumption))
+  | H : forall _ _ _, _ -> exec_lexpr _ _ _ _ _ _ _ -> _ |- _ =>
+      specialize (H _ _ _ ltac:(eassumption) ltac:(eassumption))
+  end.
+
+Ltac specialize_hoare_write :=
+  lazymatch goal with
+  | H : hoare_write _ _ _ _ |- _ =>
+      specialize (H _ _ _ ltac:(eassumption) ltac:(eassumption) ltac:(eassumption))
+  | H : forall _ _ _, _ -> exec_write _ _ _ _ _ -> _ |- _ =>
+      specialize (H _ _ _ ltac:(eassumption) ltac:(eassumption) ltac:(eassumption))
+  end.
+
+Ltac specialize_hoare_call :=
+  lazymatch goal with
+  | H : hoare_call _ _ _ _ |- _ =>
+      specialize (H _ _ _ ltac:(eassumption) ltac:(eassumption))
+  | H : forall _ _ _, _ -> exec_call _ _ _ _ _ _ _ -> _ |- _ =>
+      specialize (H _ _ _ ltac:(eassumption) ltac:(eassumption))
+  end.
+
 Lemma hoare_stmt_assign : forall p pre tags lhs rhs typ post lv sv,
   is_call_expression rhs = false ->
   hoare_lexpr p pre lhs lv ->
@@ -285,13 +333,12 @@ Proof.
     (* rule out the call case *)
     inv H14; inv H0.
   }
-  specialize (H1 _ _ _ H4 H15).
+  specialize_hoare_lexpr.
   inv H1.
   split; only 1 : split.
   apply lval_eqb_eq in H6. subst lv0.
-  specialize (H2 _ _ _ H4 H12 H16).
-  specialize (H3 _ _ _ H4 H2 H17).
-  apply H3.
+  specialize_hoare_expr_det.
+  eapply H3; eauto.
 Qed.
 
 Lemma exec_expr_not_call : forall read_one_bit p st expr sv,
@@ -322,16 +369,15 @@ Proof.
     pose proof (exec_expr_det_not_call _ _ _ _ _ H12).
     congruence.
   }
-  specialize (H1 _ _ _ H4 H15).
+  specialize_hoare_lexpr.
   inv H1.
   apply lval_eqb_eq in H6. subst lv0.
-  specialize (H2 _ _ _ H4 H14).
+  specialize_hoare_call.
   destruct sig'; only 1, 3, 4 : solve[inv H2].
   destruct H2. destruct H16 as [? []].
   split; only 1 : auto.
   inv H5.
-  specialize (H3 _ _ _ H2 (H1 _ H9) H6).
-  apply H3.
+  eapply H3; eauto.
 Qed.
 
 Lemma hoare_stmt_var_call : forall p pre tags typ' name e loc typ post mid sv,
@@ -347,13 +393,12 @@ Proof.
     pose proof (exec_expr_det_not_call _ _ _ _ _ ltac:(eassumption)).
     congruence.
   }
-  specialize (H1 _ _ _ ltac:(eassumption) ltac:(eassumption)).
+  specialize_hoare_call.
   destruct sig0; only 1, 3, 4 : solve[inv H1].
   destruct H1. destruct H16.
   split; only 1 : auto.
   inv H5.
-  specialize (H2 _ _ _ H4 (H1 _ H8) ltac:(eassumption)).
-  auto.
+  eapply H2; eauto.
 Qed.
 
 Lemma hoare_stmt_if_true : forall p pre tags cond tru ofls typ post,
@@ -363,13 +408,13 @@ Lemma hoare_stmt_if_true : forall p pre tags cond tru ofls typ post,
 Proof.
   unfold hoare_stmt. intros.
   inv H3.
-  - specialize (H0 _ _ _ ltac:(eassumption) ltac:(eassumption) ltac:(repeat constructor)).
+  - specialize_hoare_expr_det.
     inv H0. inv H5.
-    specialize (H1 _ _ _ ltac:(eassumption) ltac:(eassumption)).
+    specialize_hoare_stmt.
     auto.
-  - specialize (H0 _ _ _ ltac:(eassumption) ltac:(eassumption) ltac:(repeat constructor)).
+  - specialize_hoare_expr_det.
     inv H0. inv H5.
-    specialize (H1 _ _ _ ltac:(eassumption) ltac:(eassumption)).
+    specialize_hoare_stmt.
     auto.
 Qed.
 
@@ -380,13 +425,13 @@ Lemma hoare_stmt_if_false : forall p pre tags cond tru ofls typ post,
 Proof.
   unfold hoare_stmt. intros.
   inv H3.
-  - specialize (H0 _ _ _ ltac:(eassumption) ltac:(eassumption) ltac:(repeat constructor)).
+  - specialize_hoare_expr_det.
     inv H0. inv H5.
-    specialize (H1 _ _ _ ltac:(eassumption) ltac:(eassumption)).
+    specialize_hoare_stmt.
     auto.
-  - specialize (H0 _ _ _ ltac:(eassumption) ltac:(eassumption) ltac:(repeat constructor)).
+  - specialize_hoare_expr_det.
     inv H0. inv H5.
-    specialize (H1 _ _ _ ltac:(eassumption) ltac:(eassumption)).
+    specialize_hoare_stmt.
     auto.
 Qed.
 
@@ -487,7 +532,7 @@ Lemma hoare_block_post : forall p pre block post' post,
 Proof.
   unfold implies, hoare_block; intros.
   destruct post'; destruct post.
-  specialize (H0 _ _ _ ltac:(eassumption) ltac:(eassumption)).
+  specialize_hoare_block.
   destruct H0.
   - left. sauto.
   - right. destruct sig; only 1, 3, 4 : inv H0. sauto.
