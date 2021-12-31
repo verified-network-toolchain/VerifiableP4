@@ -8,6 +8,7 @@ Require Import ProD3.core.Hoare.
 Require Import ProD3.core.Implies.
 Require Import ProD3.core.ConcreteHoare.
 Require Import ProD3.core.AssertionNotations.
+Require Import ProD3.core.FuncSpec.
 
 (* solves hoare_call for built-in functions *)
 Ltac forward_builtin :=
@@ -88,7 +89,7 @@ Ltac forward :=
   lazymatch goal with
   | |- hoare_block _ _ (MEM _ (EXT _)) ?block _ =>
       lazymatch block with
-      | BlockEmpty _ => apply hoare_block_nil (* TODO *)
+      | BlockEmpty _ => apply hoare_block_nil
       | BlockCons _ _ =>
           eapply hoare_block_cons;
           only 1 : forward_stmt
@@ -151,6 +152,65 @@ Ltac start_function :=
     "(EX ... ARG_RET _ (MEM _ (EXT _)))"
   end.
 
+Ltac forward_call_func func_spec :=
+  lazymatch goal with
+  | |- hoare_call _ _ _ _ _ =>
+      eapply hoare_call_func';
+        [ reflexivity (* is_builtin_func *)
+        | reflexivity (* eval_args *)
+        | reflexivity (* lookup_func *)
+        | (* func_spec *)
+          eapply func_spec_combine';
+            [ apply func_spec
+            | idtac
+            | reflexivity (* exclude *)
+            | reflexivity (* exclude *)
+            | repeat constructor (* func_post_combine *)
+            ]
+        | reflexivity (* is_no_dup *)
+        | reflexivity (* eval_call_copy_out *)
+        ]
+  | _ => fail "The goal is not in the form of (hoare_call _ _ _ _ _)"
+  end.
+
+Ltac forward_stmt_call func_spec :=
+  lazymatch goal with
+  | |- hoare_stmt _ _ (MEM _ (EXT _)) ?stmt _ =>
+      lazymatch stmt with
+      (* hoare_stmt_method_call' *)
+      | MkStatement _ (StatMethodCall ?func _ _) _ =>
+          eapply hoare_stmt_method_call';
+            forward_call_func func_spec (* hoare_call *)
+      | _ => fail "This function call is not supported"
+      end
+  | _ => fail "The goal is not in the form of (hoare_stmt _ _ (MEM _ (EXT _)) ?stmt _)"
+  end.
+
+Ltac forward_call func_spec :=
+  lazymatch goal with
+  | |- hoare_block _ _ (MEM _ (EXT _)) ?block _ =>
+      lazymatch block with
+      | BlockEmpty _ => apply hoare_block_nil
+      | BlockCons _ _ =>
+          eapply hoare_block_cons;
+          only 1 : forward_stmt_call func_spec
+      end
+  | _ => fail "The goal is not in the form of (hoare_block _ _ (MEM _ (EXT _)) _ _)"
+  end.
+
+Ltac Forall2_sval_refine :=
+  lazymatch goal with
+  | |- Forall2 sval_refine _ _ =>
+      first [
+        apply Forall2_nil
+      | apply Forall2_cons;
+        [ try apply sval_refine_refl
+        | Forall2_sval_refine
+        ]
+      ]
+  | _ => fail "The goal is not in the form of (Forall2 sval_refine _ _)"
+  end.
+
 Ltac Forall_uncurry_sval_refine :=
   lazymatch goal with
   | |- Forall (uncurry sval_refine) _ =>
@@ -183,6 +243,23 @@ Ltac entailer :=
       first [
         eapply implies_simplify;
           [ reflexivity (* mem_implies_simplify *)
+          | Forall_uncurry_sval_refine
+          | reflexivity (* ext_implies_simplify *)
+          | Forall_uncurry_eq
+          ]
+      (* | eapply implies_simplify_ret;
+          [ idtac (* retv *)
+          | reflexivity (* mem_implies_simplify *)
+          | idtac
+          | reflexivity (* ext_implies_simplify *)
+          | idtac
+          ] *)
+      ]
+  | |- arg_implies _ _ =>
+      first [
+        eapply arg_implies_simplify;
+          [ Forall2_sval_refine
+          | reflexivity (* mem_implies_simplify *)
           | Forall_uncurry_sval_refine
           | reflexivity (* ext_implies_simplify *)
           | Forall_uncurry_eq

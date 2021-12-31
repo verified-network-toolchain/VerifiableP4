@@ -263,89 +263,28 @@ Proof.
     }
     eapply hoare_stmt_block.
     {
-      eapply hoare_block_cons.
-      {
-        eapply hoare_stmt_method_call'.
-        eapply hoare_call_func'.
-        { (* is_builtin_func *)
-          reflexivity.
-        }
-        { (* eval_args *)
-          reflexivity.
-        }
-        { (* lookup_func *)
-          reflexivity.
-        }
-        { (* hoare_func *)
-          eapply func_spec_combine'.
-          { (* hoare_func_spec *)
-            apply MyIngress_do_forward_spec.
-          }
-          { (* arg_implies *)
-            eapply arg_implies_simplify.
-            { (* Forall sval_refine *)
-              repeat constructor.
-            }
-            { (* mem_implies_simplify *)
-              reflexivity.
-            }
-            { (* Forall sval_refine *)
-              constructor.
-              apply SvalRefine.sval_refine_refl.
-              constructor.
-            }
-            { (* ext_implies_simplify *)
-              reflexivity.
-            }
-            { (* Forall eq *)
-              constructor.
-            }
-          }
-          { (* exclude *)
-            reflexivity.
-          }
-          { (* exclude *)
-            reflexivity.
-          }
-          { (* func_post_combine *)
-            constructor.
-          }
-        }
-        { (* is_no_dup *)
-          reflexivity.
-        }
-        { (* eval_call_copy_out *)
-          reflexivity.
-        }
+      forward_call MyIngress_do_forward_spec.
+      { entailer. }
+      (* A possible simpl: *)
+        (* Opaque pre_ext_assertion post_ext_assertion.
+        simpl MEM. *)
+      forward_if (MEM
+         (eval_write_vars []
+            (filter_out [(["hdr"], InOut); (["meta"], InOut); (["standard_metadata"], InOut)])
+            post_arg_assertion) (EXT post_ext_assertion)).
+      { (* true branch *)
+        change (is_true (BitArith.lbool_to_val (to_lbool 8%N rw) 1 0 =? 0)) in H.
+        (* forward_call. *)
+        admit.
       }
-      {
-        (* A possible simpl: *)
-          (* Opaque pre_ext_assertion post_ext_assertion.
-          simpl MEM. *)
-        (* let post := constr:(MEM (eval_write_vars []
-              (filter_out [(["hdr"], InOut); (["meta"], InOut); (["standard_metadata"], InOut)])
-              post_arg_assertion) (EXT post_ext_assertion)) in
-        eapply hoare_block_cons with (mid := post).
-        {
-          eapply hoare_stmt_if'. *)
-        forward_if (MEM
-           (eval_write_vars []
-              (filter_out [(["hdr"], InOut); (["meta"], InOut); (["standard_metadata"], InOut)])
-              post_arg_assertion) (EXT post_ext_assertion)).
-        { (* true branch *)
-          change (is_true (BitArith.lbool_to_val (to_lbool 8%N rw) 1 0 =? 0)) in H.
-          (* forward_call. *)
-          admit.
-        }
-        { (* false branch *)
-          change (is_true (negb (BitArith.lbool_to_val (to_lbool 8%N rw) 1 0 =? 0))) in H.
-          (* forward_call. *)
-          admit.
-        }
-        forward.
-        simpl.
-        eapply implies_refl.
+      { (* false branch *)
+        change (is_true (negb (BitArith.lbool_to_val (to_lbool 8%N rw) 1 0 =? 0))) in H.
+        (* forward_call. *)
+        admit.
       }
+      forward.
+      simpl. (* This simpl generates better assertion for the next step. *)
+      eapply implies_refl.
     }
   }
   forward.
