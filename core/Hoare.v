@@ -380,11 +380,11 @@ Proof.
   eapply H3; eauto.
 Qed.
 
-Lemma hoare_stmt_method_call : forall p pre tags func args typ post sv,
+Lemma hoare_stmt_method_call : forall p pre tags func targs args typ post sv,
   hoare_call p pre
-    (MkExpression dummy_tags (ExpFunctionCall func nil args) TypVoid Directionless)
+    (MkExpression dummy_tags (ExpFunctionCall func targs args) TypVoid Directionless)
     (fun v st => (forall sv', val_to_sval v sv' -> sval_refine sv sv') /\ (post_continue post) st) ->
-  hoare_stmt p pre (MkStatement tags (StatMethodCall func [] args) typ) post.
+  hoare_stmt p pre (MkStatement tags (StatMethodCall func targs args) typ) post.
 Proof.
   unfold hoare_stmt. intros.
   left.

@@ -22,7 +22,7 @@ Require Import ProD3.core.AssertionNotations.
 Require Import ProD3.core.FuncSpec.
 Require Import ProD3.core.Implies.
 Require Import ProD3.core.Tactics.
-(* Require Import ProD3.core.V1ModelLang. *)
+Require Import ProD3.core.V1ModelSpec.
 
 Instance target : @Target Info (@Expression Info) := V1Model.
 
@@ -90,16 +90,6 @@ Proof.
   split. apply MyIngress_do_forward_body.
 Admitted.
 
-Definition MyIngress_fundef := Eval compute in
-  match PathMap.get ["MyIngress"; "apply"] (ge_func ge) with
-  | Some x => x
-  | None => dummy_fundef
-  end.
-
-Definition this : path := ["main"; "ig"].
-
-Definition NUM_ENTRY : Z := 1024.
-
 Notation Filter := (Filter Z).
 
 Definition bloomfilter_state : Type := Filter * Filter * Filter.
@@ -110,6 +100,8 @@ Definition bool_to_Z (b : bool) :=
 Definition list_of_filter (size : Z) (f : Filter) : list Z :=
   map (compose bool_to_Z (compose f Z.of_nat)) (seq O (Z.to_nat size)).
 
+Definition NUM_ENTRY : Z := 1024.
+
 Definition bloom0 (bst : bloomfilter_state) : list Z :=
   list_of_filter NUM_ENTRY (fst (fst bst)).
 
@@ -118,6 +110,78 @@ Definition bloom1 (bst : bloomfilter_state) : list Z :=
 
 Definition bloom2 (bst : bloomfilter_state) : list Z :=
   list_of_filter NUM_ENTRY (snd bst).
+
+Definition Add_fundef := Eval compute in
+  force dummy_fundef (PathMap.get ["Add"; "apply"] (ge_func ge)).
+
+Definition reg_encode (l : list Z) : extern_object :=
+  ObjRegister (map ValBaseBit (map (P4Arith.to_lbool 1) l)).
+
+Definition havoc := uninit_sval_of_sval.
+
+Axiom CRC : Z -> Z.
+Axiom CRC_range : forall data, 0 <= CRC data < NUM_ENTRY.
+
+Definition hash_fundef := Eval compute in
+  force dummy_fundef (PathMap.get ["hash"] (ge_func ge)).
+
+Axiom hash_spec : forall (data : Z) (algo base fake_data max : Sval) targs,
+  hoare_func_spec ge []
+  (ARG [algo; base; fake_data; max]
+  (MEM []
+  (EXT [])))
+  (FExternal "" "hash") targs
+  (ARG_RET [ValBaseBit (to_loptbool 16%N (CRC data))] ValBaseNull
+  (MEM []
+  (EXT [])))
+  [] [].
+
+Lemma Add_body : forall p (rw data : Z) (meta : Sval) (bf : bloomfilter_state),
+  let hdr := ValBaseStruct
+      [("myHeader",
+        ValBaseHeader
+          [("rw", ValBaseBit (to_loptbool 8 rw));
+           ("data", ValBaseBit (to_loptbool 16 data))]
+           (Some true))] in
+  hoare_func ge p
+    (ARG [hdr; meta]
+    (MEM []
+    (EXT [(["bloom0"], reg_encode (bloom0 bf));
+          (["bloom1"], reg_encode (bloom1 bf));
+          (["bloom2"], reg_encode (bloom2 bf))])))
+    Add_fundef nil
+    (ARG_RET [hdr; havoc None meta] ValBaseNull
+    (MEM []
+    (EXT (let bf' := bloomfilter.add Z Z.eqb CRC CRC CRC bf data in
+         [(["bloom0"], reg_encode (bloom0 bf'));
+          (["bloom1"], reg_encode (bloom1 bf'));
+          (["bloom2"], reg_encode (bloom2 bf'))])))).
+Proof.
+  intros.
+  start_function.
+  forward_call (hash_spec data).
+  entailer.
+  forward_call (hash_spec data).
+  entailer.
+  forward_call (hash_spec data).
+  entailer.
+  simpl MEM.
+  (* forward_call uconstr:(register_write_spec _ _ _ _ _). *)
+(* Qed. *)
+Admitted.
+
+Definition Query_fundef := Eval compute in
+  force dummy_fundef (PathMap.get ["Query"; "apply"] (ge_func ge)).
+
+Definition MyIngress_fundef := Eval compute in
+  match PathMap.get ["MyIngress"; "apply"] (ge_func ge) with
+  | Some x => x
+  | None => dummy_fundef
+  end.
+
+Definition this : path := ["main"; "ig"].
+
+
 
 (* Definition filter_match (st : state) (p : path) (f : Filter) : Prop :=
   exists content,
@@ -201,9 +265,6 @@ Definition pre_ext_assertion : ext_assertion :=
 
 Definition pre :=
   ARG pre_arg_assertion (MEM [] (EXT pre_ext_assertion)).
-
-Axiom CRC : Z -> Z.
-Axiom CRC_range : forall data, 0 <= CRC data < NUM_ENTRY.
 
 Definition process (rw data : Z) (bst : bloomfilter_state) : (bloomfilter_state * Z) :=
   if rw =? 2 then

@@ -20,7 +20,7 @@ Ltac forward_builtin :=
         | reflexivity (* eval_args *)
         | reflexivity (* eval_builtin *)
         ])
-      || fail "Not a built-in function"
+      || fail "Not a built-in function. Use forward_call instead"
   | _ =>
       fail "Not a hoare_call"
   end.
@@ -49,6 +49,10 @@ Ltac forward_stmt :=
             | reflexivity (* eval_expr *)
             | reflexivity (* eval_write *)
             ]
+      (* hoare_stmt_method_call' *)
+      | MkStatement _ (StatMethodCall ?func _ _) _ =>
+          eapply hoare_stmt_method_call';
+            forward_builtin (* hoare_call *)
       (* hoare_stmt_var_call' *)
       | MkStatement _
             (StatVariable _ _
@@ -161,6 +165,7 @@ Ltac forward_call_func func_spec :=
         | reflexivity (* lookup_func *)
         | (* func_spec *)
           eapply func_spec_combine';
+            (* Issue: error message is hard to track when func_spec is not a func spec for the function. *)
             [ apply func_spec
             | idtac
             | reflexivity (* exclude *)

@@ -2,6 +2,7 @@ Require Import Coq.Strings.String.
 Require Import Poulet4.Typed.
 Require Import Poulet4.Syntax.
 Require Import Poulet4.Semantics.
+Require Import Poulet4.P4String.
 Require Import ProD3.core.Coqlib.
 Require Import ProD3.core.Members.
 Require Import ProD3.core.SvalRefine.
@@ -417,6 +418,19 @@ Fixpoint eval_expr (ge : genv) (p : path) (a : mem_assertion) (expr : Expression
           match eval_expr ge p a arg, get_real_type ge newtyp with
           | Some argv, Some real_typ => Some (build_abs_unary_op (Ops.eval_cast real_typ) argv)
           | _, _ => None
+          end
+      | ExpList exprs =>
+          (option_map ValBaseTuple) (lift_option (map (eval_expr ge p a) exprs))
+      | ExpTypeMember tname member =>
+          match IdentMap.get (str tname) (ge_typ ge) with
+          (* enum *)
+          | Some (TypEnum ename None members) =>
+              Some (ValBaseEnumField (str ename) (str member))
+          (* senum *)
+          | Some (TypEnum ename (Some etyp) members) =>
+              let fields := force nil (IdentMap.get (str ename) (ge_senum ge)) in
+              AList.get fields (str member)
+          | _ => None
           end
       | ExpExpressionMember expr name =>
           match eval_expr ge p a expr with

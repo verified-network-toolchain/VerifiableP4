@@ -57,12 +57,12 @@ Proof.
   eapply hoare_stmt_assign_call; eauto with hoare.
 Qed.
 
-Lemma hoare_stmt_method_call' : forall p pre_mem pre_ext tags func args typ vret post_mem post_ext ret_post,
+Lemma hoare_stmt_method_call' : forall p pre_mem pre_ext tags func targs args typ vret post_mem post_ext ret_post,
   hoare_call ge p
     (MEM pre_mem (EXT pre_ext))
-    (MkExpression dummy_tags (ExpFunctionCall func nil args) TypVoid Directionless)
+    (MkExpression dummy_tags (ExpFunctionCall func targs args) TypVoid Directionless)
     (RET vret (MEM post_mem (EXT post_ext))) ->
-  hoare_stmt ge p (MEM pre_mem (EXT pre_ext)) (MkStatement tags (StatMethodCall func [] args) typ)
+  hoare_stmt ge p (MEM pre_mem (EXT pre_ext)) (MkStatement tags (StatMethodCall func targs args) typ)
     (mk_post_assertion (MEM post_mem (EXT post_ext)) ret_post).
 Proof.
   intros.
