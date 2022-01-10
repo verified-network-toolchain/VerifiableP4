@@ -1076,8 +1076,8 @@ Definition Add := DeclControl NoInfo {| stags := NoInfo; str := "Add" |} nil
                                                       (ExpName
                                                        (BareName
                                                         {| stags := NoInfo;
-                                                           str := "bloom0" |})
-                                                       (LGlobal ["bloom0"]))
+                                                           str := "bloom1" |})
+                                                       (LGlobal ["bloom1"]))
                                                       (TypSpecializedType
                                                            (TypExtern
                                                             {| stags := NoInfo;
@@ -1138,9 +1138,9 @@ Definition Add := DeclControl NoInfo {| stags := NoInfo; str := "Add" |} nil
                                                            (ExpName
                                                             (BareName
                                                              {| stags := NoInfo;
-                                                                str := "bloom0" |})
+                                                                str := "bloom2" |})
                                                             (LGlobal
-                                                                 ["bloom0"]))
+                                                                 ["bloom2"]))
                                                            (TypSpecializedType
                                                                 (TypExtern
                                                                  {| stags := NoInfo;
@@ -1673,8 +1673,8 @@ Definition Query := DeclControl NoInfo {| stags := NoInfo; str := "Query" |}
                                                       (ExpName
                                                        (BareName
                                                         {| stags := NoInfo;
-                                                           str := "bloom0" |})
-                                                       (LGlobal ["bloom0"]))
+                                                           str := "bloom1" |})
+                                                       (LGlobal ["bloom1"]))
                                                       (TypSpecializedType
                                                            (TypExtern
                                                             {| stags := NoInfo;
@@ -1739,9 +1739,9 @@ Definition Query := DeclControl NoInfo {| stags := NoInfo; str := "Query" |}
                                                            (ExpName
                                                             (BareName
                                                              {| stags := NoInfo;
-                                                                str := "bloom0" |})
+                                                                str := "bloom2" |})
                                                             (LGlobal
-                                                                 ["bloom0"]))
+                                                                 ["bloom2"]))
                                                            (TypSpecializedType
                                                                 (TypExtern
                                                                  {| stags := NoInfo;

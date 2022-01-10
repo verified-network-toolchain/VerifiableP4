@@ -67,8 +67,8 @@ control Add(inout headers hdr, inout custom_metadata_t meta) {
         hash(meta.index2, HashAlgorithm.crc16, HASH_BASE, {hdr.myHeader.data, PAD2}, HASH_MAX);
 
         bloom0.write(meta.index0, 1);
-        bloom0.write(meta.index1, 1);
-        bloom0.write(meta.index2, 1);
+        bloom1.write(meta.index1, 1);
+        bloom2.write(meta.index2, 1);
     }
 }
 
@@ -79,8 +79,8 @@ control Query(inout headers hdr, inout custom_metadata_t meta) {
         hash(meta.index2, HashAlgorithm.crc16, HASH_BASE, {hdr.myHeader.data, PAD2}, HASH_MAX);
 
         bloom0.read(meta.member0, meta.index0);
-        bloom0.read(meta.member1, meta.index1);
-        bloom0.read(meta.member2, meta.index2);
+        bloom1.read(meta.member1, meta.index1);
+        bloom2.read(meta.member2, meta.index2);
 
         hdr.myHeader.rw = (bit<8>) (meta.member0 & meta.member1 & meta.member2);
     }
