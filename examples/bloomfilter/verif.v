@@ -58,23 +58,6 @@ Module Experiment1.
 Definition MyIngress_do_forward_fundef := Eval compute in
   force dummy_fundef (PathMap.get ["MyIngress"; "do_forward"] (ge_func ge)).
 
-Lemma MyIngress_do_forward_body' : forall p (port : Z) (standard_metadata : Sval),
-  hoare_func ge p
-    (ARG [ValBaseBit (to_loptbool 9 port)]
-      (MEM [(["standard_metadata"], standard_metadata)] (EXT [])))
-    MyIngress_do_forward_fundef nil
-    (ARG_RET [] ValBaseNull
-      (MEM [(["standard_metadata"],
-          update "egress_spec" (ValBaseBit (to_loptbool 9 port)) standard_metadata)]
-        (EXT []))).
-Proof.
-  intros.
-  start_function.
-  forward.
-  forward.
-  entailer.
-Qed.
-
 Open Scope func_spec.
 
 Definition MyIngress_do_forward_spec : func_spec :=
@@ -91,7 +74,10 @@ Definition MyIngress_do_forward_spec : func_spec :=
 
 Lemma MyIngress_do_forward_body :
   fundef_satisfies_spec ge MyIngress_do_forward_fundef nil MyIngress_do_forward_spec.
-  split. eapply MyIngress_do_forward_body'.
+  start_function.
+  forward.
+  forward.
+  entailer.
 Admitted.
 
 Notation Filter := (Filter Z).
@@ -195,14 +181,8 @@ Definition Add_spec : func_spec :=
 
 Lemma Add_body : fundef_satisfies_spec ge Add_fundef nil Add_spec.
 Proof.
-  (* split. 2 : admit.
   start_function.
-  rename x into p.
-  rename x0 into rw.
-  rename x1 into data.
-  rename x2 into meta.
-  rename x3 into bf.
-  forward_call hash_body.
+  (* forward_call hash_body.
   entailer.
   instantiate (1 := data).
   forward_call hash_body.
@@ -358,7 +338,10 @@ Definition post_ext_assertion : ext_assertion :=
 Definition post :=
   ARG_RET post_arg_assertion ValBaseNull (MEM [] (EXT post_ext_assertion)).
 
-Lemma body_bloomfilter : hoare_func ge this pre MyIngress_fundef nil post.
+Definition bloomfilter_spec : func_spec :=
+  fs_base (mk_func_spec this pre post None [["bloom0"]; ["bloom1"]; ["bloom2"]]).
+
+Lemma body_bloomfilter : fundef_satisfies_spec ge MyIngress_fundef nil bloomfilter_spec.
 Proof.
   (* remove AType and represent everything as Sval
   To make it easier for structs, add a strucuture to represent structs with updated fields
