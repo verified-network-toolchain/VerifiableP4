@@ -17,7 +17,7 @@ Proof.
   - simpl. rewrite String.eqb_refl. auto.
 Qed.
 
-Hint Resolve path_eqb_refl : core.
+#[export] Hint Resolve path_eqb_refl : core.
 
 Section Hoare.
 
@@ -800,5 +800,5 @@ End DeepEmbeddedHoare.
 End Hoare.
 
 Create HintDb hoare.
-Hint Resolve hoare_expr_det_intro : hoare.
-Hint Resolve is_no_dup_NoDup : hoare.
+#[export] Hint Resolve hoare_expr_det_intro : hoare.
+#[export] Hint Resolve is_no_dup_NoDup : hoare.

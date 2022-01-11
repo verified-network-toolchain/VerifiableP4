@@ -21,7 +21,7 @@ Proof.
   destruct loc; simpl; auto.
 Qed.
 
-Hint Resolve locator_eqb_refl : core.
+#[export] Hint Resolve locator_eqb_refl : core.
 
 Section EvalExpr.
 
@@ -951,5 +951,5 @@ Qed.
 
 End EvalExpr.
 
-Hint Resolve eval_expr_sound eval_lexpr_sound eval_write_sound eval_arg_sound eval_args_sound : hoare.
+#[export] Hint Resolve eval_expr_sound eval_lexpr_sound eval_write_sound eval_arg_sound eval_args_sound : hoare.
 

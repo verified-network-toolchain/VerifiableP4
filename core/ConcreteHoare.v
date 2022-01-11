@@ -302,20 +302,6 @@ Proof.
     + auto.
 Qed.
 
-Definition assr_exists {A} (a : A -> Hoare.assertion) : Hoare.assertion :=
-  fun st => ex (fun x => a x st).
-
-Definition ret_exists {A} (a : A -> Hoare.ret_assertion) : Hoare.ret_assertion :=
-  fun retv st => ex (fun x => a x retv st).
-
-Definition arg_ret_exists {A} (a : A -> Hoare.arg_ret_assertion) : Hoare.arg_ret_assertion :=
-  fun args retv st => ex (fun x => a x args retv st).
-
-Declare Scope post_cond.
-Delimit Scope post_cond with post_cond.
-Notation "'EX' x .. y , P " :=
-  (arg_ret_exists (fun x => .. (arg_ret_exists (fun y => P%post_cond)) ..)) (at level 65, x binder, y binder, right associativity) : post_cond.
-
 Inductive inv_func_copy_out (out_params : list path) : Hoare.ret_assertion -> Hoare.arg_ret_assertion -> Prop :=
   | inv_func_copy_out_base : forall a_arg a_ret a_mem a_ext,
       length out_params = length a_arg ->

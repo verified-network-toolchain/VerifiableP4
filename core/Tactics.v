@@ -166,7 +166,7 @@ Ltac forward_call_func func_spec :=
         | (* func_spec *)
           eapply func_spec_combine';
             (* Issue: error message is hard to track when func_spec is not a func spec for the function. *)
-            [ apply func_spec
+            [ eapply func_spec
             | idtac
             | reflexivity (* exclude *)
             | reflexivity (* exclude *)

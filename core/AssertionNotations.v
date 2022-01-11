@@ -25,6 +25,8 @@ Notation mem := Semantics.mem.
 
 Context `{@Target tags_t (@Expression tags_t)}.
 
+(* EXT is defined as (id) instead of (ext_denote a_ext). Maybe it's because I don't want to have
+  a parameter (Hoare.ext_assertion) in MEM *)
 Definition EXT : ext_assertion -> ext_assertion :=
   id.
 
@@ -41,5 +43,29 @@ Definition ARG_RET (a_arg : list Sval) (a_ret : Sval) (a : Hoare.assertion) : Ho
   fun args retv st => arg_denote a_arg args
     /\ ret_denote a_ret retv
     /\ a st.
+
+Definition assr_exists {A} (a : A -> Hoare.assertion) : Hoare.assertion :=
+  fun st => ex (fun x => a x st).
+
+Definition ret_exists {A} (a : A -> Hoare.ret_assertion) : Hoare.ret_assertion :=
+  fun retv st => ex (fun x => a x retv st).
+
+Definition arg_ret_exists {A} (a : A -> Hoare.arg_ret_assertion) : Hoare.arg_ret_assertion :=
+  fun args retv st => ex (fun x => a x args retv st).
+
+Declare Scope assr.
+Delimit Scope assr with assr.
+Notation "'EX' x .. y , P " :=
+  (assr_exists (fun x => .. (assr_exists (fun y => P%assr)) ..)) (at level 65, x binder, y binder, right associativity) : assr.
+
+Declare Scope ret_assr.
+Delimit Scope ret_assr with ret_assr.
+Notation "'EX' x .. y , P " :=
+  (ret_exists (fun x => .. (ret_exists (fun y => P%assr)) ..)) (at level 65, x binder, y binder, right associativity) : ret_assr.
+
+Declare Scope arg_ret_assr.
+Delimit Scope arg_ret_assr with arg_ret_assr.
+Notation "'EX' x .. y , P " :=
+  (arg_ret_exists (fun x => .. (arg_ret_exists (fun y => P%arg_ret_assr)) ..)) (at level 65, x binder, y binder, right associativity) : arg_ret_assr.
 
 End AssertionNotations.

@@ -58,7 +58,7 @@ Module Experiment1.
 Definition MyIngress_do_forward_fundef := Eval compute in
   force dummy_fundef (PathMap.get ["MyIngress"; "do_forward"] (ge_func ge)).
 
-Lemma MyIngress_do_forward_body : forall p (port : Z) (standard_metadata : Sval),
+Lemma MyIngress_do_forward_body' : forall p (port : Z) (standard_metadata : Sval),
   hoare_func ge p
     (ARG [ValBaseBit (to_loptbool 9 port)]
       (MEM [(["standard_metadata"], standard_metadata)] (EXT [])))
@@ -75,19 +75,23 @@ Proof.
   entailer.
 Qed.
 
-Lemma MyIngress_do_forward_spec : forall p (port : Z) (standard_metadata : Sval),
-  hoare_func_spec ge p
-    (ARG [ValBaseBit (to_loptbool 9%N port)]
+Open Scope func_spec.
+
+Definition MyIngress_do_forward_spec : func_spec :=
+  WITH (p : path) (port : Z) (standard_metadata : Sval),
+    mk_func_spec
+      p
+      (ARG [ValBaseBit (to_loptbool 9%N port)]
       (MEM [(["standard_metadata"], standard_metadata)]
-        (EXT [])))
-    MyIngress_do_forward_fundef nil
-    (ARG_RET [] ValBaseNull
+      (EXT [])))
+      (ARG_RET [] ValBaseNull
       (MEM [(["standard_metadata"], (update "egress_spec" (ValBaseBit (to_loptbool 9%N port)) standard_metadata))]
-        (EXT [])))
-    [["standard_metadata"]] [].
-Proof.
-  intros.
-  split. apply MyIngress_do_forward_body.
+      (EXT [])))
+      (Some [["do_forward"; "port"]; ["standard_metadata"]]) [].
+
+Lemma MyIngress_do_forward_body :
+  fundef_satisfies_spec ge MyIngress_do_forward_fundef nil MyIngress_do_forward_spec.
+  split. eapply MyIngress_do_forward_body'.
 Admitted.
 
 Notation Filter := (Filter Z).
@@ -119,54 +123,112 @@ Definition reg_encode (l : list Z) : extern_object :=
 
 Definition havoc := uninit_sval_of_sval.
 
-Axiom CRC : Z -> Z.
-Axiom CRC_range : forall data, 0 <= CRC data < NUM_ENTRY.
+Section CRC.
+Import Hexadecimal.
 
-Definition hash_fundef := Eval compute in
+Definition CRC : list bool -> list bool := Hash.compute_crc 16%nat (D8 (D0 (D0 (D5 Nil)))) zero zero true true.
+
+(* This may be unnecessary. *)
+Lemma CRC_length : forall data,
+  List.length (CRC data) = 16%nat.
+Proof.
+  intros.
+(* This lemma needs property about CRC. *)
+Admitted.
+
+End CRC.
+
+Definition CRC_Z (data : list bool) : Z :=
+  BitArith.lbool_to_val (CRC data) 1 0.
+
+Axiom CRC_range : forall data, 0 <= CRC_Z data < NUM_ENTRY.
+
+Definition CRC_pad (pad : list bool) (data : Z) : Z :=
+  CRC_Z (((to_lbool 16%N data) ++ pad)).
+
+Definition CRC_pad0 := CRC_pad (to_lbool 3%N 3).
+Definition CRC_pad1 := CRC_pad (to_lbool 5%N 5).
+Definition CRC_pad2 := CRC_pad (to_lbool 7%N 7).
+
+Definition hash_fundef :=
   force dummy_fundef (PathMap.get ["hash"] (ge_func ge)).
 
-Axiom hash_spec : forall (data : Z) (algo base fake_data max : Sval) targs,
-  hoare_func_spec ge []
-  (ARG [algo; base; fake_data; max]
-  (MEM []
-  (EXT [])))
-  (FExternal "" "hash") targs
-  (ARG_RET [ValBaseBit (to_loptbool 16%N (CRC data))] ValBaseNull
-  (MEM []
-  (EXT [])))
-  [] [].
+(* (* fake function spec *)
+Definition hash_spec : func_spec :=
+  WITH (data : Z) (algo base fake_data max : Sval),
+    mk_func_spec
+      []
+      (ARG [algo; base; fake_data; max]
+      (MEM []
+      (EXT [])))
+      (ARG_RET [ValBaseBit (to_loptbool 16%N (CRC_Z data))] ValBaseNull
+      (MEM []
+      (EXT [])))
+      None [].
 
-Lemma Add_body : forall p (rw data : Z) (meta : Sval) (bf : bloomfilter_state),
-  let hdr := ValBaseStruct
+Axiom hash_body : forall targs,
+  fundef_satisfies_spec ge hash_fundef targs hash_spec. *)
+
+
+Definition Add_spec : func_spec :=
+  WITH p (rw data : Z) (meta : Sval) (bf : bloomfilter_state),
+    let hdr := ValBaseStruct
       [("myHeader",
         ValBaseHeader
           [("rw", ValBaseBit (to_loptbool 8 rw));
            ("data", ValBaseBit (to_loptbool 16 data))]
            (Some true))] in
-  hoare_func ge p
-    (ARG [hdr; meta]
-    (MEM []
-    (EXT [(["bloom0"], reg_encode (bloom0 bf));
-          (["bloom1"], reg_encode (bloom1 bf));
-          (["bloom2"], reg_encode (bloom2 bf))])))
-    Add_fundef nil
-    (ARG_RET [hdr; havoc None meta] ValBaseNull
-    (MEM []
-    (EXT (let bf' := bloomfilter.add Z Z.eqb CRC CRC CRC bf data in
-         [(["bloom0"], reg_encode (bloom0 bf'));
-          (["bloom1"], reg_encode (bloom1 bf'));
-          (["bloom2"], reg_encode (bloom2 bf'))])))).
+    mk_func_spec
+      p
+      (ARG [hdr; meta]
+      (MEM []
+      (EXT [(["bloom0"], reg_encode (bloom0 bf));
+            (["bloom1"], reg_encode (bloom1 bf));
+            (["bloom2"], reg_encode (bloom2 bf))])))
+      (ARG_RET [hdr; havoc None meta] ValBaseNull
+      (MEM []
+      (EXT (let bf' := bloomfilter.add Z Z.eqb CRC_pad0 CRC_pad1 CRC_pad2 bf data in
+           [(["bloom0"], reg_encode (bloom0 bf'));
+            (["bloom1"], reg_encode (bloom1 bf'));
+            (["bloom2"], reg_encode (bloom2 bf'))]))))
+      None [["bloom0"]; ["bloom1"]; ["bloom2"]].
+
+Lemma Add_body : fundef_satisfies_spec ge Add_fundef nil Add_spec.
 Proof.
-  intros.
+  (* split. 2 : admit.
   start_function.
-  forward_call (hash_spec data).
+  rename x into p.
+  rename x0 into rw.
+  rename x1 into data.
+  rename x2 into meta.
+  rename x3 into bf.
+  forward_call hash_body.
   entailer.
-  forward_call (hash_spec data).
+  instantiate (1 := data).
+  forward_call hash_body.
   entailer.
-  forward_call (hash_spec data).
+  instantiate (1 := data).
+  forward_call hash_body.
   entailer.
+  instantiate (1 := data).
   simpl MEM.
-  (* forward_call uconstr:(register_write_spec _ _ _ _ _). *)
+  forward_call uconstr:(register_write_body _ _ _ _ _).
+  2 : {
+    entailer.
+    rewrite get_update_diff.
+    2 : admit.
+    2 : discriminate.
+    rewrite get_update_diff.
+    2 : admit.
+    2 : discriminate.
+    rewrite get_update_same.
+    2 : admit.
+    eapply SvalRefine.sval_refine_refl.
+     }
+  Unshelve. all : shelve_unifiable.
+  3 : reflexivity.
+  admit. *)
+
 (* Qed. *)
 Admitted.
 
@@ -212,7 +274,7 @@ Definition myHeader :=
     [("myHeader",
       ValBaseHeader
         [("rw", ValBaseBit (to_loptbool 8 rw));
-         ("data", ValBaseBit (to_loptbool 8 data))]
+         ("data", ValBaseBit (to_loptbool 16 data))]
          (Some true))].
 
 Axiom dummy_type : (@P4Type Info).
@@ -268,9 +330,9 @@ Definition pre :=
 
 Definition process (rw data : Z) (bst : bloomfilter_state) : (bloomfilter_state * Z) :=
   if rw =? 2 then
-    (bloomfilter.add Z Z.eqb CRC CRC CRC bst data, 2)
+    (bloomfilter.add Z Z.eqb CRC_pad0 CRC_pad1 CRC_pad2 bst data, 2)
   else
-    (bst, bool_to_Z (bloomfilter.query Z CRC CRC CRC bst data)).
+    (bst, bool_to_Z (bloomfilter.query Z CRC_pad0 CRC_pad1 CRC_pad2 bst data)).
 
 Definition bst' := fst (process rw data bst).
 Definition rw' := snd (process rw data bst).
@@ -322,9 +384,10 @@ Proof.
     { (* eval_expr *)
       reflexivity.
     }
-    eapply hoare_stmt_block.
+    apply hoare_stmt_block.
     {
-      forward_call MyIngress_do_forward_spec.
+      simpl eval_write_var.
+      forward_call MyIngress_do_forward_body.
       { entailer. }
       (* A possible simpl: *)
         (* Opaque pre_ext_assertion post_ext_assertion.

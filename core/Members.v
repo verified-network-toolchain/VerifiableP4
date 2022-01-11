@@ -85,7 +85,7 @@ Definition update (f : ident) (f_sv : Sval) (sv : Sval) : Sval :=
   | _ => sv
   end.
 
-Lemma get_some_get_set : forall {A} (l : AList.StringAList A) k (l' : AList.StringAList A) v1 v2,
+Lemma get_some_get_set_same : forall {A} (l : AList.StringAList A) k (l' : AList.StringAList A) v1 v2,
   AList.get l k = Some v1 ->
   AList.get (force l' (AList.set l k v2)) k = Some v2.
 Proof.
@@ -94,7 +94,7 @@ Proof.
   apply AList.set_some_get.
 Qed.
 
-Lemma get_update : forall sv f f_sv,
+Lemma get_update_same : forall sv f f_sv,
   has_field f sv ->
   get f (update f f_sv sv) = f_sv.
 Proof.
@@ -102,18 +102,74 @@ Proof.
   destruct sv; try solve [inv H].
   - unfold get, update, has_field in *.
     destruct (AList.get fields f) eqn:?.
-    + erewrite get_some_get_set by eauto.
+    + erewrite get_some_get_set_same by eauto.
       auto.
     + inv H.
   - destruct is_valid as [[] | ].
     * unfold get, update, has_field in *.
       destruct (AList.get fields f) eqn:?.
-      + erewrite get_some_get_set by eauto.
+      + erewrite get_some_get_set_same by eauto.
         auto.
       + inv H.
     * inv H.
     * inv H.
   - unfold get, update, has_field in *.
+    admit.
+    (* destruct (AList.get fields f) eqn:?.
+    + erewrite get_some_get_set by eauto.
+      auto.
+    + inv H. *)
+(* Qed. *)
+Admitted.
+
+Lemma get_update_same' : forall sv f1 f2 f_sv,
+  f1 = f2 ->
+  has_field f2 sv ->
+  get f1 (update f2 f_sv sv) = f_sv.
+Proof.
+  intros. subst. apply get_update_same; auto.
+Qed.
+
+Lemma get_set_diff : forall {A} (l : AList.StringAList A) k1 k2 v,
+  k1 <> k2 ->
+  AList.get (force l (AList.set l k2 v)) k1 = AList.get l k1.
+Proof.
+  intros.
+  induction l.
+  - auto.
+  - simpl.
+    destruct a as [k' v'].
+    destruct (EquivUtil.StringEqDec k2 k') as [H_k2 | H_k2].
+    + simpl. cbv in H_k2; subst.
+      rewrite !AList.get_neq_cons; auto.
+    + simpl. cbv in H_k2.
+      destruct (AList.set l k2 v).
+      * simpl.
+        destruct (EquivUtil.StringEqDec k1 k') as [H_k1 | H_k1].
+        ++rewrite !AList.get_eq_cons; auto.
+        ++rewrite !AList.get_neq_cons; auto.
+      * simpl.
+        destruct (EquivUtil.StringEqDec k1 k') as [H_k1 | H_k1].
+        ++rewrite !AList.get_eq_cons; auto.
+        ++rewrite !AList.get_neq_cons; auto.
+Qed.
+
+Lemma get_update_diff : forall sv f1 f2 f_sv,
+  has_field f2 sv ->
+  f1 <> f2 ->
+  get f1 (update f2 f_sv sv) = get f1 sv.
+Proof.
+  intros.
+  destruct sv; try apply eq_refl.
+  - unfold get, update in *.
+    rewrite get_set_diff; auto.
+  - destruct is_valid as [[] | ].
+    * unfold get, update in *.
+      rewrite get_set_diff; auto.
+    * inv H.
+    * inv H.
+  - unfold get, update, has_field in *.
+    (* TODO union *)
     admit.
     (* destruct (AList.get fields f) eqn:?.
     + erewrite get_some_get_set by eauto.

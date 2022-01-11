@@ -33,59 +33,45 @@ Instance target : @Target tags_t Expression := V1Model.
 
 Variable ge : genv.
 
-(* Definition register_read_pre (p : path) reg i :=
-  (0 <= i < reg_size reg)%Z
-  ARG
-  fun (args : list Sval) st =>
-    (0 <= i < reg_size reg)%Z /\
-    args = [ValBaseBit (to_loptbool 32%N i)]
-    /\ PathMap.get p (get_external_state st) = Some (ObjRegister reg).
+Open Scope func_spec.
 
-Definition register_read_post (p : path) reg i :=
-  fun (args : list Sval) (retv : Val) st =>
-    args = [eval_val_to_sval ge (Znth i (reg_content reg))]
-    /\ PathMap.get p (get_external_state st) = Some (ObjRegister reg). *)
+Definition register_read_spec (p : path) (reg_s : register_static) : func_spec :=
+  WITH (reg : register) (i : Z)
+    (H : (0 <= i < snd reg_s)%Z),
+    mk_func_spec
+      p
+      (ARG [ValBaseBit (to_loptbool 32%N i)]
+      (MEM []
+      (EXT [(p, ObjRegister reg)])))
+      (ARG_RET [eval_val_to_sval (Znth i reg)] ValBaseNull
+      (MEM []
+      (EXT [])))
+      None [].
 
-Axiom register_read_spec : forall (p : path) (reg : register) (i : Z) (reg_s : register_static),
+Axiom register_read_body : forall (p : path) (reg_s : register_static),
   PathMap.get p (ge_ext ge) = Some (EnvRegister reg_s) ->
-  (0 <= i < snd reg_s)%Z ->
-  hoare_func_spec ge p
-    (ARG [ValBaseBit (to_loptbool 32%N i)]
-    (MEM []
-    (EXT [(p, ObjRegister reg)])))
-    (FExternal "register" "read") nil
-    (ARG_RET [eval_val_to_sval (Znth i reg)] ValBaseNull
-    (MEM []
-    (EXT [])))
-    [] [].
-
-(* Definition register_write_pre (p : path) reg i v :=
-  fun (args : list Sval) st =>
-    (0 <= i < reg_size reg)%Z /\
-    args = [ValBaseBit (to_loptbool 32%N i); eval_val_to_sval ge v]
-    /\ PathMap.get p (get_external_state st) = Some (ObjRegister reg).
-
-Definition register_write_post (p : path) reg i v :=
-  fun (args : list Sval) (retv : Val) st =>
-    args = []
-    /\ PathMap.get p (get_external_state st) =
-        Some (ObjRegister {| reg_width := reg_width reg;
-                             reg_size := reg_size reg;
-                             reg_content := upd_Znth i (reg_content reg) v |}). *)
+  fundef_satisfies_spec ge (FExternal "register" "read") nil (register_read_spec p reg_s).
 
 (* We need to say v is a definite value, right? *)
-Axiom register_write_spec : forall (p : path) (reg : register) (i : Z) (v : Val) (reg_s : register_static),
+Definition register_write_spec (p : path) (reg_s : register_static) : func_spec :=
+  WITH  (reg : register) (i : Z) (v : Val)
+    (H : (0 <= i < snd reg_s)%Z),
+    mk_func_spec
+      (* path *)
+      p
+      (* pre *)
+      (ARG [ValBaseBit (to_loptbool 32%N i); eval_val_to_sval v]
+      (MEM []
+      (EXT [(p, ObjRegister reg)])))
+      (* post *)
+      (ARG_RET [] ValBaseNull
+      (MEM []
+      (EXT [(p, ObjRegister (upd_Znth i reg v))])))
+      None [p].
+
+Axiom register_write_body : forall (p : path) (reg_s : register_static),
   PathMap.get p (ge_ext ge) = Some (EnvRegister reg_s) ->
-  (0 <= i < snd reg_s)%Z ->
-  hoare_func_spec ge p
-    (ARG [ValBaseBit (to_loptbool 32%N i); eval_val_to_sval v]
-    (MEM []
-    (EXT [(p, ObjRegister reg)])))
-    (FExternal "register" "write") nil
-    (ARG_RET [] ValBaseNull
-    (MEM []
-    (EXT [(p, ObjRegister (upd_Znth i reg v))])))
-    [] [p].
+  fundef_satisfies_spec ge (FExternal "register" "write") nil (register_write_spec p reg_s).
 
 End V1ModelSpec.
 
