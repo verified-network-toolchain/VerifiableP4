@@ -23,6 +23,10 @@ Qed.
 
 #[export] Hint Resolve locator_eqb_refl : core.
 
+Lemma lift_option_map_some: forall {A: Type} (al: list A),
+    lift_option (map Some al) = Some al.
+Proof. intros. induction al; simpl; [|rewrite IHal]; easy. Qed.
+
 Section EvalExpr.
 
 Context {tags_t: Type} {tags_t_inhabitant : Inhabitant tags_t}.
@@ -952,4 +956,3 @@ Qed.
 End EvalExpr.
 
 #[export] Hint Resolve eval_expr_sound eval_lexpr_sound eval_write_sound eval_arg_sound eval_args_sound : hoare.
-
