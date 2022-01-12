@@ -3,6 +3,7 @@ Require Import Poulet4.Typed.
 Require Import Poulet4.Syntax.
 Require Import Poulet4.Semantics.
 Require Import Poulet4.P4String.
+Require Import Poulet4.P4Arith.
 Require Import ProD3.core.Coqlib.
 Require Import ProD3.core.Members.
 Require Import ProD3.core.SvalRefine.
@@ -230,21 +231,24 @@ Definition abs_mul : Sval -> Sval -> Sval :=
 Definition abs_bitand : Sval -> Sval -> Sval :=
   build_abs_binary_op (Ops.eval_binary_op BitAnd).
 
+Definition abs_eq: Sval -> Sval -> Sval :=
+  build_abs_binary_op (Ops.eval_binary_op Eq).
+
 Lemma abs_bin_op_bit: forall op w i1 i2,
     ~ In op [Shl; Shr; Eq; NotEq; PlusPlus] ->
     build_abs_binary_op (Ops.eval_binary_op op)
-                        (ValBaseBit (P4Arith.to_loptbool w i1))
-                        (ValBaseBit (P4Arith.to_loptbool w i2))
+                        (ValBaseBit (to_loptbool w i1))
+                        (ValBaseBit (to_loptbool w i2))
     = eval_val_to_sval
         (force ValBaseNull
-               (Ops.eval_binary_op_bit op w (P4Arith.BitArith.mod_bound w i1)
-                                       (P4Arith.BitArith.mod_bound w i2))).
+               (Ops.eval_binary_op_bit op w (BitArith.mod_bound w i1)
+                                       (BitArith.mod_bound w i2))).
 Proof.
-  intros. unfold P4Arith.to_loptbool.
+  intros. unfold to_loptbool.
   unfold build_abs_binary_op. unfold eval_sval_to_val.
   rewrite !lift_option_map_some.
   unfold Ops.eval_binary_op.
-  destruct op; try rewrite !P4Arith.bit_from_to_bool;
+  destruct op; try rewrite !bit_from_to_bool;
     try rewrite BinNat.N.eqb_refl; auto; exfalso; apply H0.
   - now left.
   - right. now left.
@@ -255,39 +259,39 @@ Qed.
 
 Lemma abs_plus_bit : forall w i1 i2,
   abs_plus
-    (ValBaseBit (P4Arith.to_loptbool w i1))
-    (ValBaseBit (P4Arith.to_loptbool w i2))
-  = ValBaseBit (P4Arith.to_loptbool w (i1 + i2)).
+    (ValBaseBit (to_loptbool w i1))
+    (ValBaseBit (to_loptbool w i2))
+  = ValBaseBit (to_loptbool w (i1 + i2)).
 Proof.
   intros. unfold abs_plus. rewrite abs_bin_op_bit.
-  - simpl. rewrite P4Arith.BitArith.plus_mod_mod.
-    now rewrite P4Arith.to_lbool_bit_plus.
+  - simpl. rewrite BitArith.plus_mod_mod.
+    now rewrite to_lbool_bit_plus.
   - intro. inversion H0; inversion H1; inversion H2; inversion H3;
       inversion H4; inversion H5.
 Qed.
 
 Lemma abs_minus_bit : forall w i1 i2,
   abs_minus
-    (ValBaseBit (P4Arith.to_loptbool w i1))
-    (ValBaseBit (P4Arith.to_loptbool w i2))
-  = (ValBaseBit (P4Arith.to_loptbool w (i1 - i2))).
+    (ValBaseBit (to_loptbool w i1))
+    (ValBaseBit (to_loptbool w i2))
+  = (ValBaseBit (to_loptbool w (i1 - i2))).
 Proof.
   intros. unfold abs_minus. rewrite abs_bin_op_bit.
-  - simpl. rewrite P4Arith.BitArith.minus_mod_mod.
-    now rewrite P4Arith.to_lbool_bit_minus.
+  - simpl. rewrite BitArith.minus_mod_mod.
+    now rewrite to_lbool_bit_minus.
   - intro. inversion H0; inversion H1; inversion H2; inversion H3;
       inversion H4; inversion H5.
 Qed.
 
 Lemma abs_mul_bit : forall w i1 i2,
   abs_mul
-    (ValBaseBit (P4Arith.to_loptbool w i1))
-    (ValBaseBit (P4Arith.to_loptbool w i2))
-  = (ValBaseBit (P4Arith.to_loptbool w (i1 * i2))).
+    (ValBaseBit (to_loptbool w i1))
+    (ValBaseBit (to_loptbool w i2))
+  = (ValBaseBit (to_loptbool w (i1 * i2))).
 Proof.
   intros. unfold abs_mul. rewrite abs_bin_op_bit.
-  - simpl. rewrite P4Arith.BitArith.mult_mod_mod.
-    now rewrite P4Arith.to_lbool_bit_mult.
+  - simpl. rewrite BitArith.mult_mod_mod.
+    now rewrite to_lbool_bit_mult.
   - intro. inversion H0; inversion H1; inversion H2; inversion H3;
       inversion H4; inversion H5.
 Qed.
@@ -295,21 +299,21 @@ Qed.
 Lemma abs_bin_op_int: forall op w i1 i2,
     ~ In op [Eq; NotEq; PlusPlus] ->
     build_abs_binary_op (Ops.eval_binary_op op)
-                        (ValBaseInt (P4Arith.to_loptbool w i1))
-                        (ValBaseInt (P4Arith.to_loptbool w i2))
+                        (ValBaseInt (to_loptbool w i1))
+                        (ValBaseInt (to_loptbool w i2))
     = eval_val_to_sval
         (force ValBaseNull
                (Ops.eval_binary_op_int
                   op w (if BinNat.N.eqb w N0
                         then 0%Z
-                        else P4Arith.IntArith.mod_bound (pos_of_N w) i1)
+                        else IntArith.mod_bound (pos_of_N w) i1)
                   (if BinNat.N.eqb w N0
                    then 0%Z
-                   else P4Arith.IntArith.mod_bound (pos_of_N w) i2))).
+                   else IntArith.mod_bound (pos_of_N w) i2))).
 Proof.
-  intros. unfold P4Arith.to_loptbool, build_abs_binary_op, eval_sval_to_val.
+  intros. unfold to_loptbool, build_abs_binary_op, eval_sval_to_val.
   rewrite !lift_option_map_some. unfold Ops.eval_binary_op.
-  destruct op; try rewrite !P4Arith.int_from_to_bool;
+  destruct op; try rewrite !int_from_to_bool;
     try rewrite BinNat.N.eqb_refl; auto; exfalso; apply H0.
   - now left.
   - right. now left.
@@ -318,44 +322,59 @@ Qed.
 
 Lemma abs_plus_int : forall w i1 i2,
   abs_plus
-    (ValBaseInt (P4Arith.to_loptbool w i1))
-    (ValBaseInt (P4Arith.to_loptbool w i2))
-  = (ValBaseInt (P4Arith.to_loptbool w (i1 + i2))).
+    (ValBaseInt (to_loptbool w i1))
+    (ValBaseInt (to_loptbool w i2))
+  = (ValBaseInt (to_loptbool w (i1 + i2))).
 Proof.
   intros. unfold abs_plus. rewrite abs_bin_op_int.
   - simpl. destruct (BinNat.N.eqb w N0) eqn:?H.
     + rewrite BinNat.N.eqb_eq in H0. subst w. simpl.
-      unfold P4Arith.to_loptbool. now simpl.
-    + rewrite P4Arith.IntArith.plus_mod_mod. now rewrite P4Arith.to_lbool_int_plus.
+      unfold to_loptbool. now simpl.
+    + rewrite IntArith.plus_mod_mod. now rewrite to_lbool_int_plus.
   - intro. inversion H0; inversion H1; inversion H2; inversion H3.
 Qed.
 
 Lemma abs_minus_int : forall w i1 i2,
   abs_minus
-    (ValBaseInt (P4Arith.to_loptbool w i1))
-    (ValBaseInt (P4Arith.to_loptbool w i2))
-  = (ValBaseInt (P4Arith.to_loptbool w (i1 - i2))).
+    (ValBaseInt (to_loptbool w i1))
+    (ValBaseInt (to_loptbool w i2))
+  = (ValBaseInt (to_loptbool w (i1 - i2))).
 Proof.
   intros. unfold abs_minus. rewrite abs_bin_op_int.
   - simpl. destruct (BinNat.N.eqb w N0) eqn:?H.
     + rewrite BinNat.N.eqb_eq in H0. subst w. simpl.
-      unfold P4Arith.to_loptbool. now simpl.
-    + rewrite P4Arith.IntArith.minus_mod_mod. now rewrite P4Arith.to_lbool_int_minus.
+      unfold to_loptbool. now simpl.
+    + rewrite IntArith.minus_mod_mod. now rewrite to_lbool_int_minus.
   - intro. inversion H0; inversion H1; inversion H2; inversion H3.
 Qed.
 
 Lemma abs_mul_int : forall w i1 i2,
   abs_mul
-    (ValBaseInt (P4Arith.to_loptbool w i1))
-    (ValBaseInt (P4Arith.to_loptbool w i2))
-  = (ValBaseInt (P4Arith.to_loptbool w (i1 * i2))).
+    (ValBaseInt (to_loptbool w i1))
+    (ValBaseInt (to_loptbool w i2))
+  = (ValBaseInt (to_loptbool w (i1 * i2))).
 Proof.
   intros. unfold abs_mul. rewrite abs_bin_op_int.
   - simpl. destruct (BinNat.N.eqb w N0) eqn:?H.
     + rewrite BinNat.N.eqb_eq in H0. subst w. simpl.
-      unfold P4Arith.to_loptbool. now simpl.
-    + rewrite P4Arith.IntArith.mult_mod_mod. now rewrite P4Arith.to_lbool_int_mult.
+      unfold to_loptbool. now simpl.
+    + rewrite IntArith.mult_mod_mod. now rewrite to_lbool_int_mult.
   - intro. inversion H0; inversion H1; inversion H2; inversion H3.
+Qed.
+
+Lemma abs_eq_int : forall w i1 i2,
+  abs_eq
+    (ValBaseInt (to_loptbool w i1)) (ValBaseInt (to_loptbool w i2))
+  = ValBaseBool
+      (Some (if (BinNat.N.eqb w N0) then true else
+              (IntArith.mod_bound (pos_of_N w) i1 =?
+                 IntArith.mod_bound (pos_of_N w) i2)%Z)).
+Proof.
+  intros. unfold abs_eq. unfold build_abs_binary_op.
+  unfold eval_sval_to_val, to_loptbool.
+  rewrite !lift_option_map_some. unfold Ops.eval_binary_op. simpl.
+  rewrite !Zlength_to_lbool. rewrite BinNat.N.eqb_refl. simpl.
+  rewrite !int_to_lbool_back. destruct (BinNat.N.eqb w N0); auto.
 Qed.
 
 Definition eval_read_var (a : mem_assertion) (p : path) : option Sval :=
