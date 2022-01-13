@@ -69,7 +69,6 @@ Section exec_val_refl.
     - eapply exec_val_refl_case2; eauto.
     - eapply exec_val_refl_case2; eauto.
     - eapply exec_val_refl_case2; eauto.
-    - eapply exec_val_refl_case2; eauto.
     - eapply exec_val_refl_case1; eauto.
   Qed.
 End exec_val_refl.
@@ -148,7 +147,6 @@ Section exec_val_trans.
       inv H_f; inv H_g;
       constructor; eauto.
     - eapply exec_val_trans_case1; eauto.
-    - eapply exec_val_trans_case2; eauto.
     - eapply exec_val_trans_case2; eauto.
     - eapply exec_val_trans_case2; eauto.
     - eapply exec_val_trans_case2; eauto.

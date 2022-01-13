@@ -90,10 +90,6 @@ Fixpoint eval_sval_to_val (sval: Sval): option Val :=
                       | Some l' => Some (ValBaseTuple l')
                       | None => None
                       end
-  | ValBaseRecord l => match sval_to_avals l with
-                       | Some l' => Some (ValBaseRecord l')
-                       | None => None
-                       end
   | ValBaseError err => Some (ValBaseError err)
   | ValBaseMatchKind k => Some (ValBaseMatchKind k)
   | ValBaseStruct l => match sval_to_avals l with
@@ -114,9 +110,9 @@ Fixpoint eval_sval_to_val (sval: Sval): option Val :=
                           | None => None
                           end
   | ValBaseEnumField s1 s2 => Some (ValBaseEnumField s1 s2)
-  | ValBaseSenumField s1 s2 s => match eval_sval_to_val s with
+  | ValBaseSenumField s1 s => match eval_sval_to_val s with
                                  | None => None
-                                 | Some v => Some (ValBaseSenumField s1 s2 v)
+                                 | Some v => Some (ValBaseSenumField s1 v)
                                  end
   end.
 
@@ -148,7 +144,6 @@ Fixpoint force_sval_to_val (sval: Sval): Val :=
   | ValBaseVarbit n bits => ValBaseVarbit n (map opt_to_bool bits)
   | ValBaseString s => ValBaseString s
   | ValBaseTuple l => ValBaseTuple (sval_to_vals l)
-  | ValBaseRecord l => ValBaseRecord (sval_to_avals l)
   | ValBaseError err => ValBaseError err
   | ValBaseMatchKind k => ValBaseMatchKind k
   | ValBaseStruct l => ValBaseStruct (sval_to_avals l)
@@ -156,7 +151,7 @@ Fixpoint force_sval_to_val (sval: Sval): Val :=
   | ValBaseUnion l => ValBaseUnion (sval_to_avals l)
   | ValBaseStack l n => ValBaseStack (sval_to_vals l) n
   | ValBaseEnumField s1 s2 => ValBaseEnumField s1 s2
-  | ValBaseSenumField s1 s2 s => ValBaseSenumField s1 s2 (force_sval_to_val s)
+  | ValBaseSenumField s1 s => ValBaseSenumField s1 (force_sval_to_val s)
   end.
 
 Definition bool_to_none: bool -> option bool := fun _ => None.
@@ -182,7 +177,6 @@ Fixpoint val_to_liberal_sval (val: Val): Sval :=
   | ValBaseVarbit n bits => ValBaseVarbit n (map bool_to_none bits)
   | ValBaseString s => ValBaseString s
   | ValBaseTuple l => ValBaseTuple (sval_to_vals l)
-  | ValBaseRecord l => ValBaseRecord (sval_to_avals l)
   | ValBaseError err => ValBaseError err
   | ValBaseMatchKind k => ValBaseMatchKind k
   | ValBaseStruct l => ValBaseStruct (sval_to_avals l)
@@ -190,7 +184,7 @@ Fixpoint val_to_liberal_sval (val: Val): Sval :=
   | ValBaseUnion l => ValBaseUnion (sval_to_avals l)
   | ValBaseStack l n => ValBaseStack (sval_to_vals l) n
   | ValBaseEnumField s1 s2 => ValBaseEnumField s1 s2
-  | ValBaseSenumField s1 s2 s => ValBaseSenumField s1 s2 (val_to_liberal_sval s)
+  | ValBaseSenumField s1 s => ValBaseSenumField s1 (val_to_liberal_sval s)
   end.
 
 Definition build_abs_unary_op (actual_unary_op : Val -> option Val) : Sval -> Sval :=
@@ -233,6 +227,9 @@ Definition abs_bitand : Sval -> Sval -> Sval :=
 
 Definition abs_eq: Sval -> Sval -> Sval :=
   build_abs_binary_op (Ops.eval_binary_op Eq).
+
+Definition abs_neq: Sval -> Sval -> Sval :=
+  build_abs_binary_op (Ops.eval_binary_op NotEq).
 
 Lemma abs_bin_op_bit: forall op w i1 i2,
     ~ In op [Shl; Shr; Eq; NotEq; PlusPlus] ->
@@ -294,6 +291,32 @@ Proof.
     now rewrite to_lbool_bit_mult.
   - intro. inversion H0; inversion H1; inversion H2; inversion H3;
       inversion H4; inversion H5.
+Qed.
+
+Lemma abs_eq_bit : forall w i1 i2,
+  abs_eq
+    (ValBaseBit (to_loptbool w i1)) (ValBaseBit (to_loptbool w i2))
+  = ValBaseBool
+      (Some (BitArith.mod_bound w i1 =? BitArith.mod_bound w i2)%Z).
+Proof.
+  intros. unfold abs_eq. unfold build_abs_binary_op.
+  unfold eval_sval_to_val, to_loptbool.
+  rewrite !lift_option_map_some. unfold Ops.eval_binary_op. simpl.
+  rewrite !Zlength_to_lbool. rewrite BinNat.N.eqb_refl. simpl.
+  now rewrite !bit_to_lbool_back.
+Qed.
+
+Lemma abs_neq_bit : forall w i1 i2,
+  abs_neq
+    (ValBaseBit (to_loptbool w i1)) (ValBaseBit (to_loptbool w i2))
+  = ValBaseBool
+      (Some (~~ (BitArith.mod_bound w i1 =? BitArith.mod_bound w i2)%Z)).
+Proof.
+  intros. unfold abs_neq. unfold build_abs_binary_op.
+  unfold eval_sval_to_val, to_loptbool.
+  rewrite !lift_option_map_some. unfold Ops.eval_binary_op. simpl.
+  rewrite !Zlength_to_lbool. rewrite BinNat.N.eqb_refl. simpl.
+  now rewrite !bit_to_lbool_back.
 Qed.
 
 Lemma abs_bin_op_int: forall op w i1 i2,
@@ -371,6 +394,21 @@ Lemma abs_eq_int : forall w i1 i2,
                  IntArith.mod_bound (pos_of_N w) i2)%Z)).
 Proof.
   intros. unfold abs_eq. unfold build_abs_binary_op.
+  unfold eval_sval_to_val, to_loptbool.
+  rewrite !lift_option_map_some. unfold Ops.eval_binary_op. simpl.
+  rewrite !Zlength_to_lbool. rewrite BinNat.N.eqb_refl. simpl.
+  rewrite !int_to_lbool_back. destruct (BinNat.N.eqb w N0); auto.
+Qed.
+
+Lemma abs_neq_int : forall w i1 i2,
+  abs_neq
+    (ValBaseInt (to_loptbool w i1)) (ValBaseInt (to_loptbool w i2))
+  = ValBaseBool
+      (Some (if (BinNat.N.eqb w N0) then false else
+              ~~ (IntArith.mod_bound (pos_of_N w) i1 =?
+                    IntArith.mod_bound (pos_of_N w) i2)%Z)).
+Proof.
+  intros. unfold abs_neq. unfold build_abs_binary_op.
   unfold eval_sval_to_val, to_loptbool.
   rewrite !lift_option_map_some. unfold Ops.eval_binary_op. simpl.
   rewrite !Zlength_to_lbool. rewrite BinNat.N.eqb_refl. simpl.
@@ -471,7 +509,6 @@ Lemma get_sound : forall sv f sv',
 Proof.
   intros.
   inv H0.
-  - unfold get. rewrite H1. auto.
   - unfold get. rewrite H1. auto.
   - unfold get. rewrite H1. auto.
   - unfold get. rewrite H1. auto.

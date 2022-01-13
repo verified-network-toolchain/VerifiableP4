@@ -179,25 +179,25 @@ Fixpoint upd_sval_once (v: Sval) (p: path) (f: Sval) : Sval :=
   | _, [] => f
   | ValBaseStruct fields, hd :: tl =>
       match AList.get fields hd with
-      | Some v' => 
+      | Some v' =>
           match AList.set fields hd (upd_sval_once v' tl f) with
           | Some fields' => ValBaseStruct fields'
           | None => v (* Impossible *)
           end
       | None => v
       end
-  | ValBaseRecord fields, hd :: tl =>
-      match AList.get fields hd with
-      | Some v' => 
-          match AList.set fields hd (upd_sval_once v' tl f) with
-          | Some fields' => ValBaseRecord fields'
-          | None => v (* Impossible *)
-          end
-      | None => v
-      end
+  (* | ValBaseRecord fields, hd :: tl => *)
+  (*     match AList.get fields hd with *)
+  (*     | Some v' =>  *)
+  (*         match AList.set fields hd (upd_sval_once v' tl f) with *)
+  (*         | Some fields' => ValBaseRecord fields' *)
+  (*         | None => v (* Impossible *) *)
+  (*         end *)
+  (*     | None => v *)
+  (*     end *)
   | ValBaseUnion fields, hd :: tl =>
       match AList.get fields hd with
-      | Some v' => 
+      | Some v' =>
           match AList.set fields hd (upd_sval_once v' tl f) with
           | Some fields' => ValBaseUnion fields'
           | None => v (* Impossible *)
@@ -206,7 +206,7 @@ Fixpoint upd_sval_once (v: Sval) (p: path) (f: Sval) : Sval :=
       end
   | ValBaseHeader fields vbit, hd :: tl =>
       match AList.get fields hd with
-      | Some v' => 
+      | Some v' =>
           match AList.set fields hd (upd_sval_once v' tl f) with
           | Some fields' => ValBaseHeader fields' (Some true)
           | None => v (* Impossible *)

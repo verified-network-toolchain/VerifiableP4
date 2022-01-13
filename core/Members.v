@@ -36,7 +36,6 @@ Definition has_field (f : ident) (sv : Sval) : bool :=
 
 Definition get (f : ident) (sv : Sval) : Sval :=
   match sv with
-  | ValBaseRecord fields
   | ValBaseStruct fields
   | ValBaseHeader fields _
   | ValBaseUnion fields =>
@@ -45,7 +44,7 @@ Definition get (f : ident) (sv : Sval) : Sval :=
       if String.eqb f "size" then
         ValBaseBit (P4Arith.to_loptbool 32%N (Zlength headers))
       else if String.eqb f "lastIndex" then
-        (if (next =? 0)%N 
+        (if (next =? 0)%N
         then (ValBaseBit (Zrepeat (@None bool) 32%Z))
         else (ValBaseBit (P4Arith.to_loptbool 32%N (Z.of_N (next - 1)))))
       else
