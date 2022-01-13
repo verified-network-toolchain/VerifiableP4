@@ -825,23 +825,104 @@ Proof.
   eapply all_values_set_some_rel; eauto.
 Qed.
 
+Lemma sval_refine_uninit_sval_of_sval_case1 : forall bs,
+  Forall2 bit_refine (map (fun _ : option bool => None) bs) bs.
+Proof.
+  induction bs.
+  - constructor.
+  - constructor; eauto.
+    constructor.
+Qed.
+
+Lemma sval_refine_uninit_sval_of_sval_case2 : forall vs,
+  Forall (fun sv : Sval => sval_refine (uninit_sval_of_sval None sv) sv) vs ->
+  Forall2 sval_refine (map (uninit_sval_of_sval None) vs) vs.
+Proof.
+  induction 1.
+  - constructor.
+  - constructor; eauto.
+Qed.
+
+Lemma sval_refine_uninit_sval_of_sval_case3 : forall (vs : AList.StringAList Sval),
+  Forall (fun '(_, sv) => sval_refine (uninit_sval_of_sval None sv) sv) vs ->
+  AList.all_values sval_refine (kv_map (uninit_sval_of_sval None) vs) vs.
+Proof.
+  induction 1.
+  - constructor.
+  - destruct x; constructor; eauto.
+Qed.
+
 Lemma sval_refine_uninit_sval_of_sval : forall sv,
   sval_refine (uninit_sval_of_sval None sv) sv.
 Proof.
-Admitted.
+  induction sv using custom_ValueBase_ind; constructor; eauto.
+  1, 7 : constructor.
+  1, 2, 3 : apply sval_refine_uninit_sval_of_sval_case1.
+  1, 5 : apply sval_refine_uninit_sval_of_sval_case2; auto.
+  1, 2, 3 : apply sval_refine_uninit_sval_of_sval_case3; auto.
+Qed.
+
+Lemma sval_refine_uninit_sval_of_sval_eq_case1 : forall bs1 bs2,
+  Forall2 bit_refine bs1 bs2 ->
+  (map (fun _ : option bool => @None bool) bs1) = (map (fun _ : option bool => None) bs2).
+Proof.
+  induction 1.
+  - auto.
+  - simpl; f_equal; auto.
+Qed.
+
+Lemma sval_refine_uninit_sval_of_sval_eq_case2 : forall b vs1 vs2,
+  Forall2 sval_refine vs1 vs2 ->
+  Forall2 (fun sv1 sv2 : Sval => uninit_sval_of_sval b sv1 = uninit_sval_of_sval b sv2) vs1 vs2 ->
+  map (uninit_sval_of_sval b) vs1 = map (uninit_sval_of_sval b) vs2.
+Proof.
+  induction 1; intros.
+  - auto.
+  - inv H2; simpl; f_equal; auto.
+Qed.
+
+Lemma sval_refine_uninit_sval_of_sval_eq_case3 : forall b (vs1 vs2 : AList.StringAList Sval),
+  AList.all_values sval_refine vs1 vs2 ->
+  AList.all_values (fun sv1 sv2 : Sval => uninit_sval_of_sval b sv1 = uninit_sval_of_sval b sv2) vs1 vs2 ->
+  kv_map (uninit_sval_of_sval b) vs1 = kv_map (uninit_sval_of_sval b) vs2.
+Proof.
+  induction 1; intros.
+  - auto.
+  - destruct x; destruct y; inv H2.
+    destruct H6; simpl; f_equal; auto.
+    f_equal; auto.
+Qed.
+
+Lemma sval_refine_uninit_sval_of_sval_eq : forall b sv1 sv2,
+  sval_refine sv1 sv2 ->
+  uninit_sval_of_sval b sv1 = uninit_sval_of_sval b sv2.
+Proof.
+  induction 1 using custom_exec_val_ind; simpl; f_equal; auto.
+  1, 2, 3 : apply sval_refine_uninit_sval_of_sval_eq_case1; auto.
+  1, 5 : apply sval_refine_uninit_sval_of_sval_eq_case2; auto.
+  1, 2, 3 : apply sval_refine_uninit_sval_of_sval_eq_case3; auto.
+Qed.
 
 Lemma sval_refine_uninit_sval_of_sval_trans : forall b sv1 sv2,
   sval_refine sv1 sv2 ->
   sval_refine (uninit_sval_of_sval b sv1) (uninit_sval_of_sval b sv2).
 Proof.
-Admitted.
+  intros.
+  hauto use: sval_refine_uninit_sval_of_sval_eq, sval_refine_refl.
+Qed.
 
 Lemma all_values_uninit_sval_of_sval_trans : forall b (kvs kvs' : AList.StringAList Sval),
   AList.all_values sval_refine kvs kvs' ->
   AList.all_values sval_refine (kv_map (uninit_sval_of_sval b) kvs)
     (kv_map (uninit_sval_of_sval b) kvs').
 Proof.
-Admitted.
+  induction 1; intros.
+  - constructor.
+  - destruct x; destruct y; destruct H0.
+    constructor; auto.
+    split; auto.
+    apply sval_refine_uninit_sval_of_sval_trans; auto.
+Qed.
 
 Definition osval_refine := EquivUtil.relop sval_refine.
 
