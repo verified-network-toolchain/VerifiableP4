@@ -836,6 +836,65 @@ Lemma sval_refine_uninit_sval_of_sval_trans : forall b sv1 sv2,
 Proof.
 Admitted.
 
+Lemma all_values_uninit_sval_of_sval_trans : forall b (kvs kvs' : AList.StringAList Sval),
+  AList.all_values sval_refine kvs kvs' ->
+  AList.all_values sval_refine (kv_map (uninit_sval_of_sval b) kvs)
+    (kv_map (uninit_sval_of_sval b) kvs').
+Proof.
+Admitted.
+
+Definition osval_refine := EquivUtil.relop sval_refine.
+
+Lemma sval_refine_havoc_header : forall update_is_valid update_is_valid' sv sv',
+  (forall b b',
+    bit_refine b b' ->
+    bit_refine (update_is_valid b) (update_is_valid' b')) ->
+  sval_refine sv sv' ->
+  osval_refine (havoc_header update_is_valid sv) (havoc_header update_is_valid' sv').
+Proof.
+  intros * H_update_is_valid H_sval_refine.
+  inv H_sval_refine; constructor.
+  constructor; auto.
+  apply all_values_uninit_sval_of_sval_trans; auto.
+Qed.
+
+Lemma sval_refine_kv_map_havoc_header : forall update_is_valid update_is_valid' (kvs kvs' : AList.StringAList Sval),
+  (forall b b',
+    bit_refine b b' ->
+    bit_refine (update_is_valid b) (update_is_valid' b')) ->
+  AList.all_values sval_refine kvs kvs' ->
+  EquivUtil.relop (AList.all_values sval_refine)
+    (lift_option_kv (kv_map (havoc_header update_is_valid) kvs))
+    (lift_option_kv (kv_map (havoc_header update_is_valid') kvs')).
+Proof.
+  intros * H_update_is_valid H_all_values.
+  induction H_all_values.
+  - repeat constructor.
+  - inv IHH_all_values.
+    + simpl. rewrite <- H2. rewrite <- H3.
+      destruct (kv_map_func (havoc_header update_is_valid) x) as [? []];
+      destruct (kv_map_func (havoc_header update_is_valid') y) as [? []];
+      constructor.
+    + simpl. rewrite <- H1. rewrite <- H2.
+      destruct x; destruct y; destruct H0.
+      apply sval_refine_havoc_header with update_is_valid update_is_valid' _ _ in H4; auto.
+      simpl; inv H4; constructor.
+      constructor; auto.
+Qed.
+
+Lemma lift_option_kv_inv : forall {A} (xl : AList.StringAList (option A)) (al :  AList.StringAList A),
+  lift_option_kv xl = Some al ->
+  xl = kv_map Some al.
+Proof.
+  induction xl; intros.
+  - inversion H0. auto.
+  - destruct a as [? []].
+    + simpl in H0. destruct (lift_option_kv xl).
+      * inversion H0. simpl; f_equal; auto.
+      * inversion H0.
+    + inversion H0.
+Qed.
+
 Lemma update_sound : forall sv f f_sv sv' abs_sv abs_f_sv,
   sval_refine abs_sv sv ->
   sval_refine abs_f_sv f_sv ->
@@ -866,8 +925,83 @@ Proof.
       * constructor. 1 : constructor.
         eapply all_values_set_some_rel'; eauto.
         apply sval_refine_uninit_sval_of_sval_trans. auto.
-  - admit. (* TODO union case *)
-Admitted.
+  - inv H2; inv H0; inv H1; inv H6.
+    2 : destruct b0.
+    + (* When the abstract is_valid is None: *)
+      simpl.
+      destruct is_valid as [[] | ].
+      * unfold update_union_member in H4.
+        destruct (lift_option_kv (kv_map (havoc_header _) fields)) eqn:H0; only 2 : inv H4.
+        assert (EquivUtil.relop (AList.all_values sval_refine)
+          (lift_option_kv (kv_map (havoc_header (fun _ => None)) kvs))
+          (lift_option_kv (kv_map (havoc_header (fun _ => Some false)) fields))). {
+          apply sval_refine_kv_map_havoc_header; auto.
+          constructor.
+        }
+        rewrite H0 in H1.
+        inv H1; try discriminate.
+        constructor. simpl.
+        eapply all_values_set_some_rel'; eauto.
+        constructor; auto.
+        constructor.
+      * unfold update_union_member in H4.
+        destruct (lift_option_kv (kv_map (havoc_header _) fields)) eqn:H0; only 2 : inv H4.
+        assert (EquivUtil.relop (AList.all_values sval_refine)
+          (lift_option_kv (kv_map (havoc_header (fun _ => None)) kvs))
+          (lift_option_kv (kv_map (havoc_header id) fields))). {
+          apply sval_refine_kv_map_havoc_header; auto.
+          constructor.
+        }
+        rewrite H0 in H1.
+        inv H1; try discriminate.
+        constructor. simpl.
+        eapply all_values_set_some_rel'; eauto.
+        constructor; auto.
+        constructor.
+      * unfold update_union_member in H4.
+        destruct (lift_option_kv (kv_map (havoc_header _) fields)) eqn:H0; only 2 : inv H4.
+        assert (EquivUtil.relop (AList.all_values sval_refine)
+          (lift_option_kv (kv_map (havoc_header (fun _ => None)) kvs))
+          (lift_option_kv (kv_map (havoc_header id) fields))). {
+          apply sval_refine_kv_map_havoc_header; auto.
+          constructor.
+        }
+        rewrite H0 in H1.
+        inv H1; try discriminate.
+        constructor. simpl.
+        eapply all_values_set_some_rel'; eauto.
+        constructor; auto.
+        constructor.
+    + simpl.
+      unfold update_union_member in H4.
+      destruct (lift_option_kv (kv_map (havoc_header _) fields)) eqn:H0; only 2 : inv H4.
+      assert (EquivUtil.relop (AList.all_values sval_refine)
+        (lift_option_kv (kv_map (havoc_header (fun _ => Some false)) kvs))
+        (lift_option_kv (kv_map (havoc_header (fun _ => Some false)) fields))). {
+        apply sval_refine_kv_map_havoc_header; auto.
+        constructor.
+      }
+      rewrite H0 in H1.
+      inv H1; try discriminate.
+      constructor. simpl.
+      eapply all_values_set_some_rel'; eauto.
+      constructor; auto.
+      constructor.
+    + simpl.
+      unfold update_union_member in H4.
+      destruct (lift_option_kv (kv_map (havoc_header _) fields)) eqn:H0; only 2 : inv H4.
+      assert (EquivUtil.relop (AList.all_values sval_refine)
+        (lift_option_kv (kv_map (havoc_header id) kvs))
+        (lift_option_kv (kv_map (havoc_header id) fields))). {
+        apply sval_refine_kv_map_havoc_header; auto.
+      }
+      rewrite H0 in H1.
+      inv H1; try discriminate.
+      constructor. simpl.
+      eapply all_values_set_some_rel'; eauto.
+      constructor; auto.
+      constructor.
+Qed.
 
 Lemma eval_write_sound : forall ge a_mem a_ext lv sv a_mem',
   NoDup (map fst a_mem) ->

@@ -25,11 +25,11 @@ Notation P4Type := (@P4Type tags_t).
 Notation mem := Semantics.mem.
 
 (* Test whether sv has a WRITABLE field f. *)
+(* Unions are not allowed in the has_field analysis, as their fields are not separated. *)
 Definition has_field (f : ident) (sv : Sval) : bool :=
   match sv with
   | ValBaseStruct fields
-  | ValBaseHeader fields (Some true)
-  | ValBaseUnion fields =>
+  | ValBaseHeader fields (Some true) =>
       is_some (AList.get fields f)
   | _ => false
   end.
@@ -52,14 +52,6 @@ Definition get (f : ident) (sv : Sval) : Sval :=
   | _ => ValBaseNull
   end.
 
-Definition havoc_header (f_is_valid : option bool -> option bool) : Sval -> Sval :=
-  fun sv =>
-    match sv with
-    | ValBaseHeader fields is_valid =>
-        ValBaseHeader (kv_map (uninit_sval_of_sval None) fields) (f_is_valid is_valid)
-    | _ => ValBaseNull
-    end.
-
 Definition update (f : ident) (f_sv : Sval) (sv : Sval) : Sval :=
   match sv with
   | ValBaseStruct fields =>
@@ -71,15 +63,16 @@ Definition update (f : ident) (f_sv : Sval) (sv : Sval) : Sval :=
       ValBaseHeader (force fields (AList.set fields f uninit_f_sv')) is_valid
   | ValBaseUnion fields =>
       let havoc_fields :=
-        match f_sv with
-        | ValBaseHeader hfields (Some true) =>
-            kv_map (havoc_header (fun _ => Some false)) fields
-        | ValBaseHeader hfields (Some false) =>
-            kv_map (havoc_header id) fields
-        | ValBaseHeader hfields None =>
-            kv_map (havoc_header (fun _ => None)) fields
-        | _ => fields
-        end in
+        force []
+          match f_sv with
+          | ValBaseHeader hfields (Some true) =>
+              lift_option_kv (kv_map (havoc_header (fun _ => Some false)) fields)
+          | ValBaseHeader hfields (Some false) =>
+              lift_option_kv (kv_map (havoc_header id) fields)
+          | ValBaseHeader hfields None =>
+              lift_option_kv (kv_map (havoc_header (fun _ => None)) fields)
+          | _ => None
+          end in
       ValBaseUnion (force havoc_fields (AList.set havoc_fields f f_sv))
   | _ => sv
   end.
@@ -112,14 +105,7 @@ Proof.
       + inv H.
     * inv H.
     * inv H.
-  - unfold get, update, has_field in *.
-    admit.
-    (* destruct (AList.get fields f) eqn:?.
-    + erewrite get_some_get_set by eauto.
-      auto.
-    + inv H. *)
-(* Qed. *)
-Admitted.
+Qed.
 
 Lemma get_update_same' : forall sv f1 f2 f_sv,
   f1 = f2 ->
@@ -159,7 +145,7 @@ Lemma get_update_diff : forall sv f1 f2 f_sv,
   get f1 (update f2 f_sv sv) = get f1 sv.
 Proof.
   intros.
-  destruct sv; try apply eq_refl.
+  destruct sv; try solve [inv H].
   - unfold get, update in *.
     rewrite get_set_diff; auto.
   - destruct is_valid as [[] | ].
@@ -167,14 +153,29 @@ Proof.
       rewrite get_set_diff; auto.
     * inv H.
     * inv H.
-  - unfold get, update, has_field in *.
-    (* TODO union *)
-    admit.
-    (* destruct (AList.get fields f) eqn:?.
-    + erewrite get_some_get_set by eauto.
-      auto.
-    + inv H. *)
-(* Qed. *)
-Admitted.
+Qed.
+
+Lemma get_set_some : forall f1 f2 (fields : AList.StringAList Sval) f_sv,
+  is_some (AList.get fields f1) ->
+  is_some (AList.get (force fields (AList.set fields f2 f_sv)) f1).
+Proof.
+  intros.
+  destruct (string_dec f1 f2).
+  + subst.
+    destruct (AList.get fields f2) eqn:?; only 2 : inv H.
+    erewrite get_some_get_set_same; eauto.
+  + rewrite get_set_diff; auto.
+Qed.
+
+Lemma has_field_update : forall f1 f2 sv f_sv,
+  has_field f1 sv ->
+  has_field f1 (update f2 f_sv sv).
+Proof.
+  intros.
+  destruct sv; try solve [inv H].
+  - apply get_set_some; auto.
+  - destruct is_valid as [[] | ]; try solve [inv H].
+    apply get_set_some; auto.
+Qed.
 
 End Members.
