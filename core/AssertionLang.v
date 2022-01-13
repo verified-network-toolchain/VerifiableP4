@@ -186,15 +186,6 @@ Fixpoint upd_sval_once (v: Sval) (p: path) (f: Sval) : Sval :=
           end
       | None => v
       end
-  (* | ValBaseRecord fields, hd :: tl => *)
-  (*     match AList.get fields hd with *)
-  (*     | Some v' =>  *)
-  (*         match AList.set fields hd (upd_sval_once v' tl f) with *)
-  (*         | Some fields' => ValBaseRecord fields' *)
-  (*         | None => v (* Impossible *) *)
-  (*         end *)
-  (*     | None => v *)
-  (*     end *)
   | ValBaseUnion fields, hd :: tl =>
       match AList.get fields hd with
       | Some v' =>
