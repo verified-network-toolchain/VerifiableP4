@@ -535,7 +535,20 @@ Lemma eval_expr_sound' : forall ge p a expr sv,
   eval_expr ge p a expr = Some sv ->
   forall st, (mem_denote a) (fst st) ->
   forall sv', exec_expr ge read_ndetbit p st expr sv' ->
-    sval_refine sv sv'.
+              sval_refine sv sv'.
+Proof.
+  intros ge p a expr. revert ge p a. induction expr; intros.
+  simpl in H0. destruct expr; try now inversion H0.
+  - inversion H0. subst. inversion H2. subst. apply sval_refine_refl.
+  - destruct (is_directional dir) eqn:?H.
+    + destruct loc. 1: inversion H0. inversion H2; subst.
+      * simpl in H13. unfold eval_read_var in H0. destruct st. simpl in *.
+        eapply mem_denote_get in H1; eauto. red in H1. rewrite H13 in H1. auto.
+      * rewrite H3 in H12; inversion H12.
+    + inversion H2; subst. 1: rewrite H3 in H12; inversion H12.
+      unfold loc_to_sval_const in H13. rewrite H0 in H13. inversion H13.
+      apply sval_refine_refl.
+  -
 Admitted.
 
 Lemma eval_expr_sound : forall ge p a_mem a_ext expr sv,
