@@ -549,8 +549,21 @@ Proof.
     + inversion H2; subst. 1: rewrite H3 in H12; inversion H12.
       unfold loc_to_sval_const in H13. rewrite H0 in H13. inversion H13.
       apply sval_refine_refl.
-  - simpl in H1.
-Admitted.
+  - inversion H3. subst. simpl in H1. red.
+    destruct (lift_option (map (eval_expr ge p a) vs)) eqn:?H; simpl in H1;
+      inversion H1; subst; clear H1. constructor. clear H3.
+    revert l H4 vs0 H11. induction vs; intros.
+    + simpl in H4. inversion H4. inversion H11. constructor.
+    + destruct vs0. 1: inversion H11. destruct l.
+      * simpl in H4. destruct (eval_expr ge p a a0). 2: inversion H4.
+        destruct (lift_option (map (eval_expr ge p a) vs)); inversion H4.
+      * simpl in H4. destruct (eval_expr ge p a a0) eqn:?H. 2: inversion H4.
+        destruct (lift_option (map (eval_expr ge p a) vs)) eqn:?H; inversion H4.
+        subst. clear H4. inv H0. inv H11. constructor. 2: now apply IHvs.
+        eapply H6; eauto.
+  - destruct (eval_expr ge p a expr) eqn:?H; inv H0. inversion H2; subst.
+    eapply IHexpr in H11; eauto. eapply sval_to_val_to_sval in H14; eauto.
+ Admitted.
 
 Lemma eval_expr_sound : forall ge p a_mem a_ext expr sv,
   eval_expr ge p a_mem expr = Some sv ->
