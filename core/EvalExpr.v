@@ -491,7 +491,10 @@ Fixpoint eval_expr (ge : genv) (p : path) (a : mem_assertion) (expr : Expression
           (* senum *)
           | Some (TypEnum ename (Some etyp) members) =>
               let fields := force nil (IdentMap.get (str ename) (ge_senum ge)) in
-              AList.get fields (str member)
+              match AList.get fields (str member) with
+              | Some seum => Some (ValBaseSenumField (str ename) seum)
+              | None => None
+              end
           | _ => None
           end
       | ExpExpressionMember expr name =>
@@ -519,6 +522,11 @@ Proof.
       inv H1; reflexivity.
 Qed.
 
+Ltac destruct_match H :=
+  match goal with
+  | H: context [match ?A with | _ => _ end] |- _ => destruct A eqn:?H
+  end.
+
 Lemma eval_expr_member_sound : forall ge p a tags expr typ dir name sv,
   hoare_expr ge p a expr sv ->
   hoare_expr ge p a (MkExpression tags (ExpExpressionMember expr name) typ dir) (get (P4String.str name) sv).
@@ -541,7 +549,7 @@ Proof.
   intros ge p a expr. revert ge p a.
   induction expr using expr_ind; intros; simpl in H0; try now inversion H0.
   - inversion H0. subst. inversion H2. subst. apply sval_refine_refl.
-  - destruct (is_directional dir) eqn:?H.
+  - destruct_match H0.
     + destruct l. 1: inversion H0. inversion H2; subst.
       * simpl in H13. unfold eval_read_var in H0. destruct st. simpl in *.
         eapply mem_denote_get in H1; eauto. red in H1. rewrite H13 in H1. auto.
@@ -555,14 +563,27 @@ Proof.
     revert l H4 vs0 H11. induction vs; intros.
     + simpl in H4. inversion H4. inversion H11. constructor.
     + destruct vs0. 1: inversion H11. destruct l.
-      * simpl in H4. destruct (eval_expr ge p a a0). 2: inversion H4.
-        destruct (lift_option (map (eval_expr ge p a) vs)); inversion H4.
-      * simpl in H4. destruct (eval_expr ge p a a0) eqn:?H. 2: inversion H4.
-        destruct (lift_option (map (eval_expr ge p a) vs)) eqn:?H; inversion H4.
-        subst. clear H4. inv H0. inv H11. constructor. 2: now apply IHvs.
-        eapply H6; eauto.
-  - destruct (eval_expr ge p a expr) eqn:?H; inv H0. inversion H2; subst.
+      * simpl in H4. destruct_match H4. 2: inversion H4.
+        destruct_match H4; inversion H4.
+      * simpl in H4. destruct_match H4. 2: inversion H4.
+        destruct_match H4; inversion H4. subst. clear H4. inv H0. inv H11.
+        constructor. 2: now apply IHvs. eapply H6; eauto.
+  - destruct_match H0; inv H0. inversion H2; subst.
     eapply IHexpr in H11; eauto. eapply sval_to_val_to_sval in H14; eauto.
+    destruct op; destruct v; unfold build_abs_unary_op; simpl. 3-48: admit.
+    + simpl. red. inversion H11. subst. inversion H12. subst. simpl in H13. inv H13.
+    + destruct o.
+      * simpl. inv H11. inv H4. inv H12. simpl in H13. inv H13. constructor.
+        inv H4. constructor.
+      * simpl. inv H11. inv H12. simpl in H13. inv H13. constructor. constructor.
+  - admit.
+  - admit.
+  - destruct_match H0. 2: inversion H0. destruct_match H0; inversion H0. clear H6.
+    destruct_match H0.
+    + destruct_match H0; inv H0. inv H2; rewrite H3 in H12; inv H12.
+      rewrite H13 in H6. simpl in H6. rewrite H6 in H14. inv H14. constructor.
+      apply exec_val_refl. intros. destruct x; constructor.
+    + inv H0. inv H2; rewrite H3 in H11; inv H11. constructor.
  Admitted.
 
 Lemma eval_expr_sound : forall ge p a_mem a_ext expr sv,
