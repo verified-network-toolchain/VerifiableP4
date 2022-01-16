@@ -540,6 +540,21 @@ Proof.
   apply sval_refine_get; auto.
 Qed.
 
+Lemma fields_get_sval_refine:
+  forall (name : P4String) (kvs : AList.AList ident Sval eq)
+         (sv' : Sval) (fields : AList.AList ident Sval eq),
+    AList.get fields (str name) = Some sv' ->
+    AList.all_values (exec_val bit_refine) kvs fields ->
+    sval_refine (force ValBaseNull (AList.get kvs (str name))) sv'.
+Proof.
+  intros. red in H1. revert sv' H0. induction H1; intros.
+  - unfold AList.get in H0. simpl in H0. inversion H0.
+  - destruct y as [ky vy]. destruct x as [kx vx]. destruct H0. cbn [fst snd] in *.
+    destruct (EquivUtil.StringEqDec (str name) ky).
+    + rewrite AList.get_eq_cons in H2; auto. inv H2. rewrite AList.get_eq_cons; auto.
+    + rewrite AList.get_neq_cons in H2; auto. subst. rewrite AList.get_neq_cons; auto.
+Qed.
+
 Lemma eval_expr_sound' : forall ge p a expr sv,
   eval_expr ge p a expr = Some sv ->
   forall st, (mem_denote a) (fst st) ->
@@ -582,8 +597,16 @@ Proof.
     destruct_match H0.
     + destruct_match H0; inv H0. inv H2; rewrite H3 in H12; inv H12.
       rewrite H13 in H6. simpl in H6. rewrite H6 in H14. inv H14. constructor.
-      apply exec_val_refl. intros. destruct x; constructor.
+      apply exec_val_refl. apply bit_refine_refl.
     + inv H0. inv H2; rewrite H3 in H11; inv H11. constructor.
+  - destruct_match H0; inv H0. inv H2. eapply IHexpr in H11; eauto.
+    inv H12; inv H11; simpl. 1-3: eapply fields_get_sval_refine; eauto.
+    + apply Forall2_Zlength in H5. rewrite H5. constructor.
+      apply Forall2_refl. apply bit_refine_refl.
+    + destruct_match H4.
+      * unfold uninit_sval_of_typ in H4. Opaque repeat. inv H4. unfold Zrepeat.
+        constructor. apply Forall2_refl, bit_refine_refl. Transparent repeat.
+      * subst. constructor. apply Forall2_refl, bit_refine_refl.
  Admitted.
 
 Lemma eval_expr_sound : forall ge p a_mem a_ext expr sv,
