@@ -157,6 +157,12 @@ Fixpoint force_sval_to_val (sval: Sval): Val :=
 
 Definition bool_to_none: bool -> option bool := fun _ => None.
 
+Lemma map_bool_to_none: forall l,
+    map bool_to_none l = repeat None (length l).
+Proof.
+  induction l; simpl; auto. unfold bool_to_none at 1. now rewrite IHl.
+Qed.
+
 (* Convert Val to Sval, but convert all bits to unknown. *)
 Fixpoint val_to_liberal_sval (val: Val): Sval :=
   let fix sval_to_vals (sl: list Val): list Sval :=
@@ -555,6 +561,237 @@ Proof.
     + rewrite AList.get_neq_cons in H2; auto. subst. rewrite AList.get_neq_cons; auto.
 Qed.
 
+Lemma sval_to_val_Some_case1:
+  forall (n : list (option bool)) (lb' l : list bool),
+    lift_option n = Some l -> Forall2 read_ndetbit n lb' -> l = lb'.
+Proof.
+  intros n lb' l H2 H3. revert l H2. induction H3; intros; simpl in H2.
+  1: now inversion H2. inv H0. 1: inv H2. destruct_match H2; inv H2.
+  specialize (IHForall2 l1 eq_refl). now inv IHForall2.
+Qed.
+
+Lemma sval_to_val_Some_case2:
+  forall svals_to_avals : AList.StringAList Sval -> option (AList.StringAList Val),
+    svals_to_avals =
+      (fix sval_to_avals (sl : AList.StringAList Sval) :
+        option (AList.StringAList Val) :=
+         match sl with
+         | [] => Some []
+         | (k, s) :: rest =>
+             match eval_sval_to_val s with
+             | Some v =>
+                 match sval_to_avals rest with
+                 | Some l' => Some ((k, v) :: l')
+                 | None => None
+                 end
+             | None => None
+             end
+         end) ->
+    forall vs : list (ident * Sval),
+      Forall
+        (fun '(_, v) =>
+           forall oldv : Val,
+             sval_to_val read_ndetbit v oldv ->
+             forall v0 : Val, eval_sval_to_val v = Some v0 -> v0 = oldv) vs ->
+      forall (kvs' : AList.AList ident Val eq) (s : AList.StringAList Val),
+        svals_to_avals vs = Some s ->
+        AList.all_values (exec_val read_ndetbit) vs kvs' -> s = kvs'.
+Proof.
+  intros svals_to_avals Havals vs H0 kvs' s H1 H4.
+  revert kvs' s H1 H4. induction H0; intros.
+  - rewrite Havals in H1. inv H1. inv H4. auto.
+  - rewrite Havals, <- Havals in H2. destruct x. destruct_match H2. 2: inv H2.
+    inversion H4. subst x l0 kvs'. clear H4. destruct y. simpl in *. destruct H7.
+    subst s0. destruct_match H2; inversion H2. subst s. clear H2.
+    specialize (H0 v1 H5 v0 eq_refl). subst v0.
+    specialize (IHForall l' s0 eq_refl H9). now subst s0.
+Qed.
+
+Lemma sval_to_val_Some_case3:
+  forall eval_sval_to_vals : list Sval -> option (list Val),
+    eval_sval_to_vals =
+      (fix sval_to_vals (sl : list Sval) : option (list Val) :=
+         match sl with
+         | [] => Some []
+         | s :: rest =>
+             match eval_sval_to_val s with
+             | Some v =>
+                 match sval_to_vals rest with
+                 | Some l' => Some (v :: l')
+                 | None => None
+                 end
+             | None => None
+             end
+         end) ->
+    forall vs : list Sval,
+      Forall
+        (fun v : Sval =>
+           forall oldv : Val,
+             sval_to_val read_ndetbit v oldv ->
+             forall v0 : Val, eval_sval_to_val v = Some v0 -> v0 = oldv) vs ->
+      forall lv' l : list Val,
+        eval_sval_to_vals vs = Some l ->
+        Forall2 (exec_val read_ndetbit) vs lv' -> l = lv'.
+Proof.
+  intros eval_sval_to_vals Hvals vs H0 lv' l H1 H4.
+  revert lv' l H1 H4. induction H0; intros.
+  - rewrite Hvals in H1. inv H1. inv H4. auto.
+  - rewrite Hvals, <- Hvals in H2. destruct_match H2. 2: inv H2.
+    inversion H4. subst x0 l1 lv'. clear H4. specialize (H0 _ H7 v eq_refl).
+    subst v. destruct_match H2; inversion H2. subst l0. clear H2.
+    specialize (IHForall l' l1 eq_refl H9). now subst.
+Qed.
+
+Lemma sval_to_val_Some:
+  forall (v : Sval) (oldv : Val),
+    sval_to_val read_ndetbit v oldv ->
+    forall v0 : Val, eval_sval_to_val v = Some v0 -> v0 = oldv.
+Proof.
+  remember (fix sval_to_vals (sl : list Sval) : option (list Val) :=
+              match sl with
+              | [] => Some []
+              | s :: rest =>
+                  match eval_sval_to_val s with
+                  | Some v =>
+                      match sval_to_vals rest with
+                      | Some l' => Some (v :: l')
+                      | None => None
+                      end
+                  | None => None
+                  end
+              end) as eval_sval_to_vals. rename Heqeval_sval_to_vals into Hvals.
+  remember (fix sval_to_avals (sl : AList.StringAList Sval) :
+             option (AList.StringAList Val) :=
+              match sl with
+              | [] => Some []
+              | (k, s) :: rest =>
+                  match eval_sval_to_val s with
+                  | Some v =>
+                      match sval_to_avals rest with
+                      | Some l' => Some ((k, v) :: l')
+                      | None => None
+                      end
+                  | None => None
+                  end
+              end) as svals_to_avals. rename Heqsvals_to_avals into Havals.
+  intro. induction v using custom_ValueBase_ind;
+    intros; simpl in H1; try (inv H1; now inv H0).
+  2-4: destruct_match H1; inv H1; inv H0; f_equal;
+  eapply sval_to_val_Some_case1; eauto.
+  - destruct_match b; inv H1. inv H0. inv H2. auto.
+  - inversion H1. subst lv oldv. clear H1. simpl in H2.
+    destruct_match H2; inversion H2. subst v0. clear H2. f_equal.
+    rewrite <- Hvals in H1. eapply sval_to_val_Some_case3; eauto.
+  - inversion H1. subst kvs oldv. clear H1. simpl in H2.
+    destruct_match H2; inversion H2. subst v0. clear H2. f_equal.
+    rewrite <- Havals in H1. eapply sval_to_val_Some_case2; eauto.
+  - inversion H1. subst kvs b0 oldv. clear H1. simpl in H2. destruct_match b.
+    2: inv H2. subst b. destruct_match H2; inversion H2. subst v0. clear H2.
+    inversion H5. subst b b0. clear H5. f_equal. rewrite <- Havals in H1.
+    eapply sval_to_val_Some_case2; eauto.
+  - inversion H1. subst kvs oldv. clear H1. simpl in H2.
+    destruct_match H2; inversion H2. subst v0. clear H2. rewrite <- Havals in H1.
+    f_equal. eapply sval_to_val_Some_case2; eauto.
+  - inversion H1. subst lv next oldv. clear H1. simpl in H2.
+    destruct_match H2; inversion H2. subst v0. clear H2. f_equal.
+    rewrite <- Hvals in H1. eapply sval_to_val_Some_case3; eauto.
+  - destruct_match H1; inversion H1. subst v0. clear H1. inversion H0. subst t v0 oldv.
+    clear H0. f_equal. specialize (IHv _ H5 v1 eq_refl). now subst v1.
+Qed.
+
+Lemma sval_refine_liberal:
+  forall v : Val, sval_refine (val_to_liberal_sval v) (eval_val_to_sval v).
+Proof.
+  induction v using custom_ValueBase_ind; simpl; constructor; auto.
+  - constructor.
+  - induction n; simpl; constructor; auto; unfold bool_to_none. constructor.
+  - induction z; simpl; constructor; auto; unfold bool_to_none. constructor.
+  - induction n; simpl; constructor; auto; unfold bool_to_none. constructor.
+  - induction H0; constructor; auto.
+  - induction H0; [constructor | destruct x; constructor; auto].
+  - unfold bool_to_none. constructor.
+  - induction H0; [constructor | destruct x; constructor; auto].
+  - induction H0; [constructor | destruct x; constructor; auto].
+  - induction H0; [constructor | destruct x; constructor; auto].
+Qed.
+
+Lemma sval_refine_map_bool_to_none: forall l1 l2,
+    length l1 = length l2 -> Forall2 bit_refine (map bool_to_none l1) l2.
+Proof.
+  intros. rewrite map_bool_to_none. revert l2 H0. induction l1; intros.
+  - destruct l2. 2: simpl in H0; inversion H0. simpl. constructor.
+  - destruct l2. 1: simpl in H0; inversion H0. simpl. constructor.
+    + constructor.
+    + simpl in H0. inversion H0. now apply IHl1.
+Qed.
+
+Lemma sval_refine_liberal_cast:
+  forall (v : Sval) (real_typ : P4Type) (oldv newv : Val),
+    Ops.eval_cast real_typ oldv = Some newv ->
+    sval_to_val read_ndetbit v oldv ->
+    eval_sval_to_val v = None ->
+    sval_refine
+      (val_to_liberal_sval
+         (force ValBaseNull (Ops.eval_cast real_typ (force_sval_to_val v))))
+      (eval_val_to_sval newv).
+Proof.
+  induction v using custom_ValueBase_ind; simpl; intros; try (now inversion H2).
+  - destruct b; inv H2. inv H1. inv H3.
+    induction real_typ; simpl in H0; try (now inversion H0); simpl; auto.
+    + destruct_match H0; inv H0. simpl. constructor. constructor; constructor.
+    + destruct b'.
+      * destruct typ; simpl in *; [destruct p|]; inversion H0.
+      * rewrite H0. simpl. apply sval_refine_liberal.
+  - destruct_match H2; inv H2. inv H1.
+    induction real_typ; simpl in H0; try (now inversion H0); simpl; auto.
+    + destruct lb'. 1: inv H0. destruct lb'. 2: destruct b; inv H0.
+      inv H4. inv H7. simpl. simpl in H3. destruct x; inv H3. simpl.
+      destruct b; inv H0; simpl; repeat constructor.
+    + destruct_match H0; inv H0. rewrite Zlength_map, (Forall2_Zlength H4), H1. simpl.
+      constructor. apply sval_refine_map_bool_to_none. rewrite map_length.
+      rewrite <- !ZtoNat_Zlength, !Zlength_to_lbool. auto.
+    + inv H0. constructor. apply sval_refine_map_bool_to_none. rewrite map_length.
+      rewrite <- !ZtoNat_Zlength, !Zlength_to_lbool. auto.
+    + destruct typ; simpl in H0. 2: inv H0. destruct p; try (now inversion H0).
+      simpl. destruct_match H0; inv H0. simpl.
+      rewrite Zlength_map, (Forall2_Zlength H4), H1. simpl. do 2 constructor.
+      apply sval_refine_map_bool_to_none. rewrite !map_length, <- !ZtoNat_Zlength.
+      now rewrite (Forall2_Zlength H4).
+  - destruct_match H2; inv H2. inv H1.
+    induction real_typ; simpl in H0; try (now inversion H0); simpl; auto.
+    + inv H0. simpl. constructor. apply sval_refine_map_bool_to_none.
+      rewrite <- !ZtoNat_Zlength, Zlength_map, !Zlength_to_lbool. auto.
+    + destruct_match H0; inv H0. rewrite Zlength_map, (Forall2_Zlength H4), H1. simpl.
+      constructor. apply sval_refine_map_bool_to_none. rewrite map_length.
+      rewrite <- !ZtoNat_Zlength, !Zlength_to_lbool. auto.
+    + destruct typ; simpl in H0. 2: inv H0. destruct p; try (now inversion H0).
+      simpl. destruct_match H0; inv H0. simpl.
+      rewrite Zlength_map, (Forall2_Zlength H4), H1. simpl. do 2 constructor.
+      apply sval_refine_map_bool_to_none. rewrite !map_length, <- !ZtoNat_Zlength.
+      now rewrite (Forall2_Zlength H4).
+  - destruct_match H2; inv H2. inv H1.
+    induction real_typ; simpl in H0; try (now inversion H0); simpl; auto.
+    destruct typ; simpl in H0. 2: inv H0. destruct p; try (now inversion H0).
+  - remember (fix sval_to_vals (sl : list Sval) : option (list Val) :=
+                match sl with
+                | [] => Some []
+                | s :: rest =>
+                    match eval_sval_to_val s with
+                    | Some v =>
+                        match sval_to_vals rest with
+                        | Some l' => Some (v :: l')
+                        | None => None
+                        end
+                    | None => None
+                    end
+                end) as to_vals. rename Heqto_vals into Hvals.
+    destruct_match H3. 1: inv H3. revert oldv newv H1 H2. clear H3.
+    induction vs; intros. 1: rewrite Hvals in H4; inv H4.
+    rewrite Hvals, <- Hvals in H4. destruct_match H4.
+    + admit.
+    + inversion H0. subst x l. clear H0.
+Abort.
+
 Lemma eval_expr_sound' : forall ge p a expr sv,
   eval_expr ge p a expr = Some sv ->
   forall st, (mem_denote a) (fst st) ->
@@ -592,7 +829,15 @@ Proof.
         inv H4. constructor.
       * simpl. inv H11. inv H12. simpl in H13. inv H13. constructor. constructor.
   - admit.
-  - admit.
+  - destruct_match H0. 2: inversion H0. destruct_match H0; inv H0. inv H2.
+    rewrite H4 in H14. inv H14. red in H16. red in H13. eapply IHexpr in H11; eauto.
+    red in H11. assert (sval_to_val read_ndetbit v oldv). {
+      eapply exec_val_trans; eauto. clear. repeat intro. inv H; auto. constructor. }
+    clear H11 H13. unfold build_abs_unary_op. rewrite val_to_sval_iff in H16.
+    destruct (eval_sval_to_val v) eqn:?H.
+    + eapply sval_to_val_Some in H2; eauto. subst v0. rewrite H15. simpl.
+      rewrite H16. apply sval_refine_refl.
+    + subst sv'. admit.
   - destruct_match H0. 2: inversion H0. destruct_match H0; inversion H0. clear H6.
     destruct_match H0.
     + destruct_match H0; inv H0. inv H2; rewrite H3 in H12; inv H12.
