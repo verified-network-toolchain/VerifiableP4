@@ -727,7 +727,7 @@ Definition Add := DeclControl NoInfo {| stags := NoInfo; str := "Add" |} nil
                     (Some
                      (MkExpression NoInfo
                           (ExpInt
-                           {| itags := NoInfo; value := 1023;
+                           {| itags := NoInfo; value := 1024;
                               width_signed := (Some ( 10%N, false )) |})
                           (TypBit 10%N) Directionless))]) StmUnit)
          (BlockCons
@@ -857,7 +857,7 @@ Definition Add := DeclControl NoInfo {| stags := NoInfo; str := "Add" |} nil
                          (Some
                           (MkExpression NoInfo
                                (ExpInt
-                                {| itags := NoInfo; value := 1023;
+                                {| itags := NoInfo; value := 1024;
                                    width_signed := (Some ( 10%N, false )) |})
                                (TypBit 10%N) Directionless))]) StmUnit)
               (BlockCons
@@ -1004,7 +1004,7 @@ Definition Add := DeclControl NoInfo {| stags := NoInfo; str := "Add" |} nil
                               (Some
                                (MkExpression NoInfo
                                     (ExpInt
-                                     {| itags := NoInfo; value := 1023;
+                                     {| itags := NoInfo; value := 1024;
                                         width_signed := (Some
                                                          ( 10%N, false )) |})
                                     (TypBit 10%N) Directionless))]) StmUnit)
@@ -1319,7 +1319,7 @@ Definition Query := DeclControl NoInfo {| stags := NoInfo; str := "Query" |}
                     (Some
                      (MkExpression NoInfo
                           (ExpInt
-                           {| itags := NoInfo; value := 1023;
+                           {| itags := NoInfo; value := 1024;
                               width_signed := (Some ( 10%N, false )) |})
                           (TypBit 10%N) Directionless))]) StmUnit)
          (BlockCons
@@ -1449,7 +1449,7 @@ Definition Query := DeclControl NoInfo {| stags := NoInfo; str := "Query" |}
                          (Some
                           (MkExpression NoInfo
                                (ExpInt
-                                {| itags := NoInfo; value := 1023;
+                                {| itags := NoInfo; value := 1024;
                                    width_signed := (Some ( 10%N, false )) |})
                                (TypBit 10%N) Directionless))]) StmUnit)
               (BlockCons
@@ -1596,7 +1596,7 @@ Definition Query := DeclControl NoInfo {| stags := NoInfo; str := "Query" |}
                               (Some
                                (MkExpression NoInfo
                                     (ExpInt
-                                     {| itags := NoInfo; value := 1023;
+                                     {| itags := NoInfo; value := 1024;
                                         width_signed := (Some
                                                          ( 10%N, false )) |})
                                     (TypBit 10%N) Directionless))]) StmUnit)

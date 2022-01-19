@@ -11,7 +11,7 @@ Require Import ProD3.core.AssertionNotations.
 Require Import ProD3.core.FuncSpec.
 
 (* solves hoare_call for built-in functions *)
-Ltac forward_builtin :=
+Ltac step_builtin :=
   lazymatch goal with
   | |- hoare_call _ _ _ _ _ =>
       (eapply hoare_call_builtin';
@@ -20,13 +20,13 @@ Ltac forward_builtin :=
         | reflexivity (* eval_args *)
         | reflexivity (* eval_builtin *)
         ])
-      || fail "Not a built-in function. Use forward_call instead"
+      || fail "Not a built-in function. Use step_call instead"
   | _ =>
       fail "Not a hoare_call"
   end.
 
 (* solves hoare_stmt *)
-Ltac forward_stmt :=
+Ltac step_stmt :=
   lazymatch goal with
   | |- hoare_stmt _ _ (MEM _ (EXT _)) ?stmt _ =>
       lazymatch stmt with
@@ -36,7 +36,7 @@ Ltac forward_stmt :=
           eapply hoare_stmt_assign_call';
             [ reflexivity (* is_call_expression *)
             | reflexivity (* eval_lexpr *)
-            | forward_builtin (* hoare_call *)
+            | step_builtin (* hoare_call *)
             | reflexivity (* is_no_dup *)
             | reflexivity (* eval_write *)
             ]
@@ -52,7 +52,7 @@ Ltac forward_stmt :=
       (* hoare_stmt_method_call' *)
       | MkStatement _ (StatMethodCall ?func _ _) _ =>
           eapply hoare_stmt_method_call';
-            forward_builtin (* hoare_call *)
+            step_builtin (* hoare_call *)
       (* hoare_stmt_var_call' *)
       | MkStatement _
             (StatVariable _ _
@@ -65,7 +65,7 @@ Ltac forward_stmt :=
           end;
           eapply hoare_stmt_var_call';
             [ reflexivity (* is_call_expression *)
-            | forward_builtin (* hoare_call *)
+            | step_builtin (* hoare_call *)
             | reflexivity (* is_no_dup *)
             | reflexivity (* eval_write *)
             ]
@@ -88,20 +88,20 @@ Ltac forward_stmt :=
   | _ => fail "The goal is not in the form of (hoare_stmt _ _ (MEM _ (EXT _)) _ _)"
   end.
 
-(* forwards hoare_block *)
-Ltac forward :=
+(* steps hoare_block *)
+Ltac step :=
   lazymatch goal with
   | |- hoare_block _ _ (MEM _ (EXT _)) ?block _ =>
       lazymatch block with
       | BlockEmpty _ => apply hoare_block_nil
       | BlockCons _ _ =>
           eapply hoare_block_cons;
-          only 1 : forward_stmt
+          only 1 : step_stmt
       end
   | _ => fail "The goal is not in the form of (hoare_block _ _ (MEM _ (EXT _)) _ _)"
   end.
 
-Ltac forward_if post :=
+Ltac step_if post :=
   lazymatch goal with
   | |- hoare_block _ _ (MEM _ (EXT _)) (BlockCons ?stmt _) _ =>
       lazymatch stmt with
@@ -167,7 +167,7 @@ Ltac start_function :=
   | _ => fail "The goal is not in the form of (fundef_satisfies_spec _ _ _)"
   end.
 
-Ltac forward_call_func func_spec :=
+Ltac step_call_func func_spec :=
   lazymatch goal with
   | |- hoare_call _ _ _ _ _ =>
       eapply hoare_call_func';
@@ -189,27 +189,27 @@ Ltac forward_call_func func_spec :=
   | _ => fail "The goal is not in the form of (hoare_call _ _ _ _ _)"
   end.
 
-Ltac forward_stmt_call func_spec :=
+Ltac step_stmt_call func_spec :=
   lazymatch goal with
   | |- hoare_stmt _ _ (MEM _ (EXT _)) ?stmt _ =>
       lazymatch stmt with
       (* hoare_stmt_method_call' *)
       | MkStatement _ (StatMethodCall ?func _ _) _ =>
           eapply hoare_stmt_method_call';
-            forward_call_func func_spec (* hoare_call *)
+            step_call_func func_spec (* hoare_call *)
       | _ => fail "This function call is not supported"
       end
   | _ => fail "The goal is not in the form of (hoare_stmt _ _ (MEM _ (EXT _)) ?stmt _)"
   end.
 
-Ltac forward_call func_spec :=
+Ltac step_call func_spec :=
   lazymatch goal with
   | |- hoare_block _ _ (MEM _ (EXT _)) ?block _ =>
       lazymatch block with
       | BlockEmpty _ => apply hoare_block_nil
       | BlockCons _ _ =>
           eapply hoare_block_cons;
-          only 1 : forward_stmt_call func_spec
+          only 1 : step_stmt_call func_spec
       end
   | _ => fail "The goal is not in the form of (hoare_block _ _ (MEM _ (EXT _)) _ _)"
   end.

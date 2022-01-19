@@ -75,8 +75,8 @@ Definition MyIngress_do_forward_spec : func_spec :=
 Lemma MyIngress_do_forward_body :
   fundef_satisfies_spec ge MyIngress_do_forward_fundef nil MyIngress_do_forward_spec.
   start_function.
-  forward.
-  forward.
+  step.
+  step.
   entailer.
 Admitted.
 
@@ -124,13 +124,16 @@ Admitted.
 
 End CRC.
 
+Definition BASE : Z := 0.
+Definition MAX : Z := 1024.
+
 Definition CRC_Z (data : list bool) : Z :=
-  BitArith.lbool_to_val (CRC data) 1 0.
+  BASE + Z.modulo (BitArith.lbool_to_val (CRC data) 1 0) MAX.
 
 Axiom CRC_range : forall data, 0 <= CRC_Z data < NUM_ENTRY.
 
 Definition CRC_pad (pad : list bool) (data : Z) : Z :=
-  CRC_Z (((to_lbool 16%N data) ++ pad)).
+  CRC_Z (List.concat [to_lbool 16%N data; pad]).
 
 Definition CRC_pad0 := CRC_pad (to_lbool 3%N 3).
 Definition CRC_pad1 := CRC_pad (to_lbool 5%N 5).
@@ -139,25 +142,47 @@ Definition CRC_pad2 := CRC_pad (to_lbool 7%N 7).
 Definition hash_fundef :=
   force dummy_fundef (PathMap.get ["hash"] (ge_func ge)).
 
-(* (* fake function spec *)
+Open Scope arg_ret_assr.
+
+(* A more restricted func spec, but should be sound. *)
 Definition hash_spec : func_spec :=
-  WITH (data : Z) (algo base fake_data max : Sval),
+  WITH (data : list Val) (input : list bool)
+    (_ : concat_tuple data = Some input),
     mk_func_spec
       []
-      (ARG [algo; base; fake_data; max]
+      (ARG [ValBaseEnumField "HashAlgorithm" "crc16";
+            ValBaseBit (to_loptbool 10 BASE);
+            eval_val_to_sval (ValBaseTuple data);
+            ValBaseBit (to_loptbool 10 MAX)]
       (MEM []
       (EXT [])))
-      (ARG_RET [ValBaseBit (to_loptbool 16%N (CRC_Z data))] ValBaseNull
+      (ARG_RET [ValBaseBit (to_loptbool 32%N (CRC_Z input))] ValBaseNull
       (MEM []
       (EXT [])))
       None [].
 
 Axiom hash_body : forall targs,
-  fundef_satisfies_spec ge hash_fundef targs hash_spec. *)
+  fundef_satisfies_spec ge hash_fundef targs hash_spec.
 
+Definition custom_metadata_t :=
+  Eval compute in force dummy_type (IdentMap.get "custom_metadata_t" (ge_typ ge)).
+
+(*
+control Add(inout headers hdr, inout custom_metadata_t meta) {
+    apply{
+        hash(meta.index0, HashAlgorithm.crc16, HASH_BASE, {hdr.myHeader.data, PAD0}, HASH_MAX);
+        hash(meta.index1, HashAlgorithm.crc16, HASH_BASE, {hdr.myHeader.data, PAD1}, HASH_MAX);
+        hash(meta.index2, HashAlgorithm.crc16, HASH_BASE, {hdr.myHeader.data, PAD2}, HASH_MAX);
+
+        bloom0.write(meta.index0, 1);
+        bloom1.write(meta.index1, 1);
+        bloom2.write(meta.index2, 1);
+    }
+}
+*)
 
 Definition Add_spec : func_spec :=
-  WITH p (rw data : Z) (meta : Sval) (bf : bloomfilter_state),
+  WITH p (rw data : Z) (bf : bloomfilter_state),
     let hdr := ValBaseStruct
       [("myHeader",
         ValBaseHeader
@@ -166,12 +191,12 @@ Definition Add_spec : func_spec :=
            (Some true))] in
     mk_func_spec
       p
-      (ARG [hdr; meta]
+      (ARG [hdr; force ValBaseNull (uninit_sval_of_typ None custom_metadata_t)]
       (MEM []
       (EXT [(["bloom0"], reg_encode (bloom0 bf));
             (["bloom1"], reg_encode (bloom1 bf));
             (["bloom2"], reg_encode (bloom2 bf))])))
-      (ARG_RET [hdr; havoc None meta] ValBaseNull
+      (ARG_RET [hdr; force ValBaseNull (uninit_sval_of_typ None custom_metadata_t)] ValBaseNull
       (MEM []
       (EXT (let bf' := bloomfilter.add Z Z.eqb CRC_pad0 CRC_pad1 CRC_pad2 bf data in
            [(["bloom0"], reg_encode (bloom0 bf'));
@@ -179,36 +204,44 @@ Definition Add_spec : func_spec :=
             (["bloom2"], reg_encode (bloom2 bf'))]))))
       None [["bloom0"]; ["bloom1"]; ["bloom2"]].
 
+Lemma update_bit : forall filter hash,
+  reg_encode (list_of_filter NUM_ENTRY (upd Z Z.eqb filter hash true)) =
+  ObjRegister
+    (upd_Znth hash (map ValBaseBit (map (to_lbool 1) (list_of_filter NUM_ENTRY filter)))
+       (ValBaseBit (to_lbool 1 (BitArith.mod_bound 1 1)))).
+Admitted.
+
 Lemma Add_body : fundef_satisfies_spec ge Add_fundef nil Add_spec.
 Proof.
   start_function.
-  (* forward_call hash_body.
-  entailer.
-  instantiate (1 := data).
-  forward_call hash_body.
-  entailer.
-  instantiate (1 := data).
-  forward_call hash_body.
-  entailer.
-  instantiate (1 := data).
+  step_call uconstr:(hash_body _ [ValBaseBit (to_lbool 16 data); ValBaseBit (to_lbool 3 3)]).
+  2 : entailer.
+  reflexivity.
+  replace (CRC_Z _) with (CRC_pad0 data) by reflexivity.
+  step_call uconstr:(hash_body _ [ValBaseBit (to_lbool 16 data); ValBaseBit (to_lbool 5 5)]).
+  2 : entailer.
+  reflexivity.
+  replace (CRC_Z _) with (CRC_pad1 data) by reflexivity.
+  step_call uconstr:(hash_body _ [ValBaseBit (to_lbool 16 data); ValBaseBit (to_lbool 7 7)]).
+  2 : entailer.
+  reflexivity.
+  replace (CRC_Z _) with (CRC_pad2 data) by reflexivity.
   simpl MEM.
-  forward_call uconstr:(register_write_body _ _ _ _ _).
-  2 : {
-    entailer.
-    rewrite get_update_diff.
-    2 : admit.
-    2 : discriminate.
-    rewrite get_update_diff.
-    2 : admit.
-    2 : discriminate.
-    rewrite get_update_same.
-    2 : admit.
-    eapply SvalRefine.sval_refine_refl.
-     }
-  Unshelve. all : shelve_unifiable.
-  3 : reflexivity.
-  admit. *)
-
+  step_call uconstr:(register_write_body ge ["bloom0"] _ ltac:(reflexivity) _).
+  2 : { entailer. }
+  { apply CRC_range. }
+  step_call uconstr:(register_write_body ge ["bloom1"] _ ltac:(reflexivity) _).
+  2 : { entailer. }
+  { apply CRC_range. }
+  step_call uconstr:(register_write_body ge ["bloom2"] _ ltac:(reflexivity) _).
+  2 : { entailer. }
+  { apply CRC_range. }
+  step.
+  entailer.
+  { repeat constructor. }
+  destruct bf as [[] ?]. apply update_bit.
+  destruct bf as [[] ?]. apply update_bit.
+  destruct bf as [[] ?]. apply update_bit.
 (* Qed. *)
 Admitted.
 
@@ -258,12 +291,6 @@ Definition myHeader :=
          (Some true))].
 
 Axiom dummy_type : (@P4Type Info).
-
-Definition custom_metadata_t := Eval compute in
-  match IdentMap.get "custom_metadata_t" (ge_typ ge) with
-  | Some typ => typ
-  | None => dummy_type
-  end.
 
 Definition standard_metadata_t := Eval compute in
   match IdentMap.get "standard_metadata_t" (ge_typ ge) with
@@ -360,7 +387,7 @@ Proof.
     sval_add (val_to_sval (Int v)) (val_to_sval (Int 1)) = val_to_sval (Int (v + 1))
     *)
   start_function.
-  forward.
+  step.
   eapply hoare_block_cons.
   {
     eapply hoare_stmt_if_true'.
@@ -370,31 +397,31 @@ Proof.
     apply hoare_stmt_block.
     {
       simpl eval_write_var.
-      forward_call MyIngress_do_forward_body.
+      step_call MyIngress_do_forward_body.
       { entailer. }
       (* A possible simpl: *)
         (* Opaque pre_ext_assertion post_ext_assertion.
         simpl MEM. *)
-      forward_if (MEM
+      step_if (MEM
          (eval_write_vars []
             (filter_out [(["hdr"], InOut); (["meta"], InOut); (["standard_metadata"], InOut)])
             post_arg_assertion) (EXT post_ext_assertion)).
       { (* true branch *)
         change (is_true (BitArith.lbool_to_val (to_lbool 8%N rw) 1 0 =? 0)) in H.
-        (* forward_call. *)
+        (* step_call. *)
         admit.
       }
       { (* false branch *)
         change (is_true (negb (BitArith.lbool_to_val (to_lbool 8%N rw) 1 0 =? 0))) in H.
-        (* forward_call. *)
+        (* step_call. *)
         admit.
       }
-      forward.
+      step.
       simpl. (* This simpl generates better assertion for the next step. *)
       eapply implies_refl.
     }
   }
-  forward.
+  step.
   entailer.
 Abort.
 
@@ -437,7 +464,7 @@ Axiom post : post_assertion.
 Lemma body_assign : hoare_block ge this pre (BlockCons assign_stmt BlockNil) post.
 Proof.
   unfold pre. unfold assign_stmt.
-  forward.
+  step.
   simpl str. rewrite H_member0, H_member1, H_member2.
   change (build_abs_unary_op _ _)
    (* (build_abs_binary_op (Ops.eval_binary_op BitAnd)

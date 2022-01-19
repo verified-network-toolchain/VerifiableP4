@@ -53,6 +53,8 @@ Definition ret_exists {A} (a : A -> Hoare.ret_assertion) : Hoare.ret_assertion :
 Definition arg_ret_exists {A} (a : A -> Hoare.arg_ret_assertion) : Hoare.arg_ret_assertion :=
   fun args retv st => ex (fun x => a x args retv st).
 
+End AssertionNotations.
+
 Declare Scope assr.
 Delimit Scope assr with assr.
 Notation "'EX' x .. y , P " :=
@@ -67,5 +69,3 @@ Declare Scope arg_ret_assr.
 Delimit Scope arg_ret_assr with arg_ret_assr.
 Notation "'EX' x .. y , P " :=
   (arg_ret_exists (fun x => .. (arg_ret_exists (fun y => P%arg_ret_assr)) ..)) (at level 65, x binder, y binder, right associativity) : arg_ret_assr.
-
-End AssertionNotations.

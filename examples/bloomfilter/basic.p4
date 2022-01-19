@@ -49,7 +49,7 @@ parser MyParser(packet_in packet,
 *************************************************************************/
 
 #define HASH_BASE 10w0
-#define HASH_MAX 10w1023
+#define HASH_MAX 10w1024
 #define NUM_HASH 3
 #define NUM_ENTRY 32w1024
 #define PAD0 3w3
