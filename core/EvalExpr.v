@@ -844,15 +844,13 @@ Proof.
       rewrite H13 in H6. simpl in H6. rewrite H6 in H14. inv H14. constructor.
       apply exec_val_refl. apply bit_refine_refl.
     + inv H0. inv H2; rewrite H3 in H11; inv H11. constructor.
-  - destruct_match H0; inv H0. inv H2. eapply IHexpr in H11; eauto.
-    inv H12; inv H11; simpl. 1-3: eapply fields_get_sval_refine; eauto.
-    + apply Forall2_Zlength in H5. rewrite H5. constructor.
-      apply Forall2_refl. apply bit_refine_refl.
-    + destruct_match H4.
-      * unfold uninit_sval_of_typ in H4. Opaque repeat. inv H4. unfold Zrepeat.
-        constructor. apply Forall2_refl, bit_refine_refl. Transparent repeat.
-      * subst. constructor. apply Forall2_refl, bit_refine_refl.
- Admitted.
+  - destruct_match H0; inv H0.
+    inv H2.
+    eapply IHexpr in H11; eauto.
+    apply get_sound in H12.
+    rewrite <- H12.
+    apply sval_refine_get; auto.
+Admitted.
 
 Lemma eval_expr_sound : forall ge p a_mem a_ext expr sv,
   eval_expr ge p a_mem expr = Some sv ->
