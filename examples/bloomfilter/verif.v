@@ -61,19 +61,22 @@ Definition MyIngress_do_forward_fundef := Eval compute in
 Open Scope func_spec.
 
 Definition MyIngress_do_forward_spec : func_spec :=
-  WITH (p : path) (port : Z) (standard_metadata : Sval),
-    mk_func_spec
-      p
-      (ARG [ValBaseBit (to_loptbool 9%N port)]
-      (MEM [(["standard_metadata"], standard_metadata)]
-      (EXT [])))
-      (ARG_RET [] ValBaseNull
-      (MEM [(["standard_metadata"], (update "egress_spec" (ValBaseBit (to_loptbool 9%N port)) standard_metadata))]
-      (EXT [])))
-      (Some [["do_forward"; "port"]; ["standard_metadata"]]) [].
+  WITH (p : path),
+    PATH p
+    MOD (Some [["do_forward"; "port"]; ["standard_metadata"]]) []
+    WITH (port : Z) (standard_metadata : Sval),
+      PRE
+        (ARG [ValBaseBit (to_loptbool 9%N port)]
+        (MEM [(["standard_metadata"], standard_metadata)]
+        (EXT [])))
+      POST
+        (ARG_RET [] ValBaseNull
+        (MEM [(["standard_metadata"], (update "egress_spec" (ValBaseBit (to_loptbool 9%N port)) standard_metadata))]
+        (EXT []))).
 
 Lemma MyIngress_do_forward_body :
   fundef_satisfies_spec ge MyIngress_do_forward_fundef nil MyIngress_do_forward_spec.
+Proof.
   start_function.
   step.
   step.
@@ -118,8 +121,6 @@ Definition CRC : list bool -> list bool := Hash.compute_crc 16%nat (D8 (D0 (D0 (
 Lemma CRC_length : forall data,
   List.length (CRC data) = 16%nat.
 Proof.
-  intros.
-(* This lemma needs property about CRC. *)
 Admitted.
 
 End CRC.
@@ -146,20 +147,22 @@ Open Scope arg_ret_assr.
 
 (* A more restricted func spec, but should be sound. *)
 Definition hash_spec : func_spec :=
-  WITH (data : list Val) (input : list bool)
-    (_ : concat_tuple data = Some input),
-    mk_func_spec
-      []
-      (ARG [ValBaseEnumField "HashAlgorithm" "crc16";
-            ValBaseBit (to_loptbool 10 BASE);
-            eval_val_to_sval (ValBaseTuple data);
-            ValBaseBit (to_loptbool 10 MAX)]
-      (MEM []
-      (EXT [])))
-      (ARG_RET [ValBaseBit (to_loptbool 32%N (CRC_Z input))] ValBaseNull
-      (MEM []
-      (EXT [])))
-      None [].
+  WITH,
+    PATH []
+    MOD None []
+    WITH (data : list Val) (input : list bool)
+      (_ : concat_tuple data = Some input),
+      PRE
+        (ARG [ValBaseEnumField "HashAlgorithm" "crc16";
+              ValBaseBit (to_loptbool 10 BASE);
+              eval_val_to_sval (ValBaseTuple data);
+              ValBaseBit (to_loptbool 10 MAX)]
+        (MEM []
+        (EXT [])))
+      POST
+        (ARG_RET [ValBaseBit (to_loptbool 32%N (CRC_Z input))] ValBaseNull
+        (MEM []
+        (EXT []))).
 
 Axiom hash_body : forall targs,
   fundef_satisfies_spec ge hash_fundef targs hash_spec.
@@ -182,27 +185,35 @@ control Add(inout headers hdr, inout custom_metadata_t meta) {
 *)
 
 Definition Add_spec : func_spec :=
-  WITH p (rw data : Z) (bf : bloomfilter_state),
-    let hdr := ValBaseStruct
-      [("myHeader",
-        ValBaseHeader
-          [("rw", ValBaseBit (to_loptbool 8 rw));
-           ("data", ValBaseBit (to_loptbool 16 data))]
-           (Some true))] in
-    mk_func_spec
-      p
-      (ARG [hdr; force ValBaseNull (uninit_sval_of_typ None custom_metadata_t)]
-      (MEM []
-      (EXT [(["bloom0"], reg_encode (bloom0 bf));
-            (["bloom1"], reg_encode (bloom1 bf));
-            (["bloom2"], reg_encode (bloom2 bf))])))
-      (ARG_RET [hdr; force ValBaseNull (uninit_sval_of_typ None custom_metadata_t)] ValBaseNull
-      (MEM []
-      (EXT (let bf' := bloomfilter.add Z Z.eqb CRC_pad0 CRC_pad1 CRC_pad2 bf data in
-           [(["bloom0"], reg_encode (bloom0 bf'));
-            (["bloom1"], reg_encode (bloom1 bf'));
-            (["bloom2"], reg_encode (bloom2 bf'))]))))
-      None [["bloom0"]; ["bloom1"]; ["bloom2"]].
+  WITH p,
+    PATH p
+    MOD None [["bloom0"]; ["bloom1"]; ["bloom2"]]
+    WITH (rw data : Z) (bf : bloomfilter_state),
+      PRE
+        let hdr := ValBaseStruct
+        [("myHeader",
+          ValBaseHeader
+            [("rw", ValBaseBit (to_loptbool 8 rw));
+             ("data", ValBaseBit (to_loptbool 16 data))]
+             (Some true))] in
+        (ARG [hdr; force ValBaseNull (uninit_sval_of_typ None custom_metadata_t)]
+        (MEM []
+        (EXT [(["bloom0"], reg_encode (bloom0 bf));
+              (["bloom1"], reg_encode (bloom1 bf));
+              (["bloom2"], reg_encode (bloom2 bf))])))
+      POST
+        let hdr := ValBaseStruct
+        [("myHeader",
+          ValBaseHeader
+            [("rw", ValBaseBit (to_loptbool 8 rw));
+             ("data", ValBaseBit (to_loptbool 16 data))]
+             (Some true))] in
+        let bf' := bloomfilter.add Z Z.eqb CRC_pad0 CRC_pad1 CRC_pad2 bf data in
+        (ARG_RET [hdr; force ValBaseNull (uninit_sval_of_typ None custom_metadata_t)] ValBaseNull
+        (MEM []
+        (EXT [(["bloom0"], reg_encode (bloom0 bf'));
+              (["bloom1"], reg_encode (bloom1 bf'));
+              (["bloom2"], reg_encode (bloom2 bf'))]))).
 
 Lemma update_bit : forall filter hash,
   reg_encode (list_of_filter NUM_ENTRY (upd Z Z.eqb filter hash true)) =
@@ -214,27 +225,30 @@ Admitted.
 Lemma Add_body : fundef_satisfies_spec ge Add_fundef nil Add_spec.
 Proof.
   start_function.
-  step_call uconstr:(hash_body _ [ValBaseBit (to_lbool 16 data); ValBaseBit (to_lbool 3 3)]).
-  2 : entailer.
+  step_call hash_body [ValBaseBit (to_lbool 16 data); ValBaseBit (to_lbool 3 3)].
+  2 : { entailer. }
   reflexivity.
   replace (CRC_Z _) with (CRC_pad0 data) by reflexivity.
-  step_call uconstr:(hash_body _ [ValBaseBit (to_lbool 16 data); ValBaseBit (to_lbool 5 5)]).
+  step_call hash_body [ValBaseBit (to_lbool 16 data); ValBaseBit (to_lbool 5 5)].
   2 : entailer.
   reflexivity.
   replace (CRC_Z _) with (CRC_pad1 data) by reflexivity.
-  step_call uconstr:(hash_body _ [ValBaseBit (to_lbool 16 data); ValBaseBit (to_lbool 7 7)]).
+  step_call hash_body [ValBaseBit (to_lbool 16 data); ValBaseBit (to_lbool 7 7)].
   2 : entailer.
   reflexivity.
   replace (CRC_Z _) with (CRC_pad2 data) by reflexivity.
   simpl MEM.
-  step_call uconstr:(register_write_body ge ["bloom0"] _ ltac:(reflexivity) _).
-  2 : { entailer. }
+  step_call register_write_body.
+  reflexivity.
+  2 : entailer.
   { apply CRC_range. }
-  step_call uconstr:(register_write_body ge ["bloom1"] _ ltac:(reflexivity) _).
-  2 : { entailer. }
+  step_call register_write_body.
+  reflexivity.
+  2 : entailer.
   { apply CRC_range. }
-  step_call uconstr:(register_write_body ge ["bloom2"] _ ltac:(reflexivity) _).
-  2 : { entailer. }
+  step_call register_write_body.
+  reflexivity.
+  2 : entailer.
   { apply CRC_range. }
   step.
   entailer.
@@ -366,7 +380,7 @@ Definition post :=
   ARG_RET post_arg_assertion ValBaseNull (MEM [] (EXT post_ext_assertion)).
 
 Definition bloomfilter_spec : func_spec :=
-  fs_base (mk_func_spec this pre post None [["bloom0"]; ["bloom1"]; ["bloom2"]]).
+  fs_base (mk_func_spec this (fsh_base pre post) None [["bloom0"]; ["bloom1"]; ["bloom2"]]).
 
 Lemma body_bloomfilter : fundef_satisfies_spec ge MyIngress_fundef nil bloomfilter_spec.
 Proof.

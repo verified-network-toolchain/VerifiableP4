@@ -22,10 +22,22 @@ Notation path := (list ident).
 
 Context `{target : @Target tags_t (@Expression tags_t)}.
 
+(* A func spec contains two levels binders. A func spec is like
+  WITH (p : path) ... ,
+    PATH p
+    MOD [...] [...]
+    WITH (x : X) ... ,
+      PRE ...
+      POST ...
+*)
+
+Inductive func_spec_hoare : Type :=
+  | fsh_base : arg_assertion -> arg_ret_assertion -> func_spec_hoare
+  | fsh_bind {A} : (A -> func_spec_hoare) -> func_spec_hoare.
+
 Record func_spec_aux : Type := mk_func_spec {
   func_spec_p : path;
-  func_spec_pre : arg_assertion;
-  func_spec_post : arg_ret_assertion;
+  func_spec_body : func_spec_hoare;
   func_spec_mod_vars : option (list path); (* None means anything can be modified. *)
   func_spec_mod_exts : list path
 }.
@@ -33,6 +45,15 @@ Record func_spec_aux : Type := mk_func_spec {
 Inductive func_spec : Type :=
   | fs_base : func_spec_aux -> func_spec
   | fs_bind {A} : (A -> func_spec) -> func_spec.
+
+Fixpoint fundef_satisfies_hoare (ge : genv) (p : path) (func : fundef) (targs : list (P4Type)) (fs : func_spec_hoare) :=
+  match fs with
+  | fsh_base pre post =>
+       hoare_func ge p pre func targs post
+  | @fsh_bind A fs =>
+      (* How can we keep binder names? *)
+      forall (x : A), fundef_satisfies_hoare ge p func targs (fs x)
+  end.
 
 Definition func_modifies_vars (ge : genv) (p : path) (func : @fundef tags_t) (vars : list path) :=
   forall st inargs targs st' outargs sig,
@@ -45,8 +66,8 @@ Definition func_modifies_exts (ge : genv) (p : path) (func : @fundef tags_t) (ex
     forall q, ~(In q exts) -> PathMap.get q (snd st) = PathMap.get q (snd st').
 
 Definition fundef_satisfies_spec_aux (ge : genv) (func : fundef) (targs : list (P4Type)) (fs : func_spec_aux) :=
-  let '(mk_func_spec p pre post vars exts) := fs in
-  hoare_func ge p pre func targs post
+  let '(mk_func_spec p body vars exts) := fs in
+  fundef_satisfies_hoare ge p func targs body
     /\ (force True (option_map (func_modifies_vars ge p func) vars))
     /\  func_modifies_exts ge p func exts.
 
@@ -162,8 +183,10 @@ Proof.
 Qed.
 
 Lemma func_spec_combine' : forall ge p pre_arg pre_mem pre_ext pre_arg' pre_mem' pre_ext' func targs post vars exts post' f_mem f_ext,
-  fundef_satisfies_spec_aux ge func targs
-    (mk_func_spec p (ARG pre_arg' (MEM pre_mem' (EXT pre_ext'))) post' vars exts) ->
+  fundef_satisfies_hoare ge p func targs
+    (fsh_base (ARG pre_arg' (MEM pre_mem' (EXT pre_ext'))) post')
+    /\ force True (option_map (func_modifies_vars ge p func) vars)
+    /\ func_modifies_exts ge p func exts ->
   arg_implies (ARG pre_arg (MEM pre_mem (EXT pre_ext))) (ARG pre_arg' (MEM pre_mem' (EXT pre_ext'))) ->
   force (fun _ => []) (option_map exclude vars) pre_mem = f_mem ->
   exclude exts pre_ext = f_ext ->
@@ -171,7 +194,7 @@ Lemma func_spec_combine' : forall ge p pre_arg pre_mem pre_ext pre_arg' pre_mem'
   hoare_func ge p (ARG pre_arg (MEM pre_mem (EXT pre_ext))) func targs post.
 Proof.
   intros.
-  destruct H as [? []]; eauto.
+  destruct H as [? []].
   eapply func_spec_combine; eauto.
   eapply hoare_func_frame_intro; eauto.
 Qed.
@@ -180,5 +203,20 @@ End FuncSpec.
 
 Declare Scope func_spec.
 Delimit Scope func_spec with func_spec.
+Declare Scope func_hoare.
+Delimit Scope func_hoare with func_hoare.
+
+Notation "'WITH' , P " :=
+  (fs_base P%func_spec) (at level 65, right associativity) : func_spec.
+
 Notation "'WITH' x .. y , P " :=
   (fs_bind (fun x => .. (fs_bind (fun y => fs_base P%func_spec)) ..)) (at level 65, x binder, y binder, right associativity) : func_spec.
+
+Notation "'PATH' p 'MOD' vars exts body" :=
+  (mk_func_spec p body%func_hoare vars exts) (at level 64, vars at level 0, exts at level 0) : func_spec.
+
+Notation "'WITH' , 'PRE' pre 'POST' post" :=
+  (fsh_base pre post) (at level 63, right associativity) : func_hoare.
+
+Notation "'WITH' x .. y , 'PRE' pre 'POST' post" :=
+  (fsh_bind (fun x => .. (fsh_bind (fun y => fsh_base pre post)) ..)) (at level 63, x binder, y binder, right associativity) : func_hoare.

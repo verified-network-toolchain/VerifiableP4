@@ -18,7 +18,7 @@ Require Import Hammer.Plugin.Hammer. *)
 
 Section V1ModelSpec.
 
-Context {tags_t: Type} {tags_t_inhabitant : Inhabitant tags_t}.
+Context [tags_t: Type] [tags_t_inhabitant : Inhabitant tags_t].
 Notation Val := (@ValueBase bool).
 Notation Sval := (@ValueBase (option bool)).
 (* Notation ValSet := (@ValueSet tags_t). *)
@@ -36,17 +36,18 @@ Variable ge : genv.
 Open Scope func_spec.
 
 Definition register_read_spec (p : path) (reg_s : register_static) : func_spec :=
-  WITH (reg : register) (i : Z)
-    (H : (0 <= i < snd reg_s)%Z),
-    mk_func_spec
-      p
-      (ARG [ValBaseBit (to_loptbool 32%N i)]
-      (MEM []
-      (EXT [(p, ObjRegister reg)])))
-      (ARG_RET [eval_val_to_sval (Znth i reg)] ValBaseNull
-      (MEM []
-      (EXT [])))
-      None [].
+  WITH,
+    PATH p
+    MOD None []
+    WITH (reg : register) (i : Z) (H : (0 <= i < snd reg_s)%Z),
+      PRE
+        (ARG [ValBaseBit (to_loptbool 32%N i)]
+        (MEM []
+        (EXT [(p, ObjRegister reg)])))
+      POST
+        (ARG_RET [eval_val_to_sval (Znth i reg)] ValBaseNull
+        (MEM []
+        (EXT []))).
 
 Axiom register_read_body : forall (p : path) (reg_s : register_static),
   PathMap.get p (ge_ext ge) = Some (EnvRegister reg_s) ->
@@ -54,20 +55,18 @@ Axiom register_read_body : forall (p : path) (reg_s : register_static),
 
 (* We need to say v is a definite value, right? *)
 Definition register_write_spec (p : path) (reg_s : register_static) : func_spec :=
-  WITH  (reg : register) (i : Z) (v : Val)
-    (H : (0 <= i < snd reg_s)%Z),
-    mk_func_spec
-      (* path *)
-      p
-      (* pre *)
-      (ARG [ValBaseBit (to_loptbool 32%N i); eval_val_to_sval v]
-      (MEM []
-      (EXT [(p, ObjRegister reg)])))
-      (* post *)
-      (ARG_RET [] ValBaseNull
-      (MEM []
-      (EXT [(p, ObjRegister (upd_Znth i reg v))])))
-      None [p].
+  WITH,
+    PATH p
+    MOD None [p]
+    WITH (reg : register) (i : Z) (v : Val) (H : (0 <= i < snd reg_s)%Z),
+      PRE
+        (ARG [ValBaseBit (to_loptbool 32%N i); eval_val_to_sval v]
+        (MEM []
+        (EXT [(p, ObjRegister reg)])))
+      POST
+        (ARG_RET [] ValBaseNull
+        (MEM []
+        (EXT [(p, ObjRegister (upd_Znth i reg v))]))).
 
 Axiom register_write_body : forall (p : path) (reg_s : register_static),
   PathMap.get p (ge_ext ge) = Some (EnvRegister reg_s) ->

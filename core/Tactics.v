@@ -9,6 +9,7 @@ Require Import ProD3.core.Implies.
 Require Import ProD3.core.ConcreteHoare.
 Require Import ProD3.core.AssertionNotations.
 Require Import ProD3.core.FuncSpec.
+Import ListNotations.
 
 (* solves hoare_call for built-in functions *)
 Ltac step_builtin :=
@@ -150,6 +151,11 @@ Ltac start_function :=
         intro x
       end;
       split; [idtac | admit];
+      repeat lazymatch goal with
+      | |- fundef_satisfies_hoare _ _ _ _ (fsh_bind (fun x => _)) =>
+        intro x
+      end;
+      unfold fundef_satisfies_hoare;
       (* handle hoare_func *)
       lazymatch goal with
       | |- hoare_func _ _ _ _ _ ?post =>
@@ -202,7 +208,7 @@ Ltac step_stmt_call func_spec :=
   | _ => fail "The goal is not in the form of (hoare_stmt _ _ (MEM _ (EXT _)) ?stmt _)"
   end.
 
-Ltac step_call func_spec :=
+Ltac step_call_tac func_spec :=
   lazymatch goal with
   | |- hoare_block _ _ (MEM _ (EXT _)) ?block _ =>
       lazymatch block with
@@ -213,6 +219,58 @@ Ltac step_call func_spec :=
       end
   | _ => fail "The goal is not in the form of (hoare_block _ _ (MEM _ (EXT _)) _ _)"
   end.
+
+Ltac step_call_wrapper func_spec callback :=
+  let func_body := fresh "func_body" in
+  pose proof (func_body := func_spec);
+  let func_body1 := fresh "func_body1" in
+  let func_body2 := fresh "func_body2" in
+  edestruct func_body as [func_body1 func_body2];
+  try clear func_body;
+  [ .. |
+    unshelve(
+      callback func_body func_body1 func_body2;
+      step_call_tac func_body
+    )];
+  shelve_unifiable;
+  try clear func_body;
+  try clear func_body1;
+  try clear func_body2.
+
+Tactic Notation "step_call" uconstr(func_spec) uconstr(x1) uconstr(x2) uconstr(x3) uconstr(x4) uconstr(x5) :=
+  step_call_wrapper func_spec
+    ltac:(fun func_body func_body1 func_body2 =>
+      epose proof (func_body := conj (func_body1 x1 x2 x3 x4 x5) func_body2)).
+
+Tactic Notation "step_call" uconstr(func_spec) uconstr(x1) uconstr(x2) uconstr(x3) uconstr(x4) :=
+  step_call_wrapper func_spec
+    ltac:(fun func_body func_body1 func_body2 =>
+      epose proof (func_body := conj (func_body1 x1 x2 x3 x4) func_body2))
+  || step_call func_spec x1 x2 x3 x4 _.
+
+Tactic Notation "step_call" uconstr(func_spec) uconstr(x1) uconstr(x2) uconstr(x3) :=
+  step_call_wrapper func_spec
+    ltac:(fun func_body func_body1 func_body2 =>
+      epose proof (func_body := conj (func_body1 x1 x2 x3) func_body2))
+  || step_call func_spec x1 x2 x3 _.
+
+Tactic Notation "step_call" uconstr(func_spec) uconstr(x1) uconstr(x2) :=
+  step_call_wrapper func_spec
+    ltac:(fun func_body func_body1 func_body2 =>
+      epose proof (func_body := conj (func_body1 x1 x2) func_body2))
+  || step_call func_spec x1 x2 _.
+
+Tactic Notation "step_call" uconstr(func_spec) uconstr(x1) :=
+  step_call_wrapper func_spec
+    ltac:(fun func_body func_body1 func_body2 =>
+      epose proof (func_body := conj (func_body1 x1) func_body2))
+  || step_call func_spec x1 _.
+
+Tactic Notation "step_call" uconstr(func_spec) :=
+  step_call_wrapper func_spec
+    ltac:(fun func_body func_body1 func_body2 =>
+      epose proof (func_body := conj func_body1 func_body2))
+  || step_call func_spec _.
 
 Ltac Forall2_sval_refine :=
   lazymatch goal with
