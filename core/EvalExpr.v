@@ -29,6 +29,88 @@ Lemma lift_option_map_some: forall {A: Type} (al: list A),
     lift_option (map Some al) = Some al.
 Proof. intros. induction al; simpl; [|rewrite IHal]; easy. Qed.
 
+Definition same_type {A B: Type} (v: @ValueBase A) (v': @ValueBase B): Prop :=
+  exec_val (fun _ _ => True) v v'.
+
+Lemma Forall2_True: forall {A B: Type} (l1: list A) (l2: list B),
+    length l1 = length l2 -> Forall2 (fun _ _ => True) l1 l2.
+Proof.
+  intros. revert l2 H.
+  induction l1; intros; destruct l2; simpl in H; inv H; constructor; auto.
+Qed.
+
+Lemma same_type_sym: forall {A B: Type} (v1: @ValueBase A) (v2: @ValueBase B),
+    same_type v1 v2 -> same_type v2 v1.
+Proof.
+  intros A B. induction v1 using custom_ValueBase_ind; intros.
+  - inv H. constructor.
+  - inv H. now constructor.
+  - inv H. now constructor.
+  - inv H. constructor. induction H1; constructor; auto.
+  - inv H. constructor. induction H1; constructor; auto.
+  - inv H. constructor. induction H3; constructor; auto.
+  - inv H. constructor.
+  - inv H0. constructor. revert lv' H2. induction H; intros; inv H2; constructor.
+    + now apply H.
+    + apply IHForall. auto.
+  - inv H. constructor.
+  - inv H. constructor.
+  - inv H0. constructor. revert kvs' H2. induction H; intros; inv H2; constructor.
+    + destruct x. simpl in *. destruct H4; split; auto. apply H. auto.
+    + apply IHForall; auto.
+  - inv H0. constructor; auto. revert kvs' H5.
+    induction H; intros; inv H5; constructor. 2: apply IHForall; auto.
+    destruct x. simpl in *. destruct H4; split; auto. now apply H.
+  - inv H0. constructor. revert kvs' H2. induction H; intros; inv H2; constructor.
+    + destruct x. simpl in *. destruct H4; split; auto. apply H. auto.
+    + apply IHForall; auto.
+  - inv H0. constructor. revert lv' H4. induction H; intros; inv H4; constructor.
+    1: now apply H. apply IHForall; auto.
+  - inv H. constructor.
+  - inv H. constructor. now apply IHv1.
+Qed.
+
+Lemma exec_val_impl: forall {A B: Type} (c1 c2: A -> B -> Prop),
+    (forall a b, c1 a b -> c2 a b) ->
+    forall v1 v2, exec_val c1 v1 v2 -> exec_val c2 v1 v2.
+Proof.
+  intros. revert v1 v2 H0.
+  induction v1 using custom_ValueBase_ind; intros.
+  - inv H0. constructor.
+  - inv H0. constructor. now apply H.
+  - inv H0. constructor.
+  - inv H0. constructor. induction H2; constructor; auto.
+  - inv H0. constructor. induction H2; constructor; auto.
+  - inv H0. constructor. induction H4; constructor; auto.
+  - inv H0. constructor.
+  - inv H1. inv H3.
+    + constructor. constructor.
+    + constructor. inv H0. constructor. 1: now apply H5.
+      revert l' H2 H6. induction l; intros; inv H2; constructor; inv H6.
+      * now apply H3.
+      * apply IHl; auto.
+  - inv H0. constructor.
+  - inv H0. constructor.
+  - inv H1. constructor. revert kvs' H3. induction H0; intros; inv H3; constructor.
+    + destruct x. simpl in *. destruct H5. split; auto.
+    + apply IHForall; auto.
+  - inv H1. constructor. 1: now apply H. revert kvs' H6.
+    induction H0; intros; inv H6; constructor. 2: apply IHForall; auto.
+    destruct x. simpl in *. destruct H5. split; auto.
+  - inv H1. constructor. revert kvs' H3. induction H0; intros; inv H3; constructor.
+    2: apply IHForall; auto. destruct x. simpl in *. destruct H5. split; auto.
+  - inv H1. constructor. revert lv' H0 H5.
+    induction vs; intros; inv H5; constructor; inv H0.
+    + now apply H4.
+    + apply IHvs; auto.
+  - inv H0. constructor.
+  - inv H0. constructor. apply IHv1; auto.
+Qed.
+
+Lemma same_type_on_top: forall {A B: Type} (c: A -> B -> Prop) v1 v2,
+    exec_val c v1 v2 -> same_type v1 v2.
+Proof. intros. eapply exec_val_impl; eauto. Qed.
+
 Section EvalExpr.
 
 Context {tags_t: Type} {tags_t_inhabitant : Inhabitant tags_t}.
@@ -725,6 +807,45 @@ Proof.
     + simpl in H0. inversion H0. now apply IHl1.
 Qed.
 
+Lemma force_sval_to_val_same_type: forall v, same_type v (force_sval_to_val v).
+Proof.
+  remember (fix sval_to_vals (sl : list Sval) : list Val :=
+              match sl with
+              | [] => []
+              | s :: rest => force_sval_to_val s :: sval_to_vals rest
+              end) as to_vals. rename Heqto_vals into Hvals.
+  remember (fix sval_to_avals (sl : AList.StringAList Sval) : AList.StringAList Val :=
+              match sl with
+              | [] => []
+              | (k, s) :: rest => (k, force_sval_to_val s) :: sval_to_avals rest
+              end) as to_avals. rename Heqto_avals into Havals.
+  induction v using custom_ValueBase_ind; simpl; try (now constructor).
+  - destruct b; now constructor.
+  - constructor. apply Forall2_True. now rewrite map_length.
+  - constructor. apply Forall2_True. now rewrite map_length.
+  - constructor. apply Forall2_True. now rewrite map_length.
+  - constructor. rewrite <- Hvals. induction vs; rewrite Hvals. 1: constructor.
+    rewrite <- Hvals. inversion H0. subst x l. clear H0. constructor; auto.
+  - constructor. rewrite <- Havals. induction vs; rewrite Havals. 1: constructor.
+    rewrite <- Havals. inversion H0. subst x l. clear H0. destruct a.
+    constructor; auto. apply IHvs. auto.
+  - constructor; auto. rewrite <- Havals. induction vs; rewrite Havals. 1: constructor.
+    rewrite <- Havals. destruct a. inversion H0. subst x l. clear H0.
+    constructor; auto. apply IHvs; auto.
+  - constructor. rewrite <- Havals. induction vs; rewrite Havals. 1: constructor.
+    rewrite <- Havals. inversion H0. subst x l. clear H0. destruct a.
+    constructor; auto. apply IHvs. auto.
+  - constructor. rewrite <- Hvals. induction vs; rewrite Hvals. 1: constructor.
+    rewrite <- Hvals. inversion H0. subst x l. clear H0. constructor; auto.
+Qed.
+
+Lemma eval_cast_same_type: forall (typ: P4Type) v1 newv1 v2,
+    Ops.eval_cast typ v1 = Some newv1 ->
+    same_type v1 v2 ->
+    exists newv2, Ops.eval_cast typ v2 = Some newv2 /\ same_type v1 v2.
+Proof.
+Abort.
+
 Lemma sval_refine_liberal_cast:
   forall (v : Sval) (real_typ : P4Type) (oldv newv : Val),
     Ops.eval_cast real_typ oldv = Some newv ->
@@ -834,10 +955,10 @@ Proof.
     red in H11. assert (sval_to_val read_ndetbit v oldv). {
       eapply exec_val_trans; eauto. clear. repeat intro. inv H; auto. constructor. }
     clear H11 H13. unfold build_abs_unary_op. rewrite val_to_sval_iff in H16.
-    destruct (eval_sval_to_val v) eqn:?H.
+    subst sv'. destruct (eval_sval_to_val v) eqn:?H.
     + eapply sval_to_val_Some in H2; eauto. subst v0. rewrite H15. simpl.
-      rewrite H16. apply sval_refine_refl.
-    + subst sv'. admit.
+      apply sval_refine_refl.
+    + admit.
   - destruct_match H0. 2: inversion H0. destruct_match H0; inversion H0. clear H6.
     destruct_match H0.
     + destruct_match H0; inv H0. inv H2; rewrite H3 in H12; inv H12.
