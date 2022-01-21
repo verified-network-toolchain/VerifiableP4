@@ -94,7 +94,7 @@ Fixpoint lval_eqb (lv1 lv2 : Lval) : bool :=
   | MkValueLvalue (ValLeftBitAccess lv1 msb1 lsb1) _, MkValueLvalue (ValLeftBitAccess lv2 msb2 lsb2) _ =>
       lval_eqb lv1 lv2 && N.eqb msb1 msb2 && N.eqb lsb1 lsb2
   | MkValueLvalue (ValLeftArrayAccess lv1 idx1) _, MkValueLvalue (ValLeftArrayAccess lv2 idx2) _ =>
-      lval_eqb lv1 lv2 && N.eqb idx1 idx2
+      lval_eqb lv1 lv2 && BinInt.Z.eqb idx1 idx2
   | _, _ => false
   end.
 

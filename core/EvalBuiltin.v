@@ -352,4 +352,4 @@ Qed.
 
 End EvalBuiltin.
 
-Hint Resolve eval_builtin_sound : hoare.
+#[export] Hint Resolve eval_builtin_sound : hoare.

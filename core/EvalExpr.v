@@ -902,7 +902,7 @@ Proof.
     apply Reflect.andE; split; auto.
   - simpl in H5. rewrite H0 in H5. destruct (eval_lexpr ge this a_mem expr); inv H5.
   - inv H5.
-  - inv H5.
+  - inv H4.
 Qed.
 
 Definition eval_write_var (a : mem_assertion) (p : path) (sv : Sval) : mem_assertion :=
