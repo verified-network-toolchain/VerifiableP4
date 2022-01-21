@@ -154,6 +154,129 @@ Section exec_val_trans.
   Qed.
 End exec_val_trans.
 
+Section exec_val_sym.
+  Context {A B : Type} (f : A -> B -> Prop) (g : B -> A -> Prop).
+  Hypothesis H_rel_sym : forall a b, f a b -> g b a.
+
+  Lemma Forall2_sym : forall v1 v2,
+    Forall2 f v1 v2 ->
+    Forall2 g v2 v1.
+  Proof.
+    intros v1 v2; revert v1.
+    induction v2; intros.
+    - inv H; constructor.
+    - inv H; constructor; eauto.
+  Qed.
+
+  Hint Resolve Forall2_sym : core.
+
+  Lemma exec_val_sym_case1 : forall vs1 vs2,
+    Forall
+      (fun v2 : ValueBase =>
+        forall v1 : ValueBase, exec_val f v1 v2 -> exec_val g v2 v1) vs2 ->
+    Forall2 (exec_val f) vs1 vs2 ->
+    Forall2 (exec_val g) vs2 vs1.
+  Proof.
+    intros vs1 vs2; revert vs1.
+    induction vs2; intros; inv H0; inv H; constructor; only 1 : apply H2; auto.
+  Qed.
+
+  Lemma exec_val_sym_case2 : forall (vs1 : list (ident * ValueBase)) vs2,
+    Forall
+      (fun '(_, v2) =>
+        forall v1 : ValueBase, exec_val f v1 v2 -> exec_val g v2 v1) vs2 ->
+    AList.all_values (exec_val f) vs1 vs2 ->
+    AList.all_values (exec_val g) vs2 vs1.
+  Proof.
+    intros vs1 vs2; revert vs1.
+    induction vs2; intros; inv H0; inv H; constructor.
+    - destruct H4; split.
+      + congruence.
+      + destruct a; apply H2; auto.
+    - apply IHvs2; auto.
+  Qed.
+
+  Lemma exec_val_sym : forall v1 v2,
+    exec_val f v1 v2 ->
+    exec_val g v2 v1.
+  Proof.
+    intros v1 v2; revert v1.
+    induction v2 using custom_ValueBase_ind; intros * H_f;
+      inv H_f;
+      constructor; eauto.
+    - eapply exec_val_sym_case1; eauto.
+    - eapply exec_val_sym_case2; eauto.
+    - eapply exec_val_sym_case2; eauto.
+    - eapply exec_val_sym_case2; eauto.
+    - eapply exec_val_sym_case1; eauto.
+  Qed.
+End exec_val_sym.
+
+Section exec_val_impl.
+  Context {A B : Type} (f : A -> B -> Prop) (g : A -> B -> Prop).
+  Hypothesis H_rel_impl : forall a b, f a b -> g a b.
+
+  Lemma Forall2_impl : forall v1 v2,
+    Forall2 f v1 v2 ->
+    Forall2 g v1 v2.
+  Proof.
+    intros v1 v2; revert v1.
+    induction v2; intros.
+    - inv H; constructor.
+    - inv H; constructor; eauto.
+  Qed.
+
+  Hint Resolve Forall2_impl : core.
+
+  Lemma exec_val_impl_case1 : forall vs1 vs2,
+    Forall
+      (fun v2 : ValueBase =>
+        forall v1 : ValueBase, exec_val f v1 v2 -> exec_val g v1 v2) vs2 ->
+    Forall2 (exec_val f) vs1 vs2 ->
+    Forall2 (exec_val g) vs1 vs2.
+  Proof.
+    intros vs1 vs2; revert vs1.
+    induction vs2; intros; inv H0; inv H; constructor; only 1 : apply H2; auto.
+  Qed.
+
+  Lemma exec_val_impl_case2 : forall (vs1 : list (ident * ValueBase)) vs2,
+    Forall
+      (fun '(_, v2) =>
+        forall v1 : ValueBase, exec_val f v1 v2 -> exec_val g v1 v2) vs2 ->
+    AList.all_values (exec_val f) vs1 vs2 ->
+    AList.all_values (exec_val g) vs1 vs2.
+  Proof.
+    intros vs1 vs2; revert vs1.
+    induction vs2; intros; inv H0; inv H; constructor.
+    - destruct H4; split.
+      + congruence.
+      + destruct a; apply H2; auto.
+    - apply IHvs2; auto.
+  Qed.
+
+  Lemma exec_val_impl : forall v1 v2,
+    exec_val f v1 v2 ->
+    exec_val g v1 v2.
+  Proof.
+    intros v1 v2; revert v1.
+    induction v2 using custom_ValueBase_ind; intros * H_f;
+      inv H_f;
+      constructor; eauto.
+    - eapply exec_val_impl_case1; eauto.
+    - eapply exec_val_impl_case2; eauto.
+    - eapply exec_val_impl_case2; eauto.
+    - eapply exec_val_impl_case2; eauto.
+    - eapply exec_val_impl_case1; eauto.
+  Qed.
+End exec_val_impl.
+
+Lemma Forall2_True: forall {A B: Type} (l1: list A) (l2: list B),
+    length l1 = length l2 -> Forall2 (fun _ _ => True) l1 l2.
+Proof.
+  intros. revert l2 H.
+  induction l1; intros; destruct l2; simpl in H; inv H; constructor; auto.
+Qed.
+
 Lemma bit_refine_trans : forall b1 b2 b3 : option bool,
   bit_refine b1 b2 ->
   bit_refine b2 b3 ->

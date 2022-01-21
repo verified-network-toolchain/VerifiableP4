@@ -29,7 +29,7 @@ Lemma lift_option_map_some: forall {A: Type} (al: list A),
     lift_option (map Some al) = Some al.
 Proof. intros. induction al; simpl; [|rewrite IHal]; easy. Qed.
 
-Definition same_type {A B: Type} (v: @ValueBase A) (v': @ValueBase B): Prop :=
+Definition val_sim {A B : Type} (v : @ValueBase A) (v' : @ValueBase B) : Prop :=
   exec_val (fun _ _ => True) v v'.
 
 Lemma Forall2_True: forall {A B: Type} (l1: list A) (l2: list B),
@@ -39,81 +39,19 @@ Proof.
   induction l1; intros; destruct l2; simpl in H; inv H; constructor; auto.
 Qed.
 
-Lemma same_type_sym: forall {A B: Type} (v1: @ValueBase A) (v2: @ValueBase B),
-    same_type v1 v2 -> same_type v2 v1.
+Lemma val_sim_sym: forall {A B: Type} (v1: @ValueBase A) (v2: @ValueBase B),
+    val_sim v1 v2 -> val_sim v2 v1.
 Proof.
-  intros A B. induction v1 using custom_ValueBase_ind; intros.
-  - inv H. constructor.
-  - inv H. now constructor.
-  - inv H. now constructor.
-  - inv H. constructor. induction H1; constructor; auto.
-  - inv H. constructor. induction H1; constructor; auto.
-  - inv H. constructor. induction H3; constructor; auto.
-  - inv H. constructor.
-  - inv H0. constructor. revert lv' H2. induction H; intros; inv H2; constructor.
-    + now apply H.
-    + apply IHForall. auto.
-  - inv H. constructor.
-  - inv H. constructor.
-  - inv H0. constructor. revert kvs' H2. induction H; intros; inv H2; constructor.
-    + destruct x. simpl in *. destruct H4; split; auto. apply H. auto.
-    + apply IHForall; auto.
-  - inv H0. constructor; auto. revert kvs' H5.
-    induction H; intros; inv H5; constructor. 2: apply IHForall; auto.
-    destruct x. simpl in *. destruct H4; split; auto. now apply H.
-  - inv H0. constructor. revert kvs' H2. induction H; intros; inv H2; constructor.
-    + destruct x. simpl in *. destruct H4; split; auto. apply H. auto.
-    + apply IHForall; auto.
-  - inv H0. constructor. revert lv' H4. induction H; intros; inv H4; constructor.
-    1: now apply H. apply IHForall; auto.
-  - inv H. constructor.
-  - inv H. constructor. now apply IHv1.
+  intros; eapply exec_val_sym; eauto.
 Qed.
 
-Lemma same_type_trans:
+Lemma val_sim_trans:
   forall {A B C} (v1: @ValueBase A) (v2: @ValueBase B) (v3: @ValueBase C),
-    same_type v1 v2 -> same_type v2 v3 -> same_type v1 v3.
+    val_sim v1 v2 -> val_sim v2 v3 -> val_sim v1 v3.
 Proof. intros. eapply exec_val_trans; eauto. repeat intro; auto. Qed.
 
-Lemma exec_val_impl: forall {A B: Type} (c1 c2: A -> B -> Prop),
-    (forall a b, c1 a b -> c2 a b) ->
-    forall v1 v2, exec_val c1 v1 v2 -> exec_val c2 v1 v2.
-Proof.
-  intros. revert v1 v2 H0.
-  induction v1 using custom_ValueBase_ind; intros.
-  - inv H0. constructor.
-  - inv H0. constructor. now apply H.
-  - inv H0. constructor.
-  - inv H0. constructor. induction H2; constructor; auto.
-  - inv H0. constructor. induction H2; constructor; auto.
-  - inv H0. constructor. induction H4; constructor; auto.
-  - inv H0. constructor.
-  - inv H1. inv H3.
-    + constructor. constructor.
-    + constructor. inv H0. constructor. 1: now apply H5.
-      revert l' H2 H6. induction l; intros; inv H2; constructor; inv H6.
-      * now apply H3.
-      * apply IHl; auto.
-  - inv H0. constructor.
-  - inv H0. constructor.
-  - inv H1. constructor. revert kvs' H3. induction H0; intros; inv H3; constructor.
-    + destruct x. simpl in *. destruct H5. split; auto.
-    + apply IHForall; auto.
-  - inv H1. constructor. 1: now apply H. revert kvs' H6.
-    induction H0; intros; inv H6; constructor. 2: apply IHForall; auto.
-    destruct x. simpl in *. destruct H5. split; auto.
-  - inv H1. constructor. revert kvs' H3. induction H0; intros; inv H3; constructor.
-    2: apply IHForall; auto. destruct x. simpl in *. destruct H5. split; auto.
-  - inv H1. constructor. revert lv' H0 H5.
-    induction vs; intros; inv H5; constructor; inv H0.
-    + now apply H4.
-    + apply IHvs; auto.
-  - inv H0. constructor.
-  - inv H0. constructor. apply IHv1; auto.
-Qed.
-
-Lemma same_type_on_top: forall {A B: Type} (c: A -> B -> Prop) v1 v2,
-    exec_val c v1 v2 -> same_type v1 v2.
+Lemma val_sim_on_top: forall {A B: Type} (c: A -> B -> Prop) v1 v2,
+    exec_val c v1 v2 -> val_sim v1 v2.
 Proof. intros. eapply exec_val_impl; eauto. Qed.
 
 Section EvalExpr.
@@ -786,11 +724,11 @@ Proof.
     clear H0. f_equal. specialize (IHv _ H5 v1 eq_refl). now subst v1.
 Qed.
 
-Lemma eval_val_to_sval_same_type: forall v, same_type v (eval_val_to_sval v).
-Proof. intros. apply (same_type_on_top read_detbit). now rewrite val_to_sval_iff. Qed.
+Lemma eval_val_to_sval_val_sim: forall v, val_sim v (eval_val_to_sval v).
+Proof. intros. apply (val_sim_on_top read_detbit). now rewrite val_to_sval_iff. Qed.
 
 Lemma sval_refine_liberal:
-  forall v1 v2, same_type v1 v2 -> sval_refine (val_to_liberal_sval v1) v2.
+  forall v1 v2, val_sim v1 v2 -> sval_refine (val_to_liberal_sval v1) v2.
 Proof.
   remember (fix sval_to_vals (sl : list Val) : list Sval :=
               match sl with
@@ -840,7 +778,7 @@ Qed.
 
 Lemma sval_refine_liberal_eval:
   forall v : Val, sval_refine (val_to_liberal_sval v) (eval_val_to_sval v).
-Proof. intros. apply sval_refine_liberal. apply eval_val_to_sval_same_type. Qed.
+Proof. intros. apply sval_refine_liberal. apply eval_val_to_sval_val_sim. Qed.
 
 Lemma sval_refine_map_bool_to_none: forall l1 l2,
     length l1 = length l2 -> Forall2 bit_refine (map bool_to_none l1) l2.
@@ -852,7 +790,7 @@ Proof.
     + simpl in H0. inversion H0. now apply IHl1.
 Qed.
 
-Lemma force_sval_to_val_same_type: forall v, same_type v (force_sval_to_val v).
+Lemma force_sval_to_val_val_sim: forall v, val_sim v (force_sval_to_val v).
 Proof.
   remember (fix sval_to_vals (sl : list Sval) : list Val :=
               match sl with
@@ -884,10 +822,10 @@ Proof.
     rewrite <- Hvals. inversion H0. subst x l. clear H0. constructor; auto.
 Qed.
 
-Lemma eval_cast_same_type: forall (typ: P4Type) v1 newv1 v2,
+Lemma eval_cast_val_sim: forall (typ: P4Type) v1 newv1 v2,
     Ops.eval_cast typ v1 = Some newv1 ->
-    same_type v1 v2 ->
-    exists newv2, Ops.eval_cast typ v2 = Some newv2 /\ same_type newv1 newv2.
+    val_sim v1 v2 ->
+    exists newv2, Ops.eval_cast typ v2 = Some newv2 /\ val_sim newv1 newv2.
 Proof.
   intros.
 Admitted.
@@ -902,12 +840,12 @@ Lemma sval_refine_liberal_cast:
       (eval_val_to_sval newv).
 Proof.
   intros.
-  assert (same_type oldv (force_sval_to_val v)). {
-    apply same_type_on_top in H1. apply same_type_sym in H1.
-    eapply same_type_trans; eauto. apply force_sval_to_val_same_type. }
-  destruct (eval_cast_same_type _ _ _ _ H0 H2) as [newv' [? ?]].
-  rewrite H3. simpl. apply sval_refine_liberal. apply same_type_sym in H4.
-  eapply same_type_trans; eauto. apply eval_val_to_sval_same_type.
+  assert (val_sim oldv (force_sval_to_val v)). {
+    apply val_sim_on_top in H1. apply val_sim_sym in H1.
+    eapply val_sim_trans; eauto. apply force_sval_to_val_val_sim. }
+  destruct (eval_cast_val_sim _ _ _ _ H0 H2) as [newv' [? ?]].
+  rewrite H3. simpl. apply sval_refine_liberal. apply val_sim_sym in H4.
+  eapply val_sim_trans; eauto. apply eval_val_to_sval_val_sim.
 Qed.
 
 Lemma eval_expr_sound' : forall ge p a expr sv,
