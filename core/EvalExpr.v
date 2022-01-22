@@ -830,21 +830,41 @@ Proof.
   intros.
 Admitted.
 
-Lemma sval_refine_liberal_cast:
-  forall (v : Sval) (real_typ : P4Type) (oldv newv : Val),
-    Ops.eval_cast real_typ oldv = Some newv ->
-    sval_to_val read_ndetbit v oldv ->
+Lemma eval_unary_op_val_sim: forall op v1 newv1 v2,
+    Ops.eval_unary_op op v1 = Some newv1 ->
+    val_sim v1 v2 ->
+    exists newv2, Ops.eval_unary_op op v2 = Some newv2 /\ val_sim newv1 newv2.
+Proof.
+Admitted.
+
+Lemma eval_binary_op_val_sim: forall op v1 v2 v3 v4 result,
+    Ops.eval_binary_op op v1 v2 = Some result ->
+    val_sim v1 v3 -> val_sim v2 v4 ->
+    exists result', Ops.eval_binary_op op v3 v4 = Some result' /\
+                      val_sim result result'.
+Proof.
+Admitted.
+
+Lemma sval_refine_liberal_binary:
+  forall (op : OpBin) (v v0 : Sval) (largv rargv v1 : Val),
+    Ops.eval_binary_op op largv rargv = Some v1 ->
+    sval_to_val read_ndetbit v largv ->
+    sval_to_val read_ndetbit v0 rargv ->
     sval_refine
       (val_to_liberal_sval
-         (force ValBaseNull (Ops.eval_cast real_typ (force_sval_to_val v))))
-      (eval_val_to_sval newv).
+         (force ValBaseNull
+                (Ops.eval_binary_op op (force_sval_to_val v) (force_sval_to_val v0))))
+      (eval_val_to_sval v1).
 Proof.
   intros.
-  assert (val_sim oldv (force_sval_to_val v)). {
-    apply val_sim_on_top in H1. apply val_sim_sym in H1.
-    eapply val_sim_trans; eauto. apply force_sval_to_val_val_sim. }
-  destruct (eval_cast_val_sim _ _ _ _ H0 H2) as [newv' [? ?]].
-  rewrite H3. simpl. apply sval_refine_liberal. apply val_sim_sym in H4.
+  assert (val_sim largv (force_sval_to_val v)). {
+        apply val_sim_on_top in H1. apply val_sim_sym in H1.
+        eapply val_sim_trans; eauto. apply force_sval_to_val_val_sim. }
+  assert (val_sim rargv (force_sval_to_val v0)). {
+        apply val_sim_on_top in H2. apply val_sim_sym in H2.
+        eapply val_sim_trans; eauto. apply force_sval_to_val_val_sim. }
+  destruct (eval_binary_op_val_sim _ _ _ _ _ _ H0 H3 H4) as [v1' [? ?]].
+  rewrite H5. simpl. apply sval_refine_liberal. apply val_sim_sym in H6.
   eapply val_sim_trans; eauto. apply eval_val_to_sval_val_sim.
 Qed.
 
@@ -876,15 +896,33 @@ Proof.
       * simpl in H4. destruct_match H4. 2: inversion H4.
         destruct_match H4; inversion H4. subst. clear H4. inv H0. inv H11.
         constructor. 2: now apply IHvs. eapply H6; eauto.
-  - destruct_match H0; inv H0. inversion H2; subst.
-    eapply IHexpr in H11; eauto. eapply sval_to_val_to_sval in H14; eauto.
-    destruct op; destruct v; unfold build_abs_unary_op; simpl. 3-48: admit.
-    + simpl. red. inversion H11. subst. inversion H12. subst. simpl in H13. inv H13.
-    + destruct o.
-      * simpl. inv H11. inv H4. inv H12. simpl in H13. inv H13. constructor.
-        inv H4. constructor.
-      * simpl. inv H11. inv H12. simpl in H13. inv H13. constructor. constructor.
-  - admit.
+  - destruct_match H0; inv H0. inv H2. eapply IHexpr in H11; eauto.
+    assert (sval_to_val read_ndetbit v argv). {
+      eapply exec_val_trans; eauto. clear. repeat intro. inv H; auto. constructor. }
+    clear H11 H12. rewrite val_to_sval_iff in H14. subst sv'.
+    unfold build_abs_unary_op. destruct (eval_sval_to_val v) eqn:?H.
+    + eapply sval_to_val_Some in H2; eauto. subst v1. rewrite H13. simpl.
+      apply sval_refine_refl.
+    + assert (val_sim argv (force_sval_to_val v)). {
+        apply val_sim_on_top in H0. apply val_sim_sym in H0.
+        eapply val_sim_trans; eauto. apply force_sval_to_val_val_sim. }
+      destruct (eval_unary_op_val_sim _ _ _ _ H13 H4) as [newv' [? ?]].
+      rewrite H5. simpl. apply sval_refine_liberal. apply val_sim_sym in H6.
+      eapply val_sim_trans; eauto. apply eval_val_to_sval_val_sim.
+  - destruct args as [larg rarg]. destruct_match H0. 2: inv H0.
+    destruct_match H0; inv H0. inv H2. simpl in *. eapply IHexpr in H12; eauto.
+    eapply IHexpr0 in H14; eauto.
+    assert (sval_to_val read_ndetbit v largv). {
+      eapply exec_val_trans; eauto. clear. repeat intro. inv H; auto. constructor. }
+    assert (sval_to_val read_ndetbit v0 rargv). {
+      eapply exec_val_trans; eauto. clear. repeat intro. inv H; auto. constructor. }
+    clear H15 H16 H12 H14. rewrite val_to_sval_iff in H18. subst sv'.
+    unfold build_abs_binary_op. destruct (eval_sval_to_val v) eqn:?H.
+    + destruct (eval_sval_to_val v0) eqn:?H.
+      * eapply sval_to_val_Some in H5, H6; eauto. subst. rewrite H17. simpl.
+        apply sval_refine_refl.
+      * eapply sval_refine_liberal_binary; eauto.
+    + eapply sval_refine_liberal_binary; eauto.
   - destruct_match H0. 2: inversion H0. destruct_match H0; inv H0. inv H2.
     rewrite H4 in H14. inv H14. red in H16. red in H13. eapply IHexpr in H11; eauto.
     red in H11. assert (sval_to_val read_ndetbit v oldv). {
@@ -893,7 +931,12 @@ Proof.
     subst sv'. destruct (eval_sval_to_val v) eqn:?H.
     + eapply sval_to_val_Some in H2; eauto. subst v0. rewrite H15. simpl.
       apply sval_refine_refl.
-    + eapply sval_refine_liberal_cast; eauto.
+    + assert (val_sim oldv (force_sval_to_val v)). {
+        apply val_sim_on_top in H0. apply val_sim_sym in H0.
+        eapply val_sim_trans; eauto. apply force_sval_to_val_val_sim. }
+      destruct (eval_cast_val_sim _ _ _ _ H15 H5) as [newv' [? ?]].
+      rewrite H6. simpl. apply sval_refine_liberal. apply val_sim_sym in H7.
+      eapply val_sim_trans; eauto. apply eval_val_to_sval_val_sim.
   - destruct_match H0. 2: inversion H0. destruct_match H0; inversion H0. clear H6.
     destruct_match H0.
     + destruct_match H0; inv H0. inv H2; rewrite H3 in H12; inv H12.
@@ -906,7 +949,7 @@ Proof.
     apply get_sound in H12.
     rewrite <- H12.
     apply sval_refine_get; auto.
-Admitted.
+Qed.
 
 Lemma eval_expr_sound : forall ge p a_mem a_ext expr sv,
   eval_expr ge p a_mem expr = Some sv ->
