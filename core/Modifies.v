@@ -4,6 +4,7 @@ Require Import Poulet4.Syntax.
 Require Import Poulet4.Value.
 Require Import Poulet4.Semantics.
 Require Import ProD3.core.Coqlib.
+Require Import ProD3.core.ExprInd.
 Require Import ProD3.core.Hoare.
 Require ProD3.core.AssertionLang.
 Require Import ProD3.core.AssertionNotations.
@@ -189,7 +190,11 @@ Lemma get_lexpr_base_sound : forall p expr lv p',
   forall st sig,
     exec_lexpr ge read_ndetbit p st expr lv sig ->
   get_lval_base lv = Some p'.
-Admitted.
+Proof.
+  induction expr using expr_ind; intros; inv H0;
+    only 2, 3, 4, 5 : (simpl in *; eauto).
+  destruct l; auto.
+Qed.
 
 Local Hint Resolve get_lexpr_base_sound : core.
 
@@ -201,7 +206,19 @@ Lemma write_modifies_intro : forall lv p st sv st' vars exts,
   exec_write ge st lv sv st' ->
   In_vars p vars ->
   modifies vars exts st st'.
-Admitted.
+Proof.
+  induction 2; intros; simpl in *; only 2, 3, 4, 5 : eauto.
+  destruct loc; inv H.
+  destruct vars as [vars | ].
+  - unfold In_vars in H1; simpl in H1.
+    destruct st; split; only 2 : auto.
+    intros.
+    assert (p <> q) by sfirstorder.
+    symmetry.
+    eapply PathMap.get_set_diff; eauto.
+  - destruct st.
+    sfirstorder.
+Qed.
 
 Local Hint Resolve write_modifies_intro : core.
 
