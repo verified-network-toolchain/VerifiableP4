@@ -142,6 +142,8 @@ Ltac inv_implicit_return :=
   | _ => fail "The goal is not inv_implicit_return"
   end.
 
+Create HintDb func_specs.
+
 Ltac start_function :=
   lazymatch goal with
   | |- fundef_satisfies_spec _ _ _ ?spec =>
@@ -150,7 +152,7 @@ Ltac start_function :=
       | |- fundef_satisfies_spec _ _ _ (fs_bind (fun x => _)) =>
         intro x
       end;
-      split; [idtac | solve [eauto 100 with modifies]];
+      split; [idtac | solve [eauto 100 with nocore modifies func_specs]];
       repeat lazymatch goal with
       | |- fundef_satisfies_hoare _ _ _ _ (fsh_bind (fun x => _)) =>
         intro x

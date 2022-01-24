@@ -228,6 +228,15 @@ Proof.
   destruct H14 as [? []]; subst; eauto.
 Qed.
 
+Lemma stmt_modifies_method_call : forall p tags func targs args typ vars exts,
+  call_modifies p (MkExpression dummy_tags (ExpFunctionCall func targs args) TypVoid Directionless)
+      vars exts ->
+  stmt_modifies p (MkStatement tags (StatMethodCall func targs args) typ) vars exts.
+Proof.
+  unfold call_modifies, stmt_modifies. intros.
+  inv H0; eauto.
+Qed.
+
 Lemma call_modifies_builtin : forall p tags tags' expr fname tparams params typ' dir' args typ dir lv vars exts,
   let dirs := map get_param_dir params in
   get_lexpr_base expr = Some lv ->
@@ -302,6 +311,57 @@ Proof.
   destruct sig0; destruct H21; subst; eauto.
 Qed.
 
+Inductive incl_vars : (option (list path)) -> (option (list path)) -> Prop :=
+| incl_vars_None_None :
+    incl_vars None None
+| incl_vars_None_Some : forall vars',
+    incl_vars None (Some vars')
+| incl_vars_Some_Some : forall vars vars',
+    Forall (fun x => In x vars) vars' ->
+    incl_vars (Some vars) (Some vars').
+
+Lemma Forall_In : forall {A} (l l' : list A),
+  Forall (fun x => In x l) l' ->
+  forall x,
+    In x l' ->
+    In x l.
+Proof.
+  induction 1; intros.
+  - inv H.
+  - inv H1; auto.
+Qed.
+
+Lemma func_modifies_frame : forall p fd vars exts vars' exts',
+  func_modifies p fd vars' exts' ->
+  incl_vars vars vars' ->
+  Forall (fun x => In x exts) exts' ->
+  func_modifies p fd vars exts.
+Proof.
+  unfold func_modifies.
+  intros.
+  apply H in H2. clear H.
+  unfold modifies in *; destruct st; destruct st';
+    pose proof (Forall_In _ _ H1);
+    inv H0;
+    try pose proof (Forall_In _ _ H3);
+    sfirstorder.
+Qed.
+
+Lemma call_modifies_func' : forall p tags func targs args typ dir obj_path fd vars' exts' vars exts,
+  is_builtin_func func = false ->
+  let dirs := get_arg_directions func in
+  Forall2 (out_arg_In_vars vars) args dirs ->
+  lookup_func ge p func = Some (obj_path, fd) ->
+  func_modifies (force p obj_path) fd vars' exts' ->
+  incl_vars (if is_some obj_path then None else vars) vars' ->
+  Forall (fun x => In x exts) exts' ->
+  call_modifies p (MkExpression tags (ExpFunctionCall func targs args) typ dir) vars exts.
+Proof.
+  intros.
+  eapply call_modifies_func; eauto.
+  eapply func_modifies_frame; eauto.
+Qed.
+
 Lemma func_modifies_internal_part1 : forall in_params vars exts st inargs,
   Forall (fun x => In_vars x vars) in_params ->
   modifies vars exts st (update_memory (PathMap.sets in_params inargs) st).
@@ -334,10 +394,18 @@ End Modifies.
 #[export] Hint Resolve In_vars_None In_vars_Some : modifies.
 #[export] Hint Resolve in_eq in_cons : modifies.
 #[export] Hint Constructors Forall : modifies.
-#[export] Hint Extern 0 (Forall _ _) => (simpl filter_in) : modifies.
+#[export] Hint Constructors incl_vars : modifies.
+#[export] Hint Extern 0 (Forall _ (filter_in _)) => (progress (simpl filter_in)) : modifies.
+#[export] Hint Extern 0 (Forall2 _ _ (get_arg_directions _))
+    => (progress (simpl get_arg_directions)) : modifies.
 #[export] Hint Constructors Forall2 : modifies.
 #[export] Hint Resolve block_modifies_nil : modifies.
 #[export] Hint Resolve block_modifies_cons : modifies.
-#[export] Hint Resolve stmt_modifies_assign : modifies.
+#[export] Hint Resolve stmt_modifies_assign stmt_modifies_assign_call stmt_modifies_method_call : modifies.
+#[export] Hint Resolve call_modifies_builtin call_modifies_func : modifies.
 #[export] Hint Extern 1 (func_modifies _ _ _ _ _) => apply func_modifies_internal : modifies.
 #[export] Hint Extern 0 (eq _ (Some _)) => reflexivity : modifies.
+#[export] Hint Resolve eq_refl : modifies.
+#[export] Hint Constructors out_arg_In_vars : modifies.
+#[export] Hint Resolve call_modifies_func' : modifies.
+#[export] Hint Resolve func_modifies_internal : modifies.

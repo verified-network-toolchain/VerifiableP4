@@ -169,6 +169,9 @@ Definition hash_spec : func_spec :=
 Axiom hash_body : forall targs,
   fundef_satisfies_spec ge hash_fundef targs hash_spec.
 
+Hint Extern 5 (func_modifies _ _ _ _ _) => (apply hash_body) : func_specs.
+Hint Extern 1 (list P4Type) => (exact (@nil _)) : func_specs.
+
 Definition custom_metadata_t :=
   Eval compute in force dummy_type (IdentMap.get "custom_metadata_t" (ge_typ ge)).
 
@@ -258,8 +261,9 @@ Proof.
   destruct bf as [[] ?]. apply update_bit.
   destruct bf as [[] ?]. apply update_bit.
   destruct bf as [[] ?]. apply update_bit.
-(* Qed. *)
-Admitted.
+Qed.
+
+Hint Extern 5 (func_modifies _ _ _ _ _) => (apply Add_body) : func_specs.
 
 Definition Query_fundef := Eval compute in
   force dummy_fundef (PathMap.get ["Query"; "apply"] (ge_func ge)).

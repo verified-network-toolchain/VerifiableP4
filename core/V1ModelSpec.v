@@ -8,6 +8,7 @@ Require Import Poulet4.P4Notations.
 Require Import Poulet4.P4Arith.
 Require Import ProD3.core.Coqlib.
 Require Import ProD3.core.Hoare.
+Require Import ProD3.core.Modifies.
 Require Import ProD3.core.FuncSpec.
 Require Import ProD3.core.AssertionNotations.
 Require Import BinNat.
@@ -73,6 +74,9 @@ Axiom register_write_body : forall (p : path) (reg_s : register_static),
   fundef_satisfies_spec ge (FExternal "register" "write") nil (register_write_spec p reg_s).
 
 End V1ModelSpec.
+
+#[export] Hint Extern 5 (func_modifies _ _ _ _ _) => (refine (proj2 (register_write_body _ _ _ _))) : func_specs.
+#[export] Hint Extern 5 (func_modifies _ _ _ _ _) => (refine (proj2 (register_write_body _ _ _ _))) : func_specs.
 
 (*
 Several issues:
