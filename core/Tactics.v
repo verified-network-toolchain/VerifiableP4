@@ -150,7 +150,7 @@ Ltac start_function :=
       | |- fundef_satisfies_spec _ _ _ (fs_bind (fun x => _)) =>
         intro x
       end;
-      split; [idtac | admit];
+      split; [idtac | solve [eauto 100 with modifies]];
       repeat lazymatch goal with
       | |- fundef_satisfies_hoare _ _ _ _ (fsh_bind (fun x => _)) =>
         intro x

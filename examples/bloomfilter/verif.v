@@ -74,6 +74,8 @@ Definition MyIngress_do_forward_spec : func_spec :=
         (MEM [(["standard_metadata"], (update "egress_spec" (ValBaseBit (to_loptbool 9%N port)) standard_metadata))]
         (EXT []))).
 
+Import Modifies.
+
 Lemma MyIngress_do_forward_body :
   fundef_satisfies_spec ge MyIngress_do_forward_fundef nil MyIngress_do_forward_spec.
 Proof.
@@ -81,7 +83,7 @@ Proof.
   step.
   step.
   entailer.
-Admitted.
+Qed.
 
 Notation Filter := (Filter Z).
 

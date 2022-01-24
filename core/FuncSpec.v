@@ -8,6 +8,7 @@ Require Import ProD3.core.Hoare.
 Require ProD3.core.AssertionLang.
 Require Import ProD3.core.AssertionNotations.
 Require Import ProD3.core.ConcreteHoare.
+Require Import ProD3.core.Modifies.
 Require Import Hammer.Plugin.Hammer.
 
 Section FuncSpec.
@@ -68,8 +69,7 @@ Definition func_modifies_exts (ge : genv) (p : path) (func : @fundef tags_t) (ex
 Definition fundef_satisfies_spec_aux (ge : genv) (func : fundef) (targs : list (P4Type)) (fs : func_spec_aux) :=
   let '(mk_func_spec p body vars exts) := fs in
   fundef_satisfies_hoare ge p func targs body
-    /\ force True (option_map (func_modifies_vars ge p func) vars)
-    /\ func_modifies_exts ge p func exts.
+    /\ func_modifies ge p func vars exts.
 
 Fixpoint fundef_satisfies_spec (ge : genv) (func : fundef) (targs : list (P4Type)) (fs : func_spec) :=
   match fs with

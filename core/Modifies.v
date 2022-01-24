@@ -153,6 +153,36 @@ Local Hint Resolve get_lexpr_base_sound : core.
 Definition In_vars (p : path) (vars : option (list path)) : Prop :=
   force True (option_map (In p) vars).
 
+Lemma In_vars_None : forall p,
+  In_vars p None.
+Proof.
+  intros; apply I.
+Qed.
+
+Lemma In_vars_Some : forall p vars,
+  In p vars ->
+  In_vars p (Some vars).
+Proof.
+  intros; apply H.
+Qed.
+
+Lemma write_var_modifies_intro : forall p v vars exts st,
+  In_vars p vars ->
+  modifies vars exts st (update_memory (PathMap.set p v) st).
+Proof.
+  unfold modifies; intros; destruct st.
+  destruct vars as [vars | ].
+  - split. 2 : sfirstorder.
+    intros.
+    unfold In_vars in H. simpl in H.
+    assert (p <> q) by sfirstorder.
+    symmetry.
+    eapply PathMap.get_set_diff; eauto.
+  - sfirstorder.
+Qed.
+
+Local Hint Resolve write_var_modifies_intro : core.
+
 Lemma write_modifies_intro : forall lv p st sv st' vars exts,
   get_lval_base lv = Some p ->
   exec_write ge st lv sv st' ->
@@ -161,15 +191,7 @@ Lemma write_modifies_intro : forall lv p st sv st' vars exts,
 Proof.
   induction 2; intros; simpl in *; only 2, 3, 4, 5 : eauto.
   destruct loc; inv H.
-  destruct vars as [vars | ].
-  - unfold In_vars in H1; simpl in H1.
-    destruct st; split; only 2 : auto.
-    intros.
-    assert (p <> q) by sfirstorder.
-    symmetry.
-    eapply PathMap.get_set_diff; eauto.
-  - destruct st.
-    sfirstorder.
+  eapply write_var_modifies_intro; auto.
 Qed.
 
 Local Hint Resolve write_modifies_intro : core.
@@ -280,4 +302,42 @@ Proof.
   destruct sig0; destruct H21; subst; eauto.
 Qed.
 
+Lemma func_modifies_internal_part1 : forall in_params vars exts st inargs,
+  Forall (fun x => In_vars x vars) in_params ->
+  modifies vars exts st (update_memory (PathMap.sets in_params inargs) st).
+Proof.
+  intros.
+  revert inargs st.
+  induction H; intros.
+  - destruct st; auto.
+  - destruct inargs.
+    + destruct st; auto.
+    + destruct st; simpl.
+    eapply modifies_trans.
+    * refine (write_var_modifies_intro _ _ _ _ _ _); eauto.
+    * refine (IHForall _ _).
+Qed.
+
+Lemma func_modifies_internal : forall p params body vars exts,
+  Forall (fun x => In_vars x vars) (filter_in params) ->
+  block_modifies p body vars exts ->
+  func_modifies p (FInternal params body) vars exts.
+Proof.
+  unfold block_modifies, func_modifies.
+  intros.
+  inv H1.
+  eauto using func_modifies_internal_part1.
+Qed.
+
 End Modifies.
+
+#[export] Hint Resolve In_vars_None In_vars_Some : modifies.
+#[export] Hint Resolve in_eq in_cons : modifies.
+#[export] Hint Constructors Forall : modifies.
+#[export] Hint Extern 0 (Forall _ _) => (simpl filter_in) : modifies.
+#[export] Hint Constructors Forall2 : modifies.
+#[export] Hint Resolve block_modifies_nil : modifies.
+#[export] Hint Resolve block_modifies_cons : modifies.
+#[export] Hint Resolve stmt_modifies_assign : modifies.
+#[export] Hint Extern 1 (func_modifies _ _ _ _ _) => apply func_modifies_internal : modifies.
+#[export] Hint Extern 0 (eq _ (Some _)) => reflexivity : modifies.
