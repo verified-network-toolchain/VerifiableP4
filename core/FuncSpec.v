@@ -56,16 +56,6 @@ Fixpoint fundef_satisfies_hoare (ge : genv) (p : path) (func : fundef) (targs : 
       forall (x : A), fundef_satisfies_hoare ge p func targs (fs x)
   end.
 
-Definition func_modifies_vars (ge : genv) (p : path) (func : @fundef tags_t) (vars : list path) :=
-  forall st inargs targs st' outargs sig,
-    exec_func ge read_ndetbit p st func targs inargs st' outargs sig ->
-    forall q, ~(In q vars) -> PathMap.get q (get_memory st) = PathMap.get q (get_memory st').
-
-Definition func_modifies_exts (ge : genv) (p : path) (func : @fundef tags_t) (exts : list path) :=
-  forall st inargs targs st' outargs sig,
-    exec_func ge read_ndetbit p st func targs inargs st' outargs sig ->
-    forall q, ~(In q exts) -> PathMap.get q (snd st) = PathMap.get q (snd st').
-
 Definition fundef_satisfies_spec_aux (ge : genv) (func : fundef) (targs : list (P4Type)) (fs : func_spec_aux) :=
   let '(mk_func_spec p body vars exts) := fs in
   fundef_satisfies_hoare ge p func targs body
@@ -185,8 +175,7 @@ Qed.
 Lemma func_spec_combine' : forall ge p pre_arg pre_mem pre_ext pre_arg' pre_mem' pre_ext' func targs post vars exts post' f_mem f_ext,
   fundef_satisfies_hoare ge p func targs
     (fsh_base (ARG pre_arg' (MEM pre_mem' (EXT pre_ext'))) post')
-    /\ force True (option_map (func_modifies_vars ge p func) vars)
-    /\ func_modifies_exts ge p func exts ->
+    /\ func_modifies ge p func vars exts ->
   arg_implies (ARG pre_arg (MEM pre_mem (EXT pre_ext))) (ARG pre_arg' (MEM pre_mem' (EXT pre_ext'))) ->
   force (fun _ => []) (option_map exclude vars) pre_mem = f_mem ->
   exclude exts pre_ext = f_ext ->
@@ -194,9 +183,15 @@ Lemma func_spec_combine' : forall ge p pre_arg pre_mem pre_ext pre_arg' pre_mem'
   hoare_func ge p (ARG pre_arg (MEM pre_mem (EXT pre_ext))) func targs post.
 Proof.
   intros.
-  destruct H as [? []].
+  destruct H.
   eapply func_spec_combine; eauto.
   eapply hoare_func_frame_intro; eauto.
+  - destruct vars.
+    + unfold func_modifies_vars; simpl; intros.
+      refine (proj1 (H4 _ _ _ _ _ _ _) _ _); eauto.
+    + simpl; auto.
+  - unfold func_modifies_exts; intros.
+    refine (proj2 (H4 _ _ _ _ _ _ _) _ _); eauto.
 Qed.
 
 End FuncSpec.
