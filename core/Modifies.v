@@ -237,6 +237,84 @@ Proof.
   inv H0; eauto.
 Qed.
 
+Lemma stmt_modifies_var : forall p tags typ' name e p' typ vars exts,
+  is_call_expression e = false ->
+  In_vars p' vars ->
+  stmt_modifies p (MkStatement tags (StatVariable typ' name (Some e) (LInstance p')) typ) vars exts.
+Proof.
+  unfold stmt_modifies. intros.
+  inv H1. 2 : {
+    (* rule out the call case *)
+    inv H12; inv H.
+  }
+  inv H14. eapply write_var_modifies_intro; auto.
+Qed.
+
+Lemma stmt_modifies_var_call : forall p tags typ' name e p' typ vars exts,
+  is_call_expression e = true ->
+  call_modifies p e vars exts ->
+  In_vars p' vars ->
+  stmt_modifies p (MkStatement tags (StatVariable typ' name (Some e) (LInstance p')) typ) vars exts.
+Proof.
+  unfold stmt_modifies. intros.
+  inv H2. 1 : {
+    (* rule out the non-call case *)
+    pose proof (exec_expr_det_not_call _ _ _ _ _ _ H13).
+    congruence.
+  }
+  destruct sig0; only 1, 3, 4 : destruct H14; subst; eauto.
+  destruct H14; subst.
+  eapply modifies_trans.
+  - eapply H0; eauto.
+  - eapply write_modifies_intro; eauto.
+    eauto.
+Qed.
+
+Lemma stmt_modifies_direct_application : forall p tags typ' args typ vars exts,
+  call_modifies p
+    (MkExpression dummy_tags (ExpFunctionCall
+          (direct_application_expression typ')
+          nil (map Some args)) TypVoid Directionless)
+    vars exts ->
+  stmt_modifies p (MkStatement tags (StatDirectApplication typ' args) typ) vars exts.
+Proof.
+  unfold call_modifies, stmt_modifies; intros.
+  inv H0; eauto.
+Qed.
+
+Lemma stmt_modifies_if : forall p tags cond tru ofls typ vars exts,
+  stmt_modifies p tru vars exts ->
+  stmt_modifies p (force empty_statement ofls) vars exts ->
+  stmt_modifies p (MkStatement tags (StatConditional cond tru ofls) typ) vars exts.
+Proof.
+  unfold stmt_modifies. intros.
+  inv H1; destruct b; eauto.
+Qed.
+
+Lemma stmt_modifies_if_none : forall p tags cond tru typ vars exts,
+  stmt_modifies p tru vars exts ->
+  stmt_modifies p empty_statement vars exts ->
+  stmt_modifies p (MkStatement tags (StatConditional cond tru None) typ) vars exts.
+Proof.
+  intros; eapply stmt_modifies_if; eauto.
+Qed.
+
+Lemma stmt_modifies_if_some : forall p tags cond tru fls typ vars exts,
+  stmt_modifies p tru vars exts ->
+  stmt_modifies p fls vars exts ->
+  stmt_modifies p (MkStatement tags (StatConditional cond tru (Some fls)) typ) vars exts.
+Proof.
+  intros; eapply stmt_modifies_if; eauto.
+Qed.
+
+Lemma stmt_modifies_block : forall p tags block typ vars exts,
+  block_modifies p block vars exts ->
+  stmt_modifies p (MkStatement tags (StatBlock block) typ) vars exts.
+Proof.
+  unfold block_modifies, stmt_modifies; intros.
+  inv H0; eauto.
+Qed.
+
 Lemma call_modifies_builtin : forall p tags tags' expr fname tparams params typ' dir' args typ dir lv vars exts,
   let dirs := map get_param_dir params in
   get_lexpr_base expr = Some lv ->
@@ -401,7 +479,10 @@ End Modifies.
 #[export] Hint Constructors Forall2 : modifies.
 #[export] Hint Resolve block_modifies_nil : modifies.
 #[export] Hint Resolve block_modifies_cons : modifies.
-#[export] Hint Resolve stmt_modifies_assign stmt_modifies_assign_call stmt_modifies_method_call : modifies.
+#[export] Hint Resolve
+    stmt_modifies_assign stmt_modifies_assign_call stmt_modifies_method_call stmt_modifies_direct_application
+    stmt_modifies_var stmt_modifies_var_call stmt_modifies_if_none stmt_modifies_if_some stmt_modifies_block
+    : modifies.
 #[export] Hint Resolve call_modifies_builtin call_modifies_func : modifies.
 #[export] Hint Extern 1 (func_modifies _ _ _ _ _) => apply func_modifies_internal : modifies.
 #[export] Hint Extern 0 (eq _ (Some _)) => reflexivity : modifies.
