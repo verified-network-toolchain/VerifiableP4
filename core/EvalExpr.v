@@ -10,7 +10,6 @@ Require Import ProD3.core.SvalRefine.
 Require Import ProD3.core.AssertionLang.
 Require Import ProD3.core.AssertionNotations.
 Require Import ProD3.core.Hoare.
-Require Import ProD3.core.ExprInd.
 Require Import Coq.ZArith.BinInt.
 Require Import Hammer.Tactics.Tactics.
 Require Import Hammer.Plugin.Hammer.
