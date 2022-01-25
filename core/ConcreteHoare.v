@@ -412,7 +412,7 @@ Lemma eval_write_vars_disjoint : forall a_mem ps svs,
 Proof.
   unfold eval_write_vars.
   intros. apply eval_write_vars_disjoint'.
-  rewrite Utils.map_fst_combine; auto.
+  rewrite ForallMap.map_fst_combine; auto.
 Qed.
 
 Lemma eval_write_vars_implies' : forall a_mem out_params a_arg,

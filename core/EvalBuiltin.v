@@ -73,7 +73,7 @@ Lemma Forall2_map : forall {A B C D : Type} (R : A -> B -> Prop) (f : C -> A) (g
 Proof.
   intros.
   change (fun (c : C) (d : D) => _) with (fun c d => (fun a d => R a (g d)) (f c) d).
-  rewrite Forall2_map_l, Forall2_map_r.
+  rewrite ForallMap.Forall2_map_l, ForallMap.Forall2_map_r.
   reflexivity.
 Qed.
 
