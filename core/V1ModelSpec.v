@@ -75,7 +75,7 @@ Axiom register_write_body : forall (p : path) (reg_s : register_static),
 
 End V1ModelSpec.
 
-#[export] Hint Extern 5 (func_modifies _ _ _ _ _) => (refine (proj2 (register_write_body _ _ _ _))) : func_specs.
+#[export] Hint Extern 5 (func_modifies _ _ _ _ _) => (refine (proj2 (register_read_body _ _ _ _))) : func_specs.
 #[export] Hint Extern 5 (func_modifies _ _ _ _ _) => (refine (proj2 (register_write_body _ _ _ _))) : func_specs.
 
 (*

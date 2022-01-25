@@ -268,6 +268,88 @@ Hint Extern 5 (func_modifies _ _ _ _ _) => (apply Add_body) : func_specs.
 Definition Query_fundef := Eval compute in
   force dummy_fundef (PathMap.get ["Query"; "apply"] (ge_func ge)).
 
+Definition Query_spec : func_spec :=
+  WITH p,
+    PATH p
+    MOD None []
+    WITH (rw data : Z) (bf : bloomfilter_state),
+      PRE
+        let hdr := ValBaseStruct
+        [("myHeader",
+          ValBaseHeader
+            [("rw", ValBaseBit (to_loptbool 8 rw));
+             ("data", ValBaseBit (to_loptbool 16 data))]
+             (Some true))] in
+        (ARG [hdr; force ValBaseNull (uninit_sval_of_typ None custom_metadata_t)]
+        (MEM []
+        (EXT [(["bloom0"], reg_encode (bloom0 bf));
+              (["bloom1"], reg_encode (bloom1 bf));
+              (["bloom2"], reg_encode (bloom2 bf))])))
+      POST
+        let hdr := ValBaseStruct
+        [("myHeader",
+          ValBaseHeader
+            [("rw", ValBaseBit (to_loptbool 8 (
+              bool_to_Z (bloomfilter.query Z CRC_pad0 CRC_pad1 CRC_pad2 bf data))));
+             ("data", ValBaseBit (to_loptbool 16 data))]
+             (Some true))] in
+        (ARG_RET [hdr; force ValBaseNull (uninit_sval_of_typ None custom_metadata_t)] ValBaseNull
+        (MEM []
+        (EXT []))).
+
+Lemma get_bit : forall (filter : Filter) hash,
+  Znth hash (map ValBaseBit (map (to_lbool 1) (list_of_filter NUM_ENTRY filter)))
+    = ValBaseBit [filter hash].
+Admitted.
+
+Lemma Query_body : fundef_satisfies_spec ge Query_fundef nil Query_spec.
+Proof.
+  start_function.
+  step_call hash_body [ValBaseBit (to_lbool 16 data); ValBaseBit (to_lbool 3 3)].
+  2 : { entailer. }
+  reflexivity.
+  replace (CRC_Z _) with (CRC_pad0 data) by reflexivity.
+  step_call hash_body [ValBaseBit (to_lbool 16 data); ValBaseBit (to_lbool 5 5)].
+  2 : entailer.
+  reflexivity.
+  replace (CRC_Z _) with (CRC_pad1 data) by reflexivity.
+  step_call hash_body [ValBaseBit (to_lbool 16 data); ValBaseBit (to_lbool 7 7)].
+  2 : entailer.
+  reflexivity.
+  replace (CRC_Z _) with (CRC_pad2 data) by reflexivity.
+  simpl MEM.
+  step_call register_read_body.
+  reflexivity.
+  2 : entailer.
+  { apply CRC_range. }
+  step_call register_read_body.
+  reflexivity.
+  2 : entailer.
+  { apply CRC_range. }
+  step_call register_read_body.
+  reflexivity.
+  2 : entailer.
+  { apply CRC_range. }
+  step.
+  step.
+  destruct bf as [[f0 f1] f2].
+  unfold bloom0.
+  unfold bloom1.
+  unfold bloom2.
+  rewrite !get_bit.
+  entailer.
+  { simpl build_abs_unary_op.
+    unfold query, bloomfilter.get.
+    destruct (f0 (CRC_pad0 data));
+      destruct (f1 (CRC_pad1 data));
+      destruct (f2 (CRC_pad2 data));
+      repeat constructor.
+  }
+  { repeat constructor. }
+Qed.
+
+Hint Extern 5 (func_modifies _ _ _ _ _) => (apply Query_body) : func_specs.
+
 Definition MyIngress_fundef := Eval compute in
   match PathMap.get ["MyIngress"; "apply"] (ge_func ge) with
   | Some x => x
