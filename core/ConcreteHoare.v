@@ -97,6 +97,20 @@ Proof.
   eapply hoare_stmt_var_call; eauto with hoare.
 Qed.
 
+Lemma hoare_stmt_direct_application' : forall p pre_mem pre_ext tags typ' func_typ args typ vret post_mem post_ext ret_post,
+  hoare_call ge p
+    (MEM pre_mem (EXT pre_ext))
+    (MkExpression dummy_tags (ExpFunctionCall
+          (direct_application_expression typ' func_typ)
+          nil args) TypVoid Directionless)
+    (RET vret (MEM post_mem (EXT post_ext))) ->
+  hoare_stmt ge p (MEM pre_mem (EXT pre_ext)) (MkStatement tags (StatDirectApplication typ' func_typ args) typ)
+    (mk_post_assertion (MEM post_mem (EXT post_ext)) ret_post).
+Proof.
+  intros.
+  eapply hoare_stmt_direct_application; eauto with hoare.
+Qed.
+
 Lemma hoare_stmt_if_true' : forall p pre_mem pre_ext tags cond tru ofls typ post,
   eval_expr ge p pre_mem cond = Some (ValBaseBool (Some true)) ->
   hoare_stmt ge p (MEM pre_mem (EXT pre_ext)) tru post ->

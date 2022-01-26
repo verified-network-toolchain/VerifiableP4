@@ -272,7 +272,7 @@ Qed.
 Lemma stmt_modifies_direct_application : forall p tags typ' func_typ args typ vars exts,
   call_modifies p
     (MkExpression dummy_tags (ExpFunctionCall
-          (direct_application_expression typ')
+          (direct_application_expression typ' func_typ)
           nil args) TypVoid Directionless)
     vars exts ->
   stmt_modifies p (MkStatement tags (StatDirectApplication typ' func_typ args) typ) vars exts.

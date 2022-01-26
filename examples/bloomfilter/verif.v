@@ -30,7 +30,6 @@ Opaque (*IdentMap.empty IdentMap.set*) PathMap.empty PathMap.set.
 
 (* Global environment *)
 Definition ge : genv := Eval compute in gen_ge prog.
-
 Definition instantiation := Eval compute in instantiate_prog ge prog.
 
 (* inst_m *)
@@ -488,8 +487,10 @@ Proof.
     [("x", val_to_sval (Int v)), ("y", val_to_sval (Int (v + 1)))]
     sval_add (val_to_sval (Int v)) (val_to_sval (Int 1)) = val_to_sval (Int (v + 1))
     *)
+
   start_function.
   step.
+  (* step_if.
   eapply hoare_block_cons.
   {
     eapply hoare_stmt_if_true'.
@@ -524,61 +525,9 @@ Proof.
     }
   }
   step.
-  entailer.
+  entailer. *)
 Abort.
 
 End Experiment1.
 
 End Experiment1.
-
-Module Experiment2.
-
-Section Experiment2.
-
-Definition this := ["main"; "ig"; "Query"].
-
-Definition Query_fundef := Eval compute in
-  match PathMap.get ["Query"; "apply"] (ge_func ge) with
-  | Some x => x
-  | None => dummy_fundef
-  end.
-
-Axiom dummy_stmt : (@Statement Info).
-
-Definition assign_stmt := Eval compute in
-  match Query_fundef with
-  | FInternal _ (BlockCons _ (BlockCons _ (BlockCons _ (BlockCons _ (BlockCons _ (BlockCons _ (BlockCons stat _))))))) =>
-    stat
-  | _ => dummy_stmt
-  end.
-
-Variable hdr : Sval.
-Variable meta : Sval.
-Hypothesis H_member0 : Members.get "member0" meta = (ValBaseBit [Some true]).
-Hypothesis H_member1 : Members.get "member1" meta = (ValBaseBit [Some true]).
-Hypothesis H_member2 : Members.get "member2" meta = (ValBaseBit [Some true]).
-
-Definition pre :=
-  MEM [(["hdr"], hdr); (["meta"], meta)] (EXT []).
-
-Axiom post : post_assertion.
-
-Lemma body_assign : hoare_block ge this pre (BlockCons assign_stmt BlockNil) post.
-Proof.
-  unfold pre. unfold assign_stmt.
-  step.
-  simpl str. rewrite H_member0, H_member1, H_member2.
-  change (build_abs_unary_op _ _)
-   (* (build_abs_binary_op (Ops.eval_binary_op BitAnd)
-      (build_abs_binary_op (Ops.eval_binary_op BitAnd) (ValBaseBit [Some true])
-         (ValBaseBit [Some true])) (ValBaseBit [Some true]))) *) with
-  (ltac: (let x := eval cbv in (build_abs_unary_op (fun oldv : Val => Ops.bit_of_val 8 oldv)
-   (build_abs_binary_op (Ops.eval_binary_op BitAnd)
-      (build_abs_binary_op (Ops.eval_binary_op BitAnd) (ValBaseBit [Some true])
-         (ValBaseBit [Some true])) (ValBaseBit [Some true]))) in exact x)).
-(* Qed. *)
-Abort.
-
-End Experiment2.
-
-End Experiment2.

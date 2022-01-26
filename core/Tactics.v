@@ -83,6 +83,9 @@ Ltac step_stmt :=
             | reflexivity (* eval_expr *)
             | reflexivity (* eval_write *)
             ]
+      (* hoare_stmt_direct_application' *)
+      | MkStatement _ (StatDirectApplication _ _ _) _ =>
+          fail "Use step_call instead"
       | _ =>
           fail 0 stmt "is not supported"
       end
@@ -201,9 +204,38 @@ Ltac step_stmt_call func_spec :=
   lazymatch goal with
   | |- hoare_stmt _ _ (MEM _ (EXT _)) ?stmt _ =>
       lazymatch stmt with
+      (* hoare_stmt_assign_call' *)
+      | MkStatement _ (StatAssignment _ (MkExpression _ (ExpFunctionCall ?func _ _) _ _)) _ =>
+          eapply hoare_stmt_assign_call';
+            [ reflexivity (* is_call_expression *)
+            | reflexivity (* eval_lexpr *)
+            | step_call_func func_spec (* hoare_call *)
+            | reflexivity (* is_no_dup *)
+            | reflexivity (* eval_write *)
+            ]
       (* hoare_stmt_method_call' *)
       | MkStatement _ (StatMethodCall ?func _ _) _ =>
           eapply hoare_stmt_method_call';
+            step_call_func func_spec (* hoare_call *)
+      (* hoare_stmt_var_call' *)
+      | MkStatement _
+            (StatVariable _ _
+                (Some (MkExpression _ (ExpFunctionCall ?func _ _) _ _))
+                ?loc) _ =>
+          lazymatch loc with
+          | LInstance _ => idtac (* ok *)
+          | LGlobal _ => fail "Cannot declacre a variable with LGlobal locator"
+          | _ => fail "Unrecognized locator expression" loc
+          end;
+          eapply hoare_stmt_var_call';
+            [ reflexivity (* is_call_expression *)
+            | step_call_func func_spec (* hoare_call *)
+            | reflexivity (* is_no_dup *)
+            | reflexivity (* eval_write *)
+            ]
+      (* hoare_stmt_direct_application' *)
+      | MkStatement _ (StatDirectApplication _ _ _) _ =>
+          eapply hoare_stmt_direct_application';
             step_call_func func_spec (* hoare_call *)
       | _ => fail "This function call is not supported"
       end

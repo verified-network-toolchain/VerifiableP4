@@ -433,6 +433,23 @@ Proof.
   eapply H2; eauto.
 Qed.
 
+Lemma hoare_stmt_direct_application : forall p pre tags typ' func_typ args typ post sv,
+  hoare_call p pre
+    (MkExpression dummy_tags (ExpFunctionCall
+          (direct_application_expression typ' func_typ)
+          nil args) TypVoid Directionless)
+    (fun v st => (forall sv', val_to_sval v sv' -> sval_refine sv sv') /\ (post_continue post) st) ->
+  hoare_stmt p pre (MkStatement tags (StatDirectApplication typ' func_typ args) typ) post.
+Proof.
+  unfold hoare_stmt. intros.
+  left.
+  inv H2.
+  specialize_hoare_call.
+  destruct sig0; only 1, 3, 4 : solve [inv H0].
+  destruct H0.
+  auto.
+Qed.
+
 Lemma hoare_stmt_if_true : forall p pre tags cond tru ofls typ post,
   hoare_expr_det p pre cond (ValBaseBool (Some true)) ->
   hoare_stmt p pre tru post ->
