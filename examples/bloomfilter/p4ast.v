@@ -2129,7 +2129,92 @@ Definition MyIngress := DeclControl NoInfo
                                                                     {| 
                                                                     stags := NoInfo;
                                                                     str := "Query" |})
+                                                                    (TypFunction
+                                                                    (MkFunctionType
+                                                                    nil
                                                                     [(
+                                                                    MkParameter
+                                                                    false
+                                                                    InOut
+                                                                    (TypStruct
+                                                                    [( 
+                                                                    {| 
+                                                                    stags := NoInfo;
+                                                                    str := "myHeader" |},
+                                                                    (
+                                                                    TypHeader
+                                                                    [
+                                                                    ( 
+                                                                    {| 
+                                                                    stags := NoInfo;
+                                                                    str := "rw" |},
+                                                                    (
+                                                                    TypBit
+                                                                    8%N) );
+                                                                    ( 
+                                                                    {| 
+                                                                    stags := NoInfo;
+                                                                    str := "data" |},
+                                                                    (
+                                                                    TypBit
+                                                                    16%N) )]) )])
+                                                                    None
+                                                                    {| stags := NoInfo;
+                                                                    str := "hdr" |});
+                                                                    (MkParameter
+                                                                    false
+                                                                    InOut
+                                                                    (TypStruct
+                                                                    [( 
+                                                                    {| 
+                                                                    stags := NoInfo;
+                                                                    str := "index0" |},
+                                                                    (
+                                                                    TypBit
+                                                                    32%N) );
+                                                                    ( 
+                                                                    {| 
+                                                                    stags := NoInfo;
+                                                                    str := "index1" |},
+                                                                    (
+                                                                    TypBit
+                                                                    32%N) );
+                                                                    ( 
+                                                                    {| 
+                                                                    stags := NoInfo;
+                                                                    str := "index2" |},
+                                                                    (
+                                                                    TypBit
+                                                                    32%N) );
+                                                                    ( 
+                                                                    {| 
+                                                                    stags := NoInfo;
+                                                                    str := "member0" |},
+                                                                    (
+                                                                    TypBit
+                                                                    1%N) );
+                                                                    ( 
+                                                                    {| 
+                                                                    stags := NoInfo;
+                                                                    str := "member1" |},
+                                                                    (
+                                                                    TypBit
+                                                                    1%N) );
+                                                                    ( 
+                                                                    {| 
+                                                                    stags := NoInfo;
+                                                                    str := "member2" |},
+                                                                    (
+                                                                    TypBit
+                                                                    1%N) )])
+                                                                    None
+                                                                    {| stags := NoInfo;
+                                                                    str := "meta" |})]
+                                                                    FunControl
+                                                                    TypVoid))
+                                                                    [(
+                                                                    Some
+                                                                    (
                                                                     MkExpression
                                                                     NoInfo
                                                                     (ExpName
@@ -2143,7 +2228,8 @@ Definition MyIngress := DeclControl NoInfo
                                                                     {| 
                                                                     stags := NoInfo;
                                                                     str := "headers" |})
-                                                                    InOut);
+                                                                    InOut));
+                                                                    (Some
                                                                     (MkExpression
                                                                     NoInfo
                                                                     (ExpName
@@ -2157,7 +2243,7 @@ Definition MyIngress := DeclControl NoInfo
                                                                     {| 
                                                                     stags := NoInfo;
                                                                     str := "custom_metadata_t" |})
-                                                                    InOut)])
+                                                                    InOut))])
                                                                   StmUnit)
                                                              (BlockEmpty
                                                               NoInfo)))
@@ -2244,7 +2330,92 @@ Definition MyIngress := DeclControl NoInfo
                                                                     {| 
                                                                     stags := NoInfo;
                                                                     str := "Add" |})
+                                                                    (TypFunction
+                                                                    (MkFunctionType
+                                                                    nil
                                                                     [(
+                                                                    MkParameter
+                                                                    false
+                                                                    InOut
+                                                                    (TypStruct
+                                                                    [( 
+                                                                    {| 
+                                                                    stags := NoInfo;
+                                                                    str := "myHeader" |},
+                                                                    (
+                                                                    TypHeader
+                                                                    [
+                                                                    ( 
+                                                                    {| 
+                                                                    stags := NoInfo;
+                                                                    str := "rw" |},
+                                                                    (
+                                                                    TypBit
+                                                                    8%N) );
+                                                                    ( 
+                                                                    {| 
+                                                                    stags := NoInfo;
+                                                                    str := "data" |},
+                                                                    (
+                                                                    TypBit
+                                                                    16%N) )]) )])
+                                                                    None
+                                                                    {| stags := NoInfo;
+                                                                    str := "hdr" |});
+                                                                    (MkParameter
+                                                                    false
+                                                                    InOut
+                                                                    (TypStruct
+                                                                    [( 
+                                                                    {| 
+                                                                    stags := NoInfo;
+                                                                    str := "index0" |},
+                                                                    (
+                                                                    TypBit
+                                                                    32%N) );
+                                                                    ( 
+                                                                    {| 
+                                                                    stags := NoInfo;
+                                                                    str := "index1" |},
+                                                                    (
+                                                                    TypBit
+                                                                    32%N) );
+                                                                    ( 
+                                                                    {| 
+                                                                    stags := NoInfo;
+                                                                    str := "index2" |},
+                                                                    (
+                                                                    TypBit
+                                                                    32%N) );
+                                                                    ( 
+                                                                    {| 
+                                                                    stags := NoInfo;
+                                                                    str := "member0" |},
+                                                                    (
+                                                                    TypBit
+                                                                    1%N) );
+                                                                    ( 
+                                                                    {| 
+                                                                    stags := NoInfo;
+                                                                    str := "member1" |},
+                                                                    (
+                                                                    TypBit
+                                                                    1%N) );
+                                                                    ( 
+                                                                    {| 
+                                                                    stags := NoInfo;
+                                                                    str := "member2" |},
+                                                                    (
+                                                                    TypBit
+                                                                    1%N) )])
+                                                                    None
+                                                                    {| stags := NoInfo;
+                                                                    str := "meta" |})]
+                                                                    FunControl
+                                                                    TypVoid))
+                                                                    [(
+                                                                    Some
+                                                                    (
                                                                     MkExpression
                                                                     NoInfo
                                                                     (ExpName
@@ -2258,7 +2429,8 @@ Definition MyIngress := DeclControl NoInfo
                                                                     {| 
                                                                     stags := NoInfo;
                                                                     str := "headers" |})
-                                                                    InOut);
+                                                                    InOut));
+                                                                    (Some
                                                                     (MkExpression
                                                                     NoInfo
                                                                     (ExpName
@@ -2272,7 +2444,7 @@ Definition MyIngress := DeclControl NoInfo
                                                                     {| 
                                                                     stags := NoInfo;
                                                                     str := "custom_metadata_t" |})
-                                                                    InOut)])
+                                                                    InOut))])
                                                                     StmUnit)
                                                                     (BlockEmpty
                                                                     NoInfo)))
