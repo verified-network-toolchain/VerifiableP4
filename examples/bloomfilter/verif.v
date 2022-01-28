@@ -52,8 +52,6 @@ Definition standard_metadata_t :=
 Definition dummy_fundef : @fundef Info := FExternal "" "".
 Opaque dummy_fundef.
 
-Module Experiment1.
-
 Open Scope func_spec.
 
 (* Bloom filter encoding *)
@@ -363,7 +361,7 @@ Definition bloomfilter_spec : func_spec :=
           (["bloom2"], reg_encode (bloom2 bf'))
         ]))).
 
-Lemma body_bloomfilter : fundef_satisfies_spec ge MyIngress_fundef nil bloomfilter_spec.
+Lemma bloomfilter_body : fundef_satisfies_spec ge MyIngress_fundef nil bloomfilter_spec.
 Proof.
   start_function.
   (* step.
@@ -403,5 +401,3 @@ Proof.
     inversion H.
   } *)
 Admitted.
-
-End Experiment1.
