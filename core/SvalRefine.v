@@ -330,6 +330,30 @@ Proof.
       auto.
 Qed.
 
+Lemma all_values_get_some_exists_rel: forall {A} (kvl kvl' : AList.StringAList A) f rel v,
+  AList.all_values rel kvl kvl' ->
+  AList.get kvl f = Some v ->
+  exists v', AList.get kvl' f = Some v' /\ rel v v'.
+Proof.
+  intros. pose proof H0. eapply all_values_get_some_is_some in H0; eauto.
+  unfold is_some, isSome in H0. destruct (AList.get kvl' f) eqn:?H. 2: inv H0.
+  eapply all_values_get_some_rel in H2; eauto.
+Qed.
+
+Lemma all_values_get_none_is_none : forall {A} (kvl kvl' : AList.StringAList A) f rel,
+  AList.all_values rel kvl kvl' ->
+  AList.get kvl f = None ->
+  AList.get kvl' f = None.
+Proof.
+  intros.
+  induction H; auto.
+  destruct x as [kx vx]; destruct y as [ky vy].
+  destruct H. simpl in H. subst ky.
+  destruct (String.string_dec f kx) eqn:?.
+  - rewrite AList.get_eq_cons in H0 |- * by auto. inv H0.
+  - rewrite AList.get_neq_cons in H0 |- * by auto. auto.
+Qed.
+
 Lemma all_values_get_some_is_some' : forall {A} (kvl kvl' : AList.StringAList A) f rel v',
   AList.all_values rel kvl kvl' ->
   AList.get kvl' f = Some v' ->
