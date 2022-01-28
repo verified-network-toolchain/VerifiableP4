@@ -86,6 +86,8 @@ Ltac step_stmt :=
       (* hoare_stmt_direct_application' *)
       | MkStatement _ (StatDirectApplication _ _ _) _ =>
           fail "Use step_call instead"
+      | MkStatement _ (StatBlock _) _ =>
+          eapply hoare_stmt_block
       | _ =>
           fail 0 stmt "is not supported"
       end
@@ -102,26 +104,57 @@ Ltac step :=
           eapply hoare_block_cons;
           only 1 : step_stmt
       end
-  | _ => fail "The goal is not in the form of (hoare_block _ _ (MEM _ (EXT _)) _ _)"
+  | |- hoare_stmt _ _ (MEM _ (EXT _)) ?stmt _ =>
+      step_stmt
+  | _ => fail "The goal is not in the form of (hoare_block _ _ (MEM _ (EXT _)) (BlockCons _ _) _)"
+              "or (hoare_stmt _ _ (MEM _ (EXT _)) _ _)"
   end.
 
-Ltac step_if post :=
+Ltac step_stmt_if :=
+  lazymatch goal with
+  | |- hoare_stmt _ _ (MEM _ (EXT _)) ?stmt _ =>
+      lazymatch stmt with
+        | MkStatement _ (StatConditional _ _ _) _ =>
+            eapply hoare_stmt_if';
+              [ reflexivity (* eval_expr *)
+              | intro (* true branch *)
+              | intro (* false branch *)
+              ]
+        | _ => fail "The next statement is not an if-statement"
+        end
+  | _ => fail "The goal is not in the form of (hoare_stmt _ _ (MEM _ (EXT _)) _ _)"
+  end.
+
+Ltac step_if_post post :=
   lazymatch goal with
   | |- hoare_block _ _ (MEM _ (EXT _)) (BlockCons ?stmt _) _ =>
       lazymatch stmt with
       | MkStatement _ (StatConditional _ _ _) _ =>
           eapply hoare_block_cons with (mid := post);
-          [ eapply hoare_stmt_if';
-              [ reflexivity (* eval_expr *)
-              | intro (* true branch *)
-              | intro (* false branch *)
-              ]
+          [ step_stmt_if
           | idtac
           ]
       | _ => fail "The next statement is not an if-statement"
       end
   | _ => fail "The goal is not in the form of (hoare_block _ _ (MEM _ (EXT _)) (BlockCons _ _) _)"
   end.
+
+Tactic Notation "step_if" constr(post) := step_if_post post.
+
+Ltac step_if_no_post :=
+  lazymatch goal with
+  | |- hoare_block _ _ (MEM _ (EXT _)) (BlockCons ?stmt (BlockEmpty _)) _ =>
+      eapply hoare_block_cons;
+      [ step_stmt_if
+      | eapply hoare_block_nil, implies_refl
+      ]
+  | |- hoare_stmt _ _ (MEM _ (EXT _)) ?stmt _ =>
+      step_stmt_if
+  | _ => fail "The goal is not in the form of (hoare_block _ _ (MEM _ (EXT _)) (BlockCons _ _) _)"
+              "or (hoare_stmt _ _ (MEM _ (EXT _)) _ _)"
+  end.
+
+Tactic Notation "step_if" := step_if_no_post.
 
 Ltac inv_func_copy_out :=
   lazymatch goal with

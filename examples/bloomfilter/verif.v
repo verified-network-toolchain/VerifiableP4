@@ -490,42 +490,41 @@ Proof.
 
   start_function.
   step.
-  (* step_if.
-  eapply hoare_block_cons.
+  step_if.
   {
-    eapply hoare_stmt_if_true'.
-    { (* eval_expr *)
-      reflexivity.
-    }
-    apply hoare_stmt_block.
+    step.
+    step_call MyIngress_do_forward_body.
+    entailer.
+    step_if.
     {
-      simpl eval_write_var.
-      step_call MyIngress_do_forward_body.
-      { entailer. }
-      (* A possible simpl: *)
-        (* Opaque pre_ext_assertion post_ext_assertion.
-        simpl MEM. *)
-      step_if (MEM
-         (eval_write_vars []
-            (filter_out [(["hdr"], InOut); (["meta"], InOut); (["standard_metadata"], InOut)])
-            post_arg_assertion) (EXT post_ext_assertion)).
-      { (* true branch *)
-        change (is_true (BitArith.lbool_to_val (to_lbool 8%N rw) 1 0 =? 0)) in H.
-        (* step_call. *)
-        admit.
-      }
-      { (* false branch *)
-        change (is_true (negb (BitArith.lbool_to_val (to_lbool 8%N rw) 1 0 =? 0))) in H.
-        (* step_call. *)
-        admit.
-      }
       step.
-      simpl. (* This simpl generates better assertion for the next step. *)
-      eapply implies_refl.
+      step_call Query_body.
+      entailer.
+      admit.
+      step.
+      entailer.
+      all : admit.
+    }
+    {
+      simpl force.
+      step_if.
+      {
+        step.
+        step_call Add_body.
+        entailer.
+        admit.
+        step.
+        entailer.
+        all : admit.
+      }
+      { (* rw not in {0, 2}. Should be impossible? *)
+        admit.
+      }
     }
   }
-  step.
-  entailer. *)
+  {
+    inversion H.
+  }
 Abort.
 
 End Experiment1.
