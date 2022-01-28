@@ -341,9 +341,9 @@ Definition bloomfilter_spec : func_spec :=
             (force ValBaseNull (uninit_sval_of_typ None standard_metadata_t))]
         (MEM []
         (EXT [
-          (["bloom0"], ObjRegister (map ValBaseBit (map (P4Arith.to_lbool 1) (bloom0 bf))));
-          (["bloom1"], ObjRegister (map ValBaseBit (map (P4Arith.to_lbool 1) (bloom1 bf))));
-          (["bloom2"], ObjRegister (map ValBaseBit (map (P4Arith.to_lbool 1) (bloom2 bf))))
+          (["bloom0"], reg_encode (bloom0 bf));
+          (["bloom1"], reg_encode (bloom1 bf));
+          (["bloom2"], reg_encode (bloom2 bf))
         ])))
       POST
         (* These two lines cannot be merged, because Coq doesn't destruct the pair automatically. *)
@@ -358,9 +358,9 @@ Definition bloomfilter_spec : func_spec :=
           ValBaseNull
         (MEM []
         (EXT [
-          (["bloom0"], ObjRegister (map ValBaseBit (map (P4Arith.to_lbool 1) (bloom0 bf'))));
-          (["bloom1"], ObjRegister (map ValBaseBit (map (P4Arith.to_lbool 1) (bloom1 bf'))));
-          (["bloom2"], ObjRegister (map ValBaseBit (map (P4Arith.to_lbool 1) (bloom2 bf'))))
+          (["bloom0"], reg_encode (bloom0 bf'));
+          (["bloom1"], reg_encode (bloom1 bf'));
+          (["bloom2"], reg_encode (bloom2 bf'))
         ]))).
 
 Lemma body_bloomfilter : fundef_satisfies_spec ge MyIngress_fundef nil bloomfilter_spec.

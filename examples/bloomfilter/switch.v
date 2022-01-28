@@ -41,13 +41,13 @@ Definition standard_metadata_t : P4Type :=
     (!"parser_error", TypError); (!"priority", TypBit 3)].
 
 Inductive port :=
-  | In
-  | Out.
+  | port_int
+  | port_ext.
 
 Definition port_to_sval (p : port) :=
   match p with
-  | In => ValBaseBit (P4Arith.to_loptbool 9 0)
-  | Out => ValBaseBit (P4Arith.to_loptbool 9 1)
+  | port_int => ValBaseBit (P4Arith.to_loptbool 9 0)
+  | port_ext => ValBaseBit (P4Arith.to_loptbool 9 1)
   end.
 
 Definition out_port_to_sval (p : option port) :=
