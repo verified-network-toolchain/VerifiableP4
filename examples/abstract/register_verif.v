@@ -1,4 +1,4 @@
-Require Import Poulet4.P4defs.
+(* Require Import Poulet4.P4defs.
 Require Import Poulet4.P4Notations.
 Require Import Coq.Program.Basics.
 Require Import Poulet4.P4Arith.
@@ -60,3 +60,4 @@ Definition st := Eval simpl in projT1 foo.
 
 
 
+ *)

@@ -1,4 +1,4 @@
-Require Import Coq.Strings.String.
+(* Require Import Coq.Strings.String.
 Require Import Poulet4.P4defs.
 Require Import Poulet4.Typed.
 Require Import Poulet4.Syntax.
@@ -148,3 +148,4 @@ Axiom target2 :
 
 Eval simpl in (eval_expr ge p mem_pre1 expr1).
 
+ *)
