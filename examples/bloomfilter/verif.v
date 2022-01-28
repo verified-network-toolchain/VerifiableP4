@@ -21,68 +21,42 @@ Require Import ProD3.core.AssertionLang.
 Require Import ProD3.core.AssertionNotations.
 Require Import ProD3.core.FuncSpec.
 Require Import ProD3.core.Implies.
+Require Import ProD3.core.Modifies.
 Require Import ProD3.core.Tactics.
 Require Import ProD3.core.V1ModelSpec.
 
 Instance target : @Target Info (@Expression Info) := V1Model.
-
-Opaque (*IdentMap.empty IdentMap.set*) PathMap.empty PathMap.set.
-
-(* Global environment *)
-Definition ge : genv := Eval compute in gen_ge prog.
-Definition instantiation := Eval compute in instantiate_prog ge prog.
-
-(* inst_m *)
-(* Definition inst_m := Eval compute in fst instantiation. *)
-
-(* Initial extern state *)
-Definition init_es := Eval compute in snd instantiation.
-
-Transparent IdentMap.empty IdentMap.set PathMap.empty PathMap.set.
 
 Notation ident := string.
 Notation path := (list ident).
 Notation Val := (@ValueBase bool).
 Notation Sval := (@ValueBase (option bool)).
 
-(* Notation assertion := (@assertion Info).
-Notation arg_assertion := (@arg_assertion Info).
-Notation ret_assertion := (@ret_assertion Info). *)
-(* Notation ext_assertion := (@ext_assertion Info). *)
+Opaque PathMap.empty PathMap.set.
 
-Axiom dummy_fundef : (@fundef Info).
+(* Global environment *)
+Definition ge : genv := Eval compute in gen_ge prog.
+
+(* Initial extern state *)
+Definition instantiation := Eval compute in instantiate_prog ge prog.
+Definition init_es := Eval compute in snd instantiation.
+
+Transparent IdentMap.empty IdentMap.set PathMap.empty PathMap.set.
+
+Definition custom_metadata_t :=
+  Eval compute in force dummy_type (IdentMap.get "custom_metadata_t" (ge_typ ge)).
+
+Definition standard_metadata_t :=
+  Eval compute in force dummy_type (IdentMap.get "standard_metadata_t" (ge_typ ge)).
+
+Definition dummy_fundef : @fundef Info := FExternal "" "".
+Opaque dummy_fundef.
 
 Module Experiment1.
 
-Definition MyIngress_do_forward_fundef := Eval compute in
-  force dummy_fundef (PathMap.get ["MyIngress"; "do_forward"] (ge_func ge)).
-
 Open Scope func_spec.
 
-Definition MyIngress_do_forward_spec : func_spec :=
-  WITH (p : path),
-    PATH p
-    MOD (Some [["do_forward"; "port"]; ["standard_metadata"]]) []
-    WITH (port : Z) (standard_metadata : Sval),
-      PRE
-        (ARG [ValBaseBit (to_loptbool 9%N port)]
-        (MEM [(["standard_metadata"], standard_metadata)]
-        (EXT [])))
-      POST
-        (ARG_RET [] ValBaseNull
-        (MEM [(["standard_metadata"], (update "egress_spec" (ValBaseBit (to_loptbool 9%N port)) standard_metadata))]
-        (EXT []))).
-
-Import Modifies.
-
-Lemma MyIngress_do_forward_body :
-  fundef_satisfies_spec ge MyIngress_do_forward_fundef nil MyIngress_do_forward_spec.
-Proof.
-  start_function.
-  step.
-  step.
-  entailer.
-Qed.
+(* Bloom filter encoding *)
 
 Notation Filter := (Filter Z).
 
@@ -105,11 +79,11 @@ Definition bloom1 (bst : bloomfilter_state) : list Z :=
 Definition bloom2 (bst : bloomfilter_state) : list Z :=
   list_of_filter NUM_ENTRY (snd bst).
 
-Definition Add_fundef := Eval compute in
-  force dummy_fundef (PathMap.get ["Add"; "apply"] (ge_func ge)).
-
 Definition reg_encode (l : list Z) : extern_object :=
   ObjRegister (map ValBaseBit (map (P4Arith.to_lbool 1) l)).
+
+Definition Add_fundef := Eval compute in
+  force dummy_fundef (PathMap.get ["Add"; "apply"] (ge_func ge)).
 
 Definition havoc := uninit_sval_of_sval.
 
@@ -171,9 +145,6 @@ Axiom hash_body : forall targs,
 Hint Extern 5 (func_modifies _ _ _ _ _) => (apply hash_body) : func_specs.
 Hint Extern 1 (list P4Type) => (exact (@nil _)) : func_specs.
 
-Definition custom_metadata_t :=
-  Eval compute in force dummy_type (IdentMap.get "custom_metadata_t" (ge_typ ge)).
-
 (*
 control Add(inout headers hdr, inout custom_metadata_t meta) {
     apply{
@@ -197,8 +168,7 @@ Definition Add_spec : func_spec :=
         let hdr := ValBaseStruct
         [("myHeader",
           ValBaseHeader
-            [("rw", ValBaseBit (to_loptbool 8 rw));
-             ("data", ValBaseBit (to_loptbool 16 data))]
+            [("data", ValBaseBit (to_loptbool 16 data))]
              (Some true))] in
         (ARG [hdr; force ValBaseNull (uninit_sval_of_typ None custom_metadata_t)]
         (MEM []
@@ -209,8 +179,7 @@ Definition Add_spec : func_spec :=
         let hdr := ValBaseStruct
         [("myHeader",
           ValBaseHeader
-            [("rw", ValBaseBit (to_loptbool 8 rw));
-             ("data", ValBaseBit (to_loptbool 16 data))]
+            [("data", ValBaseBit (to_loptbool 16 data))]
              (Some true))] in
         let bf' := bloomfilter.add Z Z.eqb CRC_pad0 CRC_pad1 CRC_pad2 bf data in
         (ARG_RET [hdr; force ValBaseNull (uninit_sval_of_typ None custom_metadata_t)] ValBaseNull
@@ -276,8 +245,7 @@ Definition Query_spec : func_spec :=
         let hdr := ValBaseStruct
         [("myHeader",
           ValBaseHeader
-            [("rw", ValBaseBit (to_loptbool 8 rw));
-             ("data", ValBaseBit (to_loptbool 16 data))]
+            [("data", ValBaseBit (to_loptbool 16 data))]
              (Some true))] in
         (ARG [hdr; force ValBaseNull (uninit_sval_of_typ None custom_metadata_t)]
         (MEM []
@@ -288,11 +256,12 @@ Definition Query_spec : func_spec :=
         let hdr := ValBaseStruct
         [("myHeader",
           ValBaseHeader
-            [("rw", ValBaseBit (to_loptbool 8 (
-              bool_to_Z (bloomfilter.query Z CRC_pad0 CRC_pad1 CRC_pad2 bf data))));
-             ("data", ValBaseBit (to_loptbool 16 data))]
+            [("data", ValBaseBit (to_loptbool 16 data))]
              (Some true))] in
-        (ARG_RET [hdr; force ValBaseNull (uninit_sval_of_typ None custom_metadata_t)] ValBaseNull
+        let meta := update "member0"
+          (ValBaseBit [Some (bloomfilter.query Z CRC_pad0 CRC_pad1 CRC_pad2 bf data)])
+          (force ValBaseNull (uninit_sval_of_typ None custom_metadata_t)) in
+        (ARG_RET [hdr; meta] ValBaseNull
         (MEM []
         (EXT []))).
 
@@ -339,27 +308,18 @@ Proof.
   entailer.
   { simpl build_abs_unary_op.
     unfold query, bloomfilter.get.
+    simpl.
     destruct (f0 (CRC_pad0 data));
       destruct (f1 (CRC_pad1 data));
       destruct (f2 (CRC_pad2 data));
       repeat constructor.
   }
-  { repeat constructor. }
 Qed.
 
 Hint Extern 5 (func_modifies _ _ _ _ _) => (apply Query_body) : func_specs.
 
 Definition MyIngress_fundef := Eval compute in
-  match PathMap.get ["MyIngress"; "apply"] (ge_func ge) with
-  | Some x => x
-  | None => dummy_fundef
-  end.
-
-Definition standard_metadata_t := Eval compute in
-  match IdentMap.get "standard_metadata_t" (ge_typ ge) with
-  | Some typ => typ
-  | None => dummy_type
-  end.
+  force dummy_fundef (PathMap.get ["MyIngress"; "apply"] (ge_func ge)).
 
 Definition process (in_port data : Z) (bf : bloomfilter_state) : (bloomfilter_state * Z) :=
   if in_port =? 0 then
@@ -405,23 +365,6 @@ Definition bloomfilter_spec : func_spec :=
 
 Lemma body_bloomfilter : fundef_satisfies_spec ge MyIngress_fundef nil bloomfilter_spec.
 Proof.
-  (* remove AType and represent everything as Sval
-  To make it easier for structs, add a strucuture to represent structs with updated fields
-    (type soundness may be neeeded here)
-  struct rec has value rec_v
-  rec.x := 1
-  struct rec has value (update "x" 1 rec_v)
-  Return value as a special out parameter called "return"
-  Make function call reusable
-  Then we will need a frame rule
-  Extern objects
-  After generating an assertion from the symbolic executor, we need to evaluate the computational function.
-    But in this procedure, we should keep the user-defined Coq expressions untouched.
-  We need to face goals like
-    [("x", val_to_sval (Int v)), ("y", val_to_sval (Int (v + 1)))]
-    sval_add (val_to_sval (Int v)) (val_to_sval (Int 1)) = val_to_sval (Int (v + 1))
-    *)
-
   start_function.
   (* step.
   step_if.

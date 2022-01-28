@@ -9,9 +9,6 @@
 typedef bit<9>  egressSpec_t;
 
 header myHeader_t {
-    // In: rw = 0 => BF.query; rw = 2 => BF.add
-    // Out: rw = 0 => not in BF; rw = 1 => in BF
-    bit<8> rw; 
     bit<16> data;
 }
 
@@ -82,26 +79,30 @@ control Query(inout headers hdr, inout custom_metadata_t meta) {
         bloom1.read(meta.member1, meta.index1);
         bloom2.read(meta.member2, meta.index2);
 
-        hdr.myHeader.rw = (bit<8>) (meta.member0 & meta.member1 & meta.member2);
+        meta.member0 = meta.member0 & meta.member1 & meta.member2;
     }
 }
+
+const bit<9> IN_PORT = 0;
+const bit<9> OUT_PORT = 1;
+const bit<9> DROP_SPEC = 511;
 
 control MyIngress(inout headers hdr,
                   inout custom_metadata_t meta,
                   inout standard_metadata_t standard_metadata) {
-
-    /* apply forwarding logic */
-    action do_forward(egressSpec_t port) {
-        standard_metadata.egress_spec = port;
-    }
-    
     apply {
-        if (hdr.myHeader.isValid()) {
-            do_forward(1);
-            if (hdr.myHeader.rw == 0) {
-                Query.apply(hdr, meta);
-            } else if (hdr.myHeader.rw == 2) {
-                Add.apply(hdr, meta);
+        // Outgoing
+        if (standard_metadata.ingress_port == IN_PORT) {
+            standard_metadata.egress_spec = OUT_PORT;
+            Add.apply(hdr, meta);
+        }
+        // Incoming
+        else {
+            standard_metadata.egress_spec = IN_PORT;
+            Query.apply(hdr, meta);
+            if (!(bool)meta.member0) {
+                // drop
+                standard_metadata.egress_spec = DROP_SPEC;
             }
         }
     }
