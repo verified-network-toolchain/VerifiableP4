@@ -355,119 +355,53 @@ Definition MyIngress_fundef := Eval compute in
   | None => dummy_fundef
   end.
 
-Definition this : path := ["main"; "ig"].
-
-
-
-(* Definition filter_match (st : state) (p : path) (f : Filter) : Prop :=
-  exists content,
-  PathMap.get p (snd st) = Some (ObjRegister (mk_register 1%nat NUM_ENTRY content)) /\
-  forall i : Z, Znth i content = bool_to_Z (f i). (* out-of-bounds indexing is used *) *)
-
-(* Definition bst_match (st : state) (bst : bloomfilter_state) : Prop :=
-  let (rest, bloom2) := bst in
-  let (bloom0, bloom1) := rest in
-  filter_match st !["bloom0"] bloom0
-    /\ filter_match st !["bloom1"] bloom1
-    /\ filter_match st !["bloom2"] bloom2. *)
-
-(* Definition header_encodes (hdr : Val) (rw : Z) (data : Z) : Prop :=
-  hdr = ValBaseStruct [(!"myHeader", ValBaseHeader [(!"rw", ValBaseBit 8%nat rw); (!"data", ValBaseBit 16%nat data)] true)]. *)
-
-Section Experiment1.
-
-Variable rw : Z.
-Variable data : Z.
-(* Variable hdr : Val.
-Variable meta : Val.
-Variable standard_metadata : Val. *)
-Variable bst : bloomfilter_state.
-
-Definition myHeader := 
-  ValBaseStruct
-    [("myHeader",
-      ValBaseHeader
-        [("rw", ValBaseBit (to_loptbool 8 rw));
-         ("data", ValBaseBit (to_loptbool 16 data))]
-         (Some true))].
-
-Axiom dummy_type : (@P4Type Info).
-
 Definition standard_metadata_t := Eval compute in
   match IdentMap.get "standard_metadata_t" (ge_typ ge) with
   | Some typ => typ
   | None => dummy_type
   end.
 
-Axiom dummy_sval : Sval.
-
-Variable (meta : Sval).
-
-(* Definition meta := Eval compute in
-  match gen_sval custom_metadata_t [] with
-  | Some v => v
-  | None => dummy_sval
-  end. *)
-
-Variable (standard_metadata : Sval).
-
-(* Definition standard_metadata := Eval compute in
-  match gen_sval standard_metadata_t [] with
-  | Some v => v
-  | None => dummy_sval
-  end. *)
-
-(* Definition pre_arg_assertion : assertion :=
-  [ (["hdr"], myHeader);
-    (["meta"], meta);
-    (["standard_metadata"], standard_metadata)
-  ]. *)
-
-Definition pre_arg_assertion : arg_assertion :=
-  [myHeader; meta; standard_metadata].
-
-Definition pre_ext_assertion : ext_assertion :=
-  [
-    (["bloom0"], ObjRegister (map ValBaseBit (map (P4Arith.to_lbool 1) (bloom0 bst))));
-    (["bloom1"], ObjRegister (map ValBaseBit (map (P4Arith.to_lbool 1) (bloom1 bst))));
-    (["bloom2"], ObjRegister (map ValBaseBit (map (P4Arith.to_lbool 1) (bloom2 bst))))
-  ].
-
-Definition pre :=
-  ARG pre_arg_assertion (MEM [] (EXT pre_ext_assertion)).
-
-Definition process (rw data : Z) (bst : bloomfilter_state) : (bloomfilter_state * Z) :=
-  if rw =? 2 then
-    (bloomfilter.add Z Z.eqb CRC_pad0 CRC_pad1 CRC_pad2 bst data, 2)
+Definition process (in_port data : Z) (bf : bloomfilter_state) : (bloomfilter_state * Z) :=
+  if in_port =? 0 then
+    (bloomfilter.add Z Z.eqb CRC_pad0 CRC_pad1 CRC_pad2 bf data, 1)
   else
-    (bst, bool_to_Z (bloomfilter.query Z CRC_pad0 CRC_pad1 CRC_pad2 bst data)).
-
-Definition bst' := fst (process rw data bst).
-Definition rw' := snd (process rw data bst).
-
-Definition post_arg_assertion : arg_assertion :=
-  [
-    upd_sval myHeader [(["myHeader"; "rw"], ValBaseBit (to_loptbool 8 rw'))];
-    (* The full specification of meta requires updates to all the six fields,
-       which need to be computed from process. 
-       Not sure if it is a good design. 
-       Or maybe we should change meta's direction to In? *)
-    (upd_sval meta [(["index0"], ValBaseBit (to_loptbool 16 data))]);
-    upd_sval standard_metadata [(["egress_spec"], ValBaseBit (to_loptbool 9 1))]
-  ].
-
-Definition post_ext_assertion : ext_assertion :=
-  [
-    (["bloom0"], ObjRegister (map ValBaseBit (map (P4Arith.to_lbool 1) (bloom0 bst'))));
-    (["bloom1"], ObjRegister (map ValBaseBit (map (P4Arith.to_lbool 1) (bloom1 bst'))));
-    (["bloom2"], ObjRegister (map ValBaseBit (map (P4Arith.to_lbool 1) (bloom2 bst'))))
-  ].
-
-Definition post :=
-  ARG_RET post_arg_assertion ValBaseNull (MEM [] (EXT post_ext_assertion)).
+    (bf, if bloomfilter.query Z CRC_pad0 CRC_pad1 CRC_pad2 bf data then 0 else 511).
 
 Definition bloomfilter_spec : func_spec :=
-  fs_base (mk_func_spec this (fsh_base pre post) None [["bloom0"]; ["bloom1"]; ["bloom2"]]).
+  WITH ,
+    PATH ["main"; "ig"]
+    MOD None [["bloom0"]; ["bloom1"]; ["bloom2"]]
+    WITH in_port data bf,
+      PRE
+        (ARG [
+          ValBaseStruct [("myHeader",
+            ValBaseHeader [("data", ValBaseBit (to_loptbool 16 data))] (Some true))];
+          force ValBaseNull (uninit_sval_of_typ None custom_metadata_t);
+          update "ingress_port" (ValBaseBit (to_loptbool 9 in_port))
+            (force ValBaseNull (uninit_sval_of_typ None standard_metadata_t))]
+        (MEM []
+        (EXT [
+          (["bloom0"], ObjRegister (map ValBaseBit (map (P4Arith.to_lbool 1) (bloom0 bf))));
+          (["bloom1"], ObjRegister (map ValBaseBit (map (P4Arith.to_lbool 1) (bloom1 bf))));
+          (["bloom2"], ObjRegister (map ValBaseBit (map (P4Arith.to_lbool 1) (bloom2 bf))))
+        ])))
+      POST
+        (* These two lines cannot be merged, because Coq doesn't destruct the pair automatically. *)
+        let bf' := fst (process in_port data bf) in
+        let out_port := snd (process in_port data bf) in
+        (ARG_RET [
+          ValBaseStruct [("myHeader",
+            ValBaseHeader [("data", ValBaseBit (to_loptbool 16 data))] (Some true))];
+          force ValBaseNull (uninit_sval_of_typ None custom_metadata_t);
+          update "egress_spec" (ValBaseBit (to_loptbool 9 out_port))
+            (force ValBaseNull (uninit_sval_of_typ None standard_metadata_t))]
+          ValBaseNull
+        (MEM []
+        (EXT [
+          (["bloom0"], ObjRegister (map ValBaseBit (map (P4Arith.to_lbool 1) (bloom0 bf'))));
+          (["bloom1"], ObjRegister (map ValBaseBit (map (P4Arith.to_lbool 1) (bloom1 bf'))));
+          (["bloom2"], ObjRegister (map ValBaseBit (map (P4Arith.to_lbool 1) (bloom2 bf'))))
+        ]))).
 
 Lemma body_bloomfilter : fundef_satisfies_spec ge MyIngress_fundef nil bloomfilter_spec.
 Proof.
@@ -489,7 +423,7 @@ Proof.
     *)
 
   start_function.
-  step.
+  (* step.
   step_if.
   {
     step.
@@ -524,9 +458,7 @@ Proof.
   }
   {
     inversion H.
-  }
-Abort.
-
-End Experiment1.
+  } *)
+Admitted.
 
 End Experiment1.

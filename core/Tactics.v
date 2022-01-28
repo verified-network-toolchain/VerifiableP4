@@ -191,7 +191,7 @@ Ltac start_function :=
       split; [idtac | solve [eauto 100 with nocore modifies func_specs]];
       repeat lazymatch goal with
       | |- fundef_satisfies_hoare _ _ _ _ (fsh_bind (fun x => _)) =>
-        intro x
+        let x := fresh x in intro x
       end;
       unfold fundef_satisfies_hoare;
       (* handle hoare_func *)
