@@ -61,10 +61,12 @@ Inductive process_packet : extern_state -> (Z * port) -> extern_state -> option 
       PathMap.get ["main"; "ig"] (ge_inst ge) = Some {|iclass:=class_name; ipath:=inst_path|} ->
       PathMap.get ([class_name; "apply"]) (ge_func ge) = Some fd ->
       0 <= data < (Z.pow 2 16 - 1) ->
-      let hdr := ValBaseHeader [("data", ValBaseBit (P4Arith.to_loptbool 16 data))] (Some true) in
+      let hdr := ValBaseStruct [("myHeader",
+        ValBaseHeader [("data", ValBaseBit (P4Arith.to_loptbool 16 data))] (Some true))] in
       let meta := force ValBaseNull (uninit_sval_of_typ None M) in
       let std_meta := update "ingress_port" (port_to_sval in_port) (force ValBaseNull (uninit_sval_of_typ None standard_metadata_t)) in
-      let hdr' := ValBaseHeader [("data", ValBaseBit (P4Arith.to_loptbool 16 data'))] (Some true) in
+      let hdr' := ValBaseStruct [("myHeader",
+        ValBaseHeader [("data", ValBaseBit (P4Arith.to_loptbool 16 data'))] (Some true))] in
       Members.get "egress_spec" std_meta' = out_port_to_sval out_port ->
       exec_func ge read_ndetbit inst_path (PathMap.empty, es) fd nil [hdr; meta; std_meta]
           (m', es') [hdr'; meta'; std_meta'] (SReturn ValBaseNull) ->
