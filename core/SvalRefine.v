@@ -416,4 +416,30 @@ Proof.
       apply sval_refine_refl.
 Qed.
 
+Lemma Forall2_bit_refine_Some_same:
+  forall l1 l2 : list bool, Forall2 bit_refine (map Some l1) (map Some l2) -> l1 = l2.
+Proof.
+  induction l1; intros.
+  - inv H. symmetry in H0. apply map_eq_nil in H0. now subst.
+  - destruct l2; simpl in H; inv H. inv H3. f_equal. now apply IHl1.
+Qed.
+
+#[local] Open Scope Z_scope.
+
+Lemma sval_refine_to_loptbool_eq : forall w n1 n2,
+  0 <= n1 < Z.pow 2 (Z.of_N w) ->
+  0 <= n2 < Z.pow 2 (Z.of_N w) ->
+  SvalRefine.sval_refine
+    (Value.ValBaseBit (P4Arith.to_loptbool w n1))
+    (Value.ValBaseBit (P4Arith.to_loptbool w n2)) ->
+  n1 = n2.
+Proof.
+  intros. inv H1. unfold P4Arith.to_loptbool in H4.
+  apply Forall2_bit_refine_Some_same in H4.
+  pose proof (eq_refl (P4Arith.BitArith.lbool_to_val (P4Arith.to_lbool w n1) 1 0)).
+  rewrite H4 in H1 at 2. rewrite !P4Arith.bit_to_lbool_back in H1.
+  unfold P4Arith.BitArith.mod_bound, P4Arith.BitArith.upper_bound in H1.
+  rewrite !Zmod_small in H1; auto.
+Qed.
+
 End SvalRefine.
