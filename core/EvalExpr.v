@@ -826,6 +826,11 @@ Proof.
     rewrite <- Hvals. inversion H0. subst x l. clear H0. constructor; auto.
 Qed.
 
+Ltac solve_ex_sim :=
+  match goal with
+  | |- exists A, Some ?B = Some A /\ val_sim _ _ => exists B; split; auto; constructor
+  end.
+
 Definition cast_type_ind (P: P4Type -> Prop) :=
   my_P4Type_ind _ P (fun _ => True) (fun _ => True) (fun _ => True).
 
@@ -840,25 +845,20 @@ Proof.
     destruct value. 2: destruct b; inv H3. inv H2. inv H6. simpl. exists (ValBaseBool y).
     destruct y; split; auto; destruct b; inv H3; constructor; auto.
   - destruct v1; simpl in H0; inv H0; inv H1; simpl.
-    + exists (ValBaseInt (to_lbool w (IntArith.mod_bound (pos_of_N w) z))). split; auto.
-      constructor. apply Forall2_refl. intros; auto.
-    + destruct_match H3; inv H3. exists (ValBaseInt (to_lbool w (IntArith.mod_bound (pos_of_N w) (BitArith.lbool_to_val lb' 1 0)))). pose proof (Forall2_Zlength H2). rewrite H1 in H0.
-      rewrite H0. split; auto. constructor. apply Forall2_to_lbool.
-    + exists (ValBaseInt (to_lbool w (IntArith.mod_bound (pos_of_N w) (IntArith.lbool_to_val lb' 1 0)))).
-      split; auto. constructor. apply Forall2_to_lbool.
+    + solve_ex_sim. apply Forall2_refl. intros; auto.
+    + destruct_match H3; inv H3. pose proof (Forall2_Zlength H2). rewrite H1 in H0.
+      rewrite H0. solve_ex_sim. apply Forall2_to_lbool.
+    + solve_ex_sim. apply Forall2_to_lbool.
     + destruct_match H3; inv H3. destruct_match H2; inv H2. inv H5. pose proof (Forall2_Zlength H2).
-      rewrite H1 in H0. rewrite H0. exists (ValBaseInt lb'). split; auto. constructor; auto.
+      rewrite H1 in H0. rewrite H0. solve_ex_sim. auto.
   - destruct v1; simpl in H0; inv H0; inv H1; simpl.
-    + destruct_match H3; inv H3. exists (ValBaseBit [b']). split; auto. constructor. constructor; auto.
-    + exists (ValBaseBit (to_lbool w (BitArith.mod_bound w z))). split; auto. constructor.
-      apply Forall2_to_lbool.
-    + exists (ValBaseBit (to_lbool w (BitArith.mod_bound w (BitArith.lbool_to_val lb' 1 0)))).
-      split; auto. constructor. apply Forall2_to_lbool.
-    + destruct_match H3; inv H3. pose proof (Forall2_Zlength H2). rewrite H1 in H0. rewrite H0.
-      exists (ValBaseBit (to_lbool w (BitArith.mod_bound w (IntArith.lbool_to_val lb' 1 0)))).
-      split; auto. constructor. apply Forall2_to_lbool.
+    + destruct_match H3; inv H3. solve_ex_sim. constructor; auto.
+    + solve_ex_sim. apply Forall2_to_lbool.
+    + solve_ex_sim. apply Forall2_to_lbool.
+    + destruct_match H3; inv H3. pose proof (Forall2_Zlength H2). rewrite H1 in H0.
+      rewrite H0. solve_ex_sim. apply Forall2_to_lbool.
     + destruct_match H3; inv H3. destruct_match H2; inv H2. inv H5. pose proof (Forall2_Zlength H2).
-      rewrite H1 in H0. rewrite H0. exists (ValBaseBit lb'). split; auto; constructor; auto.
+      rewrite H1 in H0. rewrite H0. solve_ex_sim. auto.
   - remember (fix values_of_val_tuple (l1 : list P4Type) (l0 : list Val) {struct l1} :
                option (list Val) :=
                 match l1 with
@@ -883,15 +883,14 @@ Proof.
     destruct_match H3; inversion H3. subst v1. clear H5. inversion H2. subst lv v2. clear H2.
     simpl. rewrite <- Htlp. revert ts H0 l l0 H3 lv' H4. induction ts; intros.
     + rewrite Htlp in *. destruct_match H3; inversion H3. subst l0. subst l. clear H3.
-      inversion H4. subst lv'. exists (ValBaseTuple []). split; auto. constructor. constructor.
+      inversion H4. subst lv'. solve_ex_sim. constructor.
     + inversion H0. subst x l1. clear H0. specialize (IHts H6). clear H6.
       rewrite Htlp, <- Htlp in H3. destruct l0. 1: inv H3. destruct_match H3. 2: inv H3.
       destruct_match H3; inversion H3. subst l. clear H3. inversion H4. subst x l lv'. clear H4.
       specialize (IHts _ _ H1 _ H8). specialize (H5 _ _ _ H0 H6). clear H0 H1 H6 H8.
       destruct H5 as [newy [? ?]]. destruct IHts as [newl' [? ?]]. rewrite Htlp, <- Htlp.
       destruct_match H2; inversion H2; subst newl'. clear H2. rewrite H0.
-      exists (ValBaseTuple (newy :: l)). split; auto. constructor. constructor; auto.
-      inversion H3. subst lv lv'. auto.
+      solve_ex_sim. constructor; auto. inversion H3. subst lv lv'. auto.
   - remember (fix fields_of_val_tuple (l1 : AList tags_t P4Type) (l0 : list Val) {struct l1} :
                option (Ops.Fields Val) :=
                  match l1 with
@@ -934,7 +933,7 @@ Proof.
     + destruct_match H3. 1: inv H3. inversion H2. subst lv v2. clear H2. simpl.
       rewrite <- Htlp. rewrite H1. clear H1. revert xts l lv' f H0 H3 H5. induction xts; intros.
       * rewrite Htlp in H3. destruct l; inversion H3; subst f; clear H3. inversion H5. subst lv'.
-        rewrite Htlp. exists (ValBaseHeader [] true). split; auto. constructor; auto. constructor.
+        rewrite Htlp. solve_ex_sim; auto. constructor.
       * rewrite Htlp, <- Htlp in H3. destruct a as [k t]. destruct l. 1: inv H3.
         destruct_match H3. 2: inv H3. destruct_match H3; inversion H3. subst f. clear H3.
         inversion H5. subst x l0 lv'. clear H5. inversion H0. subst x l0. clear H0.
@@ -942,7 +941,7 @@ Proof.
         clear H1 H2 H6 H7 H8. destruct H5 as [newy [? ?]]. destruct IHxts as [? [? ?]].
         destruct_match H2; inversion H2. subst x. clear H2. inversion H3. subst kvs b kvs' b'.
         clear H3. rewrite Htlp, <- Htlp. rewrite H0. rewrite H4.
-        exists (ValBaseHeader ((str k, newy) :: f) true). split; auto. do 2 (constructor; auto).
+        solve_ex_sim; auto. constructor; auto.
     + destruct_match H3. 1: inv H3. destruct_match H3. 1: inv H3. inversion H2. subst kvs v2.
       clear H2. simpl. rewrite <- Hrcd.
       assert (~~ (AList.key_unique xts && AList.key_unique kvs') = false). {
@@ -957,15 +956,15 @@ Proof.
         apply Znat.Nat2Z.inj in H6. etransitivity; eauto. } rewrite H2, H5. clear H1 H2 H4 H5.
       revert xts H0 fields f H3 kvs' H6. induction xts; intros.
       * rewrite Hrcd in H3. inversion H3. subst f. clear H3. rewrite Hrcd.
-        exists (ValBaseHeader [] true). split; auto. constructor; auto. constructor.
+        solve_ex_sim; auto. constructor.
       * rewrite Hrcd, <- Hrcd in H3. destruct a as [k t]. do 2 (destruct_match H3; [|inv H3]).
         destruct_match H3; inversion H3. subst f. clear H3. rewrite Hrcd, <- Hrcd.
         inversion H0. subst x l. clear H0. specialize (IHxts H8 _ _ H4 _ H6). clear H4 H8.
         simpl in *. eapply all_values_get_some_exists_rel in H1; eauto. destruct H1 as [v' [? ?]].
         rewrite H0. specialize (H7 _ _ _ H2 H1). destruct H7 as [v0' [? ?]]. rewrite H3.
         destruct IHxts as [? [? ?]]. destruct_match H5; inversion H5. subst x. clear H5.
-        exists (ValBaseHeader ((str k, v0') :: f) true). split; auto. inversion H7. subst kvs b kvs'0 b'.
-        clear H7. do 2 (constructor; auto).
+        solve_ex_sim; auto.  inversion H7. subst kvs b kvs'0 b'.
+        clear H7. constructor; auto.
     + destruct_match H3. 1: inv H3. destruct_match H3. 1: inv H3. inversion H2. subst kvs b v2.
       clear H2. simpl. rewrite <- Hrcd. clear H7. rename H9 into H6.
       assert (~~ (AList.key_unique xts && AList.key_unique kvs') = false). {
@@ -980,15 +979,15 @@ Proof.
         apply Znat.Nat2Z.inj in H6. etransitivity; eauto. } rewrite H2, H5. clear H1 H2 H4 H5 b'.
       revert xts H0 fields f H3 kvs' H6. induction xts; intros.
       * rewrite Hrcd in H3. inversion H3. subst f. clear H3. rewrite Hrcd.
-        exists (ValBaseHeader [] true). split; auto. constructor; auto. constructor.
+        solve_ex_sim; auto. constructor.
       * rewrite Hrcd, <- Hrcd in H3. destruct a as [k t]. do 2 (destruct_match H3; [|inv H3]).
         destruct_match H3; inversion H3. subst f. clear H3. rewrite Hrcd, <- Hrcd.
         inversion H0. subst x l. clear H0. specialize (IHxts H8 _ _ H4 _ H6). clear H4 H8.
         simpl in *. eapply all_values_get_some_exists_rel in H1; eauto. destruct H1 as [v' [? ?]].
         rewrite H0. specialize (H7 _ _ _ H2 H1). destruct H7 as [v0' [? ?]]. rewrite H3.
         destruct IHxts as [? [? ?]]. destruct_match H5; inversion H5. subst x. clear H5.
-        exists (ValBaseHeader ((str k, v0') :: f) true). split; auto. inversion H7. subst kvs b kvs'0 b'.
-        clear H7. do 2 (constructor; auto).
+        solve_ex_sim; auto. inversion H7. subst kvs b kvs'0 b'. clear H7.
+        constructor; auto.
   - remember (fix fields_of_val_tuple (l1 : AList tags_t P4Type) (l0 : list Val) {struct l1} :
                option (Ops.Fields Val) :=
                  match l1 with
@@ -1031,7 +1030,7 @@ Proof.
     + destruct_match H3. 1: inv H3. inversion H2. subst lv v2. clear H2. simpl.
       rewrite <- Htlp. rewrite H1. clear H1. revert xts l lv' f H0 H3 H5. induction xts; intros.
       * rewrite Htlp in H3. destruct l; inversion H3; subst f; clear H3. inversion H5. subst lv'.
-        rewrite Htlp. exists (ValBaseStruct []). split; auto. constructor; auto. constructor.
+        rewrite Htlp. solve_ex_sim; auto. constructor.
       * rewrite Htlp, <- Htlp in H3. destruct a as [k t]. destruct l. 1: inv H3.
         destruct_match H3. 2: inv H3. destruct_match H3; inversion H3. subst f. clear H3.
         inversion H5. subst x l0 lv'. clear H5. inversion H0. subst x l0. clear H0.
@@ -1039,7 +1038,7 @@ Proof.
         clear H1 H2 H6 H7 H8. destruct H5 as [newy [? ?]]. destruct IHxts as [? [? ?]].
         destruct_match H2; inversion H2. subst x. clear H2. inversion H3. subst kvs kvs'.
         clear H3. rewrite Htlp, <- Htlp. rewrite H0. rewrite H4.
-        exists (ValBaseStruct ((str k, newy) :: f)). split; auto. do 2 (constructor; auto).
+        solve_ex_sim; auto. constructor; auto.
     + destruct_match H3. 1: inv H3. destruct_match H3. 1: inv H3. inversion H2. subst kvs v2.
       clear H2. simpl. rewrite <- Hrcd.
       assert (~~ (AList.key_unique xts && AList.key_unique kvs') = false). {
@@ -1054,15 +1053,14 @@ Proof.
         apply Znat.Nat2Z.inj in H6. etransitivity; eauto. } rewrite H2, H5. clear H1 H2 H4 H5.
       revert xts H0 fields f H3 kvs' H6. induction xts; intros.
       * rewrite Hrcd in H3. inversion H3. subst f. clear H3. rewrite Hrcd.
-        exists (ValBaseStruct []). split; auto. constructor; auto. constructor.
+        solve_ex_sim; auto. constructor.
       * rewrite Hrcd, <- Hrcd in H3. destruct a as [k t]. do 2 (destruct_match H3; [|inv H3]).
         destruct_match H3; inversion H3. subst f. clear H3. rewrite Hrcd, <- Hrcd.
         inversion H0. subst x l. clear H0. specialize (IHxts H8 _ _ H4 _ H6). clear H4 H8.
         simpl in *. eapply all_values_get_some_exists_rel in H1; eauto. destruct H1 as [v' [? ?]].
         rewrite H0. specialize (H7 _ _ _ H2 H1). destruct H7 as [v0' [? ?]]. rewrite H3.
         destruct IHxts as [? [? ?]]. destruct_match H5; inversion H5. subst x. clear H5.
-        exists (ValBaseStruct ((str k, v0') :: f)). split; auto. inversion H7. subst kvs kvs'0.
-        clear H7. do 2 (constructor; auto).
+        solve_ex_sim. inversion H7. subst kvs kvs'0. constructor; auto.
     + destruct_match H3. 1: inv H3. destruct_match H3. 1: inv H3. inversion H2. subst kvs b v2.
       clear H2. simpl. rewrite <- Hrcd. clear H7. rename H9 into H6.
       assert (~~ (AList.key_unique xts && AList.key_unique kvs') = false). {
@@ -1077,29 +1075,26 @@ Proof.
         apply Znat.Nat2Z.inj in H6. etransitivity; eauto. } rewrite H2, H5. clear H1 H2 H4 H5 b'.
       revert xts H0 fields f H3 kvs' H6. induction xts; intros.
       * rewrite Hrcd in H3. inversion H3. subst f. clear H3. rewrite Hrcd.
-        exists (ValBaseStruct []). split; auto. constructor; auto. constructor.
+        solve_ex_sim; auto. constructor.
       * rewrite Hrcd, <- Hrcd in H3. destruct a as [k t]. do 2 (destruct_match H3; [|inv H3]).
         destruct_match H3; inversion H3. subst f. clear H3. rewrite Hrcd, <- Hrcd.
         inversion H0. subst x l. clear H0. specialize (IHxts H8 _ _ H4 _ H6). clear H4 H8.
         simpl in *. eapply all_values_get_some_exists_rel in H1; eauto. destruct H1 as [v' [? ?]].
         rewrite H0. specialize (H7 _ _ _ H2 H1). destruct H7 as [v0' [? ?]]. rewrite H3.
         destruct IHxts as [? [? ?]]. destruct_match H5; inversion H5. subst x. clear H5.
-        exists (ValBaseStruct ((str k, v0') :: f)). split; auto. inversion H7. subst kvs kvs'0.
-        clear H7. do 2 (constructor; auto).
+        solve_ex_sim. inversion H7. subst kvs kvs'0. constructor; auto.
   - simpl in *. destruct t; simpl in H1. 2: inv H1.
     destruct p; try (now inv H1); destruct v1; try (now inv H1).
     + destruct_match H1; inv H1. inv H2. simpl. pose proof (Forall2_Zlength H4). rewrite H1 in H3.
-      rewrite H3. exists (ValBaseSenumField (str X) (ValBaseInt lb')). split; auto. constructor.
-      constructor. auto.
+      rewrite H3. solve_ex_sim. constructor. auto.
     + destruct v1; try (now inv H1). destruct_match H1; inv H1. inv H2. inv H6. simpl.
       pose proof (Forall2_Zlength H2). rewrite H1 in H3. rewrite H3.
-      exists (ValBaseSenumField (str X) (ValBaseInt lb')). split; auto. constructor. constructor. auto.
+      solve_ex_sim. constructor. auto.
     + destruct_match H1; inv H1. inv H2. simpl. pose proof (Forall2_Zlength H4). rewrite H1 in H3.
-      rewrite H3. exists (ValBaseSenumField (str X) (ValBaseBit lb')). split; auto. constructor.
-      constructor. auto.
+      rewrite H3. solve_ex_sim. constructor. auto.
     + destruct v1; try (now inv H1). destruct_match H1; inv H1. inv H2. inv H6. simpl.
       pose proof (Forall2_Zlength H2). rewrite H1 in H3. rewrite H3.
-      exists (ValBaseSenumField (str X) (ValBaseBit lb')). split; auto. constructor. constructor. auto.
+      solve_ex_sim. constructor. auto.
   - simpl. apply IHtyp with v1; auto.
 Qed.
 
@@ -1121,31 +1116,39 @@ Lemma eval_unary_op_val_sim: forall op v1 newv1 v2,
     exists newv2, Ops.eval_unary_op op v2 = Some newv2 /\ val_sim newv1 newv2.
 Proof.
   intros. destruct op; cbn [Ops.eval_unary_op] in H0; destruct v1; try (now inv H0).
-  - inv H0. inv H1. simpl. exists (ValBaseBool (~~ b')). split; auto. constructor; auto.
-  - destruct (BitArith.from_lbool value) as [wv nv] eqn:?H. inv H0. inv H1.
-    cbn [Ops.eval_unary_op]. destruct (BitArith.from_lbool lb') as [w n] eqn:?H.
-    exists (ValBaseBit (to_lbool w (BitArith.bit_not w n))). split; auto. constructor.
-    eapply Forall_from_to_lbool; eauto.
-  - destruct (BitArith.from_lbool value) as [wv nv] eqn:?H. inv H0. inv H1.
-    cbn [Ops.eval_unary_op]. destruct (BitArith.from_lbool lb') as [w n] eqn:?H.
-    exists (ValBaseInt (to_lbool w (IntArith.bit_not (pos_of_N w) n))). split; auto.
-    constructor. eapply Forall_from_to_lbool; eauto.
-  - inv H0. inv H1. simpl. exists (ValBaseInteger (- z)). split; auto. constructor.
-  - destruct (BitArith.from_lbool value) as [wv nv] eqn:?H. inv H0. inv H1.
-    cbn [Ops.eval_unary_op]. destruct (BitArith.from_lbool lb') as [w n] eqn:?H.
-    exists (ValBaseBit (to_lbool w (BitArith.neg w n))). split; auto.
-    constructor. eapply Forall_from_to_lbool; eauto.
-  - destruct (BitArith.from_lbool value) as [wv nv] eqn:?H. inv H0. inv H1.
-    cbn [Ops.eval_unary_op]. destruct (BitArith.from_lbool lb') as [w n] eqn:?H.
-    exists (ValBaseInt (to_lbool w (IntArith.neg (pos_of_N w) n))). split; auto.
-    constructor. eapply Forall_from_to_lbool; eauto.
+  2, 3, 5, 6: destruct (BitArith.from_lbool value) as [wv nv] eqn:?H; inv H0; inv H1;
+  cbn [Ops.eval_unary_op]; destruct (BitArith.from_lbool lb') as [w n] eqn:?H;
+  solve_ex_sim; eapply Forall_from_to_lbool; eauto.
+  all: inv H0; inv H1; simpl; solve_ex_sim; auto.
 Qed.
+
+Lemma eval_binary_op_val_sim_plusplus: forall v1 v2 v3 v4 result,
+    Ops.eval_binary_op PlusPlus v1 v2 = Some result ->
+    val_sim v1 v3 -> val_sim v2 v4 ->
+    exists result', Ops.eval_binary_op PlusPlus v3 v4 = Some result' /\
+                 val_sim result result'.
+Proof.
+  simpl. intros. destruct v1; simpl in H0; try (now inv H0);
+    destruct v2; inv H0; inv H1; inv H2; simpl; solve_ex_sim; apply Forall2_app; auto.
+Qed.
+
+Lemma eval_binary_op_val_sim: forall op v1 v2 v3 v4 result,
+    In op [Shl; Shr] ->
+    Ops.eval_binary_op op v1 v2 = Some result ->
+    val_sim v1 v3 -> val_sim v2 v4 ->
+    exists result', Ops.eval_binary_op op v3 v4 = Some result' /\
+                 val_sim result result'.
+Proof.
+  intros. inv H0; [|inv H4; [|inv H0]]; simpl in *; destruct v2;
+    simpl in H1; try (now inv H1); inv H3; simpl.
+  - destruct_match H1. 2: inv H1. destruct v1; inv H1; inv H2; simpl.
+Abort.
 
 Lemma eval_binary_op_val_sim: forall op v1 v2 v3 v4 result,
     Ops.eval_binary_op op v1 v2 = Some result ->
     val_sim v1 v3 -> val_sim v2 v4 ->
     exists result', Ops.eval_binary_op op v3 v4 = Some result' /\
-                      val_sim result result'.
+                 val_sim result result'.
 Proof.
 Admitted.
 
