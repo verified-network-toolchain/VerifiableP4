@@ -1103,12 +1103,43 @@ Proof.
   - simpl. apply IHtyp with v1; auto.
 Qed.
 
+Lemma Forall_from_to_lbool:
+  forall (l1 l2: list bool) (w1 w2 : N) (n1 n2 z1 z2: Z),
+    BitArith.from_lbool l1 = (w1, n1) ->
+    Forall2 (fun _ _ : bool => True) l1 l2 ->
+    BitArith.from_lbool l2 = (w2, n2) ->
+    Forall2 (fun _ _ : bool => True) (to_lbool w1 z1) (to_lbool w2 z2).
+Proof.
+  intros. pose proof (Forall2_Zlength H1). unfold BitArith.from_lbool in H0, H2.
+  rewrite H3 in H0. assert (w1 = w2) by (inv H0; inv H2; auto). subst.
+  apply Forall2_to_lbool.
+Qed.
+
 Lemma eval_unary_op_val_sim: forall op v1 newv1 v2,
     Ops.eval_unary_op op v1 = Some newv1 ->
     val_sim v1 v2 ->
     exists newv2, Ops.eval_unary_op op v2 = Some newv2 /\ val_sim newv1 newv2.
 Proof.
-Admitted.
+  intros. destruct op; cbn [Ops.eval_unary_op] in H0; destruct v1; try (now inv H0).
+  - inv H0. inv H1. simpl. exists (ValBaseBool (~~ b')). split; auto. constructor; auto.
+  - destruct (BitArith.from_lbool value) as [wv nv] eqn:?H. inv H0. inv H1.
+    cbn [Ops.eval_unary_op]. destruct (BitArith.from_lbool lb') as [w n] eqn:?H.
+    exists (ValBaseBit (to_lbool w (BitArith.bit_not w n))). split; auto. constructor.
+    eapply Forall_from_to_lbool; eauto.
+  - destruct (BitArith.from_lbool value) as [wv nv] eqn:?H. inv H0. inv H1.
+    cbn [Ops.eval_unary_op]. destruct (BitArith.from_lbool lb') as [w n] eqn:?H.
+    exists (ValBaseInt (to_lbool w (IntArith.bit_not (pos_of_N w) n))). split; auto.
+    constructor. eapply Forall_from_to_lbool; eauto.
+  - inv H0. inv H1. simpl. exists (ValBaseInteger (- z)). split; auto. constructor.
+  - destruct (BitArith.from_lbool value) as [wv nv] eqn:?H. inv H0. inv H1.
+    cbn [Ops.eval_unary_op]. destruct (BitArith.from_lbool lb') as [w n] eqn:?H.
+    exists (ValBaseBit (to_lbool w (BitArith.neg w n))). split; auto.
+    constructor. eapply Forall_from_to_lbool; eauto.
+  - destruct (BitArith.from_lbool value) as [wv nv] eqn:?H. inv H0. inv H1.
+    cbn [Ops.eval_unary_op]. destruct (BitArith.from_lbool lb') as [w n] eqn:?H.
+    exists (ValBaseInt (to_lbool w (IntArith.neg (pos_of_N w) n))). split; auto.
+    constructor. eapply Forall_from_to_lbool; eauto.
+Qed.
 
 Lemma eval_binary_op_val_sim: forall op v1 v2 v3 v4 result,
     Ops.eval_binary_op op v1 v2 = Some result ->
