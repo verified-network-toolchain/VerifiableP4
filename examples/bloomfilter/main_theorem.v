@@ -35,16 +35,6 @@ Definition bf_encode (es : V1Model.extern_state) (bf : bloomfilter_state) :=
 
 Open Scope Z_scope.
 
-Lemma sval_refine_to_loptbool_eq : forall w n1 n2,
-  0 <= n1 < Z.pow 2 (Z.of_N w) ->
-  0 <= n2 < Z.pow 2 (Z.of_N w) ->
-  SvalRefine.sval_refine
-    (Value.ValBaseBit (P4Arith.to_loptbool w n1))
-    (Value.ValBaseBit (P4Arith.to_loptbool w n2)) ->
-  n1 = n2.
-Proof.
-Admitted.
-
 Lemma process_packet_prop : forall es bf p es' p',
   process_packet ge custom_metadata_t es p es' p' ->
   bf_encode es bf ->
@@ -90,13 +80,13 @@ Proof.
       inv H10. inv H1. destruct H5.
       clear -H3 H4 H0. inv H0. inv H7. destruct H2.
       clear -H3 H4 H0.
-      apply sval_refine_to_loptbool_eq in H0; eauto.
+      apply SvalRefine.sval_refine_to_loptbool_eq in H0; eauto.
     - inv H12. inv H13.
       clear -H5 H11.
       apply SvalRefine.sval_refine_get with (f := "egress_spec") in H11.
       simpl in H11.
       rewrite H5 in H11.
-      apply sval_refine_to_loptbool_eq in H11; eauto.
+      apply SvalRefine.sval_refine_to_loptbool_eq in H11; eauto.
       + destruct in_port; simpl.
         2 : destruct (query Z CRC_pad0 CRC_pad1 CRC_pad2 bf data); simpl.
         all : lia.
