@@ -129,16 +129,14 @@ Proof.
   eapply hoare_stmt_if_false; eauto with hoare.
 Qed.
 
-Lemma hoare_stmt_if' : forall p pre_mem pre_ext tags cond tru ofls typ post b,
-  eval_expr ge p pre_mem cond = Some (ValBaseBool (Some b)) ->
-  (b -> hoare_stmt ge p (MEM pre_mem (EXT pre_ext)) tru post) ->
-  (negb b -> hoare_stmt ge p (MEM pre_mem (EXT pre_ext)) (force empty_statement ofls) post) ->
+Lemma hoare_stmt_if' : forall p pre_mem pre_ext tags cond tru ofls typ post sv,
+  eval_expr ge p pre_mem cond = Some sv ->
+  (is_sval_true sv -> hoare_stmt ge p (MEM pre_mem (EXT pre_ext)) tru post) ->
+  (is_sval_false sv  -> hoare_stmt ge p (MEM pre_mem (EXT pre_ext)) (force empty_statement ofls) post) ->
   hoare_stmt ge p (MEM pre_mem (EXT pre_ext)) (MkStatement tags (StatConditional cond tru ofls) typ) post.
 Proof.
   intros.
-  destruct b.
-  - apply hoare_stmt_if_true'; eauto.
-  - apply hoare_stmt_if_false'; eauto.
+  eapply hoare_stmt_if; eauto with hoare.
 Qed.
 
 Lemma hoare_call_builtin' : forall p pre_mem pre_ext tags tags' dir' expr fname tparams params typ

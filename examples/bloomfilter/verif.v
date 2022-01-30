@@ -24,6 +24,8 @@ Require Import ProD3.core.Implies.
 Require Import ProD3.core.Modifies.
 Require Import ProD3.core.Tactics.
 Require Import ProD3.core.V1ModelSpec.
+Require Import ProD3.core.Coqlib.
+Require Import Coq.micromega.Lia.
 
 Instance target : @Target Info (@Expression Info) := V1Model.
 
@@ -329,7 +331,7 @@ Definition bloomfilter_spec : func_spec :=
   WITH ,
     PATH ["main"; "ig"]
     MOD None [["bloom0"]; ["bloom1"]; ["bloom2"]]
-    WITH in_port data bf,
+    WITH in_port data bf (H : 0 <= in_port < 2),
       PRE
         (ARG [
           ValBaseStruct [("myHeader",
@@ -361,11 +363,29 @@ Definition bloomfilter_spec : func_spec :=
           (["bloom2"], reg_encode (bloom2 bf'))
         ]))).
 
+Lemma mod_bound_eq : forall w n,
+  0 <= n < Z.pow 2 (Z.of_N w) ->
+  BitArith.mod_bound w n = n.
+Proof.
+  intros.
+  unfold BitArith.mod_bound, BitArith.upper_bound.
+  rewrite Zmod_small; auto.
+Qed.
+
 Lemma bloomfilter_body : fundef_satisfies_spec ge MyIngress_fundef nil bloomfilter_spec.
 Proof.
   start_function.
   step_if.
   {
+    (* clear up H0 *)
+    fold abs_eq in H0.
+    rewrite get_update_same in H0 by auto.
+    change ((eval_val_to_sval
+            (ValBaseBit [false; false; false; false; false; false; false; false; false])))
+      with (ValBaseBit (to_loptbool 9 0)) in H0.
+    rewrite abs_eq_bit in H0.
+    rewrite !mod_bound_eq in H0 by lia.
+    destruct (in_port =? 0) eqn:H_in_port; inv H0.
     step.
     step.
     step_call Add_body.
@@ -375,11 +395,38 @@ Proof.
     all : admit.
   }
   {
-    simpl force.
+    (* clear up H0 *)
+    fold abs_eq in H0.
+    rewrite get_update_same in H0 by auto.
+    change ((eval_val_to_sval
+            (ValBaseBit [false; false; false; false; false; false; false; false; false])))
+      with (ValBaseBit (to_loptbool 9 0)) in H0.
+    rewrite abs_eq_bit in H0.
+    rewrite !mod_bound_eq in H0 by lia.
+    destruct (in_port =? 0) eqn:H_in_port; inv H0.
+    simpl (force empty_statement _).
     step.
     step.
     step_call Query_body.
     entailer.
-    admit.
+    step_if.
+    {
+      rewrite get_update_same in H0 by auto.
+      destruct (query Z CRC_pad0 CRC_pad1 CRC_pad2 bf data) eqn:H_query; inv H0.
+      step.
+      step.
+      step.
+      entailer.
+      all : admit.
+    }
+    {
+      rewrite get_update_same in H0 by auto.
+      destruct (query Z CRC_pad0 CRC_pad1 CRC_pad2 bf data) eqn:H_query; inv H0.
+      simpl (force empty_statement _).
+      step.
+      step.
+      entailer.
+      all : admit.
+    }
   }
 Admitted.

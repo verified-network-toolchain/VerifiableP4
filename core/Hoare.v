@@ -281,7 +281,7 @@ Ltac specialize_hoare_block :=
   end.
 
 Ltac specialize_hoare_stmt :=
-  lazymatch goal with
+  match goal with
   | H : hoare_stmt _ _ _ _ |- _ =>
       specialize (H _ _ _ ltac:(eassumption) ltac:(eassumption))
   | H : forall _ _ _, _ -> exec_stmt _ _ _ _ _ _ _ -> _ |- _ =>
@@ -484,18 +484,36 @@ Proof.
     auto.
 Qed.
 
-Lemma hoare_stmt_if : forall p pre tags cond tru ofls typ post b,
-  hoare_expr_det p pre cond (ValBaseBool (Some b)) ->
-  (if b then
-      hoare_stmt p pre tru post
-   else
-      hoare_stmt p pre (force empty_statement ofls) post
-  ) ->
+Definition is_sval_true (v : Sval) :=
+  match v with
+  | ValBaseBool (Some true)
+  | ValBaseBool None
+      => True
+  | _ => False
+  end.
+
+Definition is_sval_false (v : Sval) :=
+  match v with
+  | ValBaseBool (Some false)
+  | ValBaseBool None
+      => True
+  | _ => False
+  end.
+
+Lemma hoare_stmt_if : forall p pre tags cond tru ofls typ post sv,
+  hoare_expr_det p pre cond sv ->
+  (is_sval_true sv -> hoare_stmt p pre tru post) ->
+  (is_sval_false sv -> hoare_stmt p pre (force empty_statement ofls) post) ->
   hoare_stmt p pre (MkStatement tags (StatConditional cond tru ofls) typ) post.
 Proof.
-  intros. destruct b.
-  - apply hoare_stmt_if_true; auto.
-  - apply hoare_stmt_if_false; auto.
+  unfold hoare_stmt. intros.
+  inv H4;
+    specialize_hoare_expr_det;
+    inv H0; destruct b; inv H6;
+    try specialize (H1 I);
+    try specialize (H2 I);
+    specialize_hoare_stmt;
+    auto.
 Qed.
 
 Lemma hoare_stmt_block : forall p pre tags block typ post,

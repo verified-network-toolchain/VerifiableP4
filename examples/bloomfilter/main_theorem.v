@@ -46,6 +46,9 @@ Proof.
   inv H1. inv H2.
   eapply (proj1 bloomfilter_body (port_to_Z in_port) data bf) in H6.
   2 : {
+    destruct in_port; simpl; lia.
+  }
+  2 : {
     clear H5.
     split. {
       simpl. unfold AssertionLang.arg_denote, AssertionLang.arg_satisfies.
