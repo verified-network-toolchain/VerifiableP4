@@ -383,6 +383,15 @@ Proof.
     rewrite H_get1 in H0. inv H0.
 Qed.
 
+Lemma all_values_key_unique : forall {A} (kvl kvl' : AList.StringAList A) rel,
+    AList.all_values rel kvl kvl' ->
+    AList.key_unique kvl -> AList.key_unique kvl'.
+Proof.
+  intros. induction H; auto. inv H0. destruct x. destruct (AList.get l s) eqn:?H.
+  1: inv H3. simpl. destruct y. eapply all_values_get_none_is_none in H0; eauto.
+  simpl in H. destruct H. subst s0. rewrite H0. apply IHForall2; auto.
+Qed.
+
 Lemma sval_refine_get_case1 : forall f kvs kvs',
   AList.all_values (exec_val bit_refine) kvs kvs' ->
   sval_refine (force ValBaseNull (AList.get kvs f)) (force ValBaseNull (AList.get kvs' f)).
