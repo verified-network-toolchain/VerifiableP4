@@ -1359,16 +1359,95 @@ Proof.
     inv H1. inv H2. simpl. rewrite eqb_refl. eapply IHv1; eauto.
 Qed.
 
+Lemma bin_op_eq_neq: forall v1 v2 b,
+    Ops.eval_binary_op Eq v1 v2 = Some (ValBaseBool b) <->
+    Ops.eval_binary_op NotEq v1 v2 = Some (ValBaseBool (~~ b)).
+Proof.
+  simpl. intros. split; intros; destruct_match H0; inv H0; auto.
+  rewrite <- (Bool.negb_involutive b0), <- (Bool.negb_involutive b), H3; auto.
+Qed.
+
+Lemma eval_binary_op_val_sim_noteq: forall v1 v2 v3 v4 result,
+    Ops.eval_binary_op NotEq v1 v2 = Some result ->
+    val_sim v1 v3 -> val_sim v2 v4 ->
+    exists result', Ops.eval_binary_op NotEq v3 v4 = Some result' /\
+                 val_sim result result'.
+Proof.
+  intros. assert (exists b, result = ValBaseBool (~~ b)). {
+    simpl in H0. destruct_match H0; inv H0. exists b; auto. } destruct H3. subst.
+  rewrite <- bin_op_eq_neq in H0.
+  destruct (eval_binary_op_val_sim_eq _ _ _ _ _ H0 H1 H2) as [r [? ?]].
+  assert (exists b, r = ValBaseBool b). {
+    simpl in H3. destruct_match H3; inv H3. exists b; auto. } destruct H5. subst.
+  rewrite bin_op_eq_neq in H3. rewrite H3. solve_ex_sim. auto.
+Qed.
+
+Definition eval_bin_op op v1 v2 :=
+  match v1, v2 with
+  | ValBaseBit bits1, ValBaseBit bits2 =>
+      let (w1, n1) := BitArith.from_lbool bits1 in
+      let (w2, n2) := BitArith.from_lbool bits2 in
+      if (BinNat.N.eqb w1 w2) then Ops.eval_binary_op_bit op w1 n1 n2
+      else None
+  | ValBaseInt bits1, ValBaseInt bits2 =>
+      let (w1, n1) := IntArith.from_lbool bits1 in
+      let (w2, n2) := IntArith.from_lbool bits2 in
+      if (BinNat.N.eqb w1 w2) then Ops.eval_binary_op_int op w1 n1 n2
+      else None
+  | ValBaseInteger n1, ValBaseInteger n2 =>
+        Ops.eval_binary_op_integer op n1 n2
+  | ValBaseBool b1, ValBaseBool b2 =>
+        Ops.eval_binary_op_bool op b1 b2
+  | _, _ => None
+  end.
+
+Lemma bin_op_small: forall op v1 v2,
+    ~ In op [PlusPlus; Shl; Shr; Eq; NotEq] ->
+    Ops.eval_binary_op op v1 v2 = eval_bin_op op v1 v2.
+Proof.
+  intros. destruct op; simpl; auto; exfalso; apply H0.
+  - right. now left.
+  - do 2 right. now left.
+  - do 3 right. now left.
+  - do 4 right. now left.
+  - now left.
+Qed.
+
 Lemma eval_binary_op_val_sim: forall op v1 v2 v3 v4 result,
+    ~ In op [Shl; Shr] ->
     Ops.eval_binary_op op v1 v2 = Some result ->
     val_sim v1 v3 -> val_sim v2 v4 ->
     exists result', Ops.eval_binary_op op v3 v4 = Some result' /\
                  val_sim result result'.
 Proof.
+  intros. destruct (in_dec opbin_eq_dec op [PlusPlus; Shl; Shr; Eq; NotEq]).
+  - destruct i as [? | [? | [? | [? | [? | ? ]]]]]; subst.
+    + eapply eval_binary_op_val_sim_plusplus; eauto.
+    + exfalso. apply H0. now left.
+    + exfalso. apply H0. right. now left.
+    + eapply eval_binary_op_val_sim_eq; eauto.
+    + eapply eval_binary_op_val_sim_noteq; eauto.
+    + inv H4.
+  - rewrite bin_op_small in *; auto. clear H0 n.
+    destruct v1, v2; simpl in H1; try (now inv H1).
+    + destruct op; simpl in H1; inv H1; inv H2; inv H3; simpl; solve_ex_sim; auto.
+    + destruct op; simpl in H1; inv H1; inv H2; inv H3; simpl; try solve_ex_sim; auto.
+      all: destruct_match H4; inv H4; solve_ex_sim.
+    + destruct_match H1. 2: inv H1. inv H2. inv H3. simpl.
+      pose proof (Forall2_Zlength H4). pose proof (Forall2_Zlength H5).
+      rewrite <- H2, <- H3, H0.
+      destruct op; simpl in H1; inv H1; simpl; try solve_ex_sim; auto;
+        try apply Forall2_to_lbool. admit. admit.
+    + destruct_match H1. 2: inv H1. inv H2. inv H3. simpl.
+      pose proof (Forall2_Zlength H4). pose proof (Forall2_Zlength H5).
+      rewrite <- H2, <- H3, H0.
+      destruct op; simpl in H1; inv H1; simpl; try solve_ex_sim; auto;
+        try apply Forall2_to_lbool.
 Admitted.
 
 Lemma sval_refine_liberal_binary:
   forall (op : OpBin) (v v0 : Sval) (largv rargv v1 : Val),
+    ~ In op [Shl; Shr] ->
     Ops.eval_binary_op op largv rargv = Some v1 ->
     sval_to_val read_ndetbit v largv ->
     sval_to_val read_ndetbit v0 rargv ->
@@ -1380,13 +1459,13 @@ Lemma sval_refine_liberal_binary:
 Proof.
   intros.
   assert (val_sim largv (force_sval_to_val v)). {
-        apply val_sim_on_top in H1. apply val_sim_sym in H1.
-        eapply val_sim_trans; eauto. apply force_sval_to_val_val_sim. }
-  assert (val_sim rargv (force_sval_to_val v0)). {
         apply val_sim_on_top in H2. apply val_sim_sym in H2.
         eapply val_sim_trans; eauto. apply force_sval_to_val_val_sim. }
-  destruct (eval_binary_op_val_sim _ _ _ _ _ _ H0 H3 H4) as [v1' [? ?]].
-  rewrite H5. simpl. apply sval_refine_liberal. apply val_sim_sym in H6.
+  assert (val_sim rargv (force_sval_to_val v0)). {
+        apply val_sim_on_top in H3. apply val_sim_sym in H3.
+        eapply val_sim_trans; eauto. apply force_sval_to_val_val_sim. }
+  destruct (eval_binary_op_val_sim _ _ _ _ _ _ H0 H1 H4 H5) as [v1' [? ?]].
+  rewrite H6. simpl. apply sval_refine_liberal. apply val_sim_sym in H7.
   eapply val_sim_trans; eauto. apply eval_val_to_sval_val_sim.
 Qed.
 
