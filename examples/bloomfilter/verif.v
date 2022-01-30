@@ -82,6 +82,57 @@ Definition bloom2 (bst : bloomfilter_state) : list Z :=
 Definition reg_encode (l : list Z) : extern_object :=
   ObjRegister (map ValBaseBit (map (P4Arith.to_lbool 1) l)).
 
+(* list_of_filter lemmas *)
+
+Lemma Zlength_list_of_filter : forall n filter,
+  0 <= n ->
+  Zlength (list_of_filter n filter) = n.
+Proof.
+  intros.
+  unfold list_of_filter.
+  rewrite Zlength_map.
+  pose proof (seq_length (Z.to_nat n) 0).
+  rewrite Zlength_length; eauto.
+Qed.
+
+Hint Rewrite Zlength_list_of_filter using lia : Zlength.
+
+Lemma Znth_list_of_filter : forall n filter i,
+  0 <= i < n ->
+  Znth i (list_of_filter n filter) = bool_to_Z (filter i).
+Proof.
+Admitted.
+
+Hint Rewrite Znth_list_of_filter using lia : Znth.
+
+Lemma update_bit : forall filter hash,
+  reg_encode (list_of_filter NUM_ENTRY (upd Z Z.eqb filter hash true)) =
+  ObjRegister
+    (upd_Znth hash (map ValBaseBit (map (to_lbool 1) (list_of_filter NUM_ENTRY filter)))
+       (ValBaseBit (to_lbool 1 (BitArith.mod_bound 1 1)))).
+Proof.
+  intros.
+  unfold reg_encode.
+  f_equal.
+  unfold upd.
+  unfold NUM_ENTRY.
+  list_simplify.
+  - replace (hash =? i) with true by lia.
+    reflexivity.
+  - replace (hash =? i) with false by lia.
+    reflexivity.
+Qed.
+
+Lemma get_bit : forall (filter : Filter) hash,
+  0 <= hash < NUM_ENTRY ->
+  Znth hash (map ValBaseBit (map (to_lbool 1) (list_of_filter NUM_ENTRY filter)))
+    = ValBaseBit [filter hash].
+Proof.
+  intros.
+  list_simplify.
+  destruct (filter hash); reflexivity.
+Qed.
+
 Definition Add_fundef := Eval compute in
   force dummy_fundef (PathMap.get ["Add"; "apply"] (ge_func ge)).
 
@@ -188,13 +239,6 @@ Definition Add_spec : func_spec :=
               (["bloom1"], reg_encode (bloom1 bf'));
               (["bloom2"], reg_encode (bloom2 bf'))]))).
 
-Lemma update_bit : forall filter hash,
-  reg_encode (list_of_filter NUM_ENTRY (upd Z Z.eqb filter hash true)) =
-  ObjRegister
-    (upd_Znth hash (map ValBaseBit (map (to_lbool 1) (list_of_filter NUM_ENTRY filter)))
-       (ValBaseBit (to_lbool 1 (BitArith.mod_bound 1 1)))).
-Admitted.
-
 Lemma Add_body : fundef_satisfies_spec ge Add_fundef nil Add_spec.
 Proof.
   start_function.
@@ -265,11 +309,6 @@ Definition Query_spec : func_spec :=
         (MEM []
         (EXT []))).
 
-Lemma get_bit : forall (filter : Filter) hash,
-  Znth hash (map ValBaseBit (map (to_lbool 1) (list_of_filter NUM_ENTRY filter)))
-    = ValBaseBit [filter hash].
-Admitted.
-
 Lemma Query_body : fundef_satisfies_spec ge Query_fundef nil Query_spec.
 Proof.
   start_function.
@@ -304,7 +343,7 @@ Proof.
   unfold bloom0.
   unfold bloom1.
   unfold bloom2.
-  rewrite !get_bit.
+  rewrite !get_bit by (apply CRC_range).
   entailer.
   { simpl build_abs_unary_op.
     unfold query, bloomfilter.get.
@@ -386,13 +425,14 @@ Proof.
     rewrite abs_eq_bit in H0.
     rewrite !mod_bound_eq in H0 by lia.
     destruct (in_port =? 0) eqn:H_in_port; inv H0.
+    assert (in_port = 0) by lia; subst. clear H_in_port.
     step.
     step.
     step_call Add_body.
     entailer.
     step.
     entailer.
-    all : admit.
+    repeat constructor.
   }
   {
     (* clear up H0 *)
@@ -404,6 +444,7 @@ Proof.
     rewrite abs_eq_bit in H0.
     rewrite !mod_bound_eq in H0 by lia.
     destruct (in_port =? 0) eqn:H_in_port; inv H0.
+    assert (in_port = 1) by lia; subst. clear H_in_port.
     simpl (force empty_statement _).
     step.
     step.
@@ -417,7 +458,10 @@ Proof.
       step.
       step.
       entailer.
-      all : admit.
+      - repeat constructor.
+      - unfold process.
+        rewrite H_query.
+        repeat constructor.
     }
     {
       rewrite get_update_same in H0 by auto.
@@ -426,7 +470,10 @@ Proof.
       step.
       step.
       entailer.
-      all : admit.
+      - repeat constructor.
+      - unfold process.
+        rewrite H_query.
+        repeat constructor.
     }
   }
-Admitted.
+Qed.
