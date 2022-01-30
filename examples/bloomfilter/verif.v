@@ -161,7 +161,7 @@ Definition Add_spec : func_spec :=
   WITH p,
     PATH p
     MOD None [["bloom0"]; ["bloom1"]; ["bloom2"]]
-    WITH (rw data : Z) (bf : bloomfilter_state),
+    WITH (data : Z) (bf : bloomfilter_state),
       PRE
         let hdr := ValBaseStruct
         [("myHeader",
@@ -238,7 +238,7 @@ Definition Query_spec : func_spec :=
   WITH p,
     PATH p
     MOD None []
-    WITH (rw data : Z) (bf : bloomfilter_state),
+    WITH (data : Z) (bf : bloomfilter_state),
       PRE
         let hdr := ValBaseStruct
         [("myHeader",
@@ -364,40 +364,22 @@ Definition bloomfilter_spec : func_spec :=
 Lemma bloomfilter_body : fundef_satisfies_spec ge MyIngress_fundef nil bloomfilter_spec.
 Proof.
   start_function.
-  (* step.
   step_if.
   {
     step.
-    step_call MyIngress_do_forward_body.
+    step.
+    step_call Add_body.
     entailer.
-    step_if.
-    {
-      step.
-      step_call Query_body.
-      entailer.
-      admit.
-      step.
-      entailer.
-      all : admit.
-    }
-    {
-      simpl force.
-      step_if.
-      {
-        step.
-        step_call Add_body.
-        entailer.
-        admit.
-        step.
-        entailer.
-        all : admit.
-      }
-      { (* rw not in {0, 2}. Should be impossible? *)
-        admit.
-      }
-    }
+    step.
+    entailer.
+    all : admit.
   }
   {
-    inversion H.
-  } *)
+    simpl force.
+    step.
+    step.
+    step_call Query_body.
+    entailer.
+    admit.
+  }
 Admitted.
