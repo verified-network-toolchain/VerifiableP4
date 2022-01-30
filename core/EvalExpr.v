@@ -482,7 +482,7 @@ Proof.
 Qed.
 
 Lemma opbin_eq_dec: forall x y: OpBin, {x = y} + {x <> y}.
-Proof. intros. destruct x, y; try (now left); right; intro S; inversion S. Qed.
+Proof. intros. destruct x, y; try (now left); right; intro S; inversion S. Defined.
 
 Fixpoint eval_expr (ge : genv) (p : path) (a : mem_assertion) (expr : Expression) : option Sval :=
   match expr with
