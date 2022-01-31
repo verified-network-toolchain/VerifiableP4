@@ -83,15 +83,35 @@ Definition reg_encode (l : list Z) : extern_object :=
 
 (* list_of_filter lemmas *)
 
+Lemma Zlength_seq : forall n start,
+  0 <= n ->
+  Zlength (seq start (Z.to_nat n)) = n.
+Proof.
+  intros.
+  pose proof (seq_length (Z.to_nat n) start).
+  rewrite Zlength_length; eauto.
+Qed.
+
+Hint Rewrite Zlength_seq using lia : Zlength.
+
+Lemma Znth_seq : forall n i start,
+  0 <= i < n ->
+  Znth i (seq start (Z.to_nat n)) = (start + Z.to_nat i)%nat.
+Proof.
+  intros.
+  rewrite <- nth_Znth by list_solve.
+  rewrite seq_nth; lia.
+Qed.
+
+Hint Rewrite Znth_seq using lia : Znth.
+
 Lemma Zlength_list_of_filter : forall n filter,
   0 <= n ->
   Zlength (list_of_filter n filter) = n.
 Proof.
   intros.
   unfold list_of_filter.
-  rewrite Zlength_map.
-  pose proof (seq_length (Z.to_nat n) 0).
-  rewrite Zlength_length; eauto.
+  list_solve.
 Qed.
 
 Hint Rewrite Zlength_list_of_filter using lia : Zlength.
@@ -100,7 +120,12 @@ Lemma Znth_list_of_filter : forall n filter i,
   0 <= i < n ->
   Znth i (list_of_filter n filter) = bool_to_Z (filter i).
 Proof.
-Admitted.
+  intros.
+  unfold list_of_filter.
+  list_simplify.
+  unfold compose.
+  do 2 f_equal. lia.
+Qed.
 
 Hint Rewrite Znth_list_of_filter using lia : Znth.
 
