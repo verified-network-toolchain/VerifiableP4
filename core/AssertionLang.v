@@ -111,7 +111,15 @@ Qed.
 
 (* Assertion language properties *)
 
-Axiom path_eqb_eq : forall (p1 p2 : path), path_eqb p1 p2 -> p1 = p2.
+Lemma path_eqb_eq : forall (p1 p2 : path), path_eqb p1 p2 -> p1 = p2.
+Proof.
+  induction p1; intros.
+  - destruct p2; auto. unfold path_eqb in H0. simpl in H0. now exfalso.
+  - destruct p2.
+    + unfold path_eqb in H0. simpl in H0. now exfalso.
+    + unfold path_eqb in H0. simpl in H0. apply andb_prop in H0.
+      destruct H0. apply eqb_eq in H0. subst. f_equal. apply IHp1. apply H1.
+Qed.
 
 Fixpoint alist_get' {A} (a : list (path * A)) (p : path) : option A :=
   match a with
