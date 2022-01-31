@@ -18,14 +18,13 @@ Context {tags_t: Type} {tags_t_inhabitant : Inhabitant tags_t}.
 Notation Val := (@ValueBase bool).
 Notation Sval := (@ValueBase (option bool)).
 (* Notation ValSet := (@ValueSet tags_t). *)
-Notation Lval := (@ValueLvalue tags_t).
+Notation Lval := ValueLvalue.
 
 Notation ident := (String.string).
 Notation path := (list ident).
 Notation P4Int := (P4Int.t tags_t).
 Notation P4String := (P4String.t tags_t).
 Notation Expression := (@Expression tags_t).
-Notation argument := (@argument tags_t).
 
 Context `{@Target tags_t Expression}.
 
@@ -73,7 +72,7 @@ Lemma hoare_stmt_var' : forall p pre_mem pre_ext tags typ' name expr loc typ pos
   is_call_expression expr = false ->
   is_no_dup (map fst pre_mem) ->
   eval_expr ge p pre_mem expr = Some sv ->
-  eval_write pre_mem (MkValueLvalue (ValLeftName (BareName name) loc) typ') sv = Some post_mem ->
+  eval_write pre_mem (ValLeftName loc) sv = Some post_mem ->
   hoare_stmt ge p
     (MEM pre_mem (EXT pre_ext))
     (MkStatement tags (StatVariable typ' name (Some expr) loc) typ)
@@ -87,7 +86,7 @@ Lemma hoare_stmt_var_call' : forall p pre_mem pre_ext tags typ' name expr loc ty
   is_call_expression expr = true ->
   hoare_call ge p (MEM pre_mem (EXT pre_ext)) expr (RET vret (MEM mid_mem (EXT post_ext))) ->
   is_no_dup (map fst mid_mem) ->
-  eval_write mid_mem (MkValueLvalue (ValLeftName (BareName name) loc) typ') vret = Some post_mem ->
+  eval_write mid_mem (ValLeftName loc) vret = Some post_mem ->
   hoare_stmt ge p
     (MEM pre_mem (EXT pre_ext))
     (MkStatement tags (StatVariable typ' name (Some expr) loc) typ)
@@ -177,7 +176,7 @@ Qed.
 Lemma eval_write_option_sound : forall a_mem a_ext (lv : option Lval) sv a_mem',
   NoDup (map fst a_mem) ->
   eval_write_option a_mem lv sv = Some a_mem' ->
-  hoare_write_option ge (MEM a_mem (EXT a_ext)) lv sv (MEM a_mem' (EXT a_ext)).
+  hoare_write_option (MEM a_mem (EXT a_ext)) lv sv (MEM a_mem' (EXT a_ext)).
 Proof.
   unfold hoare_write_option; intros.
   inv H4.
@@ -221,7 +220,7 @@ Qed.
 Lemma eval_write_options_sound : forall a_mem a_ext lvs svs a_mem',
   NoDup (map fst a_mem) ->
   eval_write_options a_mem lvs svs = Some a_mem' ->
-  hoare_write_options ge (MEM a_mem (EXT a_ext)) lvs svs (MEM a_mem' (EXT a_ext)).
+  hoare_write_options (MEM a_mem (EXT a_ext)) lvs svs (MEM a_mem' (EXT a_ext)).
 Proof.
   intros a_mem a_ext lvs; revert a_mem a_ext; induction lvs; intros.
   - inv H1.
@@ -246,7 +245,7 @@ Definition eval_call_copy_out (a : mem_assertion) (args : list (option Lval * di
 Lemma eval_call_copy_out_sound : forall outvals vret a_mem a_ext args a_mem',
   NoDup (map fst a_mem) ->
   eval_call_copy_out a_mem args outvals = Some a_mem' ->
-  hoare_call_copy_out ge (ARG_RET outvals vret (MEM a_mem (EXT a_ext))) args (RET vret (MEM a_mem' (EXT a_ext))).
+  hoare_call_copy_out (ARG_RET outvals vret (MEM a_mem (EXT a_ext))) args (RET vret (MEM a_mem' (EXT a_ext))).
 Proof.
   unfold hoare_call_copy_out; intros.
   destruct sig; only 1, 3, 4 : solve [inv H2].
@@ -263,11 +262,11 @@ Proof.
   sfirstorder.
 Qed.
 
-Lemma hoare_call_copy_out_pre : forall ge (pre pre' : Hoare.arg_ret_assertion) args post,
+Lemma hoare_call_copy_out_pre : forall (pre pre' : Hoare.arg_ret_assertion) args post,
   (forall args sig st, satisfies_arg_ret_assertion pre args sig st ->
       satisfies_arg_ret_assertion pre' args sig st) ->
-  hoare_call_copy_out ge pre' args post ->
-  hoare_call_copy_out ge pre args post.
+  hoare_call_copy_out pre' args post ->
+  hoare_call_copy_out pre args post.
 Proof.
   sfirstorder.
 Qed.

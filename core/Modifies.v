@@ -15,7 +15,7 @@ Section Modifies.
 Context {tags_t: Type} {tags_t_inhabitant : Inhabitant tags_t}.
 Notation Val := (@ValueBase bool).
 Notation Sval := (@ValueBase (option bool)).
-Notation Lval := (@ValueLvalue tags_t).
+Notation Lval := ValueLvalue.
 
 Notation ident := (String.string).
 Notation path := (list ident).
@@ -114,10 +114,9 @@ Proof.
 Qed.
 
 Fixpoint get_lval_base (lv : Lval) : option path :=
-  let '(MkValueLvalue lv _ ) := lv in
   match lv with
-  | ValLeftName _ (LInstance p) => Some p
-  | ValLeftName _ (LGlobal _) => None
+  | ValLeftName (LInstance p) => Some p
+  | ValLeftName (LGlobal _) => None
   | ValLeftMember lv _
   | ValLeftBitAccess lv _ _
   | ValLeftArrayAccess lv _
@@ -184,7 +183,7 @@ Local Hint Resolve write_var_modifies_intro : core.
 
 Lemma write_modifies_intro : forall lv p st sv st' vars exts,
   get_lval_base lv = Some p ->
-  exec_write ge st lv sv st' ->
+  exec_write st lv sv st' ->
   In_vars p vars ->
   modifies vars exts st st'.
 Proof.
@@ -349,7 +348,7 @@ Inductive out_arg_In_vars (vars : option (list path)) : option Expression -> dir
 Lemma call_modifies_func_part1 : forall p st0 st args dirs argvals sig outvals st' vars exts,
   Forall2 (out_arg_In_vars vars) args dirs ->
   exec_args ge read_ndetbit p st0 args dirs argvals sig ->
-  exec_call_copy_out ge (combine (map snd argvals) dirs) outvals st st' ->
+  exec_call_copy_out (combine (map snd argvals) dirs) outvals st st' ->
   modifies vars exts st st'.
 Proof.
   intros * H.

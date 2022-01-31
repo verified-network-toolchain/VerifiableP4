@@ -23,7 +23,7 @@ Context [tags_t: Type] [tags_t_inhabitant : Inhabitant tags_t].
 Notation Val := (@ValueBase bool).
 Notation Sval := (@ValueBase (option bool)).
 (* Notation ValSet := (@ValueSet tags_t). *)
-Notation Lval := (@ValueLvalue tags_t).
+Notation Lval := ValueLvalue.
 
 Notation ident := string.
 Notation path := (list ident).

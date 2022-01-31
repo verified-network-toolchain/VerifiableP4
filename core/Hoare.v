@@ -25,14 +25,13 @@ Context {tags_t: Type} {tags_t_inhabitant : Inhabitant tags_t}.
 Notation Val := (@ValueBase bool).
 Notation Sval := (@ValueBase (option bool)).
 (* Notation ValSet := (@ValueSet tags_t). *)
-Notation Lval := (@ValueLvalue tags_t).
+Notation Lval := ValueLvalue.
 
 Notation ident := (String.string).
 Notation path := (list ident).
 Notation P4Int := (P4Int.t tags_t).
 Notation P4String := (P4String.t tags_t).
 Notation Expression := (@Expression tags_t).
-Notation argument := (@argument tags_t).
 
 Context `{@Target tags_t Expression}.
 
@@ -87,13 +86,13 @@ Definition locator_eqb (loc1 loc2 : Locator) : bool :=
 (* lval_eqb ignores the "name" argument of ValLeftName, because I believe this field should be removed. *)
 Fixpoint lval_eqb (lv1 lv2 : Lval) : bool :=
   match lv1, lv2 with
-  | MkValueLvalue (ValLeftName _ loc1) _, MkValueLvalue (ValLeftName _ loc2) _ =>
+  | ValLeftName loc1, ValLeftName loc2 =>
       locator_eqb loc1 loc2
-  | MkValueLvalue (ValLeftMember lv1 member1) _, MkValueLvalue (ValLeftMember lv2 member2) _ =>
+  | ValLeftMember lv1 member1, ValLeftMember lv2 member2 =>
       lval_eqb lv1 lv2 && String.eqb member1 member2
-  | MkValueLvalue (ValLeftBitAccess lv1 msb1 lsb1) _, MkValueLvalue (ValLeftBitAccess lv2 msb2 lsb2) _ =>
+  | ValLeftBitAccess lv1 msb1 lsb1, ValLeftBitAccess lv2 msb2 lsb2 =>
       lval_eqb lv1 lv2 && N.eqb msb1 msb2 && N.eqb lsb1 lsb2
-  | MkValueLvalue (ValLeftArrayAccess lv1 idx1) _, MkValueLvalue (ValLeftArrayAccess lv2 idx2) _ =>
+  | ValLeftArrayAccess lv1 idx1, ValLeftArrayAccess lv2 idx2 =>
       lval_eqb lv1 lv2 && BinInt.Z.eqb idx1 idx2
   | _, _ => false
   end.
@@ -120,14 +119,14 @@ Definition hoare_write_var (pre : assertion) (p : path) (sv : Sval) (post : asse
 Definition hoare_read (pre : assertion) (lv : Lval) (sv : Sval) :=
   forall st sv',
     pre st ->
-    exec_read ge st lv sv' ->
+    exec_read st lv sv' ->
     sval_refine sv sv'.
 
 Definition hoare_write (pre : assertion) (lv : Lval) (sv : Sval) (post : assertion) :=
   forall st sv' st',
     pre st ->
     sval_refine sv sv' ->
-    exec_write ge st lv sv' st' ->
+    exec_write st lv sv' st' ->
     post st'.
 
 Definition hoare_read_vars (pre : assertion) (ps : list path) (svs : list Sval) :=
@@ -174,14 +173,14 @@ Definition hoare_write_option (pre : assertion) (lv : option Lval) (sv : Sval) (
   forall st sv' st',
     pre st ->
     sval_refine sv sv' ->
-    exec_write_option ge st lv sv' st' ->
+    exec_write_option st lv sv' st' ->
     post st'.
 
 Definition hoare_write_options (pre : assertion) (lvs : list (option Lval)) (svs : list Sval) (post : assertion) :=
   forall st svs' st',
     pre st ->
     Forall2 sval_refine svs svs' ->
-    exec_write_options ge st lvs svs' st' ->
+    exec_write_options st lvs svs' st' ->
     post st'.
 
 Definition hoare_reads' (pre : assertion) (lvs : list Lval) (svs : list Sval) :=
@@ -398,7 +397,7 @@ Qed.
 Lemma hoare_stmt_var : forall p pre tags typ' name e loc typ post sv,
   is_call_expression e = false ->
   hoare_expr_det p pre e sv ->
-  hoare_write pre (MkValueLvalue (ValLeftName (BareName name) loc) typ') sv (post_continue post) ->
+  hoare_write pre (ValLeftName loc) sv (post_continue post) ->
   hoare_stmt p pre (MkStatement tags (StatVariable typ' name (Some e) loc) typ) post.
 Proof.
   unfold hoare_stmt. intros.
@@ -415,7 +414,7 @@ Qed.
 Lemma hoare_stmt_var_call : forall p pre tags typ' name e loc typ post mid sv,
   is_call_expression e = true ->
   hoare_call p pre e (fun v st => (forall sv', val_to_sval v sv' -> sval_refine sv sv') /\ mid st) ->
-  hoare_write mid (MkValueLvalue (ValLeftName (BareName name) loc) typ') sv (post_continue post) ->
+  hoare_write mid (ValLeftName loc) sv (post_continue post) ->
   hoare_stmt p pre (MkStatement tags (StatVariable typ' name (Some e) loc) typ) post.
 Proof.
   unfold hoare_stmt. intros.
@@ -620,7 +619,7 @@ Definition args_refine (args args' : list argument) :=
 Definition hoare_builtin (p : path) (pre : arg_assertion) (lv : Lval) (fname : ident) (post : ret_assertion) :=
   forall st inargs st' sig,
     pre inargs st ->
-    exec_builtin ge read_ndetbit p st lv fname inargs st' sig ->
+    exec_builtin read_ndetbit p st lv fname inargs st' sig ->
     satisfies_ret_assertion post sig st'.
 
 Definition hoare_arg (p : path) (pre : assertion) (arg : option Expression) dir argval :=
@@ -689,7 +688,7 @@ Qed.
 Definition hoare_call_copy_out (pre : arg_ret_assertion) (args : list (option Lval * direction)) (post : ret_assertion) : Prop :=
   forall outvals sig st st',
     satisfies_arg_ret_assertion pre outvals sig st ->
-    exec_call_copy_out ge args outvals st  st' ->
+    exec_call_copy_out args outvals st  st' ->
       satisfies_ret_assertion post sig st'.
 
 Lemma hoare_call_func : forall p (pre : assertion) tags func targs args typ dir post argvals obj_path fd
