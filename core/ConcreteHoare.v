@@ -324,9 +324,12 @@ Inductive inv_func_copy_out (out_params : list path) : Hoare.ret_assertion -> Ho
       (forall (x : A), inv_func_copy_out out_params (P x) (Q x)) ->
       inv_func_copy_out out_params (ret_exists P) (arg_ret_exists Q).
 
-Axiom AList_get_set_some_neq : forall (a_mem : mem_assertion) (p p' : path) sv,
+Lemma AList_get_set_some_neq : forall (a_mem : mem_assertion) (p p' : path) sv,
   p <> p' ->
   AList.get (AList.set_some a_mem p' sv) p = AList.get a_mem p.
+Proof.
+  intros. apply AList.set_some_get_miss. intro. red in H1. apply H0. now subst.
+Qed.
 
 Lemma eval_read_var_eval_write_vars_disjoint : forall p ps vs a_mem,
   ~In p ps ->
