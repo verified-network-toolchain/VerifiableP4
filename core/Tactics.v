@@ -186,7 +186,7 @@ Ltac start_function :=
       try unfold spec;
       repeat lazymatch goal with
       | |- fundef_satisfies_spec _ _ _ (fs_bind (fun x => _)) =>
-        intro x
+        let x := fresh x in intro x
       end;
       split; [idtac | solve [eauto 100 with nocore modifies func_specs]];
       repeat lazymatch goal with

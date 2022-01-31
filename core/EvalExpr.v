@@ -16,14 +16,6 @@ Require Import Hammer.Plugin.Hammer.
 
 Local Open Scope string_scope.
 
-Lemma locator_eqb_refl : forall (loc : Locator),
-  locator_eqb loc loc.
-Proof.
-  destruct loc; simpl; auto.
-Qed.
-
-#[export] Hint Resolve locator_eqb_refl : core.
-
 Lemma lift_option_map_some: forall {A: Type} (al: list A),
     lift_option (map Some al) = Some al.
 Proof. intros. induction al; simpl; [|rewrite IHal]; easy. Qed.
@@ -56,7 +48,7 @@ Section EvalExpr.
 Context {tags_t: Type} {tags_t_inhabitant : Inhabitant tags_t}.
 Notation Val := (@ValueBase bool).
 Notation Sval := (@ValueBase (option bool)).
-Notation Lval := (@ValueLvalue tags_t).
+Notation Lval := ValueLvalue.
 
 Notation ident := (string).
 Notation path := (list ident).
@@ -1575,14 +1567,14 @@ Global Opaque dummy_name.
 Fixpoint eval_lexpr (ge : genv) (p : path) (a : mem_assertion) (expr : Expression) : option Lval :=
   match expr with
   | MkExpression _ (ExpName _ loc) _ _ =>
-      Some (MkValueLvalue (ValLeftName dummy_name loc) dummy_type)
+      Some (ValLeftName loc)
   | MkExpression _ (ExpExpressionMember expr member) _ _ =>
       match eval_lexpr ge p a expr with
       | Some lv =>
           if (String.eqb (P4String.str member) "next") then
             None
           else
-            Some (MkValueLvalue (ValLeftMember lv (P4String.str member)) dummy_type)
+            Some (ValLeftMember lv (P4String.str member))
       | None => None
       end
   | _ => None
@@ -1600,9 +1592,7 @@ Proof.
     destruct (eval_lexpr ge this a_mem expr) as [lv_base |]. 2 : inv H3.
     specialize (IHexec_lexpr ltac:(auto) _ ltac:(eauto)).
     inv H3.
-    simpl. rewrite String.eqb_refl.
-    destruct IHexec_lexpr. split. 1 : auto.
-    apply Reflect.andE; split; auto.
+    sfirstorder.
   - simpl in H5. rewrite H0 in H5. destruct (eval_lexpr ge this a_mem expr); inv H5.
   - inv H5.
   - inv H5.
@@ -1730,38 +1720,30 @@ Proof.
 Qed.
 
 Fixpoint eval_read (a : mem_assertion) (lv : Lval) : option Sval :=
-  let '(MkValueLvalue lv _) := lv in
   match lv with
-  | ValLeftName _ (LInstance p) => eval_read_var a p
-  | ValLeftName _ (LGlobal _) => None
+  | ValLeftName (LInstance p) => eval_read_var a p
+  | ValLeftName (LGlobal _) => None
   | ValLeftMember lv' member => option_map (get member) (eval_read a lv')
   | ValLeftBitAccess lv' hi lo => None (* TODO *)
   | ValLeftArrayAccess lv' pos => None (* TODO *)
   end.
 
-Scheme custom_ValuePreLvalue_ind := Induction for ValuePreLvalue Sort Prop
-  with custom_ValueLvalue_ind := Induction for ValueLvalue Sort Prop.
-
-Lemma eval_read_sound : forall ge a_mem a_ext lv sv,
+Lemma eval_read_sound : forall a_mem a_ext lv sv,
   eval_read a_mem lv = Some sv ->
-  hoare_read ge (MEM a_mem (EXT a_ext)) lv sv
-with eval_read_sound_preT : forall ge a_mem a_ext lv typ sv,
-  eval_read a_mem (MkValueLvalue lv typ) = Some sv ->
-  hoare_read ge (MEM a_mem (EXT a_ext)) (MkValueLvalue lv typ) sv.
+  hoare_read (MEM a_mem (EXT a_ext)) lv sv.
 Proof.
-  - destruct lv; apply eval_read_sound_preT.
-  - destruct lv; unfold hoare_read; intros.
-    + destruct loc; only 1 : inv H0.
-      inv H2.
-      eapply eval_read_var_sound; eauto.
-    + simpl in H0.
-      destruct (eval_read a_mem expr) eqn:?. 2 : inv H0.
-      inv H2. inv H0.
-      apply get_sound in H9. subst.
-      apply sval_refine_get.
-      eapply eval_read_sound; eauto.
-    + inv H0.
-    + inv H0.
+  induction lv; unfold hoare_read; intros.
+  - destruct loc; only 1 : inv H0.
+    inv H2.
+    eapply eval_read_var_sound; eauto.
+  - simpl in H0.
+    destruct (eval_read a_mem lv) eqn:?. 2 : inv H0.
+    inv H2. inv H0.
+    apply get_sound in H8. subst.
+    apply sval_refine_get.
+    eapply IHlv; eauto.
+  - inv H0.
+  - inv H0.
 Qed.
 
 Definition option_join {A} (ooa : option (option A)) : option A :=
@@ -1771,10 +1753,9 @@ Definition option_join {A} (ooa : option (option A)) : option A :=
   end.
 
 Fixpoint eval_write (a : mem_assertion) (lv : Lval) (sv : Sval) : option mem_assertion :=
-  let '(MkValueLvalue lv _) := lv in
   match lv with
-  | ValLeftName _ (LInstance p) => Some (eval_write_var a p sv)
-  | ValLeftName _ (LGlobal _) => None
+  | ValLeftName (LInstance p) => Some (eval_write_var a p sv)
+  | ValLeftName (LGlobal _) => None
   | ValLeftMember lv' member =>
       option_join (option_map (eval_write a lv') (option_map (update member sv) (eval_read a lv')))
   | ValLeftBitAccess lv' hi lo => None (* TODO *)
@@ -2103,31 +2084,26 @@ Proof.
       constructor.
 Qed.
 
-Lemma eval_write_sound : forall ge a_mem a_ext lv sv a_mem',
+Lemma eval_write_sound : forall a_mem a_ext lv sv a_mem',
   NoDup (map fst a_mem) ->
   eval_write a_mem lv sv = Some a_mem' ->
-  hoare_write ge (MEM a_mem (EXT a_ext)) lv sv (MEM a_mem' (EXT a_ext))
-with eval_write_sound_preT : forall ge a_mem a_ext lv typ sv a_mem',
-  NoDup (map fst a_mem) ->
-  eval_write a_mem (MkValueLvalue lv typ) sv = Some a_mem' ->
-  hoare_write ge (MEM a_mem (EXT a_ext)) (MkValueLvalue lv typ) sv (MEM a_mem' (EXT a_ext)).
+  hoare_write (MEM a_mem (EXT a_ext)) lv sv (MEM a_mem' (EXT a_ext)).
 Proof.
-  - destruct lv; apply eval_write_sound_preT.
-  - destruct lv; unfold hoare_write; intros.
-    + destruct loc; only 1 : inv H1.
-      inv H1. inv H4.
-      eapply eval_write_var_sound; eauto.
-    + simpl in H1.
-      destruct (eval_read a_mem expr) eqn:H_eval_read. 2 : inv H1.
-      simpl in H1.
-      destruct (eval_write a_mem expr (update name sv v)) eqn:H_eval_write. 2 : inv H1.
-      inv H4.
-      pose proof (eval_read_sound _ _ _ _ _ H_eval_read _ _ ltac:(eassumption) ltac:(eassumption)).
-      epose proof (update_sound _ _ _ _ _ _ H4 H3 ltac:(eassumption)).
-      inv H1.
-      eapply eval_write_sound; eauto.
-    + inv H1.
-    + inv H1.
+  induction lv; unfold hoare_write; intros.
+  - destruct loc; only 1 : inv H1.
+    inv H1. inv H4.
+    eapply eval_write_var_sound; eauto.
+  - simpl in H1.
+    destruct (eval_read a_mem lv) eqn:H_eval_read. 2 : inv H1.
+    simpl in H1.
+    destruct (eval_write a_mem lv (update name sv v)) eqn:H_eval_write. 2 : inv H1.
+    inv H4.
+    pose proof (eval_read_sound _ _ _ _ H_eval_read _ _ ltac:(eassumption) ltac:(eassumption)).
+    epose proof (update_sound _ _ _ _ _ _ H4 H3 ltac:(eassumption)).
+    inv H1.
+    eapply IHlv; eauto.
+  - inv H1.
+  - inv H1.
 Qed.
 
 Hint Resolve eval_write_sound : hoare.
@@ -2135,29 +2111,24 @@ Hint Resolve eval_write_sound : hoare.
 Lemma eval_write_preserve_NoDup : forall (a : mem_assertion) (lv : Lval) sv a',
   NoDup (map fst a) ->
   eval_write a lv sv = Some a' ->
-  NoDup (map fst a')
-with eval_write_preserve_NoDup_preT : forall a lv typ sv a',
-  NoDup (map fst a) ->
-  eval_write a (MkValueLvalue lv typ) sv = Some a' ->
   NoDup (map fst a').
 Proof.
-  - destruct lv; apply eval_write_preserve_NoDup_preT.
-  - destruct lv; intros.
-    + destruct loc; only 1 : inv H1.
-      inv H1.
-      auto using eval_write_var_preserve_NoDup.
-    + simpl in H1.
-      destruct (eval_read a expr) eqn:H_eval_read. 2 : inv H1.
-      simpl in H1.
-      destruct (eval_write a expr (update name sv v)) eqn:H_eval_write. 2 : inv H1.
-      inv H1.
-      eapply eval_write_preserve_NoDup; eauto.
-    + inv H1.
-    + inv H1.
+  induction lv; intros.
+  - destruct loc; only 1 : inv H1.
+    inv H1.
+    auto using eval_write_var_preserve_NoDup.
+  - simpl in H1.
+    destruct (eval_read a lv) eqn:H_eval_read. 2 : inv H1.
+    simpl in H1.
+    destruct (eval_write a lv (update name sv v)) eqn:H_eval_write. 2 : inv H1.
+    inv H1.
+    eapply IHlv; eauto.
+  - inv H1.
+  - inv H1.
 Qed.
 
 Definition eval_arg (ge : genv) (p : path) (a : mem_assertion) (arg : option Expression)
-    (dir : direction) : option (@argument tags_t) :=
+    (dir : direction) : option argument :=
   match arg, dir with
   | Some arg, Typed.In =>
       match eval_expr ge p a arg with
@@ -2215,12 +2186,12 @@ Proof.
     eapply sval_refine_trans. 2 : {
       eapply sval_to_val_to_sval; eauto.
     }
-    apply lval_eqb_eq in H2. subst v0.
+    subst v0.
     eapply H_eval_read; eauto.
 Qed.
 
 Definition eval_args (ge : genv) (p : path) (a : mem_assertion) (args : list (option Expression))
-    (dirs : list direction) : option (list (@argument tags_t)) :=
+    (dirs : list direction) : option (list argument) :=
   lift_option (map (fun '(arg, dir) => eval_arg ge p a arg dir) (combine args dirs)).
 
 Lemma eval_args_sound : forall ge p a_mem a_ext (args : list (option Expression)) dirs argvals,

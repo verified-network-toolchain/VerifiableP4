@@ -23,7 +23,7 @@ Section EvalBuiltin.
 Context {tags_t: Type} {tags_t_inhabitant : Inhabitant tags_t}.
 Notation Val := (@ValueBase bool).
 Notation Sval := (@ValueBase (option bool)).
-Notation Lval := (@ValueLvalue tags_t).
+Notation Lval := ValueLvalue.
 
 Notation ident := string.
 
@@ -282,10 +282,10 @@ Definition eval_builtin (a : mem_assertion) (lv : Lval) (fname : ident) (args : 
   else
     None.
 
-Lemma eval_builtin_sound : forall ge p a_mem a_ext lv fname args a_mem' retv,
+Lemma eval_builtin_sound : forall p a_mem a_ext lv fname args a_mem' retv,
   NoDup (map fst a_mem) ->
   eval_builtin a_mem lv fname args = Some (a_mem', retv) ->
-  hoare_builtin ge p (ARG args (MEM a_mem (EXT a_ext))) lv fname (RET retv (MEM a_mem' (EXT a_ext))).
+  hoare_builtin p (ARG args (MEM a_mem (EXT a_ext))) lv fname (RET retv (MEM a_mem' (EXT a_ext))).
 Proof.
   unfold hoare_builtin; intros * H_NoDup; intros.
   inv H1.
