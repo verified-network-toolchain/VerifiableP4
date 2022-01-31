@@ -16,14 +16,6 @@ Require Import Hammer.Plugin.Hammer.
 
 Local Open Scope string_scope.
 
-Lemma locator_eqb_refl : forall (loc : Locator),
-  locator_eqb loc loc.
-Proof.
-  destruct loc; simpl; auto.
-Qed.
-
-#[export] Hint Resolve locator_eqb_refl : core.
-
 Lemma lift_option_map_some: forall {A: Type} (al: list A),
     lift_option (map Some al) = Some al.
 Proof. intros. induction al; simpl; [|rewrite IHal]; easy. Qed.
@@ -1600,9 +1592,7 @@ Proof.
     destruct (eval_lexpr ge this a_mem expr) as [lv_base |]. 2 : inv H3.
     specialize (IHexec_lexpr ltac:(auto) _ ltac:(eauto)).
     inv H3.
-    simpl. rewrite String.eqb_refl.
-    destruct IHexec_lexpr. split. 1 : auto.
-    apply Reflect.andE; split; auto.
+    sfirstorder.
   - simpl in H5. rewrite H0 in H5. destruct (eval_lexpr ge this a_mem expr); inv H5.
   - inv H5.
   - inv H5.
@@ -2196,7 +2186,7 @@ Proof.
     eapply sval_refine_trans. 2 : {
       eapply sval_to_val_to_sval; eauto.
     }
-    apply lval_eqb_eq in H2. subst v0.
+    subst v0.
     eapply H_eval_read; eauto.
 Qed.
 
