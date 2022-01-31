@@ -425,6 +425,14 @@ Proof.
       apply sval_refine_refl.
 Qed.
 
+Lemma Forall2_bit_refine_Some_same':
+  forall l1 l2, Forall2 bit_refine (map Some l1) l2 -> l2 = map Some l1.
+Proof.
+  induction l1; intros.
+  - inv H. simpl. auto.
+  - destruct l2; simpl in H; inv H. inv H3. simpl. f_equal. now apply IHl1.
+Qed.
+
 Lemma Forall2_bit_refine_Some_same:
   forall l1 l2 : list bool, Forall2 bit_refine (map Some l1) (map Some l2) -> l1 = l2.
 Proof.

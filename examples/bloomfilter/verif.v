@@ -181,7 +181,11 @@ Definition MAX : Z := 1024.
 Definition CRC_Z (data : list bool) : Z :=
   BASE + Z.modulo (BitArith.lbool_to_val (CRC data) 1 0) MAX.
 
-Axiom CRC_range : forall data, 0 <= CRC_Z data < NUM_ENTRY.
+Lemma CRC_range : forall data, 0 <= CRC_Z data < NUM_ENTRY.
+Proof.
+  intros. unfold CRC_Z. unfold BASE. rewrite Z.add_0_l.
+  apply Z.mod_pos_bound. unfold NUM_ENTRY. lia.
+Qed.
 
 Definition CRC_pad (pad : list bool) (data : Z) : Z :=
   CRC_Z (List.concat [to_lbool 16%N data; pad]).
@@ -212,6 +216,25 @@ Definition hash_fundef :=
 
 Open Scope arg_ret_assr.
 
+Lemma Forall2_ndetbit: forall l1 l2,
+    Forall2 read_ndetbit (map Some l1) l2 -> l1 = l2.
+Proof. induction l1; simpl; intros; inv H; auto. inv H2. f_equal. now apply IHl1. Qed.
+
+Lemma Forall2_bit_refine_eval_val_eq:
+  forall l1 l2, Forall2 (exec_val SvalRefine.bit_refine) (map eval_val_to_sval l1) l2 ->
+           map eval_val_to_sval l1 = l2.
+Proof.
+  induction l1; simpl; intros; inv H; auto. f_equal. 2: now apply IHl1.
+  apply exec_val_eval_val_to_sval_eq in H2; auto. intros. now inv H.
+Qed.
+
+Lemma Forall2_ndetbit_eval_val_eq: forall l1 l2,
+    Forall2 (exec_val read_ndetbit) (map eval_val_to_sval l1) l2 -> l1 = l2.
+Proof.
+  induction l1; simpl; intros; inv H; auto. f_equal. 2: now apply IHl1.
+  apply sval_to_val_eval_val_to_sval_eq in H2; auto. intros. now inv H.
+Qed.
+
 (* A more restricted func spec, but should be sound. *)
 Definition hash_spec : func_spec :=
   WITH,
@@ -229,10 +252,37 @@ Definition hash_spec : func_spec :=
       POST
         (ARG_RET [ValBaseBit (to_loptbool 32%N (CRC_Z input))] ValBaseNull
         (MEM []
-        (EXT []))).
+             (EXT []))).
 
-Axiom hash_body : forall targs,
-  fundef_satisfies_spec ge hash_fundef targs hash_spec.
+Lemma hash_body : forall targs,
+    fundef_satisfies_spec ge hash_fundef (TypBit 32%N :: targs) hash_spec.
+Proof.
+  intros. unfold hash_spec. simpl. split.
+  - repeat intro. red. red in H. destruct H. do 2 red in H. inv H. inv H4.
+    inv H6. inv H3. inv H5. inv H4. inv H7. inv H8. inv H5.
+    apply SvalRefine.Forall2_bit_refine_Some_same' in H2, H4. subst. inv H0. inv H7.
+    simpl in H. inv H. simpl. red. split; [|split]; auto.
+    + Opaque to_lbool. inv H4. inv H6. inv H8. inv H4. apply Forall2_ndetbit in H2.
+      inv H7. inv H6. inv H10. inv H8. inv H6. apply Forall2_ndetbit in H4. subst.
+      inv H13. inv H7. constructor. 2: constructor. unfold bound_hash_output in H4.
+      rewrite !bit_from_to_bool in H4. vm_compute in H5. inv H5.
+      apply Forall2_bit_refine_eval_val_eq in H3. subst lv'.
+      apply Forall2_ndetbit_eval_val_eq in H2. subst vs. rewrite x1 in H9. inv H9.
+      unfold CRC_Z, CRC.
+      remember (Hexadecimal.D8
+                  (Hexadecimal.D0 (Hexadecimal.D0 (Hexadecimal.D5 Hexadecimal.Nil))))
+        as D8005. remember (Hexadecimal.D0 Hexadecimal.Nil) as D00.
+      replace (BitArith.mod_bound 10 BASE) with BASE in *
+          by (unfold BASE; now vm_compute).
+      replace (BitArith.mod_bound 10 MAX) with 0 in *
+          by (unfold MAX; now vm_compute).
+
+      admit.
+      Transparent to_lbool.
+    + repeat intro. inv H. constructor.
+  - repeat intro. unfold modifies. split; auto. repeat intro.
+    inv H. simpl. inv H6. simpl in H. inv H. auto.
+ Admitted.
 
 Hint Extern 5 (func_modifies _ _ _ _ _) => (apply hash_body) : func_specs.
 Hint Extern 1 (list P4Type) => (exact (@nil _)) : func_specs.
