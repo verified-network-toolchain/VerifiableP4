@@ -645,8 +645,8 @@ Definition Add := DeclControl NoInfo {| stags := NoInfo; str := "Add" |} nil
                                      {| stags := NoInfo; str := "M" |}) 
                                     None {| stags := NoInfo; str := "max" |})]
                               FunExtern TypVoid)) Directionless)
-                   [(TypBit 32%N); (TypBit 10%N);
-                    (TypList [(TypBit 16%N); (TypBit 3%N)]); (TypBit 10%N)]
+                   [(TypBit 32%N); (TypBit 32%N);
+                    (TypList [(TypBit 16%N); (TypBit 3%N)]); (TypBit 32%N)]
                    [(Some
                      (MkExpression NoInfo
                           (ExpExpressionMember
@@ -681,8 +681,8 @@ Definition Add := DeclControl NoInfo {| stags := NoInfo; str := "Add" |} nil
                      (MkExpression NoInfo
                           (ExpInt
                            {| itags := NoInfo; value := 0;
-                              width_signed := (Some ( 10%N, false )) |})
-                          (TypBit 10%N) Directionless));
+                              width_signed := (Some ( 32%N, false )) |})
+                          (TypBit 32%N) Directionless));
                     (Some
                      (MkExpression NoInfo
                           (ExpList
@@ -720,8 +720,8 @@ Definition Add := DeclControl NoInfo {| stags := NoInfo; str := "Add" |} nil
                      (MkExpression NoInfo
                           (ExpInt
                            {| itags := NoInfo; value := 1024;
-                              width_signed := (Some ( 10%N, false )) |})
-                          (TypBit 10%N) Directionless))]) StmUnit)
+                              width_signed := (Some ( 32%N, false )) |})
+                          (TypBit 32%N) Directionless))]) StmUnit)
          (BlockCons
               (MkStatement NoInfo
                    (StatMethodCall
@@ -763,9 +763,9 @@ Definition Add := DeclControl NoInfo {| stags := NoInfo; str := "Add" |} nil
                                          None
                                          {| stags := NoInfo; str := "max" |})]
                                    FunExtern TypVoid)) Directionless)
-                        [(TypBit 32%N); (TypBit 10%N);
+                        [(TypBit 32%N); (TypBit 32%N);
                          (TypList [(TypBit 16%N); (TypBit 5%N)]);
-                         (TypBit 10%N)]
+                         (TypBit 32%N)]
                         [(Some
                           (MkExpression NoInfo
                                (ExpExpressionMember
@@ -805,8 +805,8 @@ Definition Add := DeclControl NoInfo {| stags := NoInfo; str := "Add" |} nil
                           (MkExpression NoInfo
                                (ExpInt
                                 {| itags := NoInfo; value := 0;
-                                   width_signed := (Some ( 10%N, false )) |})
-                               (TypBit 10%N) Directionless));
+                                   width_signed := (Some ( 32%N, false )) |})
+                               (TypBit 32%N) Directionless));
                          (Some
                           (MkExpression NoInfo
                                (ExpList
@@ -847,8 +847,8 @@ Definition Add := DeclControl NoInfo {| stags := NoInfo; str := "Add" |} nil
                           (MkExpression NoInfo
                                (ExpInt
                                 {| itags := NoInfo; value := 1024;
-                                   width_signed := (Some ( 10%N, false )) |})
-                               (TypBit 10%N) Directionless))]) StmUnit)
+                                   width_signed := (Some ( 32%N, false )) |})
+                               (TypBit 32%N) Directionless))]) StmUnit)
               (BlockCons
                    (MkStatement NoInfo
                         (StatMethodCall
@@ -895,9 +895,9 @@ Definition Add := DeclControl NoInfo {| stags := NoInfo; str := "Add" |} nil
                                               {| stags := NoInfo;
                                                  str := "max" |})] FunExtern
                                         TypVoid)) Directionless)
-                             [(TypBit 32%N); (TypBit 10%N);
+                             [(TypBit 32%N); (TypBit 32%N);
                               (TypList [(TypBit 16%N); (TypBit 7%N)]);
-                              (TypBit 10%N)]
+                              (TypBit 32%N)]
                              [(Some
                                (MkExpression NoInfo
                                     (ExpExpressionMember
@@ -947,8 +947,8 @@ Definition Add := DeclControl NoInfo {| stags := NoInfo; str := "Add" |} nil
                                     (ExpInt
                                      {| itags := NoInfo; value := 0;
                                         width_signed := (Some
-                                                         ( 10%N, false )) |})
-                                    (TypBit 10%N) Directionless));
+                                                         ( 32%N, false )) |})
+                                    (TypBit 32%N) Directionless));
                               (Some
                                (MkExpression NoInfo
                                     (ExpList
@@ -992,8 +992,8 @@ Definition Add := DeclControl NoInfo {| stags := NoInfo; str := "Add" |} nil
                                     (ExpInt
                                      {| itags := NoInfo; value := 1024;
                                         width_signed := (Some
-                                                         ( 10%N, false )) |})
-                                    (TypBit 10%N) Directionless))]) StmUnit)
+                                                         ( 32%N, false )) |})
+                                    (TypBit 32%N) Directionless))]) StmUnit)
                    (BlockCons
                         (MkStatement NoInfo
                              (StatMethodCall
@@ -1228,8 +1228,8 @@ Definition Query := DeclControl NoInfo {| stags := NoInfo; str := "Query" |}
                                      {| stags := NoInfo; str := "M" |}) 
                                     None {| stags := NoInfo; str := "max" |})]
                               FunExtern TypVoid)) Directionless)
-                   [(TypBit 32%N); (TypBit 10%N);
-                    (TypList [(TypBit 16%N); (TypBit 3%N)]); (TypBit 10%N)]
+                   [(TypBit 32%N); (TypBit 32%N);
+                    (TypList [(TypBit 16%N); (TypBit 3%N)]); (TypBit 32%N)]
                    [(Some
                      (MkExpression NoInfo
                           (ExpExpressionMember
@@ -1264,8 +1264,8 @@ Definition Query := DeclControl NoInfo {| stags := NoInfo; str := "Query" |}
                      (MkExpression NoInfo
                           (ExpInt
                            {| itags := NoInfo; value := 0;
-                              width_signed := (Some ( 10%N, false )) |})
-                          (TypBit 10%N) Directionless));
+                              width_signed := (Some ( 32%N, false )) |})
+                          (TypBit 32%N) Directionless));
                     (Some
                      (MkExpression NoInfo
                           (ExpList
@@ -1303,8 +1303,8 @@ Definition Query := DeclControl NoInfo {| stags := NoInfo; str := "Query" |}
                      (MkExpression NoInfo
                           (ExpInt
                            {| itags := NoInfo; value := 1024;
-                              width_signed := (Some ( 10%N, false )) |})
-                          (TypBit 10%N) Directionless))]) StmUnit)
+                              width_signed := (Some ( 32%N, false )) |})
+                          (TypBit 32%N) Directionless))]) StmUnit)
          (BlockCons
               (MkStatement NoInfo
                    (StatMethodCall
@@ -1346,9 +1346,9 @@ Definition Query := DeclControl NoInfo {| stags := NoInfo; str := "Query" |}
                                          None
                                          {| stags := NoInfo; str := "max" |})]
                                    FunExtern TypVoid)) Directionless)
-                        [(TypBit 32%N); (TypBit 10%N);
+                        [(TypBit 32%N); (TypBit 32%N);
                          (TypList [(TypBit 16%N); (TypBit 5%N)]);
-                         (TypBit 10%N)]
+                         (TypBit 32%N)]
                         [(Some
                           (MkExpression NoInfo
                                (ExpExpressionMember
@@ -1388,8 +1388,8 @@ Definition Query := DeclControl NoInfo {| stags := NoInfo; str := "Query" |}
                           (MkExpression NoInfo
                                (ExpInt
                                 {| itags := NoInfo; value := 0;
-                                   width_signed := (Some ( 10%N, false )) |})
-                               (TypBit 10%N) Directionless));
+                                   width_signed := (Some ( 32%N, false )) |})
+                               (TypBit 32%N) Directionless));
                          (Some
                           (MkExpression NoInfo
                                (ExpList
@@ -1430,8 +1430,8 @@ Definition Query := DeclControl NoInfo {| stags := NoInfo; str := "Query" |}
                           (MkExpression NoInfo
                                (ExpInt
                                 {| itags := NoInfo; value := 1024;
-                                   width_signed := (Some ( 10%N, false )) |})
-                               (TypBit 10%N) Directionless))]) StmUnit)
+                                   width_signed := (Some ( 32%N, false )) |})
+                               (TypBit 32%N) Directionless))]) StmUnit)
               (BlockCons
                    (MkStatement NoInfo
                         (StatMethodCall
@@ -1478,9 +1478,9 @@ Definition Query := DeclControl NoInfo {| stags := NoInfo; str := "Query" |}
                                               {| stags := NoInfo;
                                                  str := "max" |})] FunExtern
                                         TypVoid)) Directionless)
-                             [(TypBit 32%N); (TypBit 10%N);
+                             [(TypBit 32%N); (TypBit 32%N);
                               (TypList [(TypBit 16%N); (TypBit 7%N)]);
-                              (TypBit 10%N)]
+                              (TypBit 32%N)]
                              [(Some
                                (MkExpression NoInfo
                                     (ExpExpressionMember
@@ -1530,8 +1530,8 @@ Definition Query := DeclControl NoInfo {| stags := NoInfo; str := "Query" |}
                                     (ExpInt
                                      {| itags := NoInfo; value := 0;
                                         width_signed := (Some
-                                                         ( 10%N, false )) |})
-                                    (TypBit 10%N) Directionless));
+                                                         ( 32%N, false )) |})
+                                    (TypBit 32%N) Directionless));
                               (Some
                                (MkExpression NoInfo
                                     (ExpList
@@ -1575,8 +1575,8 @@ Definition Query := DeclControl NoInfo {| stags := NoInfo; str := "Query" |}
                                     (ExpInt
                                      {| itags := NoInfo; value := 1024;
                                         width_signed := (Some
-                                                         ( 10%N, false )) |})
-                                    (TypBit 10%N) Directionless))]) StmUnit)
+                                                         ( 32%N, false )) |})
+                                    (TypBit 32%N) Directionless))]) StmUnit)
                    (BlockCons
                         (MkStatement NoInfo
                              (StatMethodCall

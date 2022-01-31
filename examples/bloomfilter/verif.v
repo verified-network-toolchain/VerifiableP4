@@ -221,9 +221,9 @@ Definition hash_spec : func_spec :=
       (_ : concat_tuple data = Some input),
       PRE
         (ARG [ValBaseEnumField "HashAlgorithm" "crc16";
-              ValBaseBit (to_loptbool 10 BASE);
+              ValBaseBit (to_loptbool 32 BASE);
               eval_val_to_sval (ValBaseTuple data);
-              ValBaseBit (to_loptbool 10 MAX)]
+              ValBaseBit (to_loptbool 32 MAX)]
         (MEM []
         (EXT [])))
       POST
