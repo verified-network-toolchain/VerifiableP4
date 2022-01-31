@@ -16,7 +16,6 @@ Require Import ProD3.core.Hoare.
 Require Import ProD3.core.ConcreteHoare.
 Require Import ProD3.core.EvalExpr.
 Require Import ProD3.core.Members.
-(* Require Import ProD3.core.HoareSoundness. *)
 Require Import ProD3.core.AssertionLang.
 Require Import ProD3.core.AssertionNotations.
 Require Import ProD3.core.FuncSpec.
@@ -166,6 +165,23 @@ Definition CRC_pad0 := CRC_pad (to_lbool 3%N 3).
 Definition CRC_pad1 := CRC_pad (to_lbool 5%N 5).
 Definition CRC_pad2 := CRC_pad (to_lbool 7%N 7).
 
+Definition bloomfilter_exts := [["bloom0"]; ["bloom1"]; ["bloom2"]].
+
+Definition encode_bloomfilter_state bf := [
+  (["bloom0"], reg_encode (bloom0 bf));
+  (["bloom1"], reg_encode (bloom1 bf));
+  (["bloom2"], reg_encode (bloom2 bf))
+  ].
+
+Definition bloomfilter_add bf data :=
+  bloomfilter.add Z Z.eqb CRC_pad0 CRC_pad1 CRC_pad2 bf data.
+
+Definition bloomfilter_query bf data :=
+  bloomfilter.query Z CRC_pad0 CRC_pad1 CRC_pad2 bf data.
+
+Definition havoc_typ (typ : @P4Type Info) : Sval :=
+  force ValBaseNull (uninit_sval_of_typ None typ).
+
 Definition hash_fundef :=
   force dummy_fundef (PathMap.get ["hash"] (ge_func ge)).
 
@@ -210,37 +226,30 @@ control Add(inout headers hdr, inout custom_metadata_t meta) {
 }
 *)
 
+Definition myHeader_encode data :=
+  ValBaseStruct
+    [("myHeader",
+      ValBaseHeader
+        [("data", ValBaseBit (to_loptbool 16 data))]
+         (Some true))].
+
 Definition Add_spec : func_spec :=
   WITH p,
     PATH p
-    MOD None [["bloom0"]; ["bloom1"]; ["bloom2"]]
+    MOD None bloomfilter_exts
     WITH (data : Z) (bf : bloomfilter_state),
       PRE
-        let hdr := ValBaseStruct
-        [("myHeader",
-          ValBaseHeader
-            [("data", ValBaseBit (to_loptbool 16 data))]
-             (Some true))] in
-        (ARG [hdr; force ValBaseNull (uninit_sval_of_typ None custom_metadata_t)]
+        (ARG [myHeader_encode data; havoc_typ custom_metadata_t]
         (MEM []
-        (EXT [(["bloom0"], reg_encode (bloom0 bf));
-              (["bloom1"], reg_encode (bloom1 bf));
-              (["bloom2"], reg_encode (bloom2 bf))])))
+        (EXT (encode_bloomfilter_state bf))))
       POST
-        let hdr := ValBaseStruct
-        [("myHeader",
-          ValBaseHeader
-            [("data", ValBaseBit (to_loptbool 16 data))]
-             (Some true))] in
-        let bf' := bloomfilter.add Z Z.eqb CRC_pad0 CRC_pad1 CRC_pad2 bf data in
-        (ARG_RET [hdr; force ValBaseNull (uninit_sval_of_typ None custom_metadata_t)] ValBaseNull
+        (ARG_RET [myHeader_encode data; havoc_typ custom_metadata_t] ValBaseNull
         (MEM []
-        (EXT [(["bloom0"], reg_encode (bloom0 bf'));
-              (["bloom1"], reg_encode (bloom1 bf'));
-              (["bloom2"], reg_encode (bloom2 bf'))]))).
+        (EXT (encode_bloomfilter_state (bloomfilter_add bf data))))).
 
 Lemma Add_body : fundef_satisfies_spec ge Add_fundef nil Add_spec.
 Proof.
+  unfold Add_spec, bloomfilter_exts.
   start_function.
   step_call hash_body [ValBaseBit (to_lbool 16 data); ValBaseBit (to_lbool 3 3)].
   2 : { entailer. }
@@ -363,14 +372,6 @@ Definition process (in_port data : Z) (bf : bloomfilter_state) : (bloomfilter_st
     (bloomfilter.add Z Z.eqb CRC_pad0 CRC_pad1 CRC_pad2 bf data, 1)
   else
     (bf, if bloomfilter.query Z CRC_pad0 CRC_pad1 CRC_pad2 bf data then 0 else 511).
-
-Definition bloomfilter_exts := [["bloom0"]; ["bloom1"]; ["bloom2"]].
-
-Definition encode_bloomfilter_state bf := [
-  (["bloom0"], reg_encode (bloom0 bf));
-  (["bloom1"], reg_encode (bloom1 bf));
-  (["bloom2"], reg_encode (bloom2 bf))
-  ].
 
 Definition bloomfilter_spec : func_spec :=
   WITH ,
