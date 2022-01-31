@@ -1879,15 +1879,15 @@ Definition Query := DeclControl NoInfo {| stags := NoInfo; str := "Query" |}
                                                       Directionless))
                                             StmUnit) (BlockEmpty NoInfo)))))))).
 
-Definition IN_PORT := DeclConstant NoInfo (TypBit 9%N)
-    {| stags := NoInfo; str := "IN_PORT" |}
+Definition INT_PORT := DeclConstant NoInfo (TypBit 9%N)
+    {| stags := NoInfo; str := "INT_PORT" |}
     (MkExpression NoInfo
          (ExpInt
           {| itags := NoInfo; value := 0;
              width_signed := (Some ( 9%N, false )) |}) (TypBit 9%N) In).
 
-Definition OUT_PORT := DeclConstant NoInfo (TypBit 9%N)
-    {| stags := NoInfo; str := "OUT_PORT" |}
+Definition EXT_PORT := DeclConstant NoInfo (TypBit 9%N)
+    {| stags := NoInfo; str := "EXT_PORT" |}
     (MkExpression NoInfo
          (ExpInt
           {| itags := NoInfo; value := 1;
@@ -1935,8 +1935,9 @@ Definition MyIngress := DeclControl NoInfo
                                (MkExpression NoInfo
                                     (ExpName
                                      (BareName
-                                      {| stags := NoInfo; str := "IN_PORT" |})
-                                     (LGlobal ["IN_PORT"])) (TypBit 9%N)
+                                      {| stags := NoInfo;
+                                         str := "INT_PORT" |})
+                                     (LGlobal ["INT_PORT"])) (TypBit 9%N)
                                     Directionless) )) TypBool Directionless)
                    (MkStatement NoInfo
                         (StatBlock
@@ -1963,8 +1964,8 @@ Definition MyIngress := DeclControl NoInfo
                                              (ExpName
                                               (BareName
                                                {| stags := NoInfo;
-                                                  str := "OUT_PORT" |})
-                                              (LGlobal ["OUT_PORT"]))
+                                                  str := "EXT_PORT" |})
+                                              (LGlobal ["EXT_PORT"]))
                                              (TypBit 9%N) Directionless))
                                    StmUnit)
                               (BlockCons
@@ -2060,8 +2061,8 @@ Definition MyIngress := DeclControl NoInfo
                                               (ExpName
                                                (BareName
                                                 {| stags := NoInfo;
-                                                   str := "IN_PORT" |})
-                                               (LGlobal ["IN_PORT"]))
+                                                   str := "INT_PORT" |})
+                                               (LGlobal ["INT_PORT"]))
                                               (TypBit 9%N) Directionless))
                                     StmUnit)
                                (BlockCons
@@ -2611,7 +2612,7 @@ Definition prog := Program
      clone3'type'session'data; truncate'length; assert'check; assume'check;
      Parser; VerifyChecksum; Ingress; Egress; ComputeChecksum; Deparser;
      V1Switch; egressSpec_t; myHeader_t; custom_metadata_t; headers;
-     MyParser; bloom0; bloom1; bloom2; Add; Query; IN_PORT; OUT_PORT;
+     MyParser; bloom0; bloom1; bloom2; Add; Query; INT_PORT; EXT_PORT;
      DROP_SPEC; MyIngress; MyEgress; MyDeparser; MyVerifyChecksum;
      MyComputeChecksum; main].
 

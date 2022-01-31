@@ -270,9 +270,7 @@ Proof.
   step.
   entailer.
   { repeat constructor. }
-  destruct bf as [[] ?]. apply update_bit.
-  destruct bf as [[] ?]. apply update_bit.
-  destruct bf as [[] ?]. apply update_bit.
+  all : destruct bf as [[] ?]; apply update_bit.
 Qed.
 
 Hint Extern 5 (func_modifies _ _ _ _ _) => (apply Add_body) : func_specs.
@@ -366,10 +364,18 @@ Definition process (in_port data : Z) (bf : bloomfilter_state) : (bloomfilter_st
   else
     (bf, if bloomfilter.query Z CRC_pad0 CRC_pad1 CRC_pad2 bf data then 0 else 511).
 
+Definition bloomfilter_exts := [["bloom0"]; ["bloom1"]; ["bloom2"]].
+
+Definition encode_bloomfilter_state bf := [
+  (["bloom0"], reg_encode (bloom0 bf));
+  (["bloom1"], reg_encode (bloom1 bf));
+  (["bloom2"], reg_encode (bloom2 bf))
+  ].
+
 Definition bloomfilter_spec : func_spec :=
   WITH ,
     PATH ["main"; "ig"]
-    MOD None [["bloom0"]; ["bloom1"]; ["bloom2"]]
+    MOD None bloomfilter_exts
     WITH in_port data bf (H : 0 <= in_port < 2),
       PRE
         (ARG [
@@ -379,11 +385,7 @@ Definition bloomfilter_spec : func_spec :=
           update "ingress_port" (ValBaseBit (to_loptbool 9 in_port))
             (force ValBaseNull (uninit_sval_of_typ None standard_metadata_t))]
         (MEM []
-        (EXT [
-          (["bloom0"], reg_encode (bloom0 bf));
-          (["bloom1"], reg_encode (bloom1 bf));
-          (["bloom2"], reg_encode (bloom2 bf))
-        ])))
+        (EXT (encode_bloomfilter_state bf))))
       POST
         (* These two lines cannot be merged, because Coq doesn't destruct the pair automatically. *)
         let bf' := fst (process in_port data bf) in
@@ -396,11 +398,7 @@ Definition bloomfilter_spec : func_spec :=
             (force ValBaseNull (uninit_sval_of_typ None standard_metadata_t))]
           ValBaseNull
         (MEM []
-        (EXT [
-          (["bloom0"], reg_encode (bloom0 bf'));
-          (["bloom1"], reg_encode (bloom1 bf'));
-          (["bloom2"], reg_encode (bloom2 bf'))
-        ]))).
+        (EXT (encode_bloomfilter_state bf')))).
 
 Lemma mod_bound_eq : forall w n,
   0 <= n < Z.pow 2 (Z.of_N w) ->

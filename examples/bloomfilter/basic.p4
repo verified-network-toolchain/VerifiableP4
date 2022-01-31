@@ -83,8 +83,8 @@ control Query(inout headers hdr, inout custom_metadata_t meta) {
     }
 }
 
-const bit<9> IN_PORT = 0;
-const bit<9> OUT_PORT = 1;
+const bit<9> INT_PORT = 0;
+const bit<9> EXT_PORT = 1;
 const bit<9> DROP_SPEC = 511;
 
 control MyIngress(inout headers hdr,
@@ -92,13 +92,13 @@ control MyIngress(inout headers hdr,
                   inout standard_metadata_t standard_metadata) {
     apply {
         // Outgoing
-        if (standard_metadata.ingress_port == IN_PORT) {
-            standard_metadata.egress_spec = OUT_PORT;
+        if (standard_metadata.ingress_port == INT_PORT) {
+            standard_metadata.egress_spec = EXT_PORT;
             Add.apply(hdr, meta);
         }
         // Incoming
         else {
-            standard_metadata.egress_spec = IN_PORT;
+            standard_metadata.egress_spec = INT_PORT;
             Query.apply(hdr, meta);
             if (!(bool)meta.member0) {
                 // drop
