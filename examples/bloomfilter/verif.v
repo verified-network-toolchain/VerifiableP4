@@ -272,9 +272,9 @@ Proof.
       remember (Hexadecimal.D8
                   (Hexadecimal.D0 (Hexadecimal.D0 (Hexadecimal.D5 Hexadecimal.Nil))))
         as D8005. remember (Hexadecimal.D0 Hexadecimal.Nil) as D00.
-      replace (BitArith.mod_bound 10 BASE) with BASE in *
+      replace (BitArith.mod_bound 32 BASE) with BASE in *
           by (unfold BASE; now vm_compute).
-      replace (BitArith.mod_bound 10 MAX) with 0 in *
+      replace (BitArith.mod_bound 32 MAX) with MAX in *
           by (unfold MAX; now vm_compute).
 
       admit.
