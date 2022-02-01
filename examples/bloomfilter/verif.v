@@ -275,14 +275,25 @@ Proof.
       replace (BitArith.mod_bound 32 BASE) with BASE in *
           by (unfold BASE; now vm_compute).
       replace (BitArith.mod_bound 32 MAX) with MAX in *
-          by (unfold MAX; now vm_compute).
-
-      admit.
-      Transparent to_lbool.
+          by (unfold MAX; now vm_compute). unfold BitArith.from_lbool in H4.
+      rewrite Zlength_correct in H4. rewrite Hash.length_compute_crc in H4.
+      change (Z.to_N (Z.of_nat 16)) with 16%N in H4. rewrite N.max_id in H4.
+      rewrite N.max_l in H4 by lia.
+      unfold BitArith.modulo_mod, BitArith.plus_mod in H4.
+      rewrite BitArith.mod_bound_double_add, to_lbool_bit_mod in H4.
+      unfold to_loptbool. revert H4.
+      generalize (to_lbool 32
+                         (BASE +
+                            BitArith.lbool_to_val
+                              (Hash.compute_crc 16 D8005 D00 D00 true true input) 1 0
+                              mod MAX)). intros. inv H4. constructor.
+      rewrite ForallMap.Forall2_forall in H0. destruct H0.
+      rewrite <- ForallMap.Forall2_map_l, ForallMap.Forall2_forall. split; auto.
+      intros. specialize (H0 _ _ H2). inv H0. constructor.
     + repeat intro. inv H. constructor.
   - repeat intro. unfold modifies. split; auto. repeat intro.
     inv H. simpl. inv H6. simpl in H. inv H. auto.
- Admitted.
+Qed.
 
 Hint Extern 5 (func_modifies _ _ _ _ _) => (apply hash_body) : func_specs.
 Hint Extern 1 (list P4Type) => (exact (@nil _)) : func_specs.
