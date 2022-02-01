@@ -1,4 +1,5 @@
 Require Import Coq.Strings.String.
+Require Import Coq.micromega.Lia.
 Require Import Poulet4.Typed.
 Require Import Poulet4.Syntax.
 Require Import Poulet4.Value.
@@ -50,9 +51,30 @@ Definition register_read_spec (p : path) (reg_s : register_static) : func_spec :
         (MEM []
         (EXT []))).
 
-Axiom register_read_body : forall (p : path) (reg_s : register_static),
+Lemma register_read_body : forall (p : path) (reg_s : register_static),
   PathMap.get p (ge_ext ge) = Some (EnvRegister reg_s) ->
   fundef_satisfies_spec ge (FExternal "register" "read") nil (register_read_spec p reg_s).
+Proof.
+  intros. unfold register_read_spec. simpl. split; repeat intro.
+  - red in H0. destruct H0. do 2 red in H0. inv H0. inv H7. inv H5. red. inv H1.
+    inv H5. inv H7. inv H4. inv H8. simpl in H0. inv H0. simpl. red.
+    split; [|split]; auto.
+    + inv H14. inv H10. apply SvalRefine.Forall2_bit_refine_Some_same' in H3.
+      subst. apply Forall2_ndetbit in H1. subst. rewrite bit_from_to_bool in H7.
+      constructor. 2: constructor. destruct H2. red in H1. red in H1. simpl in H1.
+      destruct H1. rewrite H6 in H1. inv H1. simpl in H. rewrite H in H5. inv H5.
+      simpl in x1. assert ((-1 <? index) && (index <? size) = true). {
+        apply andb_true_intro. pose proof (BitArith.upper_bound_ge_1 32). split.
+        - rewrite Z.ltb_lt. cut (0 <= index < BitArith.upper_bound 32).
+          1: intros; lia. inv H7. unfold BitArith.mod_bound. apply Zdiv.Z_mod_lt. lia.
+        - rewrite Z.ltb_lt. cut (index <= x0). 1: lia. inv H7.
+          unfold BitArith.mod_bound. apply Zdiv.Zmod_le; lia. } rewrite H1 in H11.
+      subst. rewrite val_to_sval_iff in H8. inversion H7. subst index.
+      clear -H8 x1. admit.
+    + repeat intro. inv H0. constructor.
+    + destruct H2; split; auto.
+  - red. split; auto. repeat intro. inv H0. simpl. inv H7. simpl in H0. inv H0. auto.
+Admitted.
 
 (* We need to say v is a definite value, right? *)
 Definition register_write_spec (p : path) (reg_s : register_static) : func_spec :=
@@ -85,4 +107,3 @@ Several issues:
 => also a problem in semantics.v
 - are v and i assumed to be bounded in post_condition?
 *)
-

@@ -216,10 +216,6 @@ Definition hash_fundef :=
 
 Open Scope arg_ret_assr.
 
-Lemma Forall2_ndetbit: forall l1 l2,
-    Forall2 read_ndetbit (map Some l1) l2 -> l1 = l2.
-Proof. induction l1; simpl; intros; inv H; auto. inv H2. f_equal. now apply IHl1. Qed.
-
 Lemma Forall2_bit_refine_eval_val_eq:
   forall l1 l2, Forall2 (exec_val SvalRefine.bit_refine) (map eval_val_to_sval l1) l2 ->
            map eval_val_to_sval l1 = l2.
