@@ -41,7 +41,8 @@ Definition register_read_spec (p : path) (reg_s : register_static) : func_spec :
   WITH,
     PATH p
     MOD None []
-    WITH (reg : register) (i : Z) (H : (0 <= i < snd reg_s)%Z),
+    WITH (reg : register) (i : Z) (H : (0 <= i < snd reg_s)%Z)
+    (HR: snd reg_s <= 2 ^ 32),
       PRE
         (ARG [ValBaseBit (to_loptbool 32%N i)]
         (MEM []
@@ -69,12 +70,15 @@ Proof.
           1: intros; lia. inv H7. unfold BitArith.mod_bound. apply Zdiv.Z_mod_lt. lia.
         - rewrite Z.ltb_lt. cut (index <= x0). 1: lia. inv H7.
           unfold BitArith.mod_bound. apply Zdiv.Zmod_le; lia. } rewrite H1 in H11.
-      subst. rewrite val_to_sval_iff in H8. inversion H7. subst index.
-      clear -H8 x1. admit.
+      subst. rewrite val_to_sval_iff in H8. inversion H7. subst index. simpl in x2.
+      clear -H8 x1 x2. unfold BitArith.mod_bound, BitArith.upper_bound in H8.
+      change (2 ^ Z.of_N 32) with (Z.pow_pos 2 32) in H8.
+      rewrite Zdiv.Zmod_small in H8 by lia. rewrite H8.
+      apply SvalRefine.sval_refine_refl.
     + repeat intro. inv H0. constructor.
     + destruct H2; split; auto.
   - red. split; auto. repeat intro. inv H0. simpl. inv H7. simpl in H0. inv H0. auto.
-Admitted.
+Qed.
 
 (* We need to say v is a definite value, right? *)
 Definition register_write_spec (p : path) (reg_s : register_static) : func_spec :=
