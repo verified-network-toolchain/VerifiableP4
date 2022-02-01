@@ -347,15 +347,15 @@ Proof.
   replace (CRC_Z _) with (CRC_pad2 data) by reflexivity.
   simpl MEM.
   step_call register_write_body.
-  reflexivity.
+  reflexivity. 2: simpl; lia.
   2 : entailer.
   { apply CRC_range. }
   step_call register_write_body.
-  reflexivity.
+  reflexivity. 2: simpl; lia.
   2 : entailer.
   { apply CRC_range. }
   step_call register_write_body.
-  reflexivity.
+  reflexivity. 2: simpl; lia.
   2 : entailer.
   { apply CRC_range. }
   step.

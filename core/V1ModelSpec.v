@@ -85,7 +85,8 @@ Definition register_write_spec (p : path) (reg_s : register_static) : func_spec 
   WITH,
     PATH p
     MOD None [p]
-    WITH (reg : register) (i : Z) (v : Val) (H : (0 <= i < snd reg_s)%Z),
+    WITH (reg : register) (i : Z) (v : Val) (H : (0 <= i < snd reg_s)%Z)
+    (HR: snd reg_s <= 2 ^ 32),
       PRE
         (ARG [ValBaseBit (to_loptbool 32%N i); eval_val_to_sval v]
         (MEM []
@@ -95,9 +96,38 @@ Definition register_write_spec (p : path) (reg_s : register_static) : func_spec 
         (MEM []
         (EXT [(p, ObjRegister (upd_Znth i reg v))]))).
 
-Axiom register_write_body : forall (p : path) (reg_s : register_static),
+Lemma register_write_body : forall (p : path) (reg_s : register_static),
   PathMap.get p (ge_ext ge) = Some (EnvRegister reg_s) ->
   fundef_satisfies_spec ge (FExternal "register" "write") nil (register_write_spec p reg_s).
+Proof.
+  intros. unfold register_write_spec. simpl. split; repeat intro.
+  - red in H0. destruct H0. do 2 red in H0. inv H0. inv H7. inv H8. inv H5.
+    inv H1. inv H6. inv H8. inv H10. inv H5. simpl in H9. inv H9. simpl in H0.
+    inv H0. simpl in H. rewrite H in H8. clear H. inv H8. simpl in *. red.
+    split; [|split].
+    + inv H15. constructor.
+    + repeat intro. inv H. constructor.
+    + red. destruct H2. split; auto. red. red. simpl. split; auto.
+      apply SvalRefine.Forall2_bit_refine_Some_same' in H3. subst.
+      apply Forall2_ndetbit in H1. subst. rewrite bit_from_to_bool in H14.
+      assert ((-1 <? index) && (index <? size) = true). {
+        apply andb_true_intro. pose proof (BitArith.upper_bound_ge_1 32). split.
+        - rewrite Z.ltb_lt. cut (0 <= index < BitArith.upper_bound 32).
+          1: intros; lia. inv H14. unfold BitArith.mod_bound. apply Zdiv.Z_mod_lt. lia.
+        - rewrite Z.ltb_lt. cut (index <= x0). 1: lia. inv H14.
+          unfold BitArith.mod_bound. apply Zdiv.Zmod_le; lia. } rewrite H1 in H16.
+      subst. rewrite PathMap.get_set_same. f_equal.
+      apply exec_val_eval_val_to_sval_eq in H4. 2: intros s1 s2 Hs; now inv Hs.
+      subst. apply sval_to_val_eval_val_to_sval_eq in H6.
+      2: intros s1 s2 Hs; now inv Hs. subst x1. do 2 red in H0. simpl in H0.
+      destruct H0 as [? _]. rewrite H9 in H0. inv H0. inv H14.
+      unfold BitArith.mod_bound, BitArith.upper_bound.
+      change (2 ^ Z.of_N 32) with (Z.pow_pos 2 32).
+      rewrite Zdiv.Zmod_small by lia. auto.
+  - red. split; auto. repeat intro. inv H0. simpl. inv H7. simpl in H0. inv H0.
+    destruct ((-1 <? index) && (index <? size)); subst; auto.
+    rewrite PathMap.get_set_diff; auto. intro. apply H1. now left.
+Qed.
 
 End V1ModelSpec.
 
