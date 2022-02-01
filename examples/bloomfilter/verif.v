@@ -248,7 +248,7 @@ Definition hash_spec : func_spec :=
       POST
         (ARG_RET [ValBaseBit (to_loptbool 32%N (CRC_Z input))] ValBaseNull
         (MEM []
-             (EXT []))).
+        (EXT []))).
 
 Lemma hash_body : forall targs,
     fundef_satisfies_spec ge hash_fundef (TypBit 32%N :: targs) hash_spec.
