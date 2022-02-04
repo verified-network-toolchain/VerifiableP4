@@ -135,7 +135,7 @@ Definition meter := DeclExternObject NoInfo
           [(MkParameter false Directionless (TypBit 32%N) None
                 {| stags := NoInfo; str := "size" |});
            (MkParameter false Directionless
-                (TypTypeName {| stags := NoInfo; str := "MeterType" |})
+                (TypTypeName {| stags := NoInfo; str := "MeterType" |}) 
                 None {| stags := NoInfo; str := "type" |})]);
      (ProtoMethod NoInfo TypVoid
           {| stags := NoInfo; str := "execute_meter" |}
@@ -151,7 +151,7 @@ Definition direct_meter := DeclExternObject NoInfo
     [{| stags := NoInfo; str := "T4" |}]
     [(ProtoConstructor NoInfo {| stags := NoInfo; str := "direct_meter" |}
           [(MkParameter false Directionless
-                (TypTypeName {| stags := NoInfo; str := "MeterType" |})
+                (TypTypeName {| stags := NoInfo; str := "MeterType" |}) 
                 None {| stags := NoInfo; str := "type" |})]);
      (ProtoMethod NoInfo TypVoid {| stags := NoInfo; str := "read" |} nil
           [(MkParameter false Out
@@ -228,7 +228,7 @@ Definition hash'result'algo'base'data'max := DeclExternFunction NoInfo
     [(MkParameter false Out (TypTypeName {| stags := NoInfo; str := "O" |})
           None {| stags := NoInfo; str := "result" |});
      (MkParameter false In
-          (TypTypeName {| stags := NoInfo; str := "HashAlgorithm" |})
+          (TypTypeName {| stags := NoInfo; str := "HashAlgorithm" |}) 
           None {| stags := NoInfo; str := "algo" |});
      (MkParameter false In (TypTypeName {| stags := NoInfo; str := "T8" |})
           None {| stags := NoInfo; str := "base" |});
@@ -274,7 +274,7 @@ Definition verify_checksum'condition'data'checksum'algo := DeclExternFunction
           (TypTypeName {| stags := NoInfo; str := "O11" |}) None
           {| stags := NoInfo; str := "checksum" |});
      (MkParameter false Directionless
-          (TypTypeName {| stags := NoInfo; str := "HashAlgorithm" |})
+          (TypTypeName {| stags := NoInfo; str := "HashAlgorithm" |}) 
           None {| stags := NoInfo; str := "algo" |})].
 
 Definition update_checksum'condition'data'checksum'algo := DeclExternFunction
@@ -289,7 +289,7 @@ Definition update_checksum'condition'data'checksum'algo := DeclExternFunction
           (TypTypeName {| stags := NoInfo; str := "O13" |}) None
           {| stags := NoInfo; str := "checksum" |});
      (MkParameter false Directionless
-          (TypTypeName {| stags := NoInfo; str := "HashAlgorithm" |})
+          (TypTypeName {| stags := NoInfo; str := "HashAlgorithm" |}) 
           None {| stags := NoInfo; str := "algo" |})].
 
 Definition verify_checksum_with_payload'condition'data'checksum'algo := DeclExternFunction
@@ -305,7 +305,7 @@ Definition verify_checksum_with_payload'condition'data'checksum'algo := DeclExte
           (TypTypeName {| stags := NoInfo; str := "O15" |}) None
           {| stags := NoInfo; str := "checksum" |});
      (MkParameter false Directionless
-          (TypTypeName {| stags := NoInfo; str := "HashAlgorithm" |})
+          (TypTypeName {| stags := NoInfo; str := "HashAlgorithm" |}) 
           None {| stags := NoInfo; str := "algo" |})].
 
 Definition update_checksum_with_payload'condition'data'checksum'algo := DeclExternFunction
@@ -321,7 +321,7 @@ Definition update_checksum_with_payload'condition'data'checksum'algo := DeclExte
           (TypTypeName {| stags := NoInfo; str := "O17" |}) None
           {| stags := NoInfo; str := "checksum" |});
      (MkParameter false Directionless
-          (TypTypeName {| stags := NoInfo; str := "HashAlgorithm" |})
+          (TypTypeName {| stags := NoInfo; str := "HashAlgorithm" |}) 
           None {| stags := NoInfo; str := "algo" |})].
 
 Definition resubmit'data := DeclExternFunction NoInfo TypVoid
@@ -568,22 +568,20 @@ Definition Increment := DeclControl NoInfo
                          (LInstance ["var"])) (TypBit 8%N) InOut)
                    (MkExpression NoInfo
                         (ExpBinaryOp Plus
-                              (MkExpression NoInfo
-                                    (ExpName
-                                     (BareName
-                                      {| stags := NoInfo; str := "var" |})
-                                     (LInstance ["var"])) (TypBit 8%N) InOut)
-                               (MkExpression NoInfo
-                                    (ExpCast (TypBit 8%N)
-                                         (MkExpression NoInfo
-                                              (ExpInt
-                                               {| itags := NoInfo;
-                                                  value := 1;
-                                                  width_signed := None |})
-                                              TypInteger Directionless))
-                                    (TypBit 8%N) Directionless))
-                        (TypBit 8%N) Directionless)) StmUnit)
-         (BlockEmpty NoInfo)).
+                             (MkExpression NoInfo
+                                  (ExpName
+                                   (BareName
+                                    {| stags := NoInfo; str := "var" |})
+                                   (LInstance ["var"])) (TypBit 8%N) InOut)
+                             (MkExpression NoInfo
+                                  (ExpCast (TypBit 8%N)
+                                       (MkExpression NoInfo
+                                            (ExpInt
+                                             {| itags := NoInfo; value := 1;
+                                                width_signed := None |})
+                                            TypInteger Directionless))
+                                  (TypBit 8%N) Directionless)) (TypBit 8%N)
+                        Directionless)) StmUnit) (BlockEmpty NoInfo)).
 
 Definition MyIngress := DeclControl NoInfo
     {| stags := NoInfo; str := "MyIngress" |} nil
@@ -629,7 +627,7 @@ Definition MyIngress := DeclControl NoInfo
                              {| stags := NoInfo; str := "apply" |})
                         (TypFunction
                          (MkFunctionType nil
-                              [(MkParameter false InOut (TypBit 8%N)
+                              [(MkParameter false InOut (TypBit 8%N) 
                                     None {| stags := NoInfo; str := "var" |})]
                               FunControl TypVoid)) Directionless) nil
                    [(Some
@@ -707,7 +705,7 @@ Definition MyDeparser := DeclControl NoInfo
                          (MkFunctionType [{| stags := NoInfo; str := "T2" |}]
                               [(MkParameter false In
                                     (TypTypeName
-                                     {| stags := NoInfo; str := "T2" |})
+                                     {| stags := NoInfo; str := "T2" |}) 
                                     None {| stags := NoInfo; str := "hdr" |})]
                               FunExtern TypVoid)) Directionless)
                    [(TypHeader
@@ -990,3 +988,5 @@ Definition prog := Program
      Parser; VerifyChecksum; Ingress; Egress; ComputeChecksum; Deparser;
      V1Switch; myHeader_t; metadata; headers; MyParser; Increment; MyIngress;
      MyEgress; MyDeparser; MyVerifyChecksum; MyComputeChecksum; main].
+
+

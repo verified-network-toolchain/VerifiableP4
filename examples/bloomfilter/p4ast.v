@@ -135,7 +135,7 @@ Definition meter := DeclExternObject NoInfo
           [(MkParameter false Directionless (TypBit 32%N) None
                 {| stags := NoInfo; str := "size" |});
            (MkParameter false Directionless
-                (TypTypeName {| stags := NoInfo; str := "MeterType" |})
+                (TypTypeName {| stags := NoInfo; str := "MeterType" |}) 
                 None {| stags := NoInfo; str := "type" |})]);
      (ProtoMethod NoInfo TypVoid
           {| stags := NoInfo; str := "execute_meter" |}
@@ -151,7 +151,7 @@ Definition direct_meter := DeclExternObject NoInfo
     [{| stags := NoInfo; str := "T4" |}]
     [(ProtoConstructor NoInfo {| stags := NoInfo; str := "direct_meter" |}
           [(MkParameter false Directionless
-                (TypTypeName {| stags := NoInfo; str := "MeterType" |})
+                (TypTypeName {| stags := NoInfo; str := "MeterType" |}) 
                 None {| stags := NoInfo; str := "type" |})]);
      (ProtoMethod NoInfo TypVoid {| stags := NoInfo; str := "read" |} nil
           [(MkParameter false Out
@@ -228,7 +228,7 @@ Definition hash'result'algo'base'data'max := DeclExternFunction NoInfo
     [(MkParameter false Out (TypTypeName {| stags := NoInfo; str := "O" |})
           None {| stags := NoInfo; str := "result" |});
      (MkParameter false In
-          (TypTypeName {| stags := NoInfo; str := "HashAlgorithm" |})
+          (TypTypeName {| stags := NoInfo; str := "HashAlgorithm" |}) 
           None {| stags := NoInfo; str := "algo" |});
      (MkParameter false In (TypTypeName {| stags := NoInfo; str := "T8" |})
           None {| stags := NoInfo; str := "base" |});
@@ -274,7 +274,7 @@ Definition verify_checksum'condition'data'checksum'algo := DeclExternFunction
           (TypTypeName {| stags := NoInfo; str := "O11" |}) None
           {| stags := NoInfo; str := "checksum" |});
      (MkParameter false Directionless
-          (TypTypeName {| stags := NoInfo; str := "HashAlgorithm" |})
+          (TypTypeName {| stags := NoInfo; str := "HashAlgorithm" |}) 
           None {| stags := NoInfo; str := "algo" |})].
 
 Definition update_checksum'condition'data'checksum'algo := DeclExternFunction
@@ -289,7 +289,7 @@ Definition update_checksum'condition'data'checksum'algo := DeclExternFunction
           (TypTypeName {| stags := NoInfo; str := "O13" |}) None
           {| stags := NoInfo; str := "checksum" |});
      (MkParameter false Directionless
-          (TypTypeName {| stags := NoInfo; str := "HashAlgorithm" |})
+          (TypTypeName {| stags := NoInfo; str := "HashAlgorithm" |}) 
           None {| stags := NoInfo; str := "algo" |})].
 
 Definition verify_checksum_with_payload'condition'data'checksum'algo := DeclExternFunction
@@ -305,7 +305,7 @@ Definition verify_checksum_with_payload'condition'data'checksum'algo := DeclExte
           (TypTypeName {| stags := NoInfo; str := "O15" |}) None
           {| stags := NoInfo; str := "checksum" |});
      (MkParameter false Directionless
-          (TypTypeName {| stags := NoInfo; str := "HashAlgorithm" |})
+          (TypTypeName {| stags := NoInfo; str := "HashAlgorithm" |}) 
           None {| stags := NoInfo; str := "algo" |})].
 
 Definition update_checksum_with_payload'condition'data'checksum'algo := DeclExternFunction
@@ -321,7 +321,7 @@ Definition update_checksum_with_payload'condition'data'checksum'algo := DeclExte
           (TypTypeName {| stags := NoInfo; str := "O17" |}) None
           {| stags := NoInfo; str := "checksum" |});
      (MkParameter false Directionless
-          (TypTypeName {| stags := NoInfo; str := "HashAlgorithm" |})
+          (TypTypeName {| stags := NoInfo; str := "HashAlgorithm" |}) 
           None {| stags := NoInfo; str := "algo" |})].
 
 Definition resubmit'data := DeclExternFunction NoInfo TypVoid
@@ -622,7 +622,7 @@ Definition Add := DeclControl NoInfo {| stags := NoInfo; str := "Add" |} nil
                                {| stags := NoInfo; str := "M" |}]
                               [(MkParameter false Out
                                     (TypTypeName
-                                     {| stags := NoInfo; str := "O" |})
+                                     {| stags := NoInfo; str := "O" |}) 
                                     None
                                     {| stags := NoInfo; str := "result" |});
                                (MkParameter false In
@@ -632,17 +632,17 @@ Definition Add := DeclControl NoInfo {| stags := NoInfo; str := "Add" |} nil
                                     {| stags := NoInfo; str := "algo" |});
                                (MkParameter false In
                                     (TypTypeName
-                                     {| stags := NoInfo; str := "T8" |})
+                                     {| stags := NoInfo; str := "T8" |}) 
                                     None
                                     {| stags := NoInfo; str := "base" |});
                                (MkParameter false In
                                     (TypTypeName
-                                     {| stags := NoInfo; str := "D" |})
+                                     {| stags := NoInfo; str := "D" |}) 
                                     None
                                     {| stags := NoInfo; str := "data" |});
                                (MkParameter false In
                                     (TypTypeName
-                                     {| stags := NoInfo; str := "M" |})
+                                     {| stags := NoInfo; str := "M" |}) 
                                     None {| stags := NoInfo; str := "max" |})]
                               FunExtern TypVoid)) Directionless)
                    [(TypBit 32%N); (TypBit 32%N);
@@ -744,7 +744,7 @@ Definition Add := DeclControl NoInfo {| stags := NoInfo; str := "Add" |} nil
                                     (MkParameter false In
                                          (TypTypeName
                                           {| stags := NoInfo;
-                                             str := "HashAlgorithm" |})
+                                             str := "HashAlgorithm" |}) 
                                          None
                                          {| stags := NoInfo; str := "algo" |});
                                     (MkParameter false In
@@ -923,7 +923,7 @@ Definition Add := DeclControl NoInfo {| stags := NoInfo; str := "Add" |} nil
                                             str := "crc16" |})
                                     (TypEnum
                                          {| stags := NoInfo;
-                                            str := "HashAlgorithm" |}
+                                            str := "HashAlgorithm" |} 
                                          None
                                          [{| stags := NoInfo;
                                              str := "crc32" |};
@@ -1048,7 +1048,7 @@ Definition Add := DeclControl NoInfo {| stags := NoInfo; str := "Add" |} nil
                                                    (ExpInt
                                                     {| itags := NoInfo;
                                                        value := 1;
-                                                       width_signed :=
+                                                       width_signed := 
                                                        None |}) TypInteger
                                                    Directionless))
                                          (TypBit 1%N) Directionless))])
@@ -1075,12 +1075,12 @@ Definition Add := DeclControl NoInfo {| stags := NoInfo; str := "Add" |} nil
                                             (TypFunction
                                              (MkFunctionType nil
                                                   [(MkParameter false In
-                                                        (TypBit 32%N)
+                                                        (TypBit 32%N) 
                                                         None
                                                         {| stags := NoInfo;
                                                            str := "index" |});
                                                    (MkParameter false In
-                                                        (TypBit 1%N)
+                                                        (TypBit 1%N) 
                                                         None
                                                         {| stags := NoInfo;
                                                            str := "value" |})]
@@ -1109,7 +1109,7 @@ Definition Add := DeclControl NoInfo {| stags := NoInfo; str := "Add" |} nil
                                                         (ExpInt
                                                          {| itags := NoInfo;
                                                             value := 1;
-                                                            width_signed :=
+                                                            width_signed := 
                                                             None |})
                                                         TypInteger
                                                         Directionless))
@@ -1174,7 +1174,7 @@ Definition Add := DeclControl NoInfo {| stags := NoInfo; str := "Add" |} nil
                                                              (ExpInt
                                                               {| itags := NoInfo;
                                                                  value := 1;
-                                                                 width_signed :=
+                                                                 width_signed := 
                                                                  None |})
                                                              TypInteger
                                                              Directionless))
@@ -1205,7 +1205,7 @@ Definition Query := DeclControl NoInfo {| stags := NoInfo; str := "Query" |}
                                {| stags := NoInfo; str := "M" |}]
                               [(MkParameter false Out
                                     (TypTypeName
-                                     {| stags := NoInfo; str := "O" |})
+                                     {| stags := NoInfo; str := "O" |}) 
                                     None
                                     {| stags := NoInfo; str := "result" |});
                                (MkParameter false In
@@ -1215,17 +1215,17 @@ Definition Query := DeclControl NoInfo {| stags := NoInfo; str := "Query" |}
                                     {| stags := NoInfo; str := "algo" |});
                                (MkParameter false In
                                     (TypTypeName
-                                     {| stags := NoInfo; str := "T8" |})
+                                     {| stags := NoInfo; str := "T8" |}) 
                                     None
                                     {| stags := NoInfo; str := "base" |});
                                (MkParameter false In
                                     (TypTypeName
-                                     {| stags := NoInfo; str := "D" |})
+                                     {| stags := NoInfo; str := "D" |}) 
                                     None
                                     {| stags := NoInfo; str := "data" |});
                                (MkParameter false In
                                     (TypTypeName
-                                     {| stags := NoInfo; str := "M" |})
+                                     {| stags := NoInfo; str := "M" |}) 
                                     None {| stags := NoInfo; str := "max" |})]
                               FunExtern TypVoid)) Directionless)
                    [(TypBit 32%N); (TypBit 32%N);
@@ -1327,7 +1327,7 @@ Definition Query := DeclControl NoInfo {| stags := NoInfo; str := "Query" |}
                                     (MkParameter false In
                                          (TypTypeName
                                           {| stags := NoInfo;
-                                             str := "HashAlgorithm" |})
+                                             str := "HashAlgorithm" |}) 
                                          None
                                          {| stags := NoInfo; str := "algo" |});
                                     (MkParameter false In
@@ -1506,7 +1506,7 @@ Definition Query := DeclControl NoInfo {| stags := NoInfo; str := "Query" |}
                                             str := "crc16" |})
                                     (TypEnum
                                          {| stags := NoInfo;
-                                            str := "HashAlgorithm" |}
+                                            str := "HashAlgorithm" |} 
                                          None
                                          [{| stags := NoInfo;
                                              str := "crc32" |};
@@ -1663,12 +1663,12 @@ Definition Query := DeclControl NoInfo {| stags := NoInfo; str := "Query" |}
                                             (TypFunction
                                              (MkFunctionType nil
                                                   [(MkParameter false Out
-                                                        (TypBit 1%N)
+                                                        (TypBit 1%N) 
                                                         None
                                                         {| stags := NoInfo;
                                                            str := "result" |});
                                                    (MkParameter false In
-                                                        (TypBit 32%N)
+                                                        (TypBit 32%N) 
                                                         None
                                                         {| stags := NoInfo;
                                                            str := "index" |})]
@@ -1786,7 +1786,7 @@ Definition Query := DeclControl NoInfo {| stags := NoInfo; str := "Query" |}
                                                                 NoInfo
                                                                 (ExpName
                                                                  (BareName
-                                                                  {|
+                                                                  {| 
                                                                   stags := NoInfo;
                                                                   str := "meta" |})
                                                                  (LInstance
@@ -1802,24 +1802,23 @@ Definition Query := DeclControl NoInfo {| stags := NoInfo; str := "Query" |}
                                                  (MkExpression NoInfo
                                                       (ExpBinaryOp BitAnd
                                                            (MkExpression
-                                                                  NoInfo
-                                                                  (ExpBinaryOp
+                                                                NoInfo
+                                                                (ExpBinaryOp
                                                                     BitAnd
-                                                                    (
-                                                                    MkExpression
+                                                                    (MkExpression
                                                                     NoInfo
                                                                     (ExpExpressionMember
                                                                     (MkExpression
                                                                     NoInfo
                                                                     (ExpName
                                                                     (BareName
-                                                                    {|
+                                                                    {| 
                                                                     stags := NoInfo;
                                                                     str := "meta" |})
                                                                     (LInstance
                                                                     ["meta"]))
                                                                     (TypTypeName
-                                                                    {|
+                                                                    {| 
                                                                     stags := NoInfo;
                                                                     str := "custom_metadata_t" |})
                                                                     InOut)
@@ -1835,13 +1834,13 @@ Definition Query := DeclControl NoInfo {| stags := NoInfo; str := "Query" |}
                                                                     NoInfo
                                                                     (ExpName
                                                                     (BareName
-                                                                    {|
+                                                                    {| 
                                                                     stags := NoInfo;
                                                                     str := "meta" |})
                                                                     (LInstance
                                                                     ["meta"]))
                                                                     (TypTypeName
-                                                                    {|
+                                                                    {| 
                                                                     stags := NoInfo;
                                                                     str := "custom_metadata_t" |})
                                                                     InOut)
@@ -1849,32 +1848,31 @@ Definition Query := DeclControl NoInfo {| stags := NoInfo; str := "Query" |}
                                                                     str := "member1" |})
                                                                     (TypBit
                                                                     1%N)
-                                                                    Directionless) )
-                                                                  (TypBit
-                                                                   1%N)
-                                                                  Directionless)
-                                                             (MkExpression
-                                                                  NoInfo
-                                                                  (ExpExpressionMember
+                                                                    Directionless))
+                                                                (TypBit 1%N)
+                                                                Directionless)
+                                                           (MkExpression
+                                                                NoInfo
+                                                                (ExpExpressionMember
                                                                     (MkExpression
                                                                     NoInfo
                                                                     (ExpName
                                                                     (BareName
-                                                                    {|
+                                                                    {| 
                                                                     stags := NoInfo;
                                                                     str := "meta" |})
                                                                     (LInstance
                                                                     ["meta"]))
                                                                     (TypTypeName
-                                                                    {|
+                                                                    {| 
                                                                     stags := NoInfo;
                                                                     str := "custom_metadata_t" |})
                                                                     InOut)
-                                                                    {| stags := NoInfo;
+                                                                    {| 
+                                                                    stags := NoInfo;
                                                                     str := "member2" |})
-                                                                  (TypBit
-                                                                   1%N)
-                                                                  Directionless))
+                                                                (TypBit 1%N)
+                                                                Directionless))
                                                       (TypBit 1%N)
                                                       Directionless))
                                             StmUnit) (BlockEmpty NoInfo)))))))).
@@ -1917,28 +1915,27 @@ Definition MyIngress := DeclControl NoInfo
                    (MkExpression NoInfo
                         (ExpBinaryOp Eq
                              (MkExpression NoInfo
-                                    (ExpExpressionMember
-                                         (MkExpression NoInfo
-                                              (ExpName
-                                               (BareName
-                                                {| stags := NoInfo;
-                                                   str := "standard_metadata" |})
-                                               (LInstance
-                                                    ["standard_metadata"]))
-                                              (TypTypeName
-                                               {| stags := NoInfo;
-                                                  str := "standard_metadata_t" |})
-                                              InOut)
-                                         {| stags := NoInfo;
-                                            str := "ingress_port" |})
-                                    (TypBit 9%N) Directionless)
-                               (MkExpression NoInfo
-                                    (ExpName
-                                     (BareName
-                                      {| stags := NoInfo;
-                                         str := "INT_PORT" |})
-                                     (LGlobal ["INT_PORT"])) (TypBit 9%N)
-                                    Directionless) ) TypBool Directionless)
+                                  (ExpExpressionMember
+                                       (MkExpression NoInfo
+                                            (ExpName
+                                             (BareName
+                                              {| stags := NoInfo;
+                                                 str := "standard_metadata" |})
+                                             (LInstance
+                                                  ["standard_metadata"]))
+                                            (TypTypeName
+                                             {| stags := NoInfo;
+                                                str := "standard_metadata_t" |})
+                                            InOut)
+                                       {| stags := NoInfo;
+                                          str := "ingress_port" |})
+                                  (TypBit 9%N) Directionless)
+                             (MkExpression NoInfo
+                                  (ExpName
+                                   (BareName
+                                    {| stags := NoInfo; str := "INT_PORT" |})
+                                   (LGlobal ["INT_PORT"])) (TypBit 9%N)
+                                  Directionless)) TypBool Directionless)
                    (MkStatement NoInfo
                         (StatBlock
                          (BlockCons
@@ -2078,7 +2075,7 @@ Definition MyIngress := DeclControl NoInfo
                                                            [( {| stags := NoInfo;
                                                                  str := "myHeader" |},
                                                               (TypHeader
-                                                               [( {|
+                                                               [( {| 
                                                                   stags := NoInfo;
                                                                   str := "data" |},
                                                                   (TypBit
@@ -2148,13 +2145,13 @@ Definition MyIngress := DeclControl NoInfo
                                                                     NoInfo
                                                                     (ExpName
                                                                     (BareName
-                                                                    {|
+                                                                    {| 
                                                                     stags := NoInfo;
                                                                     str := "meta" |})
                                                                     (LInstance
                                                                     ["meta"]))
                                                                     (TypTypeName
-                                                                    {|
+                                                                    {| 
                                                                     stags := NoInfo;
                                                                     str := "custom_metadata_t" |})
                                                                     InOut)
@@ -2180,13 +2177,13 @@ Definition MyIngress := DeclControl NoInfo
                                                                     NoInfo
                                                                     (ExpName
                                                                     (BareName
-                                                                    {|
+                                                                    {| 
                                                                     stags := NoInfo;
                                                                     str := "standard_metadata" |})
                                                                     (LInstance
                                                                     ["standard_metadata"]))
                                                                     (TypTypeName
-                                                                    {|
+                                                                    {| 
                                                                     stags := NoInfo;
                                                                     str := "standard_metadata_t" |})
                                                                     InOut)
@@ -2199,7 +2196,7 @@ Definition MyIngress := DeclControl NoInfo
                                                                     NoInfo
                                                                     (ExpName
                                                                     (BareName
-                                                                    {|
+                                                                    {| 
                                                                     stags := NoInfo;
                                                                     str := "DROP_SPEC" |})
                                                                     (LGlobal
@@ -2258,7 +2255,7 @@ Definition MyDeparser := DeclControl NoInfo
                          (MkFunctionType [{| stags := NoInfo; str := "T2" |}]
                               [(MkParameter false In
                                     (TypTypeName
-                                     {| stags := NoInfo; str := "T2" |})
+                                     {| stags := NoInfo; str := "T2" |}) 
                                     None {| stags := NoInfo; str := "hdr" |})]
                               FunExtern TypVoid)) Directionless)
                    [(TypHeader
@@ -2615,3 +2612,5 @@ Definition prog := Program
      MyParser; bloom0; bloom1; bloom2; Add; Query; INT_PORT; EXT_PORT;
      DROP_SPEC; MyIngress; MyEgress; MyDeparser; MyVerifyChecksum;
      MyComputeChecksum; main].
+
+
