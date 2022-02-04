@@ -1,14 +1,15 @@
 Require Import Coq.ZArith.ZArith.
-Require Import Poulet4.Typed.
-Require Import Poulet4.Syntax.
-Require Import Poulet4.Value.
-Require Import Poulet4.Semantics.
+Require Import Poulet4.P4light.Syntax.Typed.
+Require Import Poulet4.P4light.Syntax.Syntax.
+Require Import Poulet4.P4light.Syntax.Value.
+Require Import Poulet4.P4light.Semantics.Semantics.
+Require Import Poulet4.Utils.Utils.
 Require Import ProD3.core.Coqlib.
 Require Import ProD3.core.SvalRefine.
 Require Import ProD3.core.AssertionLang.
 Require Import ProD3.core.AssertionNotations.
 Require Import ProD3.core.Hoare.
-Require Import Poulet4.SyntaxUtil.
+Require Import Poulet4.P4light.Syntax.SyntaxUtil.
 Require Import Hammer.Plugin.Hammer.
 
 Section Implies.

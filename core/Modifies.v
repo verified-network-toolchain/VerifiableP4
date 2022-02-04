@@ -1,8 +1,8 @@
 Require Import Coq.Lists.List.
-Require Import Poulet4.Typed.
-Require Import Poulet4.Syntax.
-Require Import Poulet4.Value.
-Require Import Poulet4.Semantics.
+Require Import Poulet4.P4light.Syntax.Typed.
+Require Import Poulet4.P4light.Syntax.Syntax.
+Require Import Poulet4.P4light.Syntax.Value.
+Require Import Poulet4.P4light.Semantics.Semantics.
 Require Import ProD3.core.Coqlib.
 Require Import ProD3.core.Hoare.
 Require ProD3.core.AssertionLang.
@@ -223,7 +223,7 @@ Proof.
   }
   destruct sig0; only 2, 3, 4 : destruct H14; subst; eauto.
   destruct sig'; only 1, 3, 4 : destruct H14; subst; eauto.
-  destruct H14 as [? []]; subst; eauto.
+  destruct H14 as [? [? [? ?]]]; subst; eauto.
 Qed.
 
 Lemma stmt_modifies_method_call : forall p tags func targs args typ vars exts,

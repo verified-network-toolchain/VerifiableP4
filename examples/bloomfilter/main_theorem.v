@@ -1,7 +1,7 @@
-Require Import Poulet4.P4defs.
-Require Import Poulet4.P4Notations.
+Require Import Poulet4.P4light.Syntax.P4defs.
+Require Import Poulet4.P4light.Syntax.P4Notations.
 Require Import Coq.Program.Basics.
-Require Import Poulet4.Maps.
+Require Import Poulet4.Utils.Maps.
 Require Import ProD3.examples.bloomfilter.p4ast.
 Require Import ProD3.examples.bloomfilter.bloomfilter.
 Require Import ProD3.examples.bloomfilter.switch.
@@ -118,7 +118,7 @@ Lemma Test1: forall st' output,
 Proof.
 intros. inv H.
 assert (Bf: bf_encode init_es (empty Z, empty Z, empty Z)).
-{ split. reflexivity. split; reflexivity. } 
+{ split. reflexivity. split; reflexivity. }
 eapply process_packet_prop in H3; [ clear Bf; destruct H3 as [bf1 [Proc1 Bf1]] | eassumption].
 inv Proc1. inv H6.
 eapply process_packet_prop in H2; [ clear Bf1; destruct H2 as [bf2 [Proc2 Bf2]] | eassumption].
@@ -129,7 +129,7 @@ Definition packet1': BinNums.Z * port := (Z0, port_int).
 Definition packet2': BinNums.Z * port := (Z0, port_ext).
 
 Lemma Test2: forall es' output,
-     @process_packets _ _ ge custom_metadata_t  init_es  [packet1';packet2'] es' output -> 
+     @process_packets _ _ ge custom_metadata_t  init_es  [packet1';packet2'] es' output ->
      bf_encode es'
         (add0 Z Z.eqb CRC_pad0 (empty Z) 0,
          add1 Z Z.eqb CRC_pad1 (empty Z) 0,
@@ -138,7 +138,7 @@ Lemma Test2: forall es' output,
 Proof.
 intros. inv H.
 assert (Bf: bf_encode init_es (empty Z, empty Z, empty Z)).
-{ split. reflexivity. split; reflexivity. } 
+{ split. reflexivity. split; reflexivity. }
 eapply process_packet_prop in H3; [ clear Bf; destruct H3 as [bf1 [Proc1 Bf1]] | eassumption].
 inv Proc1. inv H6.
 eapply process_packet_prop in H2; [ clear Bf1; destruct H2 as [bf2 [Proc2 Bf2]] | eassumption].
@@ -146,7 +146,7 @@ inv Proc2. inv H5. split; trivial.
 Qed.
 
 Fixpoint multi_process (bf : bloomfilter_state) (l :list (Z * port)): bloomfilter_state * list (option (Z * port)) :=
-  match l with 
+  match l with
      nil => (bf, nil)
   | h::t => match process' bf h with
             (bf1, out) => match multi_process bf1 t with
@@ -161,7 +161,7 @@ destruct (process' bf a). remember (multi_process p l) as x; symmetry in Heqx; d
 apply IHl in Heqx. simpl; rewrite Heqx; trivial.
 Qed.
 
-Lemma multi_process_app_inv: forall l1 l2 bf bf2 out, multi_process bf (l1++l2) = (bf2, out) -> 
+Lemma multi_process_app_inv: forall l1 l2 bf bf2 out, multi_process bf (l1++l2) = (bf2, out) ->
       exists bf1 out1 out2, multi_process bf l1 = (bf1, out1) /\ multi_process bf1 l2 = (bf2, out2) /\ out=out1++out2.
 Proof.
   induction l1; simpl; intros.
@@ -194,7 +194,7 @@ Lemma process_packets_app_inv: forall l1 l2 es es2 output,
 Proof.
  intros l1. induction l1; simpl; intros.
 + do 3 eexists. split. 2:{ split. apply process_packets_nil. eassumption. }
-  reflexivity. 
+  reflexivity.
 + inv H. apply IHl1 in H6; clear IHl1. destruct H6 as [es1 [out1 [out2 [X [PP1 PP2]]]]]; subst.
   do 3 eexists; split.
   2:{ split. eapply process_packets_cons; eassumption. eassumption. }
@@ -226,12 +226,12 @@ Lemma multi_process_firewall_aux: forall {l bf z bf1 bf' a out2 out1},
 process' (add Z Z.eqb CRC_pad0 CRC_pad1 CRC_pad2 bf z) a = (bf1, out1) ->
 multi_process bf1 l = (bf', out2) ->
 query Z CRC_pad0 CRC_pad1 CRC_pad2 bf' z = true.
-Proof. 
+Proof.
 induction l; simpl; intros.
 + inv H0. destruct a. destruct p; simpl in H.
   - inv H. rewrite add_comm. apply bf_add_query_true. apply Z.eqb_refl.
   - destruct (query Z CRC_pad0 CRC_pad1 CRC_pad2
-        (add Z Z.eqb CRC_pad0 CRC_pad1 CRC_pad2 bf z) z0). 
+        (add Z Z.eqb CRC_pad0 CRC_pad1 CRC_pad2 bf z) z0).
     * inv H. apply bf_add_query_true. apply Z.eqb_refl.
     * inv H. apply bf_add_query_true. apply Z.eqb_refl.
 + remember (process' bf1 a) as x; symmetry in Heqx; destruct x as [bf3 out3].
@@ -245,8 +245,8 @@ induction l; simpl; intros.
     * inv H. eauto.
 Qed.
 
-Lemma multi_process_firewall_endpoints z: forall l bf bf' out, 
-multi_process bf ((z, port_int)::l++[(z, port_ext)]) = (bf', out) -> 
+Lemma multi_process_firewall_endpoints z: forall l bf bf' out,
+multi_process bf ((z, port_int)::l++[(z, port_ext)]) = (bf', out) ->
 exists m, out = (Some (z, port_ext)::m++[Some (z, port_int)]).
 Proof. induction l; simpl; intros.
 + rewrite bf_add_query_true in H by apply Z.eqb_refl. inv H. exists (@nil(option (Z * port))). reflexivity.
@@ -260,7 +260,7 @@ Proof. induction l; simpl; intros.
 Qed.
 
 Lemma multi_process_firewall {l1 l2 l3 bf bf' out z}:
-      multi_process bf (l1++(z, port_int)::l2++[(z, port_ext)]++l3) = (bf', out) -> 
+      multi_process bf (l1++(z, port_int)::l2++[(z, port_ext)]++l3) = (bf', out) ->
 exists m1 m2 m3, out = m1++(Some (z, port_ext))::m2++[Some (z, port_int)]++m3 /\
       length m1=length l1 /\ length m2 = length l2 /\ length m3=length l3.
 Proof. intros. destruct (multi_process_app_inv _ _ _ _ _  H) as [bf1 [m1 [out1 [P1 [Ptail1 X]]]]]; subst out; clear H.
@@ -292,20 +292,20 @@ Qed.
 Lemma Firewall': forall l1 l2 l3 es es' output bf,
      @process_packets _ _ ge custom_metadata_t es (l1++packet1'::l2++packet2'::l3) es' output -> bf_encode es bf ->
      exists out1 out2 out3 act1 act2,
-     output = out1++act1::out2++act2::out3 /\ 
+     output = out1++act1::out2++act2::out3 /\
      length out1 = length l1 /\ length out2 = length l2 /\ length out3 = length l3.
-Proof. intros. 
+Proof. intros.
   destruct (process_packets_app_inv_encode _ _ _ _ _ _ H H0) as [es1 [out1 [tail1 [bf1 [bftail [Hout [P1 [MP1 [BF1 [Tail1 [MTail1 BFtail1]]]]]]]]]]]; subst.
   clear H.
   apply process_packets_length in P1. clear MTail1 MP1. (*for now*)
-  exists out1; rewrite P1. 
-  inv Tail1. 
+  exists out1; rewrite P1.
+  inv Tail1.
   destruct (process_packet_prop _ _ _ _ _ H3 BF1) as [bf2 [PR2 BF2]]. clear H3.
   destruct (process_packets_app_inv_encode _ _ _ _ _ _ H6 BF2) as [es3 [out2 [tail2 [bf3 [bftail3 [Hout [P2 [MP3 [BF3 [Tail3 [MTail3 BFtail3]]]]]]]]]]]; subst.
   clear H6.
   apply process_packets_length in P2. clear MTail3 MP3. (*for now*)
-  exists out2; rewrite P2. 
-  inv Tail3. 
+  exists out2; rewrite P2.
+  inv Tail3.
   destruct (process_packet_prop _ _ _ _ _ H3 BF3) as [bf4 [PR4 BF4]]. clear H3.
   specialize (process_packets_length _ _ _ _ H6); intros.
   exists ps'; rewrite H.
@@ -317,7 +317,7 @@ Lemma app_inv {A}: forall (l1 l2 m1 m2:list A), l1++l2 = m1++m2 -> length l1=len
 Proof.
 induction l1; simpl; intros.
 + destruct m1; inv H0. split; trivial.
-+ destruct m1; inv H0. inv H. destruct (IHl1 _ _ _ H3 H2); subst. split; trivial. 
++ destruct m1; inv H0. inv H. destruct (IHl1 _ _ _ H3 H2); subst. split; trivial.
 Qed.
 
 Lemma multi_process_firewall_nth n m l bf bf' out z (H: (n<m<length l)%nat):
@@ -341,7 +341,7 @@ Search app length.
   rewrite <- L; trivial.
 
 
- Search nth_error. 
+ Search nth_error.
  ++m3 /\
 
 Definition DummyEntry: (Z * port) := (0, port_int).
@@ -351,11 +351,11 @@ Lemma multi_process_firewall_nth n m l bf bf' out z (H: (n<m<length l)%nat):
       nth n l DummyEntry = (z, port_int) ->
       nth m l DummyEntry = (z, port_ext) ->
       nth n l DummyEntry = (z, port_ext) /\ nth m l DummyEntry = (z, port_int).
-Proof. Search nth_error. 
+Proof. Search nth_error.
  ++m3 /\
       length m1=length l1 /\ length m2 = length l2 /\ length m3=length l3.
 Search length.
-Check nth. 
+Check nth.
 multi_process bf (l1++(z, port_int)::l2++[(z, port_ext)]++l3) = (bf', out)
    X].
 

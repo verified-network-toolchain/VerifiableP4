@@ -1,8 +1,8 @@
 Require Import Coq.Lists.List.
-Require Import Poulet4.Typed.
-Require Import Poulet4.Syntax.
-Require Import Poulet4.Value.
-Require Import Poulet4.Semantics.
+Require Import Poulet4.P4light.Syntax.Typed.
+Require Import Poulet4.P4light.Syntax.Syntax.
+Require Import Poulet4.P4light.Syntax.Value.
+Require Import Poulet4.P4light.Semantics.Semantics.
 Require Import ProD3.core.SvalRefine.
 Require Import ProD3.core.Hoare.
 Require Import ProD3.core.Implies.

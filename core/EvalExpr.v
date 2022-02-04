@@ -1,9 +1,10 @@
 Require Import Coq.Strings.String.
-Require Import Poulet4.Typed.
-Require Import Poulet4.Syntax.
-Require Import Poulet4.Semantics.
-Require Import Poulet4.P4String.
-Require Import Poulet4.P4Arith.
+Require Import Poulet4.P4light.Syntax.Typed.
+Require Import Poulet4.P4light.Syntax.Syntax.
+Require Import Poulet4.P4light.Semantics.Semantics.
+Require Import Poulet4.P4light.Syntax.P4String.
+Require Import Poulet4.Utils.P4Arith.
+Require Import Poulet4.Utils.Utils.
 Require Import ProD3.core.Coqlib.
 Require Import ProD3.core.Members.
 Require Import ProD3.core.SvalRefine.
@@ -494,7 +495,7 @@ Fixpoint eval_expr (ge : genv) (p : path) (a : mem_assertion) (expr : Expression
           | Some argv => Some (build_abs_unary_op (Ops.eval_unary_op op) argv)
           | None => None
           end
-      | ExpBinaryOp op (larg, rarg) =>
+      | ExpBinaryOp op larg rarg =>
           if (in_dec opbin_eq_dec op [Shl; Shr]) then None
               else
                 match eval_expr ge p a larg, eval_expr ge p a rarg with
@@ -1504,10 +1505,10 @@ Proof.
       destruct (eval_unary_op_val_sim _ _ _ _ H13 H4) as [newv' [? ?]].
       rewrite H5. simpl. apply sval_refine_liberal. apply val_sim_sym in H6.
       eapply val_sim_trans; eauto. apply eval_val_to_sval_val_sim.
-  - destruct args as [larg rarg]. destruct (in_dec opbin_eq_dec op [Shl; Shr]).
+  - destruct (in_dec opbin_eq_dec op [Shl; Shr]).
     1: inv H0. destruct_match H0. 2: inv H0.
-    destruct_match H0; inv H0. inv H2. simpl in *. eapply IHexpr in H12; eauto.
-    eapply IHexpr0 in H14; eauto.
+    destruct_match H0; inv H0. inv H2. simpl in *. eapply IHexpr1 in H12; eauto.
+    eapply IHexpr2 in H14; eauto.
     assert (sval_to_val read_ndetbit v largv). {
       eapply exec_val_trans; eauto. clear. repeat intro. inv H; auto. constructor. }
     assert (sval_to_val read_ndetbit v0 rargv). {

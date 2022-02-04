@@ -1,4 +1,4 @@
-Require Import Poulet4.P4defs.
+Require Import Poulet4.P4light.Syntax.P4defs.
 Open Scope string_scope.
 
 Import ListNotations.
@@ -135,7 +135,7 @@ Definition meter := DeclExternObject NoInfo
           [(MkParameter false Directionless (TypBit 32%N) None
                 {| stags := NoInfo; str := "size" |});
            (MkParameter false Directionless
-                (TypTypeName {| stags := NoInfo; str := "MeterType" |}) 
+                (TypTypeName {| stags := NoInfo; str := "MeterType" |})
                 None {| stags := NoInfo; str := "type" |})]);
      (ProtoMethod NoInfo TypVoid
           {| stags := NoInfo; str := "execute_meter" |}
@@ -151,7 +151,7 @@ Definition direct_meter := DeclExternObject NoInfo
     [{| stags := NoInfo; str := "T4" |}]
     [(ProtoConstructor NoInfo {| stags := NoInfo; str := "direct_meter" |}
           [(MkParameter false Directionless
-                (TypTypeName {| stags := NoInfo; str := "MeterType" |}) 
+                (TypTypeName {| stags := NoInfo; str := "MeterType" |})
                 None {| stags := NoInfo; str := "type" |})]);
      (ProtoMethod NoInfo TypVoid {| stags := NoInfo; str := "read" |} nil
           [(MkParameter false Out
@@ -228,7 +228,7 @@ Definition hash'result'algo'base'data'max := DeclExternFunction NoInfo
     [(MkParameter false Out (TypTypeName {| stags := NoInfo; str := "O" |})
           None {| stags := NoInfo; str := "result" |});
      (MkParameter false In
-          (TypTypeName {| stags := NoInfo; str := "HashAlgorithm" |}) 
+          (TypTypeName {| stags := NoInfo; str := "HashAlgorithm" |})
           None {| stags := NoInfo; str := "algo" |});
      (MkParameter false In (TypTypeName {| stags := NoInfo; str := "T8" |})
           None {| stags := NoInfo; str := "base" |});
@@ -274,7 +274,7 @@ Definition verify_checksum'condition'data'checksum'algo := DeclExternFunction
           (TypTypeName {| stags := NoInfo; str := "O11" |}) None
           {| stags := NoInfo; str := "checksum" |});
      (MkParameter false Directionless
-          (TypTypeName {| stags := NoInfo; str := "HashAlgorithm" |}) 
+          (TypTypeName {| stags := NoInfo; str := "HashAlgorithm" |})
           None {| stags := NoInfo; str := "algo" |})].
 
 Definition update_checksum'condition'data'checksum'algo := DeclExternFunction
@@ -289,7 +289,7 @@ Definition update_checksum'condition'data'checksum'algo := DeclExternFunction
           (TypTypeName {| stags := NoInfo; str := "O13" |}) None
           {| stags := NoInfo; str := "checksum" |});
      (MkParameter false Directionless
-          (TypTypeName {| stags := NoInfo; str := "HashAlgorithm" |}) 
+          (TypTypeName {| stags := NoInfo; str := "HashAlgorithm" |})
           None {| stags := NoInfo; str := "algo" |})].
 
 Definition verify_checksum_with_payload'condition'data'checksum'algo := DeclExternFunction
@@ -305,7 +305,7 @@ Definition verify_checksum_with_payload'condition'data'checksum'algo := DeclExte
           (TypTypeName {| stags := NoInfo; str := "O15" |}) None
           {| stags := NoInfo; str := "checksum" |});
      (MkParameter false Directionless
-          (TypTypeName {| stags := NoInfo; str := "HashAlgorithm" |}) 
+          (TypTypeName {| stags := NoInfo; str := "HashAlgorithm" |})
           None {| stags := NoInfo; str := "algo" |})].
 
 Definition update_checksum_with_payload'condition'data'checksum'algo := DeclExternFunction
@@ -321,7 +321,7 @@ Definition update_checksum_with_payload'condition'data'checksum'algo := DeclExte
           (TypTypeName {| stags := NoInfo; str := "O17" |}) None
           {| stags := NoInfo; str := "checksum" |});
      (MkParameter false Directionless
-          (TypTypeName {| stags := NoInfo; str := "HashAlgorithm" |}) 
+          (TypTypeName {| stags := NoInfo; str := "HashAlgorithm" |})
           None {| stags := NoInfo; str := "algo" |})].
 
 Definition resubmit'data := DeclExternFunction NoInfo TypVoid
@@ -607,11 +607,11 @@ Definition MyIngress := DeclControl NoInfo
                                    {| stags := NoInfo; str := "read" |})
                               (TypFunction
                                (MkFunctionType nil
-                                    [(MkParameter false Out (TypBit 4%N) 
+                                    [(MkParameter false Out (TypBit 4%N)
                                           None
                                           {| stags := NoInfo;
                                              str := "result" |});
-                                     (MkParameter false In (TypBit 32%N) 
+                                     (MkParameter false In (TypBit 32%N)
                                           None
                                           {| stags := NoInfo;
                                              str := "index" |})] FunExtern
@@ -682,7 +682,7 @@ Definition MyIngress := DeclControl NoInfo
                                (Some
                                 (MkExpression NoInfo
                                      (ExpBinaryOp Plus
-                                          ( (MkExpression NoInfo
+                                          (MkExpression NoInfo
                                                  (ExpExpressionMember
                                                       (MkExpression NoInfo
                                                            (ExpName
@@ -697,18 +697,18 @@ Definition MyIngress := DeclControl NoInfo
                                                            InOut)
                                                       {| stags := NoInfo;
                                                          str := "counter" |})
-                                                 (TypBit 4%N) Directionless),
+                                                 (TypBit 4%N) Directionless)
                                             (MkExpression NoInfo
                                                  (ExpCast (TypBit 4%N)
                                                       (MkExpression NoInfo
                                                            (ExpInt
                                                             {| itags := NoInfo;
                                                                value := 1;
-                                                               width_signed := 
+                                                               width_signed :=
                                                                None |})
                                                            TypInteger
                                                            Directionless))
-                                                 (TypBit 4%N) Directionless) ))
+                                                 (TypBit 4%N) Directionless))
                                      (TypBit 4%N) Directionless))]) StmUnit)
                     (BlockCons
                          (MkStatement NoInfo
@@ -735,7 +735,7 @@ Definition MyIngress := DeclControl NoInfo
                                                   (ExpInt
                                                    {| itags := NoInfo;
                                                       value := 0;
-                                                      width_signed := 
+                                                      width_signed :=
                                                       None |}) TypInteger
                                                   Directionless))
                                         (TypBit 9%N) Directionless)) StmUnit)
@@ -763,11 +763,11 @@ Definition MyIngress := DeclControl NoInfo
                                    {| stags := NoInfo; str := "read" |})
                               (TypFunction
                                (MkFunctionType nil
-                                    [(MkParameter false Out (TypBit 4%N) 
+                                    [(MkParameter false Out (TypBit 4%N)
                                           None
                                           {| stags := NoInfo;
                                              str := "result" |});
-                                     (MkParameter false In (TypBit 32%N) 
+                                     (MkParameter false In (TypBit 32%N)
                                           None
                                           {| stags := NoInfo;
                                              str := "index" |})] FunExtern
@@ -838,7 +838,7 @@ Definition MyIngress := DeclControl NoInfo
                                (Some
                                 (MkExpression NoInfo
                                      (ExpBinaryOp Plus
-                                          ( (MkExpression NoInfo
+                                          (MkExpression NoInfo
                                                  (ExpExpressionMember
                                                       (MkExpression NoInfo
                                                            (ExpName
@@ -853,18 +853,18 @@ Definition MyIngress := DeclControl NoInfo
                                                            InOut)
                                                       {| stags := NoInfo;
                                                          str := "counter" |})
-                                                 (TypBit 4%N) Directionless),
+                                                 (TypBit 4%N) Directionless)
                                             (MkExpression NoInfo
                                                  (ExpCast (TypBit 4%N)
                                                       (MkExpression NoInfo
                                                            (ExpInt
                                                             {| itags := NoInfo;
                                                                value := 1;
-                                                               width_signed := 
+                                                               width_signed :=
                                                                None |})
                                                            TypInteger
                                                            Directionless))
-                                                 (TypBit 4%N) Directionless) ))
+                                                 (TypBit 4%N) Directionless))
                                      (TypBit 4%N) Directionless))]) StmUnit)
                     (BlockCons
                          (MkStatement NoInfo
@@ -940,7 +940,7 @@ Definition MyIngress := DeclControl NoInfo
                                                    (ExpInt
                                                     {| itags := NoInfo;
                                                        value := 1;
-                                                       width_signed := 
+                                                       width_signed :=
                                                        None |}) TypInteger
                                                    Directionless))
                        (TypBit 1%N))]
@@ -973,7 +973,7 @@ Definition MyIngress := DeclControl NoInfo
               (StatConditional
                    (MkExpression NoInfo
                         (ExpBinaryOp Eq
-                             ( (MkExpression NoInfo
+                             (MkExpression NoInfo
                                     (ExpExpressionMember
                                          (MkExpression NoInfo
                                               (ExpExpressionMember
@@ -999,7 +999,7 @@ Definition MyIngress := DeclControl NoInfo
                                               Directionless)
                                          {| stags := NoInfo;
                                             str := "firstBit" |})
-                                    (TypBit 1%N) Directionless),
+                                    (TypBit 1%N) Directionless)
                                (MkExpression NoInfo
                                     (ExpCast (TypBit 1%N)
                                          (MkExpression NoInfo
@@ -1008,7 +1008,7 @@ Definition MyIngress := DeclControl NoInfo
                                                   value := 1;
                                                   width_signed := None |})
                                               TypInteger Directionless))
-                                    (TypBit 1%N) Directionless) )) TypBool
+                                    (TypBit 1%N) Directionless)) TypBool
                         Directionless)
                    (MkStatement NoInfo
                         (StatBlock
@@ -1038,7 +1038,7 @@ Definition MyIngress := DeclControl NoInfo
                                                          (ExpInt
                                                           {| itags := NoInfo;
                                                              value := 48;
-                                                             width_signed := 
+                                                             width_signed :=
                                                              None |})
                                                          TypInteger
                                                          Directionless))
@@ -1100,7 +1100,7 @@ Definition MyDeparser := DeclControl NoInfo
                          (MkFunctionType [{| stags := NoInfo; str := "T2" |}]
                               [(MkParameter false In
                                     (TypTypeName
-                                     {| stags := NoInfo; str := "T2" |}) 
+                                     {| stags := NoInfo; str := "T2" |})
                                     None {| stags := NoInfo; str := "hdr" |})]
                               FunExtern TypVoid)) Directionless)
                    [(TypHeader
@@ -1417,5 +1417,3 @@ Definition prog := Program
      V1Switch; egressSpec_t; myHeader_t; metadata; headers; MyParser;
      MyIngress; MyEgress; MyDeparser; MyVerifyChecksum; MyComputeChecksum;
      main].
-
-

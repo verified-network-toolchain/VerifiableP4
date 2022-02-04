@@ -1,10 +1,10 @@
 Require Import Coq.Strings.String.
 Require Import Coq.ZArith.ZArith.
 Require Import VST.zlist.Zlist.
-Require Import Poulet4.Utils.
-Require Import Poulet4.Typed.
-Require Import Poulet4.Syntax.
-Require Import Poulet4.Semantics.
+Require Import Poulet4.Utils.Utils.
+Require Import Poulet4.P4light.Syntax.Typed.
+Require Import Poulet4.P4light.Syntax.Syntax.
+Require Import Poulet4.P4light.Semantics.Semantics.
 Require Import ProD3.core.Coqlib.
 Require Import ProD3.core.Members.
 Require Import ProD3.core.SvalRefine.

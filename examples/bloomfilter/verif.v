@@ -1,5 +1,5 @@
-Require Import Poulet4.P4defs.
-Require Import Poulet4.P4Notations.
+Require Import Poulet4.P4light.Syntax.P4defs.
+Require Import Poulet4.P4light.Syntax.P4Notations.
 Require Import Coq.Program.Basics.
 Open Scope string_scope.
 
@@ -7,11 +7,11 @@ Import ListNotations.
 Require Import ProD3.examples.bloomfilter.p4ast.
 Require Import ProD3.examples.bloomfilter.bloomfilter.
 
-Require Import Poulet4.Maps.
-Require Import Poulet4.Semantics.
-Require Import Poulet4.SimplExpr.
-Require Import Poulet4.V1Model.
-Require Import Poulet4.P4Arith.
+Require Import Poulet4.Utils.Maps.
+Require Import Poulet4.P4light.Semantics.Semantics.
+Require Import Poulet4.P4light.Transformations.SimplExpr.
+Require Import Poulet4.P4light.Architecture.V1Model.
+Require Import Poulet4.Utils.P4Arith.
 Require Import ProD3.core.Hoare.
 Require Import ProD3.core.ConcreteHoare.
 Require Import ProD3.core.EvalExpr.

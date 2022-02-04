@@ -1,8 +1,8 @@
 Require Import Coq.Lists.List.
-Require Import Poulet4.Typed.
-Require Import Poulet4.Syntax.
-Require Import Poulet4.Value.
-Require Import Poulet4.Semantics.
+Require Import Poulet4.P4light.Syntax.Typed.
+Require Import Poulet4.P4light.Syntax.Syntax.
+Require Import Poulet4.P4light.Syntax.Value.
+Require Import Poulet4.P4light.Semantics.Semantics.
 Require Import ProD3.core.Coqlib.
 Require Import ProD3.core.Hoare.
 Require ProD3.core.AssertionLang.
@@ -108,7 +108,7 @@ Proof.
     + simpl in H1. destruct a as [p' ?]. destruct (in_dec path_eq_dec p' vars) as [H_In | H_In].
       * subst; simpl. apply IHa_mem; auto.
         inv H0; auto.
-      * subst; simpl. constructor. 
+      * subst; simpl. constructor.
         ++simpl in H; simpl.
           rewrite <- H by auto.
           inv H0; auto.
@@ -123,7 +123,7 @@ Proof.
     + simpl in H2. destruct a as [p' ?]. destruct (in_dec path_eq_dec p' exts) as [H_In | H_In].
       * subst; simpl. apply IHa_ext; auto.
         inv H1; auto.
-      * subst; simpl. constructor. 
+      * subst; simpl. constructor.
         ++simpl in H0; simpl.
           rewrite <- H0 by auto.
           inv H1; auto.

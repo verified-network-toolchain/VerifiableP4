@@ -1,11 +1,11 @@
 Require Import Coq.NArith.BinNat.
-Require Import Poulet4.Typed.
-Require Import Poulet4.Syntax.
-Require Import Poulet4.Value.
-Require Import Poulet4.Semantics.
+Require Import Poulet4.P4light.Syntax.Typed.
+Require Import Poulet4.P4light.Syntax.Syntax.
+Require Import Poulet4.P4light.Syntax.Value.
+Require Import Poulet4.P4light.Semantics.Semantics.
 Require Import ProD3.core.Coqlib.
 Require Import ProD3.core.SvalRefine.
-Require Import Poulet4.SyntaxUtil.
+Require Import Poulet4.P4light.Syntax.SyntaxUtil.
 Require Import Hammer.Plugin.Hammer.
 
 Lemma path_eqb_refl : forall (p : list String.string),
@@ -345,9 +345,9 @@ Proof.
   inv H1.
   specialize_hoare_call.
   destruct sig'; only 1, 3, 4 : solve[inv H2].
-  destruct H2. destruct H16 as [? []].
-  split; only 1 : auto.
-  inv H5.
+  destruct H2. destruct H16 as [? [? ?]].
+  split; only 1 : destruct H6; auto.
+  inv H5. destruct H6.
   eapply H3; eauto.
 Qed.
 
