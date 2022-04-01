@@ -752,8 +752,6 @@ Proof.
   exact implies_refl.
 Qed.
 
-Section DeepEmbeddedHoare.
-
 Lemma implies_trans : forall (pre mid post : assertion),
   implies pre mid ->
   implies mid post ->
@@ -761,8 +759,6 @@ Lemma implies_trans : forall (pre mid post : assertion),
 Proof.
   unfold implies; intros; sfirstorder.
 Qed.
-
-(* It's possible to make these functinos and lemmas generic, but that's currently unneeded. *)
 
 Fixpoint is_in (x : path) (al : list path) : bool :=
   match al with
@@ -797,8 +793,6 @@ Proof.
     + apply not_is_in_not_In; auto.
     + auto.
 Qed.
-
-End DeepEmbeddedHoare.
 
 End Hoare.
 
