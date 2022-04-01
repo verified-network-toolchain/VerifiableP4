@@ -5,6 +5,7 @@ Require Import Poulet4.P4light.Semantics.Semantics.
 Require Import Poulet4.P4light.Syntax.Value.
 Require Import ProD3.core.Coqlib.
 Require Import ProD3.core.SvalRefine.
+Require Import ProD3.core.ExtPred.
 Require Import Coq.Numbers.BinNums.
 Require Import Hammer.Plugin.Hammer.
 Open Scope type_scope.
@@ -58,19 +59,10 @@ Definition ret_satisfies (retv : Val) (a : ret_assertion) : Prop :=
 Definition ret_denote (a : ret_assertion) : Val -> Prop :=
   fun retv => ret_satisfies retv a.
 
-Definition ext_unit := path * extern_object.
-
-Definition ext_assertion := list ext_unit.
-
-Definition ext_satisfies_unit (es : extern_state) (a_unit : ext_unit) : Prop :=
-  let (p, eo) := a_unit in
-  match PathMap.get p es with
-  | Some eo' => eo = eo'
-  | None => False
-  end.
+Definition ext_assertion := list ext_pred.
 
 Definition ext_satisfies (es : extern_state) (a : ext_assertion) : Prop :=
-  fold_right and True (map (ext_satisfies_unit es) a).
+  fold_right and True (map (fun (ep : ext_pred) => ep es) a).
 
 Definition ext_denote (a : ext_assertion) : extern_state -> Prop :=
   fun es => ext_satisfies es a.
@@ -162,7 +154,8 @@ Proof.
     + inv H1; apply IHa; auto.
 Qed.
 
-Lemma ext_denote_get : forall (a : ext_assertion) p eo,
+(* Seems deprecated *)
+(* Lemma ext_denote_get : forall (a : ext_assertion) p eo,
   AList.get a p = Some eo ->
   forall es, ext_denote a es ->
   ext_satisfies_unit es (p, eo).
@@ -176,7 +169,7 @@ Proof.
     + apply path_eqb_eq in H_p; subst.
       inv H0. inv H1. auto.
     + inv H1; apply IHa; auto.
-Qed.
+Qed. *)
 
 (** * Update and Get *)
 
