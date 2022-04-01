@@ -69,7 +69,10 @@ Proof.
   - auto.
 Qed.
 
-Definition ext_simplify_aux (a : ext_assertion) '((p, eo) : path * extern_object) : option (extern_object * extern_object) :=
+Definition ext_implies (a a' : ext_assertion) : Prop :=
+  forall es, ext_denote a es -> ext_denote a' es.
+
+(* Definition ext_simplify_aux (a : ext_assertion) '((p, eo) : path * extern_object) : option (extern_object * extern_object) :=
   match AList.get a p with
   | Some eo' => Some (eo, eo')
   | None => None
@@ -111,33 +114,31 @@ Proof.
     constructor.
     + eapply ext_simplify_aux_sound; eauto.
     + eauto.
-Qed.
+Qed. *)
 
-Lemma implies_simplify : forall pre_mem pre_ext post_mem post_ext svps eops,
+Lemma implies_simplify : forall pre_mem pre_ext post_mem post_ext svps,
   mem_implies_simplify pre_mem post_mem = Some svps ->
   Forall (uncurry sval_refine) svps ->
-  ext_implies_simplify pre_ext post_ext = Some eops ->
-  Forall (uncurry eq) eops ->
+  ext_implies pre_ext post_ext ->
   implies (MEM pre_mem (EXT pre_ext)) (MEM post_mem (EXT post_ext)).
 Proof.
   unfold implies; intros.
   destruct st as [m es].
-  destruct H3; split.
+  destruct H2; split.
   - eapply mem_implies_simplify_sound; eauto.
-  - eapply ext_implies_simplify_sound; eauto.
+  - apply H1. auto.
 Qed.
 
-Lemma arg_implies_simplify : forall pre_arg pre_mem pre_ext post_arg post_mem post_ext svps eops,
+Lemma arg_implies_simplify : forall pre_arg pre_mem pre_ext post_arg post_mem post_ext svps,
   Forall2 sval_refine post_arg pre_arg ->
   mem_implies_simplify pre_mem post_mem = Some svps ->
   Forall (uncurry sval_refine) svps ->
-  ext_implies_simplify pre_ext post_ext = Some eops ->
-  Forall (uncurry eq) eops ->
+  ext_implies pre_ext post_ext ->
   arg_implies (ARG pre_arg (MEM pre_mem (EXT pre_ext))) (ARG post_arg (MEM post_mem (EXT post_ext))).
 Proof.
   unfold implies; intros.
   unfold arg_implies; intros.
-  destruct H4.
+  destruct H3.
   split. 2 : { eapply implies_simplify; eauto. }
   eapply Forall2_trans. 1 : { unfold rel_trans. apply sval_refine_trans. }
   all : eauto.
