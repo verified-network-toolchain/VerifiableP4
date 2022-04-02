@@ -9,6 +9,7 @@ Require Import ProD3.core.SvalRefine.
 Require Import ProD3.core.AssertionLang.
 Require Import ProD3.core.AssertionNotations.
 Require Import ProD3.core.Hoare.
+Require Import ProD3.core.ExtPred.
 Require Import Poulet4.P4light.Syntax.SyntaxUtil.
 Require Import Hammer.Plugin.Hammer.
 
@@ -71,6 +72,35 @@ Qed.
 
 Definition ext_implies (a a' : ext_assertion) : Prop :=
   forall es, ext_denote a es -> ext_denote a' es.
+
+Ltac simpl_ext_implies :=
+  match goal with
+  | |- ext_implies _ _ =>
+      let es := fresh "es" in
+      let H := fresh "H" in
+      unfold ext_implies, ext_denote, ext_satisfies;
+      intros es H;
+      simpl in H |- *;
+      intuition
+  end.
+
+Section SIMPL_EXT_IMPLIES_TEST.
+
+  Variable P Q R S U: ext_pred.
+
+  (* Rearrange order doesn't matter *)
+  Goal ext_implies [P; Q; R; S] [R; S; Q; P].
+  Proof. simpl_ext_implies. Qed.
+
+  (* It will leave unsolved goals *)
+  Goal ext_implies [P; Q; S] [R; S; Q].
+  Proof. simpl_ext_implies. Abort.
+
+  (* If we have additional rules, the tactic can solve the goal *)
+  Goal (forall es, P es -> R es) -> ext_implies [P; Q; S] [R; S; Q].
+  Proof. intros. simpl_ext_implies. Qed.
+
+End SIMPL_EXT_IMPLIES_TEST.
 
 (* Definition ext_simplify_aux (a : ext_assertion) '((p, eo) : path * extern_object) : option (extern_object * extern_object) :=
   match AList.get a p with
