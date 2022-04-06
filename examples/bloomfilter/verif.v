@@ -1,5 +1,5 @@
-Require Import Poulet4.P4defs.
-Require Import Poulet4.P4Notations.
+Require Import Poulet4.P4light.Syntax.P4defs.
+Require Import Poulet4.P4light.Syntax.P4Notations.
 Require Import Coq.Program.Basics.
 Open Scope string_scope.
 
@@ -7,86 +7,55 @@ Import ListNotations.
 Require Import ProD3.examples.bloomfilter.p4ast.
 Require Import ProD3.examples.bloomfilter.bloomfilter.
 
-Require Import Poulet4.Maps.
-Require Import Poulet4.Semantics.
-Require Import Poulet4.SimplExpr.
-Require Import Poulet4.V1Model.
-Require Import Poulet4.P4Arith.
+Require Import Poulet4.Utils.Maps.
+Require Import Poulet4.P4light.Semantics.Semantics.
+Require Import Poulet4.P4light.Transformations.SimplExpr.
+Require Import Poulet4.P4light.Architecture.V1Model.
+Require Import Poulet4.Utils.P4Arith.
 Require Import ProD3.core.Hoare.
 Require Import ProD3.core.ConcreteHoare.
 Require Import ProD3.core.EvalExpr.
-(* Require Import ProD3.core.HoareSoundness. *)
+Require Import ProD3.core.Members.
 Require Import ProD3.core.AssertionLang.
 Require Import ProD3.core.AssertionNotations.
-(* Require Import ProD3.core.V1ModelLang. *)
+Require Import ProD3.core.FuncSpec.
+Require Import ProD3.core.Implies.
+Require Import ProD3.core.Modifies.
+Require Import ProD3.core.Tactics.
+Require Import ProD3.core.V1ModelSpec.
+Require Import ProD3.core.Coqlib.
+Require Import Coq.micromega.Lia.
 
 Instance target : @Target Info (@Expression Info) := V1Model.
-
-Opaque (*IdentMap.empty IdentMap.set*) PathMap.empty PathMap.set.
-
-(* Global environment *)
-Definition ge : genv := Eval compute in gen_ge prog.
-
-Definition instantiation := Eval compute in instantiate_prog ge prog.
-
-(* inst_m *)
-(* Definition inst_m := Eval compute in fst instantiation. *)
-
-(* Initial extern state *)
-Definition init_es := Eval compute in snd instantiation.
-
-Transparent IdentMap.empty IdentMap.set PathMap.empty PathMap.set.
 
 Notation ident := string.
 Notation path := (list ident).
 Notation Val := (@ValueBase bool).
 Notation Sval := (@ValueBase (option bool)).
 
-(* Notation assertion := (@assertion Info).
-Notation arg_assertion := (@arg_assertion Info).
-Notation ret_assertion := (@ret_assertion Info). *)
-(* Notation ext_assertion := (@ext_assertion Info). *)
+Opaque PathMap.empty PathMap.set.
 
-Axiom dummy_fundef : (@fundef Info).
+(* Global environment *)
+Definition ge : genv := Eval compute in gen_ge prog.
 
-Module Experiment1.
+(* Initial extern state *)
+Definition instantiation := Eval compute in instantiate_prog ge prog.
+Definition init_es := Eval compute in snd instantiation.
 
-Definition MyIngress_fundef := Eval compute in
-  match PathMap.get ["MyIngress"; "apply"] (ge_func ge) with
-  | Some x => x
-  | None => dummy_fundef
-  end.
+Transparent IdentMap.empty IdentMap.set PathMap.empty PathMap.set.
 
-(* Definition header_type := Eval compute in
-  match main with
-  | DeclInstantiation _ _ 
-      (_::_::(MkExpression _ _ (TypControl (MkControlType _ 
-        [MkParameter _ _ htyp _ _; _; _])) _)::_) _ _ =>
-          htyp
-  | _ =>  dummy_type
-  end.
+Definition custom_metadata_t :=
+  Eval compute in force dummy_type (IdentMap.get "custom_metadata_t" (ge_typ ge)).
 
-Definition meta_type := Eval compute in
-  match main with
-  | DeclInstantiation _ _ 
-      (_::_::(MkExpression _ _ (TypControl (MkControlType _ 
-        [_; MkParameter _ _ mtyp _ _; _])) _)::_) _ _ =>
-          mtyp
-  | _ =>  dummy_type
-  end.
+Definition standard_metadata_t :=
+  Eval compute in force dummy_type (IdentMap.get "standard_metadata_t" (ge_typ ge)).
 
-Definition stdmeta_type := Eval compute in
-  match main with
-  | DeclInstantiation _ _ 
-      (_::_::(MkExpression _ _ (TypControl (MkControlType _ 
-        [_; _; MkParameter _ _ smtyp _ _])) _)::_) _ _ =>
-          smtyp
-  | _ =>  dummy_type
-  end. *)
+Definition dummy_fundef : @fundef Info := FExternal "" "".
+Opaque dummy_fundef.
 
-Definition this : path := ["main"; "ig"].
+Open Scope func_spec.
 
-Definition NUM_ENTRY : Z := 1024.
+(* Bloom filter encoding *)
 
 Notation Filter := (Filter Z).
 
@@ -98,6 +67,8 @@ Definition bool_to_Z (b : bool) :=
 Definition list_of_filter (size : Z) (f : Filter) : list Z :=
   map (compose bool_to_Z (compose f Z.of_nat)) (seq O (Z.to_nat size)).
 
+Definition NUM_ENTRY : Z := 1024.
+
 Definition bloom0 (bst : bloomfilter_state) : list Z :=
   list_of_filter NUM_ENTRY (fst (fst bst)).
 
@@ -107,332 +78,483 @@ Definition bloom1 (bst : bloomfilter_state) : list Z :=
 Definition bloom2 (bst : bloomfilter_state) : list Z :=
   list_of_filter NUM_ENTRY (snd bst).
 
-(* Definition filter_match (st : state) (p : path) (f : Filter) : Prop :=
-  exists content,
-  PathMap.get p (snd st) = Some (ObjRegister (mk_register 1%nat NUM_ENTRY content)) /\
-  forall i : Z, Znth i content = bool_to_Z (f i). (* out-of-bounds indexing is used *) *)
+Definition reg_encode (l : list Z) : extern_object :=
+  ObjRegister (map ValBaseBit (map (P4Arith.to_lbool 1) l)).
 
-(* Definition bst_match (st : state) (bst : bloomfilter_state) : Prop :=
-  let (rest, bloom2) := bst in
-  let (bloom0, bloom1) := rest in
-  filter_match st !["bloom0"] bloom0
-    /\ filter_match st !["bloom1"] bloom1
-    /\ filter_match st !["bloom2"] bloom2. *)
+(* list_of_filter lemmas *)
 
-(* Definition header_encodes (hdr : Val) (rw : Z) (data : Z) : Prop :=
-  hdr = ValBaseStruct [(!"myHeader", ValBaseHeader [(!"rw", ValBaseBit 8%nat rw); (!"data", ValBaseBit 16%nat data)] true)]. *)
+Lemma Zlength_seq : forall n start,
+  0 <= n ->
+  Zlength (seq start (Z.to_nat n)) = n.
+Proof.
+  intros.
+  pose proof (seq_length (Z.to_nat n) start).
+  rewrite Zlength_length; eauto.
+Qed.
 
-Section Experiment1.
+Hint Rewrite Zlength_seq using lia : Zlength.
 
-Variable rw : Z.
-Variable data : Z.
-(* Variable hdr : Val.
-Variable meta : Val.
-Variable standard_metadata : Val. *)
-Variable bst : bloomfilter_state.
+Lemma Znth_seq : forall n i start,
+  0 <= i < n ->
+  Znth i (seq start (Z.to_nat n)) = (start + Z.to_nat i)%nat.
+Proof.
+  intros.
+  rewrite <- nth_Znth by list_solve.
+  rewrite seq_nth; lia.
+Qed.
 
-Definition myHeader := 
+Hint Rewrite Znth_seq using lia : Znth.
+
+Lemma Zlength_list_of_filter : forall n filter,
+  0 <= n ->
+  Zlength (list_of_filter n filter) = n.
+Proof.
+  intros.
+  unfold list_of_filter.
+  list_solve.
+Qed.
+
+Hint Rewrite Zlength_list_of_filter using lia : Zlength.
+
+Lemma Znth_list_of_filter : forall n filter i,
+  0 <= i < n ->
+  Znth i (list_of_filter n filter) = bool_to_Z (filter i).
+Proof.
+  intros.
+  unfold list_of_filter.
+  list_simplify.
+  unfold compose.
+  do 2 f_equal. lia.
+Qed.
+
+Hint Rewrite Znth_list_of_filter using lia : Znth.
+
+Lemma update_bit : forall filter hash,
+  reg_encode (list_of_filter NUM_ENTRY (upd Z Z.eqb filter hash true)) =
+  ObjRegister
+    (upd_Znth hash (map ValBaseBit (map (to_lbool 1) (list_of_filter NUM_ENTRY filter)))
+       (ValBaseBit (to_lbool 1 (BitArith.mod_bound 1 1)))).
+Proof.
+  intros.
+  unfold reg_encode.
+  f_equal.
+  unfold upd.
+  unfold NUM_ENTRY.
+  list_simplify.
+  - replace (hash =? i) with true by lia.
+    reflexivity.
+  - replace (hash =? i) with false by lia.
+    reflexivity.
+Qed.
+
+Lemma get_bit : forall (filter : Filter) hash,
+  0 <= hash < NUM_ENTRY ->
+  Znth hash (map ValBaseBit (map (to_lbool 1) (list_of_filter NUM_ENTRY filter)))
+    = ValBaseBit [filter hash].
+Proof.
+  intros.
+  list_simplify.
+  destruct (filter hash); reflexivity.
+Qed.
+
+Definition Add_fundef := Eval compute in
+  force dummy_fundef (PathMap.get ["Add"; "apply"] (ge_func ge)).
+
+Definition havoc := uninit_sval_of_sval.
+
+Section CRC.
+Import Hexadecimal.
+
+Definition CRC : list bool -> list bool := Hash.compute_crc 16%nat (D8 (D0 (D0 (D5 Nil)))) zero zero true true.
+
+(* This may be unnecessary. *)
+Lemma CRC_length : forall data,
+  List.length (CRC data) = 16%nat.
+Proof.
+Admitted.
+
+End CRC.
+
+Definition BASE : Z := 0.
+Definition MAX : Z := 1024.
+
+Definition CRC_Z (data : list bool) : Z :=
+  BASE + Z.modulo (BitArith.lbool_to_val (CRC data) 1 0) MAX.
+
+Lemma CRC_range : forall data, 0 <= CRC_Z data < NUM_ENTRY.
+Proof.
+  intros. unfold CRC_Z. unfold BASE. rewrite Z.add_0_l.
+  apply Z.mod_pos_bound. unfold NUM_ENTRY. lia.
+Qed.
+
+Definition CRC_pad (pad : list bool) (data : Z) : Z :=
+  CRC_Z (List.concat [to_lbool 16%N data; pad]).
+
+Definition CRC_pad0 := CRC_pad (to_lbool 3%N 3).
+Definition CRC_pad1 := CRC_pad (to_lbool 5%N 5).
+Definition CRC_pad2 := CRC_pad (to_lbool 7%N 7).
+
+Definition bloomfilter_exts := [["bloom0"]; ["bloom1"]; ["bloom2"]].
+
+Definition encode_bloomfilter_state bf := [
+  (["bloom0"], reg_encode (bloom0 bf));
+  (["bloom1"], reg_encode (bloom1 bf));
+  (["bloom2"], reg_encode (bloom2 bf))
+  ].
+
+Definition bloomfilter_add bf data :=
+  bloomfilter.add Z Z.eqb CRC_pad0 CRC_pad1 CRC_pad2 bf data.
+
+Definition bloomfilter_query bf data :=
+  bloomfilter.query Z CRC_pad0 CRC_pad1 CRC_pad2 bf data.
+
+Definition havoc_typ (typ : @P4Type Info) : Sval :=
+  force ValBaseNull (uninit_sval_of_typ None typ).
+
+Definition hash_fundef :=
+  force dummy_fundef (PathMap.get ["hash"] (ge_func ge)).
+
+Open Scope arg_ret_assr.
+
+Lemma Forall2_bit_refine_eval_val_eq:
+  forall l1 l2, Forall2 (exec_val SvalRefine.bit_refine) (map eval_val_to_sval l1) l2 ->
+           map eval_val_to_sval l1 = l2.
+Proof.
+  induction l1; simpl; intros; inv H; auto. f_equal. 2: now apply IHl1.
+  apply exec_val_eval_val_to_sval_eq in H2; auto. intros. now inv H.
+Qed.
+
+Lemma Forall2_ndetbit_eval_val_eq: forall l1 l2,
+    Forall2 (exec_val read_ndetbit) (map eval_val_to_sval l1) l2 -> l1 = l2.
+Proof.
+  induction l1; simpl; intros; inv H; auto. f_equal. 2: now apply IHl1.
+  apply sval_to_val_eval_val_to_sval_eq in H2; auto. intros. now inv H.
+Qed.
+
+(* A more restricted func spec, but should be sound. *)
+Definition hash_spec : func_spec :=
+  WITH,
+    PATH []
+    MOD None []
+    WITH (data : list Val) (input : list bool)
+      (_ : concat_tuple data = Some input),
+      PRE
+        (ARG [ValBaseEnumField "HashAlgorithm" "crc16";
+              ValBaseBit (to_loptbool 32 BASE);
+              eval_val_to_sval (ValBaseTuple data);
+              ValBaseBit (to_loptbool 32 MAX)]
+        (MEM []
+        (EXT [])))
+      POST
+        (ARG_RET [ValBaseBit (to_loptbool 32%N (CRC_Z input))] ValBaseNull
+        (MEM []
+        (EXT []))).
+
+Lemma hash_body : forall targs,
+    fundef_satisfies_spec ge hash_fundef (TypBit 32%N :: targs) hash_spec.
+Proof.
+  intros. unfold hash_spec. simpl. split.
+  - repeat intro. red. red in H. destruct H. do 2 red in H. inv H. inv H4.
+    inv H6. inv H3. inv H5. inv H4. inv H7. inv H8. inv H5.
+    apply SvalRefine.Forall2_bit_refine_Some_same' in H2, H4. subst. inv H0. inv H7.
+    simpl in H. inv H. simpl. red. split; [|split]; auto.
+    + Opaque to_lbool. inv H4. inv H6. inv H8. inv H4. apply Forall2_ndetbit in H2.
+      inv H7. inv H6. inv H10. inv H8. inv H6. apply Forall2_ndetbit in H4. subst.
+      inv H13. inv H7. constructor. 2: constructor. unfold bound_hash_output in H4.
+      rewrite !bit_from_to_bool in H4. vm_compute in H5. inv H5.
+      apply Forall2_bit_refine_eval_val_eq in H3. subst lv'.
+      apply Forall2_ndetbit_eval_val_eq in H2. subst vs. rewrite x1 in H9. inv H9.
+      unfold CRC_Z, CRC.
+      remember (Hexadecimal.D8
+                  (Hexadecimal.D0 (Hexadecimal.D0 (Hexadecimal.D5 Hexadecimal.Nil))))
+        as D8005. remember (Hexadecimal.D0 Hexadecimal.Nil) as D00.
+      replace (BitArith.mod_bound 32 BASE) with BASE in *
+          by (unfold BASE; now vm_compute).
+      replace (BitArith.mod_bound 32 MAX) with MAX in *
+          by (unfold MAX; now vm_compute). unfold BitArith.from_lbool in H4.
+      rewrite Zlength_correct in H4. rewrite Hash.length_compute_crc in H4.
+      change (Z.to_N (Z.of_nat 16)) with 16%N in H4. rewrite N.max_id in H4.
+      rewrite N.max_l in H4 by lia.
+      unfold BitArith.modulo_mod, BitArith.plus_mod in H4.
+      rewrite BitArith.mod_bound_double_add, to_lbool_bit_mod in H4.
+      unfold to_loptbool. revert H4.
+      generalize (to_lbool 32
+                         (BASE +
+                            BitArith.lbool_to_val
+                              (Hash.compute_crc 16 D8005 D00 D00 true true input) 1 0
+                              mod MAX)). intros. inv H4. constructor.
+      rewrite ForallMap.Forall2_forall in H0. destruct H0.
+      rewrite <- ForallMap.Forall2_map_l, ForallMap.Forall2_forall. split; auto.
+      intros. specialize (H0 _ _ H2). inv H0. constructor.
+    + repeat intro. inv H. constructor.
+  - repeat intro. unfold modifies. split; auto. repeat intro.
+    inv H. simpl. inv H6. simpl in H. inv H. auto.
+Qed.
+
+Hint Extern 5 (func_modifies _ _ _ _ _) => (apply hash_body) : func_specs.
+Hint Extern 1 (list P4Type) => (exact (@nil _)) : func_specs.
+
+(*
+control Add(inout headers hdr, inout custom_metadata_t meta) {
+    apply{
+        hash(meta.index0, HashAlgorithm.crc16, HASH_BASE, {hdr.myHeader.data, PAD0}, HASH_MAX);
+        hash(meta.index1, HashAlgorithm.crc16, HASH_BASE, {hdr.myHeader.data, PAD1}, HASH_MAX);
+        hash(meta.index2, HashAlgorithm.crc16, HASH_BASE, {hdr.myHeader.data, PAD2}, HASH_MAX);
+
+        bloom0.write(meta.index0, 1);
+        bloom1.write(meta.index1, 1);
+        bloom2.write(meta.index2, 1);
+    }
+}
+*)
+
+Definition myHeader_encode data :=
   ValBaseStruct
     [("myHeader",
       ValBaseHeader
-        [("rw", ValBaseBit (to_loptbool 8 rw));
-         ("data", ValBaseBit (to_loptbool 8 data))]
+        [("data", ValBaseBit (to_loptbool 16 data))]
          (Some true))].
 
-Axiom dummy_type : (@P4Type Info).
+Definition Add_spec : func_spec :=
+  WITH p,
+    PATH p
+    MOD None bloomfilter_exts
+    WITH (data : Z) (bf : bloomfilter_state),
+      PRE
+        (ARG [myHeader_encode data; havoc_typ custom_metadata_t]
+        (MEM []
+        (EXT (encode_bloomfilter_state bf))))
+      POST
+        (ARG_RET [myHeader_encode data; havoc_typ custom_metadata_t] ValBaseNull
+        (MEM []
+        (EXT (encode_bloomfilter_state (bloomfilter_add bf data))))).
 
-Definition custom_metadata_t := Eval compute in
-  match IdentMap.get "custom_metadata_t" (ge_typ ge) with
-  | Some typ => typ
-  | None => dummy_type
-  end.
-
-Definition standard_metadata_t := Eval compute in
-  match IdentMap.get "standard_metadata_t" (ge_typ ge) with
-  | Some typ => typ
-  | None => dummy_type
-  end.
-
-Axiom dummy_sval : Sval.
-
-Definition meta := Eval compute in
-  match gen_sval custom_metadata_t [] with
-  | Some v => v
-  | None => dummy_sval
-  end.
-
-Definition standard_metadata := Eval compute in
-  match gen_sval standard_metadata_t [] with
-  | Some v => v
-  | None => dummy_sval
-  end.
-
-(* Definition pre_arg_assertion : assertion :=
-  [ (["hdr"], myHeader);
-    (["meta"], meta);
-    (["standard_metadata"], standard_metadata)
-  ]. *)
-
-Definition pre_arg_assertion : arg_assertion :=
-  [myHeader; meta; standard_metadata].
-
-Definition pre_ext_assertion : ext_assertion :=
-  [
-    (["bloom0"], ObjRegister (map ValBaseBit (map (P4Arith.to_lbool 1) (bloom0 bst))));
-    (["bloom1"], ObjRegister (map ValBaseBit (map (P4Arith.to_lbool 1) (bloom1 bst))));
-    (["bloom2"], ObjRegister (map ValBaseBit (map (P4Arith.to_lbool 1) (bloom2 bst))))
-  ].
-
-Definition pre :=
-  ARG pre_arg_assertion (MEM [] (EXT pre_ext_assertion)).
-
-Axiom CRC : Z -> Z.
-Axiom CRC_range : forall data, 0 <= CRC data < NUM_ENTRY.
-
-Definition process (rw data : Z) (bst : bloomfilter_state) : (bloomfilter_state * Z) :=
-  if rw =? 2 then
-    (bloomfilter.add Z Z.eqb CRC CRC CRC bst data, 2)
-  else
-    (bst, bool_to_Z (bloomfilter.query Z CRC CRC CRC bst data)).
-
-Definition post_arg_assertion : arg_assertion :=
-  let (bst', rw') := process rw data bst in
-  [
-    upd_sval myHeader [(["myHeader"; "rw"], ValBaseBit (to_loptbool 8 rw'))];
-    (* The full specification of meta requires updates to all the six fields,
-       which need to be computed from process. 
-       Not sure if it is a good design. 
-       Or maybe we should change meta's direction to In? *)
-    (upd_sval meta [(["index0"], ValBaseBit (to_loptbool 16 data))]);
-    upd_sval standard_metadata [(["egress_spec"], ValBaseBit (to_loptbool 9 1))]
-  ].
-
-Definition post_ext_assertion : ext_assertion :=
-  let (bst', rw') := process rw data bst in
-  [
-    (["bloom0"], ObjRegister (map ValBaseBit (map (P4Arith.to_lbool 1) (bloom0 bst'))));
-    (["bloom1"], ObjRegister (map ValBaseBit (map (P4Arith.to_lbool 1) (bloom1 bst'))));
-    (["bloom2"], ObjRegister (map ValBaseBit (map (P4Arith.to_lbool 1) (bloom2 bst'))))
-  ].
-
-Definition post :=
-  ARG_RET post_arg_assertion ValBaseNull (MEM [] (EXT post_ext_assertion)).
-
-Lemma body_bloomfilter : hoare_func ge this pre MyIngress_fundef nil post.
+Lemma Add_body : fundef_satisfies_spec ge Add_fundef nil Add_spec.
 Proof.
-  (* remove AType and represent everything as Sval
-  To make it easier for structs, add a strucuture to represent structs with updated fields
-    (type soundness may be neeeded here)
-  struct rec has value rec_v
-  rec.x := 1
-  struct rec has value (update "x" 1 rec_v)
-  Return value as a special out parameter called "return"
-  Make function call reusable
-  Then we will need a frame rule
-  Extern objects
-  After generating an assertion from the symbolic executor, we need to evaluate the computational function.
-    But in this procedure, we should keep the user-defined Coq expressions untouched.
-  We need to face goals like
-    [("x", val_to_sval (Int v)), ("y", val_to_sval (Int (v + 1)))]
-    sval_add (val_to_sval (Int v)) (val_to_sval (Int 1)) = val_to_sval (Int (v + 1))
-    *)
+  unfold Add_spec, bloomfilter_exts.
+  start_function.
+  step_call hash_body [ValBaseBit (to_lbool 16 data); ValBaseBit (to_lbool 3 3)].
+  2 : { entailer. }
+  reflexivity.
+  replace (CRC_Z _) with (CRC_pad0 data) by reflexivity.
+  step_call hash_body [ValBaseBit (to_lbool 16 data); ValBaseBit (to_lbool 5 5)].
+  2 : entailer.
+  reflexivity.
+  replace (CRC_Z _) with (CRC_pad1 data) by reflexivity.
+  step_call hash_body [ValBaseBit (to_lbool 16 data); ValBaseBit (to_lbool 7 7)].
+  2 : entailer.
+  reflexivity.
+  replace (CRC_Z _) with (CRC_pad2 data) by reflexivity.
+  simpl MEM.
+  step_call register_write_body.
+  reflexivity. 2: simpl; lia.
+  2 : entailer.
+  { apply CRC_range. }
+  step_call register_write_body.
+  reflexivity. 2: simpl; lia.
+  2 : entailer.
+  { apply CRC_range. }
+  step_call register_write_body.
+  reflexivity. 2: simpl; lia.
+  2 : entailer.
+  { apply CRC_range. }
+  step.
+  entailer.
+  { repeat constructor. }
+  all : destruct bf as [[] ?]; apply update_bit.
+Qed.
 
-  eapply hoare_func_internal'.
-  { (* length *)
-    reflexivity.
-  }
-  {
-    (* NoDup *)
-    reflexivity.
-  }
-  {
-    (* eval_write_vars *)
-    (* compute the assertion. Need better simpl. *)
-    reflexivity.
-  }
-  3 : {
-    (* inv_func_copy_out *)
-    constructor.
-    { unfold post_arg_assertion. destruct (process rw data bst). reflexivity. }
-    { reflexivity. }
-  }
-  { apply hoare_block_nil. apply implies_refl_post. }
-  eapply hoare_block_cons.
-  { (* t'0 = hdr.myHeader.isValid() *)
-    eapply hoare_stmt_var_call.
-    { (* is_call_expression *)
-      reflexivity.
-    }
-    { (* hoare_call *)
-      admit. (* TODO *)
-    }
-    { admit. }
-    (* instantiate (1 := (
-        MEM [(["hdr"], myHeader); (["meta"], meta); (["standard_metadata"], standard_metadata);
-            (["t'0"], ValBaseBool (Some true))]
-       (EXT pre_ext_assertion))).
-    admit. *)
-  }
-  (* eapply deep_hoare_func_internal.
-  { (* copy_in *)
-    eapply hoare_copy_in_sound with (pre := (_, (_, _))).
-    repeat constructor.
-  }
-  { (* init block *)
-    simpl eval_copy_in.
-    constructor. apply implies_sound, implies_refl.
-  }
-  {
-    eapply deep_hoare_block_cons.
-    eapply deep_hoare_stmt_if_true.
-    { (* hdr.myHeader.isValid() == true *)
-      admit.
-    }
-    eapply deep_hoare_stmt_block.
-    eapply deep_hoare_block_cons with (mid := Hoare.mk_post_assertion _ _).
-    eapply deep_hoare_stmt_method_call.
-    eapply deep_hoare_call_sound.
-    eapply deep_hoare_call_func.
-    { (* deep_hoare_outargs *)
-      eapply hoare_outargs_sound.
-      repeat constructor.
-    }
-    { (* deep_hoare_inargs *)
-      eapply hoare_inargs_sound.
-      repeat constructor.
-    }
-    { (* lookup_func *)
-      constructor.
-    }
-    { (* deep_hoare_func *)
-      eapply deep_hoare_func_internal (* with
-        (post := to_shallow_arg_ret_assertion this ([], [], ([
-          AVal (LInstance !["hdr"], ["myHeader"; "rw"]) (ValBaseBit 8 rw);
-          AVal (LInstance !["hdr"], ["myHeader"; "data"]) (ValBaseBit 16 data);
-          AVal (LInstance !["standard_metadata"], ["egress_spec"]) (ValBaseBit 9 (P4Arith.BitArith.mod_bound 9 1));
-          AType (LInstance !["hdr"], []) (TypTypeName (BareName !"headers"));
-          AType (LInstance !["meta"], []) (TypTypeName (BareName !"custom_metadata_t"));
-          AType (LInstance !["standard_metadata"], []) (TypTypeName (BareName !"standard_metadata_t"))]
-          ,
-          pre_ext_assertion))) *).
-      { (* copy_in *)
-        eapply hoare_copy_in_sound.
-        repeat constructor.
-      }
-      { (* init block *)
-        simpl eval_copy_in.
-        constructor. apply implies_sound, implies_refl.
-      }
-      { (* body block *)
-        eapply deep_hoare_block_cons with (mid := Hoare.mk_post_assertion _ _).
-        eapply hoare_stmt_sound with (post := mk_post_assertion _ _).
-        { (* wellformed *)
-          constructor.
-        }
-        eapply hoare_stmt_assignment.
-        { (* hoare_lexpr *)
-          constructor.
-        }
-        { (* hoare_expr *)
-          constructor.
-        }
-        { (* hoare_write *)
-          constructor.
-          { (* is_writable_lval *)
-            admit. (* from type *)
-          }
-          constructor.
-        }
-        eapply deep_hoare_block_nil.
-        eapply Hoare.implies_trans.
-        {
-          eapply hoare_copy_out_sound.
-          repeat constructor.
-        }
-        apply Hoare.implies_refl.
-      }
-    }
-    { (* deep_hoare_write_copy_out *)
-      simpl fst. simpl snd.
-      eapply hoare_write_copy_out_sound.
-      repeat constructor.
-    }
-    { (* ret_assertion_to_assertion *)
-      simpl fold_left.
-      eapply ret_assertion_to_assertion_sound.
-      constructor.
-    }
-    x has value (v)
-    y has value (v+1)
-
-    {
-Qed. *)
-Abort.
-
-End Experiment1.
-
-End Experiment1.
-
-Module Experiment2.
-
-Section Experiment2.
-
-Definition this := ["main"; "ig"; "Query"].
+Hint Extern 5 (func_modifies _ _ _ _ _) => (apply Add_body) : func_specs.
 
 Definition Query_fundef := Eval compute in
-  match PathMap.get ["Query"; "apply"] (ge_func ge) with
-  | Some x => x
-  | None => dummy_fundef
-  end.
+  force dummy_fundef (PathMap.get ["Query"; "apply"] (ge_func ge)).
 
-Axiom dummy_stmt : (@Statement Info).
+Definition Query_spec : func_spec :=
+  WITH p,
+    PATH p
+    MOD None []
+    WITH (data : Z) (bf : bloomfilter_state),
+      PRE
+        let hdr := ValBaseStruct
+        [("myHeader",
+          ValBaseHeader
+            [("data", ValBaseBit (to_loptbool 16 data))]
+             (Some true))] in
+        (ARG [hdr; force ValBaseNull (uninit_sval_of_typ None custom_metadata_t)]
+        (MEM []
+        (EXT [(["bloom0"], reg_encode (bloom0 bf));
+              (["bloom1"], reg_encode (bloom1 bf));
+              (["bloom2"], reg_encode (bloom2 bf))])))
+      POST
+        let hdr := ValBaseStruct
+        [("myHeader",
+          ValBaseHeader
+            [("data", ValBaseBit (to_loptbool 16 data))]
+             (Some true))] in
+        let meta := update "member0"
+          (ValBaseBit [Some (bloomfilter.query Z CRC_pad0 CRC_pad1 CRC_pad2 bf data)])
+          (force ValBaseNull (uninit_sval_of_typ None custom_metadata_t)) in
+        (ARG_RET [hdr; meta] ValBaseNull
+        (MEM []
+        (EXT []))).
 
-Definition assign_stmt := Eval compute in
-  match Query_fundef with
-  | FInternal _ _ (BlockCons _ (BlockCons _ (BlockCons _ (BlockCons _ (BlockCons _ (BlockCons _ (BlockCons stat _))))))) =>
-    stat
-  | _ => dummy_stmt
-  end.
-
-Variable hdr : Sval.
-Variable meta : Sval.
-Hypothesis H_member0 : Members.get "member0" meta = (ValBaseBit [Some true]).
-Hypothesis H_member1 : Members.get "member1" meta = (ValBaseBit [Some true]).
-Hypothesis H_member2 : Members.get "member2" meta = (ValBaseBit [Some true]).
-
-Definition pre :=
-  MEM [(["hdr"], hdr); (["meta"], meta)] (EXT []).
-
-Axiom post : post_assertion.
-
-Lemma body_assign : hoare_block ge this pre (BlockCons assign_stmt BlockNil) post.
+Lemma Query_body : fundef_satisfies_spec ge Query_fundef nil Query_spec.
 Proof.
-  eapply hoare_block_cons.
-  {
-    eapply hoare_stmt_assign'.
-    - (* is_call_expression *)
-      reflexivity.
-    - (* is_no_dup *)
-      reflexivity.
-    - (* eval_lexpr *)
-      reflexivity.
-    - (* eval_expr *)
-      reflexivity.
-    - (* hoare_write *)
-      reflexivity.
+  start_function.
+  step_call hash_body [ValBaseBit (to_lbool 16 data); ValBaseBit (to_lbool 3 3)].
+  2 : { entailer. }
+  reflexivity.
+  replace (CRC_Z _) with (CRC_pad0 data) by reflexivity.
+  step_call hash_body [ValBaseBit (to_lbool 16 data); ValBaseBit (to_lbool 5 5)].
+  2 : entailer.
+  reflexivity.
+  replace (CRC_Z _) with (CRC_pad1 data) by reflexivity.
+  step_call hash_body [ValBaseBit (to_lbool 16 data); ValBaseBit (to_lbool 7 7)].
+  2 : entailer.
+  reflexivity.
+  replace (CRC_Z _) with (CRC_pad2 data) by reflexivity.
+  simpl MEM.
+  step_call register_read_body.
+  reflexivity. 2: simpl; lia.
+  2 : entailer.
+  { apply CRC_range. }
+  step_call register_read_body.
+  reflexivity. 2: simpl; lia.
+  2 : entailer.
+  { apply CRC_range. }
+  step_call register_read_body.
+  reflexivity. 2: simpl; lia.
+  2 : entailer.
+  { apply CRC_range. }
+  step.
+  step.
+  destruct bf as [[f0 f1] f2].
+  unfold bloom0.
+  unfold bloom1.
+  unfold bloom2.
+  rewrite !get_bit by (apply CRC_range).
+  entailer.
+  { simpl build_abs_unary_op.
+    unfold query, bloomfilter.get.
+    simpl.
+    destruct (f0 (CRC_pad0 data));
+      destruct (f1 (CRC_pad1 data));
+      destruct (f2 (CRC_pad2 data));
+      repeat constructor.
   }
-  simpl str. rewrite H_member0, H_member1, H_member2.
-  change (build_abs_unary_op _ _)
-   (* (build_abs_binary_op (Ops.eval_binary_op BitAnd)
-      (build_abs_binary_op (Ops.eval_binary_op BitAnd) (ValBaseBit [Some true])
-         (ValBaseBit [Some true])) (ValBaseBit [Some true]))) *) with
-  (ltac: (let x := eval cbv in (build_abs_unary_op (fun oldv : Val => Ops.bit_of_val 8 oldv)
-   (build_abs_binary_op (Ops.eval_binary_op BitAnd)
-      (build_abs_binary_op (Ops.eval_binary_op BitAnd) (ValBaseBit [Some true])
-         (ValBaseBit [Some true])) (ValBaseBit [Some true]))) in exact x)).
-(* Qed. *)
-Abort.
+Qed.
 
-End Experiment2.
+Hint Extern 5 (func_modifies _ _ _ _ _) => (apply Query_body) : func_specs.
 
-End Experiment2.
+Definition MyIngress_fundef := Eval compute in
+  force dummy_fundef (PathMap.get ["MyIngress"; "apply"] (ge_func ge)).
+
+Definition process (in_port data : Z) (bf : bloomfilter_state) : (bloomfilter_state * Z) :=
+  if in_port =? 0 then
+    (bloomfilter.add Z Z.eqb CRC_pad0 CRC_pad1 CRC_pad2 bf data, 1)
+  else
+    (bf, if bloomfilter.query Z CRC_pad0 CRC_pad1 CRC_pad2 bf data then 0 else 511).
+
+Definition bloomfilter_spec : func_spec :=
+  WITH ,
+    PATH ["main"; "ig"]
+    MOD None bloomfilter_exts
+    WITH in_port data bf (H : 0 <= in_port < 2),
+      PRE
+        (ARG [
+          ValBaseStruct [("myHeader",
+            ValBaseHeader [("data", ValBaseBit (to_loptbool 16 data))] (Some true))];
+          force ValBaseNull (uninit_sval_of_typ None custom_metadata_t);
+          update "ingress_port" (ValBaseBit (to_loptbool 9 in_port))
+            (force ValBaseNull (uninit_sval_of_typ None standard_metadata_t))]
+        (MEM []
+        (EXT (encode_bloomfilter_state bf))))
+      POST
+        (* These two lines cannot be merged, because Coq doesn't destruct the pair automatically. *)
+        let bf' := fst (process in_port data bf) in
+        let out_port := snd (process in_port data bf) in
+        (ARG_RET [
+          ValBaseStruct [("myHeader",
+            ValBaseHeader [("data", ValBaseBit (to_loptbool 16 data))] (Some true))];
+          force ValBaseNull (uninit_sval_of_typ None custom_metadata_t);
+          update "egress_spec" (ValBaseBit (to_loptbool 9 out_port))
+            (force ValBaseNull (uninit_sval_of_typ None standard_metadata_t))]
+          ValBaseNull
+        (MEM []
+        (EXT (encode_bloomfilter_state bf')))).
+
+Lemma mod_bound_eq : forall w n,
+  0 <= n < Z.pow 2 (Z.of_N w) ->
+  BitArith.mod_bound w n = n.
+Proof.
+  intros.
+  unfold BitArith.mod_bound, BitArith.upper_bound.
+  rewrite Zmod_small; auto.
+Qed.
+
+Lemma bloomfilter_body : fundef_satisfies_spec ge MyIngress_fundef nil bloomfilter_spec.
+Proof.
+  start_function.
+  step_if.
+  {
+    (* clear up H0 *)
+    fold abs_eq in H0.
+    rewrite get_update_same in H0 by auto.
+    change ((eval_val_to_sval
+            (ValBaseBit [false; false; false; false; false; false; false; false; false])))
+      with (ValBaseBit (to_loptbool 9 0)) in H0.
+    rewrite abs_eq_bit in H0.
+    rewrite !mod_bound_eq in H0 by lia.
+    destruct (in_port =? 0) eqn:H_in_port; inv H0.
+    assert (in_port = 0) by lia; subst. clear H_in_port.
+    step.
+    step.
+    step_call Add_body.
+    entailer.
+    step.
+    entailer.
+    repeat constructor.
+  }
+  {
+    (* clear up H0 *)
+    fold abs_eq in H0.
+    rewrite get_update_same in H0 by auto.
+    change ((eval_val_to_sval
+            (ValBaseBit [false; false; false; false; false; false; false; false; false])))
+      with (ValBaseBit (to_loptbool 9 0)) in H0.
+    rewrite abs_eq_bit in H0.
+    rewrite !mod_bound_eq in H0 by lia.
+    destruct (in_port =? 0) eqn:H_in_port; inv H0.
+    assert (in_port = 1) by lia; subst. clear H_in_port.
+    simpl (force empty_statement _).
+    step.
+    step.
+    step_call Query_body.
+    entailer.
+    step_if.
+    {
+      rewrite get_update_same in H0 by auto.
+      destruct (query Z CRC_pad0 CRC_pad1 CRC_pad2 bf data) eqn:H_query; inv H0.
+      step.
+      step.
+      step.
+      entailer.
+      - repeat constructor.
+      - unfold process.
+        rewrite H_query.
+        repeat constructor.
+    }
+    {
+      rewrite get_update_same in H0 by auto.
+      destruct (query Z CRC_pad0 CRC_pad1 CRC_pad2 bf data) eqn:H_query; inv H0.
+      simpl (force empty_statement _).
+      step.
+      step.
+      entailer.
+      - repeat constructor.
+      - unfold process.
+        rewrite H_query.
+        repeat constructor.
+    }
+  }
+Qed.

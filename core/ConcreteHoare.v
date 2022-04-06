@@ -1,12 +1,14 @@
-Require Import Poulet4.Typed.
-Require Import Poulet4.Syntax.
-Require Import Poulet4.Semantics.
+Require Import Poulet4.P4light.Syntax.Typed.
+Require Import Poulet4.P4light.Syntax.Syntax.
+Require Import Poulet4.P4light.Semantics.Semantics.
+Require Import Poulet4.Utils.Utils.
 Require Import ProD3.core.Coqlib.
 Require Import ProD3.core.Hoare.
 Require Import ProD3.core.AssertionLang.
 Require Import ProD3.core.AssertionNotations.
 Require Import ProD3.core.EvalExpr.
-Require Import Poulet4.V1Model.
+Require Import ProD3.core.EvalBuiltin.
+Require Import Poulet4.P4light.Architecture.V1Model.
 Require Import Hammer.Tactics.Tactics.
 Require Import Hammer.Plugin.Hammer.
 Require Import Coq.ZArith.BinInt.
@@ -17,70 +19,300 @@ Context {tags_t: Type} {tags_t_inhabitant : Inhabitant tags_t}.
 Notation Val := (@ValueBase bool).
 Notation Sval := (@ValueBase (option bool)).
 (* Notation ValSet := (@ValueSet tags_t). *)
-Notation Lval := (@ValueLvalue tags_t).
+Notation Lval := ValueLvalue.
 
 Notation ident := (String.string).
 Notation path := (list ident).
 Notation P4Int := (P4Int.t tags_t).
 Notation P4String := (P4String.t tags_t).
 Notation Expression := (@Expression tags_t).
-Notation argument := (@argument tags_t).
 
 Context `{@Target tags_t Expression}.
 
 Variable ge : (@genv tags_t _).
 
-Lemma hoare_stmt_assign' : forall p a_mem a_ext tags lhs rhs typ a_mem' ret_post lv sv,
+Lemma hoare_stmt_assign' : forall p pre_mem pre_ext tags lhs rhs typ post_mem ret_post lv sv,
   is_call_expression rhs = false ->
-  is_no_dup (map fst a_mem) ->
-  eval_lexpr lhs = Some lv ->
-  eval_expr ge p a_mem rhs = Some sv ->
-  eval_write a_mem lv sv = Some a_mem' ->
-  hoare_stmt ge p (MEM a_mem (EXT a_ext)) (MkStatement tags (StatAssignment lhs rhs) typ)
-      (mk_post_assertion (MEM a_mem' (EXT a_ext)) ret_post).
+  is_no_dup (map fst pre_mem) ->
+  eval_lexpr ge p pre_mem lhs = Some lv ->
+  eval_expr ge p pre_mem rhs = Some sv ->
+  eval_write pre_mem lv sv = Some post_mem ->
+  hoare_stmt ge p (MEM pre_mem (EXT pre_ext)) (MkStatement tags (StatAssignment lhs rhs) typ)
+      (mk_post_assertion (MEM post_mem (EXT pre_ext)) ret_post).
 Proof.
   intros.
-  eapply hoare_stmt_assign.
-  - assumption.
-  - apply eval_lexpr_sound; eassumption.
-  - apply hoare_expr_det_intro, eval_expr_sound; eassumption.
-  - apply eval_write_sound; only 1 : apply is_no_dup_NoDup; eassumption.
+  eapply hoare_stmt_assign; eauto with hoare.
 Qed.
 
-(* Inductive Disjoint {A} : list A -> list A -> Prop :=
-  | Disjoint_nil : forall al', Disjoint  [] al'
-  | Disjoint_cons : forall a al al', ~In a al' -> Disjoint al al' -> Disjoint (a :: al) al'.
+Lemma hoare_stmt_assign_call' : forall p pre_mem pre_ext tags lhs rhs typ lv vret mid_mem post_mem post_ext ret_post,
+  is_call_expression rhs = true ->
+  eval_lexpr ge p pre_mem lhs = Some lv ->
+  hoare_call ge p (MEM pre_mem (EXT pre_ext)) rhs (RET vret (MEM mid_mem (EXT post_ext))) ->
+  is_no_dup (map fst mid_mem) ->
+  eval_write mid_mem lv vret = Some post_mem ->
+  hoare_stmt ge p (MEM pre_mem (EXT pre_ext)) (MkStatement tags (StatAssignment lhs rhs) typ)
+      (mk_post_assertion (MEM post_mem (EXT post_ext)) ret_post).
+Proof.
+  intros.
+  eapply hoare_stmt_assign_call; eauto with hoare.
+Qed.
 
-Fixpoint is_disjoint (al bl : list path) : bool :=
-  match al with
-  | x :: al => ~~(is_in x bl) && is_disjoint al bl
-  | [] => true
+Lemma hoare_stmt_method_call' : forall p pre_mem pre_ext tags func targs args typ vret post_mem post_ext ret_post,
+  hoare_call ge p
+    (MEM pre_mem (EXT pre_ext))
+    (MkExpression dummy_tags (ExpFunctionCall func targs args) TypVoid Directionless)
+    (RET vret (MEM post_mem (EXT post_ext))) ->
+  hoare_stmt ge p (MEM pre_mem (EXT pre_ext)) (MkStatement tags (StatMethodCall func targs args) typ)
+    (mk_post_assertion (MEM post_mem (EXT post_ext)) ret_post).
+Proof.
+  intros.
+  eapply hoare_stmt_method_call; eauto with hoare.
+Qed.
+
+Lemma hoare_stmt_var' : forall p pre_mem pre_ext tags typ' name expr loc typ post_mem ret_post sv,
+  is_call_expression expr = false ->
+  is_no_dup (map fst pre_mem) ->
+  eval_expr ge p pre_mem expr = Some sv ->
+  eval_write pre_mem (ValLeftName loc) sv = Some post_mem ->
+  hoare_stmt ge p
+    (MEM pre_mem (EXT pre_ext))
+    (MkStatement tags (StatVariable typ' name (Some expr) loc) typ)
+    (mk_post_assertion (MEM post_mem (EXT pre_ext)) ret_post).
+Proof.
+  intros.
+  eapply hoare_stmt_var; eauto with hoare.
+Qed.
+
+Lemma hoare_stmt_var_call' : forall p pre_mem pre_ext tags typ' name expr loc typ vret mid_mem post_mem post_ext ret_post,
+  is_call_expression expr = true ->
+  hoare_call ge p (MEM pre_mem (EXT pre_ext)) expr (RET vret (MEM mid_mem (EXT post_ext))) ->
+  is_no_dup (map fst mid_mem) ->
+  eval_write mid_mem (ValLeftName loc) vret = Some post_mem ->
+  hoare_stmt ge p
+    (MEM pre_mem (EXT pre_ext))
+    (MkStatement tags (StatVariable typ' name (Some expr) loc) typ)
+    (mk_post_assertion (MEM post_mem (EXT post_ext)) ret_post).
+Proof.
+  intros.
+  eapply hoare_stmt_var_call; eauto with hoare.
+Qed.
+
+Lemma hoare_stmt_direct_application' : forall p pre_mem pre_ext tags typ' func_typ args typ vret post_mem post_ext ret_post,
+  hoare_call ge p
+    (MEM pre_mem (EXT pre_ext))
+    (MkExpression dummy_tags (ExpFunctionCall
+          (direct_application_expression typ' func_typ)
+          nil args) TypVoid Directionless)
+    (RET vret (MEM post_mem (EXT post_ext))) ->
+  hoare_stmt ge p (MEM pre_mem (EXT pre_ext)) (MkStatement tags (StatDirectApplication typ' func_typ args) typ)
+    (mk_post_assertion (MEM post_mem (EXT post_ext)) ret_post).
+Proof.
+  intros.
+  eapply hoare_stmt_direct_application; eauto with hoare.
+Qed.
+
+Lemma hoare_stmt_if_true' : forall p pre_mem pre_ext tags cond tru ofls typ post,
+  eval_expr ge p pre_mem cond = Some (ValBaseBool (Some true)) ->
+  hoare_stmt ge p (MEM pre_mem (EXT pre_ext)) tru post ->
+  hoare_stmt ge p (MEM pre_mem (EXT pre_ext)) (MkStatement tags (StatConditional cond tru ofls) typ) post.
+Proof.
+  intros.
+  eapply hoare_stmt_if_true; eauto with hoare.
+Qed.
+
+Lemma hoare_stmt_if_false' : forall p pre_mem pre_ext tags cond tru ofls typ post,
+  eval_expr ge p pre_mem cond = Some (ValBaseBool (Some false)) ->
+  hoare_stmt ge p (MEM pre_mem (EXT pre_ext)) (force empty_statement ofls) post ->
+  hoare_stmt ge p (MEM pre_mem (EXT pre_ext)) (MkStatement tags (StatConditional cond tru ofls) typ) post.
+Proof.
+  intros.
+  eapply hoare_stmt_if_false; eauto with hoare.
+Qed.
+
+Lemma hoare_stmt_if' : forall p pre_mem pre_ext tags cond tru ofls typ post sv,
+  eval_expr ge p pre_mem cond = Some sv ->
+  (is_sval_true sv -> hoare_stmt ge p (MEM pre_mem (EXT pre_ext)) tru post) ->
+  (is_sval_false sv  -> hoare_stmt ge p (MEM pre_mem (EXT pre_ext)) (force empty_statement ofls) post) ->
+  hoare_stmt ge p (MEM pre_mem (EXT pre_ext)) (MkStatement tags (StatConditional cond tru ofls) typ) post.
+Proof.
+  intros.
+  eapply hoare_stmt_if; eauto with hoare.
+Qed.
+
+Lemma hoare_call_builtin' : forall p pre_mem pre_ext tags tags' dir' expr fname tparams params typ
+    args typ' dir post_mem retv lv argvals,
+  is_no_dup (map fst pre_mem) ->
+  let dirs := map get_param_dir params in
+  eval_lexpr ge p pre_mem expr = Some lv ->
+  eval_args ge p pre_mem args dirs = Some argvals ->
+  eval_builtin pre_mem lv (P4String.str fname) (extract_invals argvals) = Some (post_mem, retv) ->
+  hoare_call ge p (MEM pre_mem (EXT pre_ext))
+    (MkExpression tags (ExpFunctionCall
+      (MkExpression tags' (ExpExpressionMember expr fname) (TypFunction (MkFunctionType tparams params FunBuiltin typ')) dir')
+      nil args) typ dir)
+    (RET retv (MEM post_mem (EXT pre_ext))).
+Proof.
+  intros.
+  eapply hoare_call_builtin; eauto with hoare.
+Qed.
+
+(* Start function lemmas *)
+
+Definition eval_write_option (a : mem_assertion) (lv : option Lval) (sv : Sval) : option mem_assertion :=
+  match lv with
+  | Some lv => eval_write a lv sv
+  | None => Some a
   end.
 
-Lemma is_disjoint_Disjoint : forall (al bl : list path),
-  is_disjoint al bl -> Disjoint al bl.
+Lemma eval_write_option_NoDup : forall (a : mem_assertion) (lv : option Lval) sv a',
+  NoDup (map fst a) ->
+  eval_write_option a lv sv = Some a' ->
+  NoDup (map fst a').
 Proof.
-  induction al; intros.
-  - constructor.
-  - simpl in H0. rewrite Reflect.andE in H0. destruct H0.
-    constructor.
-    + apply not_is_in_not_In; auto.
+  intros. destruct lv.
+  - eapply eval_write_preserve_NoDup; eauto.
+  - inv H1; eauto.
+Qed.
+
+Lemma eval_write_option_sound : forall a_mem a_ext (lv : option Lval) sv a_mem',
+  NoDup (map fst a_mem) ->
+  eval_write_option a_mem lv sv = Some a_mem' ->
+  hoare_write_option (MEM a_mem (EXT a_ext)) lv sv (MEM a_mem' (EXT a_ext)).
+Proof.
+  unfold hoare_write_option; intros.
+  inv H4.
+  - eapply eval_write_sound; eauto.
+  - inv H1; eauto.
+Qed.
+
+Definition eval_write_options (a : mem_assertion) (lvs : list (option Lval)) (svs : list Sval) : option mem_assertion :=
+  fold_left
+    (fun a '(lv, sv) =>
+      match a with
+      | Some a => eval_write_option a lv sv
+      | None => None
+      end)
+    (combine lvs svs) (Some a).
+
+Lemma eval_write_options_inv : forall a lv lvs sv svs a',
+  eval_write_options a (lv :: lvs) (sv :: svs) = Some a' ->
+  exists a'',
+    eval_write_option a lv sv = Some a'' /\ eval_write_options a'' lvs svs = Some a'.
+Proof.
+  intros.
+  unfold eval_write_options in H0. simpl in H0.
+  destruct (eval_write_option a lv sv).
+  - eexists; eauto.
+  - assert (fold_left
+       (fun (a : option mem_assertion) '(lv, sv) =>
+        match a with
+        | Some a0 => eval_write_option a0 lv sv
+        | None => None
+        end) (combine lvs svs) None = None). {
+      clear H0. generalize dependent svs. clear.
+      induction lvs; intros.
+      - auto.
+      - destruct svs; auto.
+        apply IHlvs.
+    }
+    hauto.
+Qed.
+
+Lemma eval_write_options_sound : forall a_mem a_ext lvs svs a_mem',
+  NoDup (map fst a_mem) ->
+  eval_write_options a_mem lvs svs = Some a_mem' ->
+  hoare_write_options (MEM a_mem (EXT a_ext)) lvs svs (MEM a_mem' (EXT a_ext)).
+Proof.
+  intros a_mem a_ext lvs; revert a_mem a_ext; induction lvs; intros.
+  - inv H1.
+    unfold hoare_write_options; intros.
+    inv H3; auto.
+  - unfold hoare_write_options; intros.
+    inv H4; inv H3.
+    apply eval_write_options_inv in H1.
+    destruct H1 as [a_mem'' []].
+    epose proof (eval_write_option_sound _ _ _ _ _ ltac:(eassumption) ltac:(eassumption)).
+    eapply IHlvs.
+    + eapply eval_write_option_NoDup; eauto.
+    + eauto.
+    + eapply H4; eauto.
+    + eauto.
+    + eauto.
+Qed.
+
+Definition eval_call_copy_out (a : mem_assertion) (args : list (option Lval * direction)) (outvals : list Sval) :=
+  eval_write_options a (filter_out args) outvals.
+
+Lemma eval_call_copy_out_sound : forall outvals vret a_mem a_ext args a_mem',
+  NoDup (map fst a_mem) ->
+  eval_call_copy_out a_mem args outvals = Some a_mem' ->
+  hoare_call_copy_out (ARG_RET outvals vret (MEM a_mem (EXT a_ext))) args (RET vret (MEM a_mem' (EXT a_ext))).
+Proof.
+  unfold hoare_call_copy_out; intros.
+  destruct sig; only 1, 3, 4 : solve [inv H2].
+  destruct H2 as [? []].
+  split; eauto.
+  eapply eval_write_options_sound; eauto.
+Qed.
+
+Lemma hoare_func_pre : forall ge p (pre pre' : Hoare.arg_assertion) fd targs post,
+  (forall args st, pre args st -> pre' args st) ->
+  hoare_func ge p pre' fd targs post ->
+  hoare_func ge p pre fd targs post.
+Proof.
+  sfirstorder.
+Qed.
+
+Lemma hoare_call_copy_out_pre : forall (pre pre' : Hoare.arg_ret_assertion) args post,
+  (forall args sig st, satisfies_arg_ret_assertion pre args sig st ->
+      satisfies_arg_ret_assertion pre' args sig st) ->
+  hoare_call_copy_out pre' args post ->
+  hoare_call_copy_out pre args post.
+Proof.
+  sfirstorder.
+Qed.
+
+(* This is quite dirty, maybe some improvement. *)
+Lemma hoare_call_func' : forall p pre_mem pre_ext tags func targs args typ dir argvals obj_path fd
+    outargs vret mid_mem post_mem post_ext,
+  is_builtin_func func = false ->
+  let dirs := get_arg_directions func in
+  eval_args ge p pre_mem args dirs = Some argvals ->
+  lookup_func ge p func = Some (obj_path, fd) ->
+  hoare_func ge (force p obj_path)
+      (ARG (extract_invals argvals) (MEM (if is_some obj_path then [] else pre_mem) (EXT pre_ext)))
+      fd targs
+      (ARG_RET outargs vret (MEM mid_mem (EXT post_ext))) ->
+  is_no_dup (map fst (if is_some obj_path then pre_mem else mid_mem)) ->
+  eval_call_copy_out (if is_some obj_path then pre_mem else mid_mem) (combine (map snd argvals) dirs) outargs = Some post_mem ->
+  hoare_call ge p
+    (MEM pre_mem (EXT pre_ext))
+    (MkExpression tags (ExpFunctionCall func targs args) typ dir)
+    (RET vret (MEM post_mem (EXT post_ext))).
+Proof.
+  intros.
+  eapply hoare_call_func.
+  - assumption.
+  - eapply eval_args_sound. eassumption.
+  - eassumption.
+  - reflexivity.
+  - eapply hoare_func_pre. 2 : eassumption.
+    clear; intros.
+    destruct (is_some obj_path).
+    + destruct st. destruct H0 as [? [? [? []]]].
+      split. { auto. }
+      split. { subst. constructor. }
+      auto.
+    + destruct H0; split; assumption.
+  - reflexivity.
+  - eapply hoare_call_copy_out_pre. 2 : { eapply eval_call_copy_out_sound; eauto with hoare. }
+    clear; intros.
+    destruct (is_some obj_path).
+    + destruct sig; try solve [inv H0].
+      destruct st. destruct H0 as [[? []] [? [? [? []]]]].
+      repeat split; auto.
     + auto.
-Qed. *)
-
-Definition ret_implies (P Q : Hoare.ret_assertion) :=
-  forall retv st, P retv st -> Q retv st.
-
-Definition ret_exists {A} (a : A -> Hoare.ret_assertion) : Hoare.ret_assertion :=
-  fun retv st => ex (fun x => a x retv st).
-
-Definition arg_ret_exists {A} (a : A -> Hoare.arg_ret_assertion) : Hoare.arg_ret_assertion :=
-  fun args retv st => ex (fun x => a x args retv st).
-
-Declare Scope post_cond.
-Delimit Scope post_cond with post_cond.
-Notation "'EX' x .. y , P " :=
-  (arg_ret_exists (fun x => .. (arg_ret_exists (fun y => P%post_cond)) ..)) (at level 65, x binder, y binder, right associativity) : post_cond.
+Qed.
 
 Inductive inv_func_copy_out (out_params : list path) : Hoare.ret_assertion -> Hoare.arg_ret_assertion -> Prop :=
   | inv_func_copy_out_base : forall a_arg a_ret a_mem a_ext,
@@ -93,9 +325,12 @@ Inductive inv_func_copy_out (out_params : list path) : Hoare.ret_assertion -> Ho
       (forall (x : A), inv_func_copy_out out_params (P x) (Q x)) ->
       inv_func_copy_out out_params (ret_exists P) (arg_ret_exists Q).
 
-Axiom AList_get_set_some_neq : forall (a_mem : mem_assertion) (p p' : path) sv,
+Lemma AList_get_set_some_neq : forall (a_mem : mem_assertion) (p p' : path) sv,
   p <> p' ->
   AList.get (AList.set_some a_mem p' sv) p = AList.get a_mem p.
+Proof.
+  intros. apply AList.set_some_get_miss. intro. red in H1. apply H0. now subst.
+Qed.
 
 Lemma eval_read_var_eval_write_vars_disjoint : forall p ps vs a_mem,
   ~In p ps ->
@@ -142,19 +377,6 @@ Proof.
       apply IHout_params.
       * auto.
       * inv H1. auto.
-Qed.
-
-Lemma lift_option_inv : forall {A} (xl : list (option A)) (al : list A),
-  lift_option xl = Some al ->
-  xl = map Some al.
-Proof.
-  induction xl; intros.
-  - inv H0. auto.
-  - destruct a.
-    + simpl in H0. destruct (lift_option xl).
-      * inv H0. simpl; f_equal; auto.
-      * inv H0.
-    + inv H0.
 Qed.
 
 Lemma eval_write_var_disjoint : forall a_mem p sv,
@@ -205,7 +427,7 @@ Lemma eval_write_vars_disjoint : forall a_mem ps svs,
 Proof.
   unfold eval_write_vars.
   intros. apply eval_write_vars_disjoint'.
-  rewrite Utils.map_fst_combine; auto.
+  rewrite ForallMap.map_fst_combine; auto.
 Qed.
 
 Lemma eval_write_vars_implies' : forall a_mem out_params a_arg,
@@ -233,7 +455,7 @@ Lemma eval_write_vars_implies : forall a_mem out_params a_arg a_ext,
 Proof.
   unfold implies; intros.
   destruct st; destruct H2; split.
-  - eapply eval_write_vars_implies'; eauto.
+  - eauto using eval_write_vars_implies'.
   - auto.
 Qed.
 
@@ -258,7 +480,7 @@ Lemma inv_func_copy_out_sound_part1 : forall params a_arg a_ret a_mem a_ext,
 Proof.
   unfold hoare_func_copy_out; intros.
   epose proof (eval_read_vars_eval_write_vars (filter_out params) _ _ H0 (NoDup_app_remove_2 _ _ H1)).
-  unfold extract_parameters in H3.
+  unfold exec_func_copy_out in H3.
   apply lift_option_inv in H3.
   pose proof (eval_read_vars_sound _ _ _ _ H4 _ _ (proj2 H2) H3).
   split. { auto. }
@@ -273,29 +495,58 @@ Lemma inv_func_copy_out_sound : forall params P Q,
 Proof.
   intros.
   induction H0.
-  - apply inv_func_copy_out_sound_part1; auto.
-    apply is_no_dup_NoDup; auto.
+  - apply inv_func_copy_out_sound_part1; eauto with hoare.
   - unfold hoare_func_copy_out. intros.
     destruct H2 as [x ?].
     exists x.
     apply H1; eauto.
 Qed.
 
-Lemma hoare_func_internal' : forall p pre_arg pre_mem pre_ext params init body targs mid1_mem mid2 mid3 post,
+(* Another method of treating implicit (return None) is generate continue_post_condition as
+  hoare_stmt .. (return None) ... But here we choose a similar approach to inv_func_copy_out. *)
+Inductive inv_implicit_return : Hoare.assertion -> Hoare.ret_assertion -> Prop :=
+  | inv_implicit_return_base1 : forall a_mem a_ext,
+      inv_implicit_return
+        (MEM a_mem (EXT a_ext))
+        (RET ValBaseNull (MEM a_mem (EXT a_ext)))
+  | inv_implicit_return_base2 : forall a_ret a_mem a_ext,
+      inv_implicit_return
+        (fun st => False)
+        (RET a_ret (MEM a_mem (EXT a_ext)))
+  | inv_implicit_return_ex : forall {A} (P : A -> Hoare.assertion) Q,
+      (forall (x : A), inv_implicit_return (P x) (Q x)) ->
+      inv_implicit_return (assr_exists P) (ret_exists Q).
+
+Lemma inv_implicit_return_sound : forall P Q,
+  inv_implicit_return P Q ->
+  implies P (Q ValBaseNull).
+Proof.
+  induction 1.
+  - unfold implies; intros.
+    split; auto.
+    intro; intros. inv H1. apply SvalRefine.sval_refine_refl.
+  - unfold implies; intros.
+    inv H0.
+  - unfold implies; intros.
+    sfirstorder.
+Qed.
+
+Lemma hoare_func_internal' : forall p pre_arg pre_mem pre_ext params body targs mid1_mem mid2 mid2' post,
   length (filter_in params) = length pre_arg ->
   is_no_dup (map fst pre_mem) ->
   eval_write_vars pre_mem (filter_in params) pre_arg = mid1_mem ->
-  hoare_block ge p (MEM mid1_mem (EXT pre_ext)) init (mk_post_assertion mid2 mid3) ->
-  hoare_block ge p mid2 body (return_post_assertion_1 mid3) ->
-  inv_func_copy_out (filter_out params) mid3 post ->
-  hoare_func ge p (ARG pre_arg (MEM pre_mem (EXT pre_ext))) (FInternal params init body) targs post.
+  hoare_block ge p (MEM mid1_mem (EXT pre_ext)) body (mk_post_assertion mid2' mid2) ->
+  inv_func_copy_out (filter_out params) mid2 post ->
+  inv_implicit_return mid2' mid2 ->
+  hoare_func ge p (ARG pre_arg (MEM pre_mem (EXT pre_ext))) (FInternal params body) targs post.
 Proof.
   intros.
   eapply hoare_func_internal.
-  - eapply hoare_func_copy_in_intro; eauto.
-    apply is_no_dup_NoDup; auto.
-  - eauto.
-  - eauto.
+  - eapply hoare_func_copy_in_intro; eauto with hoare.
+  - eapply hoare_block_post. only 1 : eauto.
+    split.
+    + eapply inv_implicit_return_sound. eassumption.
+    + sfirstorder.
   - apply inv_func_copy_out_sound; auto.
 Qed.
 

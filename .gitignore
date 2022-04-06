@@ -5,6 +5,7 @@
 *build*
 *logs*
 *pcaps*
+prod3.install
 
 ## Coq.gitignore
 .*.aux

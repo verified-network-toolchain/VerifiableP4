@@ -1,4 +1,4 @@
-Require Import Poulet4.P4defs.
+(* Require Import Poulet4.P4defs.
 Require Import Poulet4.P4Notations.
 Open Scope string_scope.
 
@@ -512,3 +512,4 @@ Qed.
 
 End Experiment2.
 
+ *)

@@ -1,11 +1,13 @@
 Require Import Coq.Strings.String.
-Require Import Poulet4.Typed.
-Require Import Poulet4.Syntax.
-Require Import Poulet4.Semantics.
-Require Import Poulet4.Value.
+Require Import Poulet4.P4light.Syntax.Typed.
+Require Import Poulet4.P4light.Syntax.Syntax.
+Require Import Poulet4.P4light.Semantics.Semantics.
+Require Import Poulet4.P4light.Syntax.Value.
 Require Import ProD3.core.Coqlib.
 Require Import ProD3.core.SvalRefine.
+Require Import ProD3.core.ExtPred.
 Require Import Coq.Numbers.BinNums.
+Require Import Hammer.Plugin.Hammer.
 Open Scope type_scope.
 
 Section AssertionLang.
@@ -51,28 +53,123 @@ Definition arg_denote (a : arg_assertion) : list Sval -> Prop :=
 
 Definition ret_assertion := Sval.
 
-Definition ret_satisfies (retv : Sval) (a : ret_assertion) : Prop :=
-  sval_refine a retv.
+Definition ret_satisfies (retv : Val) (a : ret_assertion) : Prop :=
+  (forall sv', val_to_sval retv sv' -> sval_refine a sv').
 
-Definition ret_denote (a : ret_assertion) : Sval -> Prop :=
+Definition ret_denote (a : ret_assertion) : Val -> Prop :=
   fun retv => ret_satisfies retv a.
 
-Definition ext_unit := path * extern_object.
-
-Definition ext_assertion := list ext_unit.
-
-Definition ext_satisfies_unit (es : extern_state) (a_unit : ext_unit) : Prop :=
-  let (p, eo) := a_unit in
-  match PathMap.get p es with
-  | Some eo' => eo = eo'
-  | None => False
-  end.
+Definition ext_assertion := list ext_pred.
 
 Definition ext_satisfies (es : extern_state) (a : ext_assertion) : Prop :=
-  fold_right and True (map (ext_satisfies_unit es) a).
+  fold_right and True (map (fun (ep : ext_pred) => ep es) a).
 
 Definition ext_denote (a : ext_assertion) : extern_state -> Prop :=
   fun es => ext_satisfies es a.
+
+(* A lemma to handle assertion representations. *)
+
+Lemma fold_right_and_True : forall l,
+  fold_right and True l <-> Forall id l.
+Proof.
+  intros; induction l; only 2 : destruct IHl; split; intros.
+  - constructor.
+  - constructor.
+  - constructor; sfirstorder.
+  - inv H2; sfirstorder.
+Qed.
+
+Lemma mem_denote_app : forall a a' m,
+  mem_denote (a ++ a') m <-> mem_denote a m /\ mem_denote a' m.
+Proof.
+  intros.
+  unfold mem_denote, mem_satisfies.
+  rewrite !fold_right_and_True.
+  rewrite map_app.
+  rewrite Forall_app.
+  reflexivity.
+Qed.
+
+Lemma ext_denote_app : forall a a' es,
+  ext_denote (a ++ a') es <-> ext_denote a es /\ ext_denote a' es.
+Proof.
+  intros.
+  unfold ext_denote, ext_satisfies.
+  rewrite !fold_right_and_True.
+  rewrite map_app.
+  rewrite Forall_app.
+  reflexivity.
+Qed.
+
+(* Assertion language properties *)
+
+Lemma path_eqb_eq : forall (p1 p2 : path), path_eqb p1 p2 -> p1 = p2.
+Proof.
+  induction p1; intros.
+  - destruct p2; auto. unfold path_eqb in H0. simpl in H0. now exfalso.
+  - destruct p2.
+    + unfold path_eqb in H0. simpl in H0. now exfalso.
+    + unfold path_eqb in H0. simpl in H0. apply andb_prop in H0.
+      destruct H0. apply eqb_eq in H0. subst. f_equal. apply IHp1. apply H1.
+Qed.
+
+Fixpoint alist_get' {A} (a : list (path * A)) (p : path) : option A :=
+  match a with
+  | (p', v) :: tl =>
+      if path_eqb p p' then Some v else alist_get' tl p
+  | [] => None
+  end.
+
+Lemma alist_get'_spec : forall {A} a p,
+  @alist_get' A a p = AList.get a p.
+Proof.
+  induction a; intros.
+  - auto.
+  - destruct a. simpl.
+    destruct (path_eqb p l) eqn:?.
+    + symmetry. apply AList.get_eq_cons. auto.
+      apply path_eqb_eq. auto.
+    + replace (AList.get ((l, a) :: a0) p) with (AList.get a0 p). 2 : {
+        symmetry. apply AList.get_neq_cons.
+        intro. red in H0. subst.
+        rewrite path_eqb_refl in Heqb.
+        inv Heqb.
+      }
+      apply IHa.
+Qed.
+
+Lemma mem_denote_get : forall (a : mem_assertion) p sv,
+  AList.get a p = Some sv ->
+  forall m, mem_denote a m ->
+  mem_satisfies_unit m (p, sv).
+Proof.
+  intros.
+  rewrite <- alist_get'_spec in H0.
+  induction a.
+  - inv H0.
+  - destruct a as [p' sv']. simpl in H0.
+    destruct (path_eqb p p') eqn:H_p.
+    + apply path_eqb_eq in H_p; subst.
+      inv H0. inv H1. auto.
+    + inv H1; apply IHa; auto.
+Qed.
+
+(* Seems deprecated *)
+(* Lemma ext_denote_get : forall (a : ext_assertion) p eo,
+  AList.get a p = Some eo ->
+  forall es, ext_denote a es ->
+  ext_satisfies_unit es (p, eo).
+Proof.
+  intros.
+  rewrite <- alist_get'_spec in H0.
+  induction a.
+  - inv H0.
+  - destruct a as [p' sv']. simpl in H0.
+    destruct (path_eqb p p') eqn:H_p.
+    + apply path_eqb_eq in H_p; subst.
+      inv H0. inv H1. auto.
+    + inv H1; apply IHa; auto.
+Qed. *)
 
 (** * Update and Get *)
 
@@ -83,25 +180,16 @@ Fixpoint upd_sval_once (v: Sval) (p: path) (f: Sval) : Sval :=
   | _, [] => f
   | ValBaseStruct fields, hd :: tl =>
       match AList.get fields hd with
-      | Some v' => 
+      | Some v' =>
           match AList.set fields hd (upd_sval_once v' tl f) with
           | Some fields' => ValBaseStruct fields'
           | None => v (* Impossible *)
           end
       | None => v
       end
-  | ValBaseRecord fields, hd :: tl =>
-      match AList.get fields hd with
-      | Some v' => 
-          match AList.set fields hd (upd_sval_once v' tl f) with
-          | Some fields' => ValBaseRecord fields'
-          | None => v (* Impossible *)
-          end
-      | None => v
-      end
   | ValBaseUnion fields, hd :: tl =>
       match AList.get fields hd with
-      | Some v' => 
+      | Some v' =>
           match AList.set fields hd (upd_sval_once v' tl f) with
           | Some fields' => ValBaseUnion fields'
           | None => v (* Impossible *)
@@ -110,7 +198,7 @@ Fixpoint upd_sval_once (v: Sval) (p: path) (f: Sval) : Sval :=
       end
   | ValBaseHeader fields vbit, hd :: tl =>
       match AList.get fields hd with
-      | Some v' => 
+      | Some v' =>
           match AList.set fields hd (upd_sval_once v' tl f) with
           | Some fields' => ValBaseHeader fields' (Some true)
           | None => v (* Impossible *)
@@ -130,151 +218,5 @@ Definition gen_sval (typ: P4Type) (upds: list (path * Sval)): option Sval :=
   | None =>
       None
   end.
-
-(* Definition extract (v : Val) (f : ident) : option Val :=
-  match v with
-  | ValBaseStruct fields =>
-      AList.get fields f
-  | ValBaseHeader fields true =>
-      AList.get fields f
-  | _ => None
-  end.
-
-Definition extract_option (ov : option Val) (f : ident) : option Val :=
-  match ov with
-  | Some v => extract v f
-  | None => None
-  end.
-
-Definition extract_sval (v : Sval) (f : ident) : option Sval :=
-  match v with
-  | ValBaseStruct fields =>
-      AList.get fields f
-  | ValBaseHeader fields (Some true) =>
-      AList.get fields f
-  | _ => None
-  end.
-
-Definition extract_option_sval (ov : option Sval) (f : ident) : option Sval :=
-  match ov with
-  | Some v => extract_sval v f
-  | None => None
-  end. *)
-
-(* Definition mem_eval_read (m : mem) (lv : Lval) : option Val :=
-  let (loc, fl) := lv in
-  fold_left extract_option fl (PathMap.get (loc_to_path this loc) m).
-
-Definition isNil {A} (l : list A) :=
-  match l with
-  | nil => true
-  | _ => false
-  end.
-
-Definition mem_is_valid_field (m : mem) (lv : Lval) : bool :=
-  let (loc, fl) := lv in
-  isNil fl || isSome (mem_eval_read m lv). *)
-
-
-(* Definition loc_no_overlapping (loc1 : Locator) (loc2 : Locator) : bool :=
-  match loc1, loc2 with
-  | LInstance p1, LInstance p2 => ~~ (path_equivb p1 p2)
-  | _, _ => false
-  end.
-
-Fixpoint field_list_no_overlapping (fl1 fl2 : list Field) : bool :=
-  match fl1, fl2 with
-  | hd1 :: tl1, hd2 :: tl2 =>
-      ~~(String.eqb hd1 hd2) || field_list_no_overlapping tl1 tl2
-  | _, _ => false
-  end.
-
-Definition is_instance (loc : Locator) : bool :=
-  match loc with
-  | LInstance _ => true
-  | LGlobal _ => false
-  end.
-
-Definition lval_no_overlapping (lv1 : Lval) (lv2 : Lval) : bool :=
-  match lv1, lv2 with
-  | (loc1, fl1), (loc2, fl2) =>
-      is_instance loc1 && is_instance loc2 && (loc_no_overlapping loc1 loc2 || field_list_no_overlapping fl1 fl2)
-  end.
-
-Fixpoint no_overlapping (lv : Lval) (a : assertion) : bool :=
-  match a with
-  | hd :: tl =>
-      match hd with
-      | AVal hd_lv _ =>
-          lval_no_overlapping lv hd_lv && no_overlapping lv tl
-      | AType _ _ =>
-          no_overlapping lv tl
-      end
-  | [] => true
-  end.
-
-Definition is_lval_instance (lv : Lval) : bool :=
-  match lv with
-  | (loc, _) =>
-      is_instance loc
-  end.
-
-Fixpoint wellformed (a : assertion) : bool :=
-  match a with
-  | hd :: tl =>
-      match hd with
-      | AVal lv _ =>
-          is_lval_instance lv && no_overlapping lv tl && wellformed tl
-      | AType lv _ =>
-          is_lval_instance lv && wellformed tl
-      end
-  | [] => true
-  end.
-
-Definition field_equivb (f1 f2 : Field) : bool :=
-  match f1, f2 with
-  | s1, s2 =>
-      String.eqb s1 s2
-  end.
-
-Definition lval_equivb (lv1 lv2 : Lval) : bool :=
-  match lv1, lv2 with
-  | (loc1, fl1), (loc2, fl2) =>
-      locator_equivb loc1 loc2 && list_eqb field_equivb fl1 fl2
-  end.
-
-Definition val_eqb (v1 v2 : Val) : bool :=
-  match v1, v2 with
-  | ValBaseNull, ValBaseNull => true
-  | ValBaseBool b1, ValBaseBool b2 => Bool.eqb b1 b2
-  | ValBaseInteger i1, ValBaseInteger i2 => BinInt.Z.eqb i1 i2
-  | ValBaseBit w1 i1, ValBaseBit w2 i2 => Nat.eqb w1 w2 && BinInt.Z.eqb i1 i2
-  | ValBaseInt w1 i1, ValBaseInt w2 i2 => Nat.eqb w1 w2 && BinInt.Z.eqb i1 i2
-  | _, _ => false
-  end.
-
-Definition assretion_unit_equivb (a_unit1 a_unit2 : assertion_unit) :=
-  match a_unit1, a_unit2 with
-  | AVal lv1 v1, AVal lv2 v2 =>
-      lval_equivb lv1 lv2 && val_eqb v1 v2
-  | _, _ => false (* ignore AType for now *)
-  end.
-
-Fixpoint implies_unit (a : assertion) (a_unit : assertion_unit) :=
-  match a with
-  | hd :: tl =>
-      assretion_unit_equivb hd a_unit || implies_unit tl a_unit
-  | [] =>
-      false
-  end.
-
-Fixpoint implies (a1 a2 : assertion) :=
-  match a2 with
-  | hd :: tl =>
-      implies_unit a1 hd && implies a1 tl
-  | [] =>
-      true
-  end.
-*)
 
 End AssertionLang.

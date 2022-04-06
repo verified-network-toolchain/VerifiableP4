@@ -9,9 +9,6 @@
 typedef bit<9>  egressSpec_t;
 
 header myHeader_t {
-    // In: rw = 0 => BF.query; rw = 2 => BF.add
-    // Out: rw = 0 => not in BF; rw = 1 => in BF
-    bit<8> rw; 
     bit<16> data;
 }
 
@@ -48,8 +45,8 @@ parser MyParser(packet_in packet,
 **************  I N G R E S S   P R O C E S S I N G   *******************
 *************************************************************************/
 
-#define HASH_BASE 10w0
-#define HASH_MAX 10w1023
+#define HASH_BASE 32w0
+#define HASH_MAX 32w1024
 #define NUM_HASH 3
 #define NUM_ENTRY 32w1024
 #define PAD0 3w3
@@ -67,8 +64,8 @@ control Add(inout headers hdr, inout custom_metadata_t meta) {
         hash(meta.index2, HashAlgorithm.crc16, HASH_BASE, {hdr.myHeader.data, PAD2}, HASH_MAX);
 
         bloom0.write(meta.index0, 1);
-        bloom0.write(meta.index1, 1);
-        bloom0.write(meta.index2, 1);
+        bloom1.write(meta.index1, 1);
+        bloom2.write(meta.index2, 1);
     }
 }
 
@@ -79,29 +76,33 @@ control Query(inout headers hdr, inout custom_metadata_t meta) {
         hash(meta.index2, HashAlgorithm.crc16, HASH_BASE, {hdr.myHeader.data, PAD2}, HASH_MAX);
 
         bloom0.read(meta.member0, meta.index0);
-        bloom0.read(meta.member1, meta.index1);
-        bloom0.read(meta.member2, meta.index2);
+        bloom1.read(meta.member1, meta.index1);
+        bloom2.read(meta.member2, meta.index2);
 
-        hdr.myHeader.rw = (bit<8>) (meta.member0 & meta.member1 & meta.member2);
+        meta.member0 = meta.member0 & meta.member1 & meta.member2;
     }
 }
+
+const bit<9> INT_PORT = 0;
+const bit<9> EXT_PORT = 1;
+const bit<9> DROP_SPEC = 511;
 
 control MyIngress(inout headers hdr,
                   inout custom_metadata_t meta,
                   inout standard_metadata_t standard_metadata) {
-
-    /* apply forwarding logic */
-    action do_forward(egressSpec_t port) {
-        standard_metadata.egress_spec = port;
-    }
-    
     apply {
-        if (hdr.myHeader.isValid()) {
-            do_forward(1);
-            if (hdr.myHeader.rw == 0) {
-                Query.apply(hdr, meta);
-            } else if (hdr.myHeader.rw == 2) {
-                Add.apply(hdr, meta);
+        // Outgoing
+        if (standard_metadata.ingress_port == INT_PORT) {
+            standard_metadata.egress_spec = EXT_PORT;
+            Add.apply(hdr, meta);
+        }
+        // Incoming
+        else {
+            standard_metadata.egress_spec = INT_PORT;
+            Query.apply(hdr, meta);
+            if (!(bool)meta.member0) {
+                // drop
+                standard_metadata.egress_spec = DROP_SPEC;
             }
         }
     }

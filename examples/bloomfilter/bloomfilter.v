@@ -22,6 +22,8 @@ Definition Filter:= Index -> bool.
 Definition upd (F:Filter) (i:Index) (b:bool): Filter :=
   fun j => if index_beq i j then b else F j.
 
+Definition empty:Filter := fun _ => false.
+
 Definition get (F:Filter) (i:Index): bool := F i.
 
 Definition add0 (F:Filter) (z:Z) :=

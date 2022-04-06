@@ -1,4 +1,4 @@
-Require Import Poulet4.P4defs.
+(* Require Import Poulet4.P4defs.
 Require Import Poulet4.P4Notations.
 Open Scope string_scope.
 
@@ -328,3 +328,4 @@ Proof.
   - rewrite Heqm'. unfold PathMap.get, PathMap.set, name_cons.
     rewrite path_equivb_reflexivity. reflexivity.
 Qed. *)
+ *)
