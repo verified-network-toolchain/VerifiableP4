@@ -1,13 +1,9 @@
 Require Import Coq.ZArith.BinInt.
-Require Import ProD3.examples.sbf.Utils.
 Require Import Coq.Program.Basics.
-Require Import Poulet4.P4light.Syntax.P4defs.
-Require Import Poulet4.P4light.Architecture.Target.
-Require Import ProD3.examples.sbf.UseTofino.
+Require Import ProD3.examples.sbf.Utils.
 Require Import ProD3.examples.sbf.ConFilter.
 Require Import ProD3.core.Coqlib.
 Require Import ProD3.core.ExtPred.
-Require Import Hammer.Plugin.Hammer.
 Import ListNotations.
 Open Scope Z_scope.
 Open Scope program_scope.
@@ -17,12 +13,7 @@ Section AbsFilter.
 Context {header_type : Set}.
 Context {Inhabitant_header_type : Inhabitant header_type}.
 
-Instance Inhabitant_fun {A B} (db : Inhabitant B) : Inhabitant (A -> B) :=
-  fun _ => db.
-
-Context (num_rows : Z) (num_cells : Z). (* (hashes : list (header_type -> Z)) *)
-(* Axiom (Zlength hashes = num_rows).
-Axiom (forall i, 0 <= i < Zlength hashes -> (forall h : header_type, 0 <= (Znth i hashes) h < num_cells)). *)
+Context (num_rows : Z) (num_cells : Z).
 Hypothesis H_num_cells : 0 < num_cells.
 
 Section Row.
