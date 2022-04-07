@@ -49,11 +49,14 @@ Qed.
 Definition paths_cover (ps : list path) (p : path) : bool :=
   existsb (fun p1 => is_prefix p1 p) ps.
 
+Definition ep_wellformed_prop (ps : list path) (P : extern_state -> Prop) :=
+  forall es es' : extern_state,
+    (forall p, is_true (paths_cover ps p) -> es p = es' p) ->
+    P es -> P es'.
+
 Record ext_pred := mk_ext_pred {
   ep_body :> ext_pred_body;
-  ep_wellformed : forall es es' : extern_state,
-    (forall p, is_true (paths_cover (ep_paths ep_body) p) -> es p = es' p) ->
-    ep_body es -> ep_body es'
+  ep_wellformed : ep_wellformed_prop (ep_paths ep_body) ep_body
 }.
 
 Definition mk_ext_pred' a b c :=
@@ -62,7 +65,7 @@ Definition mk_ext_pred' a b c :=
 Local Program Definition singleton (p : path) (eo : extern_object) : ext_pred :=
   mk_ext_pred' (fun es => es p = Some eo) [p] _.
 Next Obligation.
-  symmetry. apply H.
+  unfold ep_wellformed_prop; intros. rewrite <- H; auto.
   hauto use: is_prefix_refl, ssrbool.orTb.
 Qed.
 
@@ -75,5 +78,12 @@ Local Program Definition or (ep1 ep2 : ext_pred) : ext_pred :=
   mk_ext_pred' (ep_pred ep1 `\/ ep_pred ep2) (ep_paths ep1 ++ ep_paths ep2) _.
 Next Obligation.
 Admitted.
+
+Local Program Definition wrap (ps : list path) (ep : ext_pred)
+  (H : forall p, is_true (paths_cover (ep_paths ep) p) -> is_true (paths_cover ps p)) : ext_pred :=
+  mk_ext_pred' (ep_pred ep) ps _.
+Next Obligation.
+  srun eauto use: ep_wellformed unfold: ep_wellformed_prop.
+Qed.
 
 End ExtPred.
