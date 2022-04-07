@@ -73,20 +73,37 @@ Qed.
 Definition ext_implies (a a' : ext_assertion) : Prop :=
   forall es, ext_denote a es -> ext_denote a' es.
 
+Lemma ext_implies_nil: forall a, ext_implies a [].
+Proof. repeat intro. red. red. easy. Qed.
+
+Lemma ext_implies_cons: forall (a c: ext_assertion) b,
+    ext_implies a (b :: c) <-> (ext_implies a [b] /\ ext_implies a c).
+Proof.
+  intros. unfold ext_implies, ext_denote. split; intros.
+  - split; intros; apply H in H0; red in H0; simpl in H0; red; simpl; destruct H0; auto.
+  - destruct H. specialize (H _ H0). specialize (H1 _ H0). clear H0.
+    unfold ext_satisfies in *. simpl in *. destruct H. split; auto.
+Qed.
+
 Ltac simpl_ext_implies :=
-  match goal with
-  | |- ext_implies _ _ =>
-      let es := fresh "es" in
-      let H := fresh "H" in
-      unfold ext_implies, ext_denote, ext_satisfies;
-      intros es H;
-      simpl in H |- *;
-      intuition
+  repeat match goal with
+    | |- ext_implies _ [] => apply ext_implies_nil
+    | |- ext_implies _ (_ :: _ :: _) => apply ext_implies_cons; split
+    | |- ext_implies _ [_] =>
+        try (let es := fresh "es" in
+             let H := fresh "H" in
+             unfold ext_implies, ext_denote, ext_satisfies;
+             intros es H;
+             simpl in H |- *;
+             intuition; easy)
   end.
 
 Section SIMPL_EXT_IMPLIES_TEST.
 
-  Variable P Q R S U: ext_pred.
+  Variable P Q R S: ext_pred.
+
+  Goal ext_implies [P; Q; R; S] [].
+  Proof. simpl_ext_implies. Qed.
 
   (* Rearrange order doesn't matter *)
   Goal ext_implies [P; Q; R; S] [R; S; Q; P].

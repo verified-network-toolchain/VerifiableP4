@@ -83,7 +83,10 @@ Local Program Definition wrap (ps : list path) (ep : ext_pred)
   (H : forall p, is_true (paths_cover (ep_paths ep) p) -> is_true (paths_cover ps p)) : ext_pred :=
   mk_ext_pred' (ep_pred ep) ps _.
 Next Obligation.
-  srun eauto use: ep_wellformed unfold: ep_wellformed_prop.
+  red. intros.
+  destruct ep as [[ep epp] ?H]. simpl in *.
+  eapply H2; eauto.
+  (* srun eauto use: ep_wellformed unfold: ep_wellformed_prop. *)
 Qed.
 
 End ExtPred.
