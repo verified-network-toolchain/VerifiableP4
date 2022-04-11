@@ -49,6 +49,10 @@ Qed.
 Definition paths_cover (ps : list path) (p : path) : bool :=
   existsb (fun p1 => is_prefix p1 p) ps.
 
+Lemma paths_cover_app: forall ps1 ps2 p,
+    paths_cover (ps1 ++ ps2) p = (paths_cover ps1 p || paths_cover ps2 p)%bool.
+Proof. intros. unfold paths_cover. apply existsb_app. Qed.
+
 Definition ep_wellformed_prop (ps : list path) (P : extern_state -> Prop) :=
   forall es es' : extern_state,
     (forall p, is_true (paths_cover ps p) -> es p = es' p) ->
@@ -72,12 +76,20 @@ Qed.
 Local Program Definition and (ep1 ep2 : ext_pred) : ext_pred :=
   mk_ext_pred' (ep_pred ep1 `/\ ep_pred ep2) (ep_paths ep1 ++ ep_paths ep2) _.
 Next Obligation.
-Admitted.
+  repeat intro. unfold lift in *. destruct H0.
+  destruct ep1 as [[ep1 epp1] ?H]. destruct ep2 as [[ep2 epp2] ?H]. simpl in *.
+  split; [eapply H2 with es | eapply H3 with es]; auto; intros; apply H;
+    rewrite paths_cover_app; rewrite Reflect.orE; auto.
+Qed.
 
 Local Program Definition or (ep1 ep2 : ext_pred) : ext_pred :=
   mk_ext_pred' (ep_pred ep1 `\/ ep_pred ep2) (ep_paths ep1 ++ ep_paths ep2) _.
 Next Obligation.
-Admitted.
+  repeat intro. unfold lift in *.
+  destruct ep1 as [[ep1 epp1] ?H]. destruct ep2 as [[ep2 epp2] ?H]. simpl in *.
+  destruct H0; [left; eapply H1 with es | right; eapply H2 with es]; auto; intros; apply H;
+    rewrite paths_cover_app; rewrite Reflect.orE; auto.
+Qed.
 
 Local Program Definition wrap (ps : list path) (ep : ext_pred)
   (H : forall p, is_true (paths_cover (ep_paths ep) p) -> is_true (paths_cover ps p)) : ext_pred :=
