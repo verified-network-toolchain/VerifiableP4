@@ -63,10 +63,12 @@ Lemma modifies_trans : forall (vars : option (list path)) (exts : list path) (st
   modifies vars exts st2 st3 ->
   modifies vars exts st1 st3.
 Proof.
-  unfold modifies, modifies_exts, modifies_vars; intros; destruct vars.
-  (* firstorder.
-Qed. *)
-Admitted.
+  unfold modifies, modifies_exts, modifies_vars; intros ? ? ? ? ? [? ?] [? ?].
+  split; destruct vars; intros; auto.
+  - rewrite <- H1; auto.
+  - rewrite <- H2; auto.
+  - rewrite <- H2; auto.
+Qed.
 
 Local Hint Resolve modifies_trans : core.
 
@@ -417,6 +419,15 @@ Proof.
   - inv H1; auto.
 Qed.
 
+Lemma modifies_exts_incl:
+     forall (exts exts' : list path) st st',
+       modifies_exts exts' st st' ->
+       (forall x : path, In x exts' -> In x exts) -> modifies_exts exts st st'.
+Proof.
+  intros. unfold modifies_exts in *. intros. apply H.
+  intro. apply H1. eapply paths_cover_incl; eauto.
+Qed.
+
 Lemma func_modifies_frame : forall p fd vars exts vars' exts',
   func_modifies p fd vars' exts' ->
   incl_vars vars vars' ->
@@ -426,13 +437,13 @@ Proof.
   unfold func_modifies.
   intros.
   apply H in H2. clear H.
-  (* unfold modifies in *; destruct st; destruct st';
+  unfold modifies in *; destruct st; destruct st';
     pose proof (Forall_In _ _ H1);
     inv H0;
     try pose proof (Forall_In _ _ H3);
-    sfirstorder.
-Qed. *)
-Admitted.
+    split; destruct H2; try sfirstorder;
+    eapply modifies_exts_incl; eauto.
+Qed.
 
 Lemma call_modifies_func' : forall p tags func targs args typ dir obj_path fd vars' exts' vars exts,
   is_builtin_func func = false ->

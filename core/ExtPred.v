@@ -58,6 +58,14 @@ Lemma paths_cover_app: forall ps1 ps2 p,
     paths_cover (ps1 ++ ps2) p = (paths_cover ps1 p || paths_cover ps2 p)%bool.
 Proof. intros. unfold paths_cover. apply existsb_app. Qed.
 
+Lemma paths_cover_incl: forall exts exts' q,
+    (forall x : path, In x exts' -> In x exts) ->
+    is_true (paths_cover exts' q) -> is_true (paths_cover exts q).
+Proof.
+  unfold is_true, paths_cover. intros. rewrite existsb_exists in *.
+  destruct H0 as [x [? ?]]. exists x. split; auto.
+Qed.
+
 Definition ep_wellformed_prop (ps : list path) (P : extern_state -> Prop) :=
   forall es es' : extern_state,
     (forall p, is_true (paths_cover ps p) -> es p = es' p) ->
