@@ -20,6 +20,11 @@ Notation path := (list string).
 Context {tags_t : Type}.
 Context {target : @Target tags_t (@Expression tags_t)}.
 
+(* We define a kind of ext_pred for extern state, that contains two parts
+  ep_pred and ep_paths, with a well-formed condition. If ep_paths = [p1,
+  p2, ...], then ep_pred is only relevent with objects in directories of
+  p1, p2, ... *)
+
 Record ext_pred_body := mk_ext_pred_body {
   ep_pred :> extern_state -> Prop;
   ep_paths : list path
@@ -45,7 +50,7 @@ Proof.
   - simpl. hauto use: eqb_eq inv: bool.
 Qed.
 
-(* Test whether p is a subdirectory of any path in ps. *)
+(* Test whether p is a subdirectory of one of the paths in ps. *)
 Definition paths_cover (ps : list path) (p : path) : bool :=
   existsb (fun p1 => is_prefix p1 p) ps.
 

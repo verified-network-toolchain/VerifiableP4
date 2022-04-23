@@ -9,6 +9,7 @@ Require ProD3.core.AssertionLang.
 Require Import ProD3.core.AssertionNotations.
 Require Import ProD3.core.ConcreteHoare.
 Require Import ProD3.core.Modifies.
+Require Import ProD3.core.ExtPred.
 Require Import Hammer.Plugin.Hammer.
 
 Section FuncSpec.
@@ -78,6 +79,29 @@ Defined.
 Definition exclude {A} (mods : list path) (l : list (path * A)) :=
   filter (fun '(p, _) => negb (In_dec path_eq_dec p mods)) l.
 
+Fixpoint disjoint (p1 p2 : path) : bool :=
+  match p1 with
+  | [] => false
+  | n :: p1 =>
+      match p2 with
+      | [] => false
+      | m :: p2 =>
+          if String.eqb n m then disjoint p1 p2 else true
+      end
+  end.
+
+(* This is an iff, but we only prove one direction. *)
+Lemma disjoint_spec : forall p1 p2,
+  disjoint p1 p2 ->
+  forall q, negb (is_prefix p1 q && is_prefix p2 q).
+Admitted.
+
+Definition ext_exclude (mods : list path) (l : list ext_pred) :=
+  filter (fun (ep : ext_pred)  =>
+    let ps := ep.(ep_paths) in
+    forallb (fun q => forallb (disjoint q) ps) mods)
+    l.
+
 Definition hoare_func_frame (ge : genv) (p : path) (pre : arg_assertion) (func : @fundef tags_t) (targs : list P4Type) (post : assertion) :=
   forall st inargs st' outargs sig,
     pre inargs st ->
@@ -88,7 +112,7 @@ Lemma hoare_func_frame_intro : forall ge p a_arg a_mem a_ext func targs vars ext
   force True (option_map (func_modifies_vars ge p func) vars) ->
   func_modifies_exts ge p func exts ->
   force (fun _ => []) (option_map exclude vars) a_mem = a_mem' ->
-  exclude exts a_ext = a_ext' ->
+  ext_exclude exts a_ext = a_ext' ->
   hoare_func_frame ge p (ARG a_arg (MEM a_mem (EXT a_ext))) func targs (MEM a_mem' (EXT a_ext')).
 Proof.
   unfold func_modifies_vars, func_modifies_exts, hoare_func_frame; intros.
@@ -114,7 +138,7 @@ Proof.
           inv H0; auto.
         ++apply IHa_mem; auto.
           inv H0; auto.
-  - clear -H0 H2 H3 H4.
+  (* - clear -H0 H2 H3 H4.
     generalize dependent a_ext'.
     specialize (H0 _ _  _ _ _ _ H4).
     destruct H3 as [_ []].
@@ -128,8 +152,9 @@ Proof.
           rewrite <- H0 by auto.
           inv H1; auto.
         ++apply IHa_ext; auto.
-          inv H1; auto.
-Qed.
+          inv H1; auto. *)
+(* Qed. *)
+Admitted.
 
 Inductive func_post_combine : assertion -> arg_ret_assertion -> arg_ret_assertion -> Prop :=
   | func_post_combine_base : forall f_mem f_ext a_arg a_ret a_mem a_ext,
@@ -178,7 +203,7 @@ Lemma func_spec_combine' : forall ge p pre_arg pre_mem pre_ext pre_arg' pre_mem'
     /\ func_modifies ge p func vars exts ->
   arg_implies (ARG pre_arg (MEM pre_mem (EXT pre_ext))) (ARG pre_arg' (MEM pre_mem' (EXT pre_ext'))) ->
   force (fun _ => []) (option_map exclude vars) pre_mem = f_mem ->
-  exclude exts pre_ext = f_ext ->
+  ext_exclude exts pre_ext = f_ext ->
   func_post_combine (MEM f_mem (EXT f_ext)) post' post ->
   hoare_func ge p (ARG pre_arg (MEM pre_mem (EXT pre_ext))) func targs post.
 Proof.

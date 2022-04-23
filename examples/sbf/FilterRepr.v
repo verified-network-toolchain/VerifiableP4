@@ -19,6 +19,7 @@ Variable (p : path).
 Definition row_ge : genv -> Prop.
 Admitted.
 
+(* Local invariant of a row instance, e.g. constant table entries. *)
 Definition row_inv_bare : extern_state -> Prop.
 Admitted.
 
