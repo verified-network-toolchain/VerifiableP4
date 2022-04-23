@@ -109,7 +109,7 @@ Definition hoare_func_frame (ge : genv) (p : path) (pre : arg_assertion) (func :
     post st'.
 
 Lemma hoare_func_frame_intro : forall ge p a_arg a_mem a_ext func targs vars exts a_mem' a_ext',
-  force True (option_map (func_modifies_vars ge p func) vars) ->
+  func_modifies_vars ge p func vars ->
   func_modifies_exts ge p func exts ->
   force (fun _ => []) (option_map exclude vars) a_mem = a_mem' ->
   ext_exclude exts a_ext = a_ext' ->
@@ -214,8 +214,8 @@ Proof.
   - destruct vars.
     + unfold func_modifies_vars; simpl; intros.
       refine (proj1 (H4 _ _ _ _ _ _ _) _ _); eauto.
-    + simpl; auto.
-  - unfold func_modifies_exts; intros.
+    + unfold func_modifies_vars; simpl; auto.
+  - unfold func_modifies_exts, modifies_exts; intros.
     refine (proj2 (H4 _ _ _ _ _ _ _) _ _); eauto.
 Qed.
 

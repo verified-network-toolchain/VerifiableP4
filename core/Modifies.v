@@ -25,28 +25,35 @@ Context `{target : @Target tags_t (@Expression tags_t)}.
 
 Context (ge : genv).
 
-Definition func_modifies_vars (p : path) (func : @fundef tags_t) (vars : list path) :=
-  forall st inargs targs st' outargs sig,
-    exec_func ge read_ndetbit p st func targs inargs st' outargs sig ->
-    forall q, ~(In q vars) -> PathMap.get q (get_memory st) = PathMap.get q (get_memory st').
-
-Definition func_modifies_exts (p : path) (func : @fundef tags_t) (exts : list path) :=
-  forall st inargs targs st' outargs sig,
-    exec_func ge read_ndetbit p st func targs inargs st' outargs sig ->
-    forall q, ~(is_true (paths_cover exts q)) -> PathMap.get q (snd st) = PathMap.get q (snd st').
-
-Definition modifies (vars : option (list path)) (exts : list path) (st st' : state) : Prop :=
+Definition modifies_vars (vars : option (list path)) (st st' : state) : Prop :=
   match vars with
   | Some vars =>
       forall q, ~(In q vars) -> PathMap.get q (get_memory st) = PathMap.get q (get_memory st')
   | None => True
-  end
-    /\ forall q, ~(is_true (paths_cover exts q)) -> PathMap.get q (snd st) = PathMap.get q (snd st').
+  end.
+
+Definition modifies_exts (exts : list path) (st st' : state) : Prop :=
+  forall q, ~(paths_cover exts q) -> PathMap.get q (snd st) = PathMap.get q (snd st').
+
+Hint Unfold modifies_exts modifies_vars : core.
+
+Definition modifies (vars : option (list path)) (exts : list path) (st st' : state) : Prop :=
+  modifies_vars vars st st' /\ modifies_exts exts st st'.
+
+Definition func_modifies_vars (p : path) (func : @fundef tags_t) (vars : option (list path)) :=
+  forall st inargs targs st' outargs sig,
+    exec_func ge read_ndetbit p st func targs inargs st' outargs sig ->
+    modifies_vars vars st st'.
+
+Definition func_modifies_exts (p : path) (func : @fundef tags_t) (exts : list path) :=
+  forall st inargs targs st' outargs sig,
+    exec_func ge read_ndetbit p st func targs inargs st' outargs sig ->
+    modifies_exts exts st st'.
 
 Lemma modifies_refl : forall (vars : option (list path)) (exts : list path) (st : state),
   modifies vars exts st st.
 Proof.
-  unfold modifies; intros; destruct vars; auto.
+  unfold modifies, modifies_exts, modifies_vars; intros; destruct vars; auto.
 Qed.
 
 Local Hint Resolve modifies_refl : core.
@@ -56,7 +63,8 @@ Lemma modifies_trans : forall (vars : option (list path)) (exts : list path) (st
   modifies vars exts st2 st3 ->
   modifies vars exts st1 st3.
 Proof.
-(*   unfold modifies; intros; destruct vars; sfirstorder.
+  unfold modifies, modifies_exts, modifies_vars; intros; destruct vars.
+  (* firstorder.
 Qed. *)
 Admitted.
 
@@ -170,7 +178,7 @@ Lemma write_var_modifies_intro : forall p v vars exts st,
   In_vars p vars ->
   modifies vars exts st (update_memory (PathMap.set p v) st).
 Proof.
-  unfold modifies; intros; destruct st.
+  unfold modifies, modifies_exts, modifies_vars; intros; destruct st.
   destruct vars as [vars | ].
   - split. 2 : sfirstorder.
     intros.
