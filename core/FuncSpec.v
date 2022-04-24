@@ -10,6 +10,7 @@ Require Import ProD3.core.AssertionNotations.
 Require Import ProD3.core.ConcreteHoare.
 Require Import ProD3.core.Modifies.
 Require Import ProD3.core.ExtPred.
+Require Import ProD3.core.Result.
 Require Import Hammer.Plugin.Hammer.
 
 Section FuncSpec.
@@ -96,11 +97,36 @@ Lemma disjoint_spec : forall p1 p2,
   forall q, negb (is_prefix p1 q && is_prefix p2 q).
 Admitted.
 
-Definition ext_exclude (mods : list path) (l : list ext_pred) :=
-  filter (fun (ep : ext_pred)  =>
-    let ps := ep.(ep_paths) in
-    forallb (fun q => forallb (disjoint q) ps) mods)
-    l.
+(* Definition ext_exclude_rel (mods : list path) (l l' : list ext_pred)
+
+Definition ext_exclude_rel (mods : list path) (l l' : list ext_pred) *)
+
+(* For symbolic paths, we cannot decide whether two paths are disjoint. So we define a weaker
+  version: we use a tactic to generate a result for each test, which is either disjoint or
+  unknown. *)
+(* We want to separate the decision procedure to test disjoint from the filter process,
+  so we do not directly define a relation (list ext_pred -> list ext_pred -> Prop). *)
+
+Definition ext_valid_res (mods : list path) (ep : ext_pred) :=
+  result (forallb (fun q => forallb (disjoint q) ep.(ep_paths)) mods).
+
+Inductive ext_valid_res_list (mods : list path) : list ext_pred -> Type :=
+  | evrl_nil : ext_valid_res_list mods nil
+  | evrl_cons : forall {ep eps} (r : ext_valid_res mods ep) (rs : ext_valid_res_list mods eps),
+      ext_valid_res_list mods (ep :: eps).
+
+Fixpoint ext_exclude (mods : list path) (a_ext : list ext_pred)
+    (rs : ext_valid_res_list mods a_ext) : list ext_pred.
+Proof.
+  inv rs.
+  - exact nil.
+  - exact (
+      match r with
+      | left _ => ep :: ext_exclude mods eps rs0
+      | right _ => ext_exclude mods eps rs0
+      end
+    ).
+Defined.
 
 Definition hoare_func_frame (ge : genv) (p : path) (pre : arg_assertion) (func : @fundef tags_t) (targs : list P4Type) (post : assertion) :=
   forall st inargs st' outargs sig,
@@ -108,11 +134,11 @@ Definition hoare_func_frame (ge : genv) (p : path) (pre : arg_assertion) (func :
     exec_func ge read_ndetbit p st func targs inargs st' outargs sig ->
     post st'.
 
-Lemma hoare_func_frame_intro : forall ge p a_arg a_mem a_ext func targs vars exts a_mem' a_ext',
+Lemma hoare_func_frame_intro : forall ge p a_arg a_mem a_ext func targs vars exts ext_rs a_mem' a_ext',
   func_modifies_vars ge p func vars ->
   func_modifies_exts ge p func exts ->
   force (fun _ => []) (option_map exclude vars) a_mem = a_mem' ->
-  ext_exclude exts a_ext = a_ext' ->
+  ext_exclude exts a_ext ext_rs = a_ext' ->
   hoare_func_frame ge p (ARG a_arg (MEM a_mem (EXT a_ext))) func targs (MEM a_mem' (EXT a_ext')).
 Proof.
   unfold func_modifies_vars, func_modifies_exts, hoare_func_frame; intros.
@@ -197,13 +223,13 @@ Proof.
   eapply (func_post_combine_sound _ _ _ _ _ _ H2); eauto.
 Qed.
 
-Lemma func_spec_combine' : forall ge p pre_arg pre_mem pre_ext pre_arg' pre_mem' pre_ext' func targs post vars exts post' f_mem f_ext,
+Lemma func_spec_combine' : forall ge p pre_arg pre_mem pre_ext pre_arg' pre_mem' pre_ext' func targs post vars exts ext_rs post' f_mem f_ext,
   fundef_satisfies_hoare ge p func targs
     (fsh_base (ARG pre_arg' (MEM pre_mem' (EXT pre_ext'))) post')
     /\ func_modifies ge p func vars exts ->
   arg_implies (ARG pre_arg (MEM pre_mem (EXT pre_ext))) (ARG pre_arg' (MEM pre_mem' (EXT pre_ext'))) ->
   force (fun _ => []) (option_map exclude vars) pre_mem = f_mem ->
-  ext_exclude exts pre_ext = f_ext ->
+  ext_exclude exts pre_ext ext_rs = f_ext ->
   func_post_combine (MEM f_mem (EXT f_ext)) post' post ->
   hoare_func ge p (ARG pre_arg (MEM pre_mem (EXT pre_ext))) func targs post.
 Proof.
