@@ -66,6 +66,12 @@ Proof.
   destruct H0 as [x [? ?]]. exists x. split; auto.
 Qed.
 
+Lemma paths_cover_In: forall ps p, In p ps -> is_true (paths_cover ps p).
+Proof.
+  intros. red. unfold paths_cover. rewrite existsb_exists.
+  exists p. split; auto. apply is_prefix_refl.
+Qed.
+
 Definition ep_wellformed_prop (ps : list path) (P : extern_state -> Prop) :=
   forall es es' : extern_state,
     (forall p, is_true (paths_cover ps p) -> es p = es' p) ->
@@ -80,10 +86,10 @@ Definition mk_ext_pred' a b c :=
   mk_ext_pred (mk_ext_pred_body a b) c.
 
 Local Program Definition singleton (p : path) (eo : extern_object) : ext_pred :=
-  mk_ext_pred' (fun es => es p = Some eo) [p] _.
+  mk_ext_pred' (fun es => PathMap.get p es = Some eo) [p] _.
 Next Obligation.
-  unfold ep_wellformed_prop; intros. rewrite <- H; auto.
-  hauto use: is_prefix_refl, ssrbool.orTb.
+  unfold ep_wellformed_prop; intros. unfold PathMap.get, FuncAsMap.get in *.
+  rewrite <- H; auto. hauto use: is_prefix_refl, ssrbool.orTb.
 Qed.
 
 Local Program Definition and (ep1 ep2 : ext_pred) : ext_pred :=

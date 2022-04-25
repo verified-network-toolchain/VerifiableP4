@@ -12,6 +12,7 @@ Require Import ProD3.core.Hoare.
 Require Import ProD3.core.Modifies.
 Require Import ProD3.core.FuncSpec.
 Require Import ProD3.core.AssertionNotations.
+Require Import ProD3.core.ExtPred.
 Require Import BinNat.
 Require Import BinInt.
 Open Scope Z_scope.
@@ -46,7 +47,7 @@ Definition register_read_spec (p : path) (reg_s : register_static) : func_spec :
       PRE
         (ARG [ValBaseBit (to_loptbool 32%N i)]
         (MEM []
-        (EXT [(p, ObjRegister reg)])))
+        (EXT [ExtPred.singleton p (ObjRegister reg)])))
       POST
         (ARG_RET [eval_val_to_sval (Znth i reg)] ValBaseNull
         (MEM []
@@ -77,7 +78,7 @@ Proof.
       apply SvalRefine.sval_refine_refl.
     + repeat intro. inv H0. constructor.
     + destruct H2; split; auto.
-  - red. split; auto. repeat intro. inv H0. simpl. inv H7. simpl in H0. inv H0. auto.
+  - red. split; simpl; auto. repeat intro. inv H0. simpl. inv H7. simpl in H0. inv H0. auto.
 Qed.
 
 (* We need to say v is a definite value, right? *)
@@ -90,11 +91,11 @@ Definition register_write_spec (p : path) (reg_s : register_static) : func_spec 
       PRE
         (ARG [ValBaseBit (to_loptbool 32%N i); eval_val_to_sval v]
         (MEM []
-        (EXT [(p, ObjRegister reg)])))
+        (EXT [ExtPred.singleton p (ObjRegister reg)])))
       POST
         (ARG_RET [] ValBaseNull
         (MEM []
-        (EXT [(p, ObjRegister (upd_Znth i reg v))]))).
+        (EXT [ExtPred.singleton p (ObjRegister (upd_Znth i reg v))]))).
 
 Lemma register_write_body : forall (p : path) (reg_s : register_static),
   PathMap.get p (ge_ext ge) = Some (EnvRegister reg_s) ->
@@ -124,9 +125,10 @@ Proof.
       unfold BitArith.mod_bound, BitArith.upper_bound.
       change (2 ^ Z.of_N 32) with (Z.pow_pos 2 32).
       rewrite Zdiv.Zmod_small by lia. auto.
-  - red. split; auto. repeat intro. inv H0. simpl. inv H7. simpl in H0. inv H0.
+  - red. split; simpl; auto. repeat intro. inv H0. simpl. inv H7. simpl in H0. inv H0.
     destruct ((-1 <? index) && (index <? size)); subst; auto.
-    rewrite PathMap.get_set_diff; auto. intro. apply H1. now left.
+    rewrite PathMap.get_set_diff; auto. intro. apply H1. subst.
+    apply paths_cover_In. now left.
 Qed.
 
 End V1ModelSpec.
