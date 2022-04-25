@@ -95,7 +95,20 @@ Fixpoint disjoint (p1 p2 : path) : bool :=
 Lemma disjoint_spec : forall p1 p2,
   disjoint p1 p2 ->
   forall q, negb (is_prefix p1 q && is_prefix p2 q).
-Admitted.
+Proof.
+  induction p1; intros.
+  - simpl in *. inv H.
+  - simpl in H. destruct p2. 1: inv H. simpl. destruct q.
+    + simpl. auto.
+    + destruct (String.eqb a s) eqn:?.
+      * rewrite String.eqb_eq in Heqb. subst. destruct (String.eqb s s0).
+        -- apply IHp1; auto.
+        -- simpl. auto.
+      * rewrite String.eqb_neq in Heqb.
+        destruct (String.eqb a s0) eqn:?; destruct (String.eqb s s0) eqn:?; simpl; auto.
+        -- rewrite String.eqb_eq in *. exfalso. apply Heqb. rewrite Heqb0, Heqb1. auto.
+        -- rewrite negb_and. simpl. apply Bool.orb_true_r.
+Qed.
 
 (* Definition ext_exclude_rel (mods : list path) (l l' : list ext_pred)
 
