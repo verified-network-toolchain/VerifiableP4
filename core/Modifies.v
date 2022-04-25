@@ -63,14 +63,8 @@ Lemma modifies_trans : forall (vars : option (list path)) (exts : list path) (st
   modifies vars exts st2 st3 ->
   modifies vars exts st1 st3.
 Proof.
-  unfold modifies, modifies_exts, modifies_vars.
-  (* This should be solvable by sfirstorder. So let's wait for that. *)
-  (* sfirstorder. *)
-  intros ? ? ? ? ? [? ?] [? ?].
-  split; destruct vars; intros; auto.
-  - rewrite <- H1; auto.
-  - rewrite <- H2; auto.
-  - rewrite <- H2; auto.
+  intros. unfold modifies, modifies_exts, modifies_vars in *.
+  fcrush.
 Qed.
 
 Local Hint Resolve modifies_trans : core.

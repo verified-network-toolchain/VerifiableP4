@@ -121,11 +121,7 @@ Proof.
   inv rs.
   - exact nil.
   - exact (
-      match r with
-      | left _ => ep :: ext_exclude mods eps rs0
-      | right _ => ext_exclude mods eps rs0
-      end
-    ).
+      if r then ep :: ext_exclude mods eps rs0 else ext_exclude mods eps rs0).
 Defined.
 
 Definition hoare_func_frame (ge : genv) (p : path) (pre : arg_assertion) (func : @fundef tags_t) (targs : list P4Type) (post : assertion) :=
@@ -133,6 +129,17 @@ Definition hoare_func_frame (ge : genv) (p : path) (pre : arg_assertion) (func :
     pre inargs st ->
     exec_func ge read_ndetbit p st func targs inargs st' outargs sig ->
     post st'.
+
+Lemma modifies_exts_disjoint : forall (ep : ext_pred) exts st st',
+  modifies_exts exts st st' ->
+  ep (snd st) ->
+  (forallb (fun q => forallb (disjoint q) ep.(ep_paths)) exts) ->
+  ep (snd st').
+Proof.
+  intros.
+  eapply ep_wellformed; only 2 : eauto.
+  intros; eapply H.
+Admitted.
 
 Lemma hoare_func_frame_intro : forall ge p a_arg a_mem a_ext func targs vars exts ext_rs a_mem' a_ext',
   func_modifies_vars ge p func vars ->
@@ -164,23 +171,23 @@ Proof.
           inv H0; auto.
         ++apply IHa_mem; auto.
           inv H0; auto.
-  (* - clear -H0 H2 H3 H4.
+  - clear -H0 H2 H3 H4.
     generalize dependent a_ext'.
     specialize (H0 _ _  _ _ _ _ H4).
     destruct H3 as [_ []].
-    induction a_ext; intros.
+    induction ext_rs; intros.
     + subst. constructor.
-    + simpl in H2. destruct a as [p' ?]. destruct (in_dec path_eq_dec p' exts) as [H_In | H_In].
-      * subst; simpl. apply IHa_ext; auto.
-        inv H1; auto.
-      * subst; simpl. constructor.
-        ++simpl in H0; simpl.
-          rewrite <- H0 by auto.
-          inv H1; auto.
-        ++apply IHa_ext; auto.
-          inv H1; auto. *)
-(* Qed. *)
-Admitted.
+    + simpl in H2. (* destruct a as [p' ?]. *) destruct r as [H_disjoint | _].
+      * subst; split.
+        ++eapply (modifies_exts_disjoint _ _ _ _ H0 (proj1 H1)).
+          auto.
+        ++apply IHext_rs.
+        { apply H1. }
+        { reflexivity. }
+      * apply IHext_rs.
+        { apply H1. }
+        { apply H2. }
+Qed.
 
 Inductive func_post_combine : assertion -> arg_ret_assertion -> arg_ret_assertion -> Prop :=
   | func_post_combine_base : forall f_mem f_ext a_arg a_ret a_mem a_ext,
