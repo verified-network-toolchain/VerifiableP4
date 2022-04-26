@@ -271,4 +271,28 @@ Qed.
 
 End Frame.
 
+Section Sliding.
+
+  #[global] Instance frame_Inhabitant: Inhabitant frame := Normal [].
+
+  Record SlidingWindow := {
+      frames: list frame;
+      num_frames: Z;
+      clear_index: Z;
+      insert_index: Z;
+      clear_row_status: exists j, Znth clear_index frames = Clear j;
+      other_row_status: forall i, 0 <= i < num_frames -> i <> clear_index ->
+                             exists l, Znth i frames = Normal l;
+      frame_size: Zlength frames = num_frames;
+      clear_idx_range: 0 <= clear_index < num_frames;
+      insert_idx_range: 0 <= insert_index < num_frames;
+      insert_clear_diff: clear_index <> insert_index;
+    }.
+
+  Definition window_insert (win: SlidingWindow) (h: header_type): SlidingWindow.
+  Proof.
+  Abort.
+
+End Sliding.
+
 End AbsFilter.
