@@ -96,28 +96,23 @@ Lemma disjoint_spec : forall p1 p2,
   disjoint p1 p2 ->
   forall q, negb (is_prefix p1 q && is_prefix p2 q).
 Proof.
-  induction p1; intros.
-  - simpl in *. inv H.
-  - simpl in H. destruct p2. 1: inv H. simpl. destruct q.
-    + simpl. auto.
-    + destruct (String.eqb a s) eqn:?.
-      * rewrite String.eqb_eq in Heqb. subst. destruct (String.eqb s s0).
-        -- apply IHp1; auto.
-        -- simpl. auto.
-      * rewrite String.eqb_neq in Heqb.
-        destruct (String.eqb a s0) eqn:?; destruct (String.eqb s s0) eqn:?; simpl; auto.
-        -- rewrite String.eqb_eq in *. exfalso. apply Heqb. rewrite Heqb0, Heqb1. auto.
-        -- rewrite negb_and. simpl. apply Bool.orb_true_r.
+  induction p1 as [ | s1 p1]; destruct p2 as [ | s2 p2]; intros; inv H.
+  destruct q as [ | t q].
+  - auto.
+  - simpl.
+    destruct (String.eqb s1 s2) eqn:H_eqb_s1_s2;
+      destruct (String.eqb s1 t) eqn:H_eqb_s1_t;
+      destruct (String.eqb s2 t) eqn:H_eqb_s2_t;
+      try auto.
+    + hfcrush use: String.eqb_eq.
+    + hfcrush use: String.eqb_eq.
+    + hauto b: on.
 Qed.
-
-(* Definition ext_exclude_rel (mods : list path) (l l' : list ext_pred)
-
-Definition ext_exclude_rel (mods : list path) (l l' : list ext_pred) *)
 
 (* For symbolic paths, we cannot decide whether two paths are disjoint. So we define a weaker
   version: we use a tactic to generate a result for each test, which is either disjoint or
-  unknown. *)
-(* We want to separate the decision procedure to test disjoint from the filter process,
+  unknown.
+    We want to separate the decision procedure to test disjoint from the filter process,
   so we do not directly define a relation (list ext_pred -> list ext_pred -> Prop). *)
 
 Definition ext_valid_res (mods : list path) (ep : ext_pred) :=
@@ -151,8 +146,27 @@ Lemma modifies_exts_disjoint : forall (ep : ext_pred) exts st st',
 Proof.
   intros.
   eapply ep_wellformed; only 2 : eauto.
-  intros; eapply H.
-Admitted.
+  intros; eapply H. clear H.
+  induction exts.
+  - auto.
+  - simpl in H1. rewrite Reflect.andE in H1. destruct H1.
+    assert (~(in_scope p a)). {
+      remember (ep_paths ep) as ps.
+      clear -H H2.
+      induction ps.
+      - auto.
+      - simpl in H. rewrite Reflect.andE in H. destruct H.
+        simpl in H2. rewrite Reflect.orE in H2. destruct H2.
+        + pose proof disjoint_spec.
+          hauto b: on.
+        + auto.
+    }
+    assert (~(in_scopes p exts)). {
+      auto.
+    }
+    clear -H3 H4.
+    hauto b: on.
+Qed.
 
 Lemma hoare_func_frame_intro : forall ge p a_arg a_mem a_ext func targs vars exts ext_rs a_mem' a_ext',
   func_modifies_vars ge p func vars ->
@@ -162,10 +176,7 @@ Lemma hoare_func_frame_intro : forall ge p a_arg a_mem a_ext func targs vars ext
   hoare_func_frame ge p (ARG a_arg (MEM a_mem (EXT a_ext))) func targs (MEM a_mem' (EXT a_ext')).
 Proof.
   unfold func_modifies_vars, func_modifies_exts, hoare_func_frame; intros.
-  (* specialize (H _ _  _ _ _ _ H3).
-  destruct H. *)
   destruct st; destruct st'.
-  (* destruct H3 as [_ []]. *)
   split.
   - clear -H H1 H3 H4.
     destruct vars as [vars | ].
@@ -190,7 +201,7 @@ Proof.
     destruct H3 as [_ []].
     induction ext_rs; intros.
     + subst. constructor.
-    + simpl in H2. (* destruct a as [p' ?]. *) destruct r as [H_disjoint | _].
+    + simpl in H2. destruct r as [H_disjoint | _].
       * subst; split.
         ++eapply (modifies_exts_disjoint _ _ _ _ H0 (proj1 H1)).
           auto.

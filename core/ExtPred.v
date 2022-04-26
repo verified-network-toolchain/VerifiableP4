@@ -50,31 +50,34 @@ Proof.
   - simpl. hauto use: eqb_eq inv: bool.
 Qed.
 
-(* Test whether p is a subdirectory of one of the paths in ps. *)
-Definition paths_cover (ps : list path) (p : path) : bool :=
-  existsb (fun p1 => is_prefix p1 p) ps.
+Definition in_scope (p1 : path) (p2 : path) : bool :=
+  is_prefix p2 p1.
 
-Lemma paths_cover_app: forall ps1 ps2 p,
-    paths_cover (ps1 ++ ps2) p = (paths_cover ps1 p || paths_cover ps2 p)%bool.
-Proof. intros. unfold paths_cover. apply existsb_app. Qed.
+(* Test whether p is inside one of the scopes in ps. *)
+Definition in_scopes (p : path) (ps : list path) : bool :=
+  existsb (in_scope p) ps.
 
-Lemma paths_cover_incl: forall exts exts' q,
+Lemma in_scopes_app: forall p ps1 ps2,
+    in_scopes p (ps1 ++ ps2) = (in_scopes p ps1 || in_scopes p ps2)%bool.
+Proof. intros. unfold in_scopes. apply existsb_app. Qed.
+
+Lemma in_scopes_incl: forall exts exts' q,
     (forall x : path, In x exts' -> In x exts) ->
-    is_true (paths_cover exts' q) -> is_true (paths_cover exts q).
+    is_true (in_scopes q exts') -> is_true (in_scopes q exts).
 Proof.
-  unfold is_true, paths_cover. intros. rewrite existsb_exists in *.
+  unfold is_true, in_scopes. intros. rewrite existsb_exists in *.
   destruct H0 as [x [? ?]]. exists x. split; auto.
 Qed.
 
-Lemma paths_cover_In: forall ps p, In p ps -> is_true (paths_cover ps p).
+Lemma in_scopes_In: forall ps p, In p ps -> is_true (in_scopes p ps).
 Proof.
-  intros. red. unfold paths_cover. rewrite existsb_exists.
+  intros. red. unfold in_scopes. rewrite existsb_exists.
   exists p. split; auto. apply is_prefix_refl.
 Qed.
 
 Definition ep_wellformed_prop (ps : list path) (P : extern_state -> Prop) :=
   forall es es' : extern_state,
-    (forall p, is_true (paths_cover ps p) -> es p = es' p) ->
+    (forall p, is_true (in_scopes p ps) -> PathMap.get p es = PathMap.get p es') ->
     P es -> P es'.
 
 Record ext_pred := mk_ext_pred {
@@ -88,8 +91,9 @@ Definition mk_ext_pred' a b c :=
 Local Program Definition singleton (p : path) (eo : extern_object) : ext_pred :=
   mk_ext_pred' (fun es => PathMap.get p es = Some eo) [p] _.
 Next Obligation.
-  unfold ep_wellformed_prop; intros. unfold PathMap.get, FuncAsMap.get in *.
-  rewrite <- H; auto. hauto use: is_prefix_refl, ssrbool.orTb.
+  unfold ep_wellformed_prop; intros. rewrite <- H; auto.
+  unfold in_scopes, in_scope.
+  hauto use: is_prefix_refl, ssrbool.orTb.
 Qed.
 
 Local Program Definition and (ep1 ep2 : ext_pred) : ext_pred :=
@@ -98,7 +102,7 @@ Next Obligation.
   repeat intro. unfold lift in *. destruct H0.
   destruct ep1 as [[ep1 epp1] ?H]. destruct ep2 as [[ep2 epp2] ?H]. simpl in *.
   split; [eapply H2 with es | eapply H3 with es]; auto; intros; apply H;
-    rewrite paths_cover_app; rewrite Reflect.orE; auto.
+    rewrite in_scopes_app; rewrite Reflect.orE; auto.
 Qed.
 
 Local Program Definition or (ep1 ep2 : ext_pred) : ext_pred :=
@@ -107,11 +111,11 @@ Next Obligation.
   repeat intro. unfold lift in *.
   destruct ep1 as [[ep1 epp1] ?H]. destruct ep2 as [[ep2 epp2] ?H]. simpl in *.
   destruct H0; [left; eapply H1 with es | right; eapply H2 with es]; auto; intros; apply H;
-    rewrite paths_cover_app; rewrite Reflect.orE; auto.
+    rewrite in_scopes_app; rewrite Reflect.orE; auto.
 Qed.
 
 Local Program Definition wrap (ps : list path) (ep : ext_pred)
-  (H : forall p, is_true (paths_cover (ep_paths ep) p) -> is_true (paths_cover ps p)) : ext_pred :=
+  (H : forall p, is_true (in_scopes p (ep_paths ep)) -> is_true (in_scopes p ps)) : ext_pred :=
   mk_ext_pred' (ep_pred ep) ps _.
 Next Obligation.
   red. intros.

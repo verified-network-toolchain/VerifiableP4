@@ -33,7 +33,7 @@ Definition modifies_vars (vars : option (list path)) (st st' : state) : Prop :=
   end.
 
 Definition modifies_exts (exts : list path) (st st' : state) : Prop :=
-  forall q, ~(paths_cover exts q) -> PathMap.get q (snd st) = PathMap.get q (snd st').
+  forall q, ~(in_scopes q exts) -> PathMap.get q (snd st) = PathMap.get q (snd st').
 
 Hint Unfold modifies_exts modifies_vars : core.
 
@@ -422,7 +422,7 @@ Lemma modifies_exts_incl:
        (forall x : path, In x exts' -> In x exts) -> modifies_exts exts st st'.
 Proof.
   intros. unfold modifies_exts in *. intros. apply H.
-  intro. apply H1. eapply paths_cover_incl; eauto.
+  intro. apply H1. eapply in_scopes_incl; eauto.
 Qed.
 
 Lemma func_modifies_frame : forall p fd vars exts vars' exts',

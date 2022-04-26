@@ -128,7 +128,7 @@ Proof.
   - red. split; simpl; auto. repeat intro. inv H0. simpl. inv H7. simpl in H0. inv H0.
     destruct ((-1 <? index) && (index <? size)); subst; auto.
     rewrite PathMap.get_set_diff; auto. intro. apply H1. subst.
-    apply paths_cover_In. now left.
+    apply in_scopes_In. now left.
 Qed.
 
 End V1ModelSpec.
