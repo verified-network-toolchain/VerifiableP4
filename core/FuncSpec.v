@@ -115,18 +115,14 @@ Qed.
     We want to separate the decision procedure to test disjoint from the filter process,
   so we do not directly define a relation (list ext_pred -> list ext_pred -> Prop). *)
 
-Definition ext_valid_res (mods : list path) (ep : ext_pred) :=
-  result (forallb (fun q => forallb (disjoint q) ep.(ep_paths)) mods).
-
-Inductive ext_valid_res_list (mods : list path) : list ext_pred -> Type :=
-  | evrl_nil : ext_valid_res_list mods nil
-  | evrl_cons : forall {ep eps} (r : ext_valid_res mods ep) (rs : ext_valid_res_list mods eps),
-      ext_valid_res_list mods (ep :: eps).
+(* Test if modifying in the scopes of mods is disjoint from ep. *)
+Definition ext_disjoint (mods : list path) (ep : ext_pred) :=
+  forallb (fun q => forallb (disjoint q) ep.(ep_paths)) mods.
 
 Fixpoint ext_exclude (mods : list path) (a_ext : list ext_pred)
-    (rs : ext_valid_res_list mods a_ext) : list ext_pred.
+    (rs : res_list (ext_disjoint mods) a_ext) : list ext_pred.
 Proof.
-  inv rs.
+  inversion rs as [ | ep eps].
   - exact nil.
   - exact (
       if r then ep :: ext_exclude mods eps rs0 else ext_exclude mods eps rs0).
@@ -141,7 +137,7 @@ Definition hoare_func_frame (ge : genv) (p : path) (pre : arg_assertion) (func :
 Lemma modifies_exts_disjoint : forall (ep : ext_pred) exts st st',
   modifies_exts exts st st' ->
   ep (snd st) ->
-  (forallb (fun q => forallb (disjoint q) ep.(ep_paths)) exts) ->
+  ext_disjoint exts ep ->
   ep (snd st').
 Proof.
   intros.
