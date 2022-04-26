@@ -1,4 +1,5 @@
 Require Import Coq.Lists.List.
+Require Import ProD3.core.Coqlib.
 Require Import ProD3.core.ExtPred.
 Require Import ProD3.core.Result.
 Require Import ProD3.core.FuncSpec.
@@ -31,15 +32,30 @@ Ltac res_list :=
 (* Import String.
 Open Scope string_scope. *)
 
+Lemma disjoint_cancel : forall p q1 q2,
+  disjoint q1 q2 ->
+  disjoint (p ++ q1) (p ++ q2).
+Proof.
+  induction p; intros.
+  - auto.
+  - simpl.
+    replace (String.eqb a a) with true by hauto use: String.eqb_eq.
+    auto.
+Qed.
+
 (* This is a preliminary implementation. It only tests verbatim paths. We use this tactic to
   test the rest tactics. *)
 Ltac test_disjoint :=
+  refine (@id (result (disjoint _ _)) _);
   first [
-    left; reflexivity
+    left; try apply disjoint_cancel; reflexivity
   | right; exact I
   ].
 
-(* Goal result (disjoint ["a"] ["c"]).
+(* Axiom p : list string.
+Definition x := result (disjoint (p ++ ["a"]) (p ++ ["c"])).
+
+Goal x.
   test_disjoint.
   Show Proof.
 Abort.
