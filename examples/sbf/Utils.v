@@ -14,6 +14,9 @@ Definition fold_orb (l : list bool) :=
 Definition map2 {A B C} (f : A -> B -> C) (al : list A) (bl : list B) : list C :=
   map (uncurry f) (combine al bl).
 
+Lemma fold_andb_false: forall l, fold_left andb l false = false.
+Proof. induction l; simpl; intros; auto. Qed.
+
 Lemma map2_cons {A B C}: forall (f : A -> B -> C) a al b bl,
     map2 f (a :: al) (b :: bl) = f a b :: map2 f al bl.
 Proof. intros. unfold map2. simpl. auto. Qed.
