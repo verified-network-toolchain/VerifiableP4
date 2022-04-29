@@ -54,7 +54,8 @@ Fixpoint fundef_satisfies_hoare (ge : genv) (p : path) (func : fundef) (targs : 
   | fsh_base pre post =>
        hoare_func ge p pre func targs post
   | @fsh_bind A fs =>
-      (* How can we keep binder names? *)
+      (* How can we keep binder names? They are preserved when intro-ing them
+        through our tactic. *)
       forall (x : A), fundef_satisfies_hoare ge p func targs (fs x)
   end.
 

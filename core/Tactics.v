@@ -9,6 +9,7 @@ Require Import ProD3.core.Implies.
 Require Import ProD3.core.ConcreteHoare.
 Require Import ProD3.core.AssertionNotations.
 Require Import ProD3.core.FuncSpec.
+Require Import ProD3.core.DisjointTest.
 Import ListNotations.
 
 (* solves hoare_call for built-in functions *)
@@ -224,7 +225,8 @@ Ltac step_call_func func_spec :=
             [ eapply func_spec
             | idtac
             | reflexivity (* exclude *)
-            | reflexivity (* exclude *)
+              (* This is dangerous if there are other evars. *)
+            | instantiate (2 := ltac:(test_ext_exclude)); reflexivity (* exclude_ext *)
             | repeat constructor (* func_post_combine *)
             ]
         | reflexivity (* is_no_dup *)
@@ -385,8 +387,7 @@ Ltac entailer :=
         eapply implies_simplify;
           [ reflexivity (* mem_implies_simplify *)
           | Forall_uncurry_sval_refine
-          | reflexivity (* ext_implies_simplify *)
-          | Forall_uncurry_eq
+          | simpl_ext_implies
           ]
       (* | eapply implies_simplify_ret;
           [ idtac (* retv *)
@@ -402,9 +403,8 @@ Ltac entailer :=
           [ Forall2_sval_refine
           | reflexivity (* mem_implies_simplify *)
           | Forall_uncurry_sval_refine
-          | reflexivity (* ext_implies_simplify *)
-          | Forall_uncurry_eq
-          ]
+          | simpl_ext_implies
+        ]
       (* | eapply implies_simplify_ret;
           [ idtac (* retv *)
           | reflexivity (* mem_implies_simplify *)
@@ -413,5 +413,7 @@ Ltac entailer :=
           | idtac
           ] *)
       ]
+  | |- ext_implies _ _ =>
+      simpl_ext_implies
   | _ => fail "The goal is not an entailment"
   end.

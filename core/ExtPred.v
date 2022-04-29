@@ -1,7 +1,12 @@
 Require Import Coq.Lists.List.
 Require Import Coq.Strings.String.
+Require Import Coq.Setoids.Setoid.
+Require Import Coq.Relations.Relation_Definitions.
+
 Require Import Poulet4.Utils.Maps.
+
 Require Import Poulet4.P4light.Syntax.Syntax.
+
 Require Import Poulet4.P4light.Architecture.Target.
 Require Import Hammer.Plugin.Hammer.
 Import ListNotations.
@@ -123,5 +128,20 @@ Next Obligation.
   eapply H2; eauto.
   (* srun eauto use: ep_wellformed unfold: ep_wellformed_prop. *)
 Qed.
+
+(* Two ext_pred's are equivalent if their content predicates are the same. *)
+Local Definition equiv (ep1 ep2 : ext_pred) : Prop :=
+  ep_pred ep1 = ep_pred ep2.
+
+Global Add Parametric Relation : ext_pred equiv
+  reflexivity proved by (fun ep => eq_refl (ep_pred ep))
+  symmetry proved by (fun ep1 ep2 => eq_sym (x := ep_pred ep1) (y := ep_pred ep2))
+  transitivity proved by (fun ep1 ep2 ep3 => eq_trans (x := ep_pred ep1) (y := ep_pred ep2) (z := ep_pred ep3))
+  as equiv_rel.
+
+(* Current ununsed, but looks good to have. *)
+Add Parametric Morphism : ep_pred with
+  signature equiv ==> eq as ep_pred_mor.
+Proof. auto. Qed.
 
 End ExtPred.

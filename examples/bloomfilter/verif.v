@@ -24,6 +24,7 @@ Require Import ProD3.core.Modifies.
 Require Import ProD3.core.Tactics.
 Require Import ProD3.core.V1ModelSpec.
 Require Import ProD3.core.Coqlib.
+Require Import ProD3.core.ExtPred.
 Require Import Coq.micromega.Lia.
 
 Instance target : @Target Info (@Expression Info) := V1Model.
@@ -196,11 +197,12 @@ Definition CRC_pad2 := CRC_pad (to_lbool 7%N 7).
 
 Definition bloomfilter_exts := [["bloom0"]; ["bloom1"]; ["bloom2"]].
 
-Definition encode_bloomfilter_state bf := [
-  (["bloom0"], reg_encode (bloom0 bf));
-  (["bloom1"], reg_encode (bloom1 bf));
-  (["bloom2"], reg_encode (bloom2 bf))
-  ].
+Definition encode_bloomfilter_state bf : ext_pred :=
+  ExtPred.and
+    (ExtPred.singleton ["bloom0"] (reg_encode (bloom0 bf)))
+    (ExtPred.and
+      (ExtPred.singleton ["bloom1"] (reg_encode (bloom1 bf)))
+      (ExtPred.singleton ["bloom2"] (reg_encode (bloom2 bf)))).
 
 Definition bloomfilter_add bf data :=
   bloomfilter.add Z Z.eqb CRC_pad0 CRC_pad1 CRC_pad2 bf data.
@@ -287,7 +289,7 @@ Proof.
       rewrite <- ForallMap.Forall2_map_l, ForallMap.Forall2_forall. split; auto.
       intros. specialize (H0 _ _ H2). inv H0. constructor.
     + repeat intro. inv H. constructor.
-  - repeat intro. unfold modifies. split; auto. repeat intro.
+  - repeat intro. unfold modifies. split; only 1 : (simpl; auto). repeat intro.
     inv H. simpl. inv H6. simpl in H. inv H. auto.
 Qed.
 
@@ -323,18 +325,18 @@ Definition Add_spec : func_spec :=
       PRE
         (ARG [myHeader_encode data; havoc_typ custom_metadata_t]
         (MEM []
-        (EXT (encode_bloomfilter_state bf))))
+        (EXT [encode_bloomfilter_state bf])))
       POST
         (ARG_RET [myHeader_encode data; havoc_typ custom_metadata_t] ValBaseNull
         (MEM []
-        (EXT (encode_bloomfilter_state (bloomfilter_add bf data))))).
+        (EXT [encode_bloomfilter_state (bloomfilter_add bf data)]))).
 
 Lemma Add_body : fundef_satisfies_spec ge Add_fundef nil Add_spec.
 Proof.
   unfold Add_spec, bloomfilter_exts.
   start_function.
   step_call hash_body [ValBaseBit (to_lbool 16 data); ValBaseBit (to_lbool 3 3)].
-  2 : { entailer. }
+  2 : entailer.
   reflexivity.
   replace (CRC_Z _) with (CRC_pad0 data) by reflexivity.
   step_call hash_body [ValBaseBit (to_lbool 16 data); ValBaseBit (to_lbool 5 5)].
@@ -346,6 +348,9 @@ Proof.
   reflexivity.
   replace (CRC_Z _) with (CRC_pad2 data) by reflexivity.
   simpl MEM.
+  unfold encode_bloomfilter_state.
+  rewrite ext_pred_and_cons.
+  rewrite ext_pred_and_cons.
   step_call register_write_body.
   reflexivity. 2: simpl; lia.
   2 : entailer.
@@ -361,7 +366,17 @@ Proof.
   step.
   entailer.
   { repeat constructor. }
-  all : destruct bf as [[] ?]; apply update_bit.
+  (* Why setoid rewrite doesn't work? *)
+  (* We can setoid rewrite earlier to avoid this manual proof. *)
+  apply (@id (ext_implies [_; _; _] _)).
+  erewrite ext_implies_mor.
+  2 : apply ext_assertion_equiv_rel.
+  2 : apply ext_pred_and_cons.
+  erewrite ext_implies_mor.
+  2 : apply ext_assertion_equiv_rel.
+  2 : eapply AssertionLang.cons_mor, ext_pred_and_cons; apply ExtPred.equiv_rel.
+  entailer.
+  all : destruct bf as [[] ?]; symmetry; apply update_bit.
 Qed.
 
 Hint Extern 5 (func_modifies _ _ _ _ _) => (apply Add_body) : func_specs.
@@ -382,9 +397,7 @@ Definition Query_spec : func_spec :=
              (Some true))] in
         (ARG [hdr; force ValBaseNull (uninit_sval_of_typ None custom_metadata_t)]
         (MEM []
-        (EXT [(["bloom0"], reg_encode (bloom0 bf));
-              (["bloom1"], reg_encode (bloom1 bf));
-              (["bloom2"], reg_encode (bloom2 bf))])))
+        (EXT [encode_bloomfilter_state bf])))
       POST
         let hdr := ValBaseStruct
         [("myHeader",
@@ -414,6 +427,9 @@ Proof.
   reflexivity.
   replace (CRC_Z _) with (CRC_pad2 data) by reflexivity.
   simpl MEM.
+  unfold encode_bloomfilter_state.
+  rewrite ext_pred_and_cons.
+  rewrite ext_pred_and_cons.
   step_call register_read_body.
   reflexivity. 2: simpl; lia.
   2 : entailer.
@@ -468,7 +484,7 @@ Definition bloomfilter_spec : func_spec :=
           update "ingress_port" (ValBaseBit (to_loptbool 9 in_port))
             (force ValBaseNull (uninit_sval_of_typ None standard_metadata_t))]
         (MEM []
-        (EXT (encode_bloomfilter_state bf))))
+        (EXT [encode_bloomfilter_state bf])))
       POST
         (* These two lines cannot be merged, because Coq doesn't destruct the pair automatically. *)
         let bf' := fst (process in_port data bf) in
@@ -481,7 +497,7 @@ Definition bloomfilter_spec : func_spec :=
             (force ValBaseNull (uninit_sval_of_typ None standard_metadata_t))]
           ValBaseNull
         (MEM []
-        (EXT (encode_bloomfilter_state bf')))).
+        (EXT [encode_bloomfilter_state bf']))).
 
 Lemma mod_bound_eq : forall w n,
   0 <= n < Z.pow 2 (Z.of_N w) ->

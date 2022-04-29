@@ -1,4 +1,6 @@
 Require Import Coq.Strings.String.
+Require Import Coq.Setoids.Setoid.
+Require Import Coq.Relations.Relation_Definitions.
 Require Import Poulet4.P4light.Syntax.Typed.
 Require Import Poulet4.P4light.Syntax.Syntax.
 Require Import Poulet4.P4light.Semantics.Semantics.
@@ -30,8 +32,19 @@ Context `{@Target tags_t (@Expression tags_t)}.
 Definition EXT : ext_assertion -> ext_assertion :=
   id.
 
+Global Add Parametric Morphism : EXT with
+  signature ext_assertion_equiv ==> ext_assertion_equiv as EXT_mor.
+Proof. auto. Qed.
+
 Definition MEM (a_mem : mem_assertion) (a_ext : ext_assertion) : Hoare.assertion :=
   fun '(m, es) => mem_denote a_mem m /\ ext_denote a_ext es.
+
+Global Add Parametric Morphism : MEM with
+  signature eq ==> ext_assertion_equiv ==> eq as MEM_mor.
+Proof.
+  intros a_mem a_ext a_ext'; intros.
+  unfold MEM. rewrite H0. auto.
+Qed.
 
 Definition ARG (a_arg : list Sval) (a : Hoare.assertion) : Hoare.arg_assertion :=
   fun args st => arg_denote a_arg args /\ a st.

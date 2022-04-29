@@ -1,4 +1,6 @@
 Require Import Coq.ZArith.ZArith.
+Require Import Coq.Setoids.Setoid.
+Require Import Coq.Relations.Relation_Definitions.
 Require Import Poulet4.P4light.Syntax.Typed.
 Require Import Poulet4.P4light.Syntax.Syntax.
 Require Import Poulet4.P4light.Syntax.Value.
@@ -73,11 +75,23 @@ Qed.
 Definition ext_implies (a a' : ext_assertion) : Prop :=
   forall es, ext_denote a es -> ext_denote a' es.
 
-Lemma ext_implies_nil: forall a, ext_implies a [].
+Global Add Parametric Morphism : ext_implies with
+  signature ext_assertion_equiv ==> ext_assertion_equiv ==> eq as ext_implies_mor.
+Proof.
+  intros. unfold ext_implies.
+  rewrite H, H0.
+  auto.
+Qed.
+
+Lemma ext_implies_refl : forall (a : ext_assertion),
+  ext_implies a a.
+Proof. unfold ext_implies; auto. Qed.
+
+Lemma ext_implies_nil : forall a, ext_implies a [].
 Proof. repeat intro. red. red. easy. Qed.
 
-Lemma ext_implies_cons: forall (a c: ext_assertion) b,
-    ext_implies a (b :: c) <-> (ext_implies a [b] /\ ext_implies a c).
+Lemma ext_implies_cons : forall (a c : ext_assertion) b,
+  ext_implies a (b :: c) <-> (ext_implies a [b] /\ ext_implies a c).
 Proof.
   intros. unfold ext_implies, ext_denote. split; intros.
   - split; intros; apply H in H0; red in H0; simpl in H0; red; simpl; destruct H0; auto.
@@ -85,83 +99,20 @@ Proof.
     unfold ext_satisfies in *. simpl in *. destruct H. split; auto.
 Qed.
 
-Ltac simpl_ext_implies :=
-  repeat match goal with
-    | |- ext_implies _ [] => apply ext_implies_nil
-    | |- ext_implies _ (_ :: _ :: _) => apply ext_implies_cons; split
-    | |- ext_implies _ [_] =>
-        try (let es := fresh "es" in
-             let H := fresh "H" in
-             unfold ext_implies, ext_denote, ext_satisfies;
-             intros es H;
-             simpl in H |- *;
-             intuition; easy)
-  end.
-
-Section SIMPL_EXT_IMPLIES_TEST.
-
-  Variable P Q R S: ext_pred.
-
-  Goal ext_implies [P; Q; R; S] [].
-  Proof. simpl_ext_implies. Qed.
-
-  (* Rearrange order doesn't matter *)
-  Goal ext_implies [P; Q; R; S] [R; S; Q; P].
-  Proof. simpl_ext_implies. Qed.
-
-  (* It will leave unsolved goals *)
-  Goal ext_implies [P; Q; S] [R; S; Q].
-  Proof. simpl_ext_implies. Abort.
-
-  (* If we have additional rules, the tactic can solve the goal *)
-  Goal (forall es, P es -> R es) -> ext_implies [P; Q; S] [R; S; Q].
-  Proof. intros. simpl_ext_implies. Qed.
-
-End SIMPL_EXT_IMPLIES_TEST.
-
-(* Definition ext_simplify_aux (a : ext_assertion) '((p, eo) : path * extern_object) : option (extern_object * extern_object) :=
-  match AList.get a p with
-  | Some eo' => Some (eo, eo')
-  | None => None
-  end.
-
-Lemma ext_simplify_aux_sound : forall a peo eop,
-  ext_simplify_aux a peo = Some eop ->
-  uncurry eq eop ->
-  forall es, ext_denote a es -> ext_satisfies_unit es peo.
+Lemma ext_cons_implies : forall a (b c : ext_assertion),
+  (ext_implies [a] c \/ ext_implies b c) -> ext_implies (a :: b) c.
 Proof.
-  intros.
-  destruct peo as [p eo].
-  unfold ext_simplify_aux in *.
-  destruct (AList.get a p) eqn:H_get; inv H.
-  eapply ext_denote_get in H_get; eauto.
-  inv H0.
-  auto.
+  intros. destruct H; unfold ext_implies, ext_denote in *; intros; apply H.
+  - destruct H0. unfold ext_satisfies. simpl. auto.
+  - destruct H0. auto.
 Qed.
 
-Definition ext_implies_simplify (a a' : ext_assertion) : option (list (extern_object * extern_object)) :=
-  lift_option (map (ext_simplify_aux a) a').
-
-Lemma ext_implies_simplify_sound : forall a a' eops,
-  ext_implies_simplify a a' = Some eops ->
-  Forall (uncurry eq) eops ->
-  forall m, ext_denote a m -> ext_denote a' m.
+Lemma ext_implies_singleton : forall (p : path) (eo1 eo2 : extern_object),
+  eo1 = eo2 ->
+  ext_implies [ExtPred.singleton p eo1] [ExtPred.singleton p eo2].
 Proof.
-  intros.
-  unfold ext_implies_simplify in *.
-  apply lift_option_inv in H.
-  unfold ext_denote, ext_satisfies.
-  rewrite fold_right_and_True in *.
-  (* Cannot use list_solve because there's no Inhabitant for extern_object. *)
-  generalize dependent a'.
-  induction H0; intros.
-  - destruct a'; inv H.
-    constructor.
-  - destruct a'; inv H2.
-    constructor.
-    + eapply ext_simplify_aux_sound; eauto.
-    + eauto.
-Qed. *)
+  intros; subst; apply ext_implies_refl.
+Qed.
 
 Lemma implies_simplify : forall pre_mem pre_ext post_mem post_ext svps,
   mem_implies_simplify pre_mem post_mem = Some svps ->
@@ -208,3 +159,75 @@ Proof.
 Qed. *)
 
 End Implies.
+
+Ltac simpl_single_ext_implies :=
+  first [
+    apply (@id (ext_implies [] _));
+    fail "No remaining assumptions"
+  | apply (@id (ext_implies (_ :: _) _));
+    apply ext_cons_implies;
+    first [
+      left;
+      first [
+        apply ext_implies_refl
+      | lazymatch goal with
+        | |- ext_implies [ExtPred.singleton ?p1 ?o1] [ExtPred.singleton ?p2 ?o2] =>
+            simple apply ext_implies_singleton;
+            try reflexivity
+        end
+      ]
+    | right; simpl_single_ext_implies
+    ]
+  ].
+
+Ltac simpl_ext_implies :=
+  first [
+    apply (@id (ext_implies _ []));
+    apply ext_implies_nil
+  | apply (@id (ext_implies _ (_ :: _)));
+    apply ext_implies_cons; split;
+    [ try simpl_single_ext_implies
+    | simpl_ext_implies
+    ]
+  ].
+  (* lazymatch goal with
+  |
+  repeat match goal with
+    | |- ext_implies _ [] => apply ext_implies_nil
+    | |- ext_implies _ (_ :: _ :: _) => apply ext_implies_cons; split
+    | |- ext_implies _ [_] =>
+        try reflexivity_simpl_ext_implies;
+        try (let es := fresh "es" in
+             let H := fresh "H" in
+             unfold ext_implies, ext_denote, ext_satisfies;
+             intros es H;
+             simpl in H |- *;
+             intuition; easy)
+  end. *)
+
+Section SIMPL_EXT_IMPLIES_TEST.
+
+  Context {tags_t: Type} {tags_t_inhabitant : Inhabitant tags_t}.
+
+  Notation Expression := (@Expression tags_t).
+
+  Context {target : @Target tags_t Expression}.
+
+  Variable P Q R S: ext_pred.
+
+  Goal ext_implies [P; Q; R; S] [].
+  Proof. simpl_ext_implies. Qed.
+
+  (* Rearrange order doesn't matter *)
+  Goal ext_implies [P; Q; R; S] [R; S; Q; P].
+  Proof. simpl_ext_implies. Qed.
+
+  (* It will leave unsolved goals *)
+  Goal ext_implies [P; Q; S] [R; S; Q].
+  Proof. simpl_ext_implies. Abort.
+
+  (* If we have additional rules, the tactic can solve the goal *)
+  (* Goal (forall es, P es -> R es) -> ext_implies [P; Q; S] [R; S; Q].
+  Proof. intros. simpl_ext_implies. Qed. *)
+
+End SIMPL_EXT_IMPLIES_TEST.

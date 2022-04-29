@@ -1,4 +1,6 @@
 Require Import Coq.Strings.String.
+Require Import Coq.Setoids.Setoid.
+Require Import Coq.Relations.Relation_Definitions.
 Require Import Poulet4.P4light.Syntax.Typed.
 Require Import Poulet4.P4light.Syntax.Syntax.
 Require Import Poulet4.P4light.Semantics.Semantics.
@@ -66,6 +68,59 @@ Definition ext_satisfies (es : extern_state) (a : ext_assertion) : Prop :=
 
 Definition ext_denote (a : ext_assertion) : extern_state -> Prop :=
   fun es => ext_satisfies es a.
+
+(* For setoid rewrite on ext_assertion. *)
+
+Definition ext_assertion_equiv (a a' : ext_assertion) : Prop :=
+  ext_denote a = ext_denote a'.
+
+Global Add Parametric Relation : ext_assertion ext_assertion_equiv
+  reflexivity proved by (fun a => eq_refl (ext_denote a))
+  symmetry proved by (fun a1 a2 => eq_sym (x := ext_denote a1) (y := ext_denote a2))
+  transitivity proved by (fun a1 a2 a3 => eq_trans (x := ext_denote a1) (y := ext_denote a2) (z := ext_denote a3))
+  as ext_assertion_equiv_rel.
+
+Definition ext_denote_cons : forall ep eps,
+  ext_denote (ep :: eps) = (fun es => ep es /\ ext_denote eps es).
+Proof. auto. Qed.
+
+(* Current ununsed, but looks good to have. *)
+Global Add Parametric Morphism : ext_denote with
+  signature (SetoidList.eqlistA ExtPred.equiv) ==> eq as ext_denote_mor.
+Proof.
+  intros a1 a2; induction 1; auto.
+  do 2 rewrite ext_denote_cons.
+  rewrite H0.
+  rewrite IHeqlistA.
+  auto.
+Qed.
+
+Global Add Parametric Morphism : cons with
+  signature ExtPred.equiv ==> ext_assertion_equiv ==> ext_assertion_equiv as cons_mor.
+Proof.
+  intros. red.
+  do 2 rewrite ext_denote_cons.
+  rewrite H0, H1.
+  auto.
+Qed.
+
+(* This is avoidable. But let's use it for now for simplicity. *)
+Axiom prop_ext : ClassicalFacts.prop_extensionality.
+
+Lemma ext_pred_and_cons : forall ep1 ep2 eps,
+  ext_assertion_equiv
+    (ExtPred.and ep1 ep2 :: eps)
+    (ep1 :: ep2 :: eps).
+Proof.
+  intros.
+  unfold ext_assertion_equiv.
+  unfold ext_denote, ext_satisfies.
+  simpl.
+  unfold lift.
+  apply FunctionalExtensionality.functional_extensionality.
+  intros. apply prop_ext.
+  rewrite <- and_assoc; reflexivity.
+Qed.
 
 (* A lemma to handle assertion representations. *)
 
