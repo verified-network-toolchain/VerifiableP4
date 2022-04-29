@@ -369,12 +369,8 @@ Proof.
   (* Why setoid rewrite doesn't work? *)
   (* We can setoid rewrite earlier to avoid this manual proof. *)
   apply (@id (ext_implies [_; _; _] _)).
-  erewrite ext_implies_mor.
-  2 : apply ext_assertion_equiv_rel.
-  2 : apply ext_pred_and_cons.
-  erewrite ext_implies_mor.
-  2 : apply ext_assertion_equiv_rel.
-  2 : eapply AssertionLang.cons_mor, ext_pred_and_cons; apply ExtPred.equiv_rel.
+  rewrite ext_pred_and_cons.
+  rewrite ext_pred_and_cons.
   entailer.
   all : destruct bf as [[] ?]; symmetry; apply update_bit.
 Qed.

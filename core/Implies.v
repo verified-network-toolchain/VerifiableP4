@@ -76,11 +76,11 @@ Definition ext_implies (a a' : ext_assertion) : Prop :=
   forall es, ext_denote a es -> ext_denote a' es.
 
 Global Add Parametric Morphism : ext_implies with
-  signature ext_assertion_equiv ==> ext_assertion_equiv ==> eq as ext_implies_mor.
+  signature ext_assertion_equiv ==> ext_assertion_equiv ==> iff as ext_implies_mor.
 Proof.
   intros. unfold ext_implies.
   rewrite H, H0.
-  auto.
+  reflexivity.
 Qed.
 
 Lemma ext_implies_refl : forall (a : ext_assertion),
