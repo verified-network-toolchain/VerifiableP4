@@ -293,8 +293,8 @@ Proof.
     inv H. simpl. inv H6. simpl in H. inv H. auto.
 Qed.
 
-Hint Extern 5 (func_modifies _ _ _ _ _) => (apply hash_body) : func_specs.
-Hint Extern 1 (list P4Type) => (exact (@nil _)) : func_specs.
+#[local] Hint Extern 5 (func_modifies _ _ _ _ _) => (apply hash_body) : func_specs.
+#[local] Hint Extern 1 (list P4Type) => (exact (@nil _)) : func_specs.
 
 (*
 control Add(inout headers hdr, inout custom_metadata_t meta) {
@@ -368,7 +368,7 @@ Proof.
   all : destruct bf as [[] ?]; symmetry; apply update_bit.
 Qed.
 
-Hint Extern 5 (func_modifies _ _ _ _ _) => (apply Add_body) : func_specs.
+#[local] Hint Extern 5 (func_modifies _ _ _ _ _) => (apply Add_body) : func_specs.
 
 Definition Query_fundef := Eval compute in
   force dummy_fundef (PathMap.get ["Query"; "apply"] (ge_func ge)).
@@ -448,7 +448,7 @@ Proof.
   }
 Qed.
 
-Hint Extern 5 (func_modifies _ _ _ _ _) => (apply Query_body) : func_specs.
+#[local] Hint Extern 5 (func_modifies _ _ _ _ _) => (apply Query_body) : func_specs.
 
 Definition MyIngress_fundef := Eval compute in
   force dummy_fundef (PathMap.get ["MyIngress"; "apply"] (ge_func ge)).
