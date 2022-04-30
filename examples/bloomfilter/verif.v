@@ -349,8 +349,7 @@ Proof.
   replace (CRC_Z _) with (CRC_pad2 data) by reflexivity.
   simpl MEM.
   unfold encode_bloomfilter_state.
-  rewrite ext_pred_and_cons.
-  rewrite ext_pred_and_cons.
+  normalize_EXT.
   step_call register_write_body.
   reflexivity. 2: simpl; lia.
   2 : entailer.
@@ -366,12 +365,6 @@ Proof.
   step.
   entailer.
   { repeat constructor. }
-  (* Why setoid rewrite doesn't work? *)
-  (* We can setoid rewrite earlier to avoid this manual proof. *)
-  apply (@id (ext_implies [_; _; _] _)).
-  rewrite ext_pred_and_cons.
-  rewrite ext_pred_and_cons.
-  entailer.
   all : destruct bf as [[] ?]; symmetry; apply update_bit.
 Qed.
 
@@ -424,8 +417,7 @@ Proof.
   replace (CRC_Z _) with (CRC_pad2 data) by reflexivity.
   simpl MEM.
   unfold encode_bloomfilter_state.
-  rewrite ext_pred_and_cons.
-  rewrite ext_pred_and_cons.
+  normalize_EXT.
   step_call register_read_body.
   reflexivity. 2: simpl; lia.
   2 : entailer.

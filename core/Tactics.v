@@ -417,3 +417,6 @@ Ltac entailer :=
       simpl_ext_implies
   | _ => fail "The goal is not an entailment"
   end.
+
+Ltac normalize_EXT :=
+  repeat rewrite AssertionLang.ext_pred_and_cons.
