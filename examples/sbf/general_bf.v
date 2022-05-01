@@ -10,11 +10,6 @@ Section BLOOM_FILTER.
   (* Number of hashes *)
   Definition Index := Z.
 
-  Definition index_eqb: Index -> Index -> bool := Z.eqb.
-
-  Lemma index_refl: forall i, index_eqb i i = true.
-  Proof. apply Z.eqb_refl. Qed.
-
   Definition HashFunc := Z -> Index.
 
   Definition add_hash (z: Z) (h: HashFunc) (F: row) :=
