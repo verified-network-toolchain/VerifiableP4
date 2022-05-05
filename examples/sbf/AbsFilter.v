@@ -1,9 +1,9 @@
 Require Import Coq.ZArith.BinInt.
 Require Import Coq.Program.Basics.
+Require Poulet4.Utils.Utils.
 Require Import ProD3.examples.sbf.Utils.
 Require Import ProD3.examples.sbf.ConFilter.
 Require Import ProD3.core.Coqlib.
-Require Import ProD3.core.ExtPred.
 Import ListNotations.
 Open Scope Z_scope.
 Open Scope program_scope.
