@@ -2,31 +2,18 @@ Require Import Poulet4.P4light.Syntax.P4defs.
 Require Import Poulet4.P4light.Syntax.P4Notations.
 Require Import Coq.Program.Basics.
 Open Scope string_scope.
-
 Import ListNotations.
-Require Import ProD3.examples.bloomfilter.p4ast.
-Require Import ProD3.examples.sbf.ConFilter.
-Require Import ProD3.examples.sbf.general_bf.
 
 Require Import Poulet4.Utils.Maps.
 Require Import Poulet4.P4light.Semantics.Semantics.
 Require Import Poulet4.P4light.Transformations.SimplExpr.
 Require Import Poulet4.P4light.Architecture.V1Model.
 Require Import Poulet4.Utils.P4Arith.
-Require Import ProD3.core.Hoare.
-Require Import ProD3.core.ConcreteHoare.
-Require Import ProD3.core.EvalExpr.
-Require Import ProD3.core.Members.
-Require Import ProD3.core.AssertionLang.
-Require Import ProD3.core.AssertionNotations.
-Require Import ProD3.core.FuncSpec.
-Require Import ProD3.core.Implies.
-Require Import ProD3.core.Modifies.
-Require Import ProD3.core.Tactics.
-Require Import ProD3.core.V1ModelSpec.
-Require Import ProD3.core.Coqlib.
-Require Import ProD3.core.ExtPred.
-Require Import Coq.micromega.Lia.
+
+Require Import ProD3.core.Core.
+Require Import ProD3.examples.bloomfilter.p4ast.
+Require Import ProD3.examples.sbf.ConFilter.
+Require Import ProD3.examples.sbf.general_bf.
 
 Instance target : @Target Info (@Expression Info) := V1Model.
 
