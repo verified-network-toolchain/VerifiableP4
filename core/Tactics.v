@@ -181,6 +181,33 @@ Ltac inv_implicit_return :=
 
 Create HintDb func_specs.
 
+Ltac solve_modifies :=
+  first [
+    solve [eauto 100 with nocore modifies func_specs]
+  | idtac "The modifies clause cannot be solved automatically."
+  ].
+
+Ltac init_function :=
+  repeat lazymatch goal with
+  | |- fundef_satisfies_hoare _ _ _ _ (fsh_bind (fun x => _)) =>
+    let x := fresh x in intro x
+  end;
+  unfold fundef_satisfies_hoare;
+  (* handle hoare_func *)
+  lazymatch goal with
+  | |- hoare_func _ _ _ _ _ ?post =>
+    eapply hoare_func_internal';
+      [ reflexivity (* length (filter_in params) = length pre_arg *)
+      | reflexivity (* is_no_dup *)
+      | reflexivity (* eval_write_vars *)
+      | idtac (* hoare_block *)
+      | inv_func_copy_out (* inv_func_copy_out *)
+      | inv_implicit_return
+      ]
+  | _ => fail "The goal is not in the form of (hoare_func _ _ (ARG _ (MEM _ (EXT _))) _ _"
+           "(EX ... ARG_RET _ (MEM _ (EXT _)))"
+  end.
+
 Ltac start_function :=
   lazymatch goal with
   | |- fundef_satisfies_spec _ _ _ ?spec =>
@@ -189,26 +216,7 @@ Ltac start_function :=
       | |- fundef_satisfies_spec _ _ _ (fs_bind (fun x => _)) =>
         let x := fresh x in intro x
       end;
-      split; [idtac | solve [eauto 100 with nocore modifies func_specs]];
-      repeat lazymatch goal with
-      | |- fundef_satisfies_hoare _ _ _ _ (fsh_bind (fun x => _)) =>
-        let x := fresh x in intro x
-      end;
-      unfold fundef_satisfies_hoare;
-      (* handle hoare_func *)
-      lazymatch goal with
-      | |- hoare_func _ _ _ _ _ ?post =>
-        eapply hoare_func_internal';
-          [ reflexivity (* length (filter_in params) = length pre_arg *)
-          | reflexivity (* is_no_dup *)
-          | reflexivity (* eval_write_vars *)
-          | idtac (* hoare_block *)
-          | inv_func_copy_out (* inv_func_copy_out *)
-          | inv_implicit_return
-          ]
-      | _ => fail "The goal is not in the form of (hoare_func _ _ (ARG _ (MEM _ (EXT _))) _ _"
-               "(EX ... ARG_RET _ (MEM _ (EXT _)))"
-      end
+      split; [init_function | solve_modifies]
   | _ => fail "The goal is not in the form of (fundef_satisfies_spec _ _ _)"
   end.
 
@@ -419,4 +427,5 @@ Ltac entailer :=
   end.
 
 Ltac normalize_EXT :=
-  repeat rewrite AssertionLang.ext_pred_and_cons.
+  repeat rewrite AssertionLang.ext_pred_and_cons;
+  repeat rewrite AssertionLang.ext_pred_wrap_cons.

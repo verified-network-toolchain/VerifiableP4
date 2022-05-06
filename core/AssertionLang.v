@@ -122,6 +122,25 @@ Proof.
   rewrite <- and_assoc; reflexivity.
 Qed.
 
+Lemma ext_pred_wrap_cons : forall ps eps1 H eps2,
+  ext_assertion_equiv
+    (ExtPred.wrap ps eps1 H :: eps2)
+    (eps1 ++ eps2).
+Proof.
+  intros.
+  unfold ext_assertion_equiv, ext_denote, ExtPred.wrap.
+  unfold ext_satisfies.
+  simpl; clear.
+  apply FunctionalExtensionality.functional_extensionality;
+    intros es.
+  induction eps1.
+  - apply prop_ext.
+    sfirstorder.
+  - simpl. rewrite <- IHeps1.
+    apply prop_ext.
+    hauto lq: on.
+Qed.
+
 (* A lemma to handle assertion representations. *)
 
 Lemma fold_right_and_True : forall l,

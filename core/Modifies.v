@@ -428,14 +428,21 @@ Qed.
 Lemma func_modifies_frame : forall p fd vars exts vars' exts',
   func_modifies p fd vars' exts' ->
   incl_vars vars vars' ->
-  Forall (fun x => In x exts) exts' ->
+  Forall (fun x => in_scopes x exts) exts' ->
   func_modifies p fd vars exts.
 Proof.
   unfold func_modifies.
   intros.
   apply H in H2. clear H.
-  unfold modifies in *; destruct st; destruct st';
-    pose proof (Forall_In _ _ H1);
+  unfold modifies in *; destruct st; destruct st'.
+    assert (forall q, in_scopes q exts' -> in_scopes q exts). {
+      clear -H1; intros.
+      induction H1.
+      - inv H.
+      - simpl in H. rewrite Reflect.orE in H. destruct H.
+        + eauto using in_scopes_trans.
+        + auto.
+    }
     inv H0;
     try pose proof (Forall_In _ _ H3);
     split; destruct H2; try sfirstorder;
@@ -449,7 +456,7 @@ Lemma call_modifies_func' : forall p tags func targs args typ dir obj_path fd va
   lookup_func ge p func = Some (obj_path, fd) ->
   func_modifies (force p obj_path) fd vars' exts' ->
   incl_vars (if is_some obj_path then None else vars) vars' ->
-  Forall (fun x => In x exts) exts' ->
+  Forall (fun x => in_scopes x exts) exts' ->
   call_modifies p (MkExpression tags (ExpFunctionCall func targs args) typ dir) vars exts.
 Proof.
   intros.
@@ -503,6 +510,7 @@ End Modifies.
 #[export] Hint Resolve call_modifies_builtin call_modifies_func : modifies.
 #[export] Hint Extern 1 (func_modifies _ _ _ _ _) => apply func_modifies_internal : modifies.
 #[export] Hint Extern 0 (eq _ (Some _)) => reflexivity : modifies.
+#[export] Hint Extern 1 (is_true _) => reflexivity : modifies.
 #[export] Hint Resolve eq_refl : modifies.
 #[export] Hint Constructors out_arg_In_vars : modifies.
 #[export] Hint Resolve call_modifies_func' : modifies.
