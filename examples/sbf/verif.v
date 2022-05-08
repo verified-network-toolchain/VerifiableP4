@@ -5,6 +5,7 @@ Require Import ProD3.examples.sbf.UseTofino.
 Require Import ProD3.examples.sbf.p4ast.
 Require Import ProD3.examples.sbf.ConFilter.
 Require Import ProD3.examples.sbf.FilterRepr.
+Require Import Hammer.Plugin.Hammer.
 Import ListNotations.
 
 Notation ident := string.
@@ -34,7 +35,7 @@ Definition INSQUERY := 4.
 Open Scope func_spec.
 
 Definition Row_spec : func_spec :=
-  WITH p,
+  WITH (* p *),
     PATH p
     MOD None [p]
     WITH (r : row) (op : Z) (i : Z)
@@ -123,3 +124,20 @@ Proof.
   unfold row_insert.
   list_solve.
 Qed.
+
+Definition Row_fundef := Eval compute in
+  force dummy_fundef (PathMap.get ["Bf2BloomFilterRow"; "apply"] (ge_func ge)).
+
+Lemma Row_body :
+  fundef_satisfies_spec ge Row_fundef nil Row_spec.
+Proof.
+  start_function.
+  eapply hoare_block_cons.
+  { eapply hoare_stmt_method_call'.
+    eapply hoare_call_func'.
+    { reflexivity. }
+    { reflexivity. }
+    { reflexivity. }
+    { (* eapply hoare_func_post. *)
+      eapply hoare_func_table'.
+Abort.

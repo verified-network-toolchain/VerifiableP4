@@ -209,6 +209,13 @@ Definition hoare_func (p : path) (pre : arg_assertion) (func : @fundef tags_t) (
     exec_func ge read_ndetbit p st func targs inargs st' outargs sig ->
     satisfies_arg_ret_assertion post outargs sig st'.
 
+Definition hoare_table_match (p : path) (pre : assertion) (name : ident) (keys : list TableKey)
+      (const_entries : option (list table_entry)) (matched_action : option action_ref) :=
+  forall st matched_action',
+    pre st ->
+    exec_table_match ge read_ndetbit p st name keys const_entries matched_action' ->
+    matched_action' = matched_action.
+
 (* Hoare proof rules ass lemmas. *)
 
 Definition is_call_expression (expr : Expression) : bool :=
@@ -291,6 +298,14 @@ Ltac specialize_hoare_call :=
       specialize (H _ _ _ ltac:(eassumption) ltac:(eassumption))
   | H : forall _ _ _, _ -> exec_call _ _ _ _ _ _ _ -> _ |- _ =>
       specialize (H _ _ _ ltac:(eassumption) ltac:(eassumption))
+  end.
+
+Ltac specialize_hoare_func :=
+  match goal with
+  | H : hoare_func _ _ _ _ _ |- _ =>
+      specialize (H _ _ _ _ _ ltac:(eassumption) ltac:(eassumption))
+  | H : forall _ _ _ _ _ , _ -> exec_func _ _ _ _ _ _ _ _ _ _ -> _ |- _ =>
+      specialize (H _ _ _ _ _ ltac:(eassumption) ltac:(eassumption))
   end.
 
 Lemma hoare_stmt_assign : forall p pre tags lhs rhs typ post lv sv,
@@ -606,6 +621,14 @@ Definition hoare_args (p : path) (pre : assertion) (args : list (option Expressi
     exec_args ge read_ndetbit p st args dirs argvals' sig ->
     sig = SContinue /\ args_refine argvals argvals'.
 
+Ltac specialize_hoare_args :=
+  lazymatch goal with
+  | H : hoare_args _ _ _ _ _ |- _ =>
+      specialize (H _ _ _ ltac:(eassumption) ltac:(eassumption))
+  | H : forall _ _ _, _ -> exec_args _ _ _ _ _ _ _ _ -> _ |- _ =>
+      specialize (H _ _ _ ltac:(eassumption) ltac:(eassumption))
+  end.
+
 Lemma args_refine_extract_invals : forall args args',
   args_refine args args' ->
   Forall2 sval_refine (extract_invals args) (extract_invals args').
@@ -643,9 +666,9 @@ Proof.
   unfold hoare_lexpr, hoare_args, hoare_builtin, hoare_call.
   intros.
   inv H4. 2 : { inv H11. }
-  specialize (H0 _ _ _ ltac:(eassumption) ltac:(eassumption)).
+  specialize_hoare_lexpr.
   destruct H0 as [? H0]. subst.
-  specialize (H1 _ _ _ ltac:(eassumption) ltac:(eassumption)).
+  specialize_hoare_args.
   destruct H1 as [? H1]. subst.
   assert (Forall2 sval_refine (extract_invals argvals) (extract_invals argvals0) /\ pre st). {
     split; auto using args_refine_extract_invals.
@@ -680,7 +703,7 @@ Proof.
   unfold hoare_args, hoare_func, hoare_call_copy_out, hoare_call.
   intros.
   inv H8. { inv H0. }
-  specialize (H1 _ _ _ ltac:(eassumption) ltac:(eassumption)).
+  specialize_hoare_args.
   destruct H1 as [? H1]. subst.
   rewrite H2 in H19; inv H19.
   unshelve epose proof (H4 _ _ _ _ _ ltac:(shelve) H23). {
@@ -701,6 +724,17 @@ Proof.
   }
   inv H26.
   assumption.
+Qed.
+
+(* An simple lemma may be not really used. *)
+Lemma hoare_call_post : forall p pre expr post post',
+  hoare_call p pre expr post' ->
+  ret_implies post' post ->
+  hoare_call p pre expr post.
+Proof.
+  unfold hoare_call, ret_implies; intros.
+  specialize_hoare_call.
+  destruct sig; sfirstorder.
 Qed.
 
 Definition hoare_func_copy_in (pre : arg_assertion) (params : list (path * direction)) (post : assertion) : Prop :=
@@ -732,13 +766,77 @@ Proof.
   intros.
   inv H4.
   specialize (H0 _ _ _ H3 ltac:(reflexivity)).
-  specialize (H1 _ _ _ H0 ltac:(eassumption)).
+  specialize_hoare_block.
   destruct H1.
   - destruct H1 as [? H1]; subst.
     apply H2; auto.
   - destruct sig0; try solve [inv H1].
     apply H2; auto.
 Qed.
+
+(* A quite coarse version of Hoare logic for table. *)
+Lemma hoare_func_table : forall p pre name keys actions default_action const_entries post
+      actionref action_name ctrl_args action retv,
+  hoare_table_match p pre name keys const_entries actionref ->
+  (if is_some actionref
+   then
+    actionref = Some (mk_action_ref action_name ctrl_args) /\
+    add_ctrl_args (get_action actions action_name) ctrl_args = Some action /\
+    retv = table_retv true String.EmptyString (get_expr_func_name action)
+   else
+    action = default_action /\
+    actionref = None /\
+    retv = table_retv false String.EmptyString (get_expr_func_name default_action)) ->
+  hoare_call p pre action (fun _ st => post st) ->
+  hoare_func p (fun _ => pre) (FTable name keys actions (Some default_action) const_entries)
+      [] (fun args retv' st => args = [] /\ retv' = retv /\ post st).
+Proof.
+  unfold hoare_table_match, hoare_call, hoare_func.
+  intros.
+  inv H4.
+  specialize (H0 _ _ H3 ltac:(eassumption)).
+  subst actionref0.
+  assert (action = action0 /\ sig = SReturn retv) as [? ?]. {
+    destruct actionref.
+    - sfirstorder.
+    - sfirstorder.
+  }
+  subst.
+  specialize_hoare_call.
+  simpl; auto.
+Qed.
+
+Definition arg_ret_implies (P Q : arg_ret_assertion) :=
+  forall args retv st, P args retv st -> Q args retv st.
+
+Lemma hoare_func_post : forall p pre func targs post post',
+  hoare_func p pre func targs post' ->
+  arg_ret_implies post' post ->
+  hoare_func p pre func targs post.
+Proof.
+  unfold hoare_func, arg_ret_implies; intros.
+  specialize_hoare_func.
+  destruct sig; sfirstorder.
+Qed.
+
+(* Lemma hoare_func_table_case : forall p pre params body targs mid1 mid2 post,
+  hoare_func_copy_in pre params mid1 ->
+  hoare_block p mid1 body (return_post_assertion_1 mid2) ->
+  hoare_func_copy_out mid2 params post ->
+  hoare_func p pre (FTable name keys actions (Some default_action) const_entries)
+  [] [] s' [] retv targs post.
+Proof.
+  unfold hoare_func_copy_in, hoare_block, hoare_func_copy_out, hoare_func.
+  intros.
+  inv H4.
+  specialize (H0 _ _ _ H3 ltac:(reflexivity)).
+  specialize (H1 _ _ _ H0 ltac:(eassumption)).
+  destruct H1.
+  - destruct H1 as [? H1]; subst.
+    apply H2; auto.
+  - destruct sig0; try solve [inv H1].
+    apply H2; auto.
+Qed. *)
 
 Lemma implies_refl : forall (pre : assertion),
   implies pre pre.

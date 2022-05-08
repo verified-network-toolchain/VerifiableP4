@@ -550,4 +550,46 @@ Proof.
   - apply inv_func_copy_out_sound; auto.
 Qed.
 
+Lemma hoare_func_table' : forall p pre_mem pre_ext name keys actions default_action const_entries post_mem post_ext
+      actionref action_name ctrl_args action retv,
+  hoare_table_match ge p (MEM pre_mem (EXT pre_ext)) name keys const_entries actionref ->
+  (if is_some actionref
+   then
+    actionref = Some (mk_action_ref action_name ctrl_args) /\
+    add_ctrl_args (get_action actions action_name) ctrl_args = Some action /\
+    retv = table_retv true String.EmptyString (get_expr_func_name action)
+   else
+    action = default_action /\
+    actionref = None /\
+    retv = table_retv false String.EmptyString (get_expr_func_name default_action)) ->
+  hoare_call ge p (MEM pre_mem (EXT pre_ext)) action (RET ValBaseNull (MEM post_mem (EXT post_ext))) ->
+  hoare_func ge p (ARG [] (MEM pre_mem (EXT pre_ext)))
+      (FTable name keys actions (Some default_action) const_entries)
+      [] (ARG_RET [] (eval_val_to_sval retv) (MEM post_mem (EXT post_ext))).
+Proof.
+  intros.
+  eapply hoare_func_post.
+  { unfold hoare_func; intros.
+    eapply hoare_func_table; try eassumption.
+    { eapply hoare_call_post.
+      { apply H2. }
+      { unfold ret_implies.
+        intros ? ? H_post.
+        apply (proj2 H_post).
+      }
+    }
+    apply H3.
+  }
+  { clear.
+    unfold arg_ret_implies; intros.
+    destruct H0 as [? []]; subst.
+    split; only 2 : split; auto.
+    - constructor.
+    - unfold ret_denote, ret_satisfies.
+      intros. eapply sval_to_val_to_sval; eauto.
+      apply sval_to_val_eval_val_to_sval.
+      intros; constructor.
+  }
+Qed.
+
 End ConcreteHoare.
