@@ -774,19 +774,20 @@ Proof.
     apply H2; auto.
 Qed.
 
+Lemma get_table_call_det : forall actions default_action actionref action retv action' retv',
+  get_table_call actions default_action actionref action retv ->
+  get_table_call actions default_action actionref action' retv' ->
+  action = action' /\ retv = retv'.
+Proof.
+  intros.
+  inv H0; inv H1; sfirstorder.
+Qed.
+
 (* A quite coarse version of Hoare logic for table. *)
 Lemma hoare_func_table : forall p pre name keys actions default_action const_entries post
-      actionref action_name ctrl_args action retv,
+      actionref action retv,
   hoare_table_match p pre name keys const_entries actionref ->
-  (if is_some actionref
-   then
-    actionref = Some (mk_action_ref action_name ctrl_args) /\
-    add_ctrl_args (get_action actions action_name) ctrl_args = Some action /\
-    retv = table_retv true String.EmptyString (get_expr_func_name action)
-   else
-    action = default_action /\
-    actionref = None /\
-    retv = table_retv false String.EmptyString (get_expr_func_name default_action)) ->
+  get_table_call actions default_action actionref action retv ->
   hoare_call p pre action (fun _ st => post st) ->
   hoare_func p (fun _ => pre) (FTable name keys actions (Some default_action) const_entries)
       [] (fun args retv' st => args = [] /\ retv' = retv /\ post st).
@@ -796,11 +797,7 @@ Proof.
   inv H4.
   specialize (H0 _ _ H3 ltac:(eassumption)).
   subst actionref0.
-  assert (action = action0 /\ sig = SReturn retv) as [? ?]. {
-    destruct actionref.
-    - sfirstorder.
-    - sfirstorder.
-  }
+  pose proof (get_table_call_det _ _ _ _ _ _ _ H1 H17) as [? ?].
   subst.
   specialize_hoare_call.
   simpl; auto.

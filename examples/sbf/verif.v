@@ -128,6 +128,10 @@ Qed.
 Definition Row_fundef := Eval compute in
   force dummy_fundef (PathMap.get ["Bf2BloomFilterRow"; "apply"] (ge_func ge)).
 
+(* Note: In order to automatically prove modifies clauses for tables, we need to
+  ensure that the action will be executed by tables are only actions listed in the
+  action list. That can be guaranteed in the lookup and synthesize step. *)
+
 Lemma Row_body :
   fundef_satisfies_spec ge Row_fundef nil Row_spec.
 Proof.

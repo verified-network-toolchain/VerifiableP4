@@ -551,17 +551,9 @@ Proof.
 Qed.
 
 Lemma hoare_func_table' : forall p pre_mem pre_ext name keys actions default_action const_entries post_mem post_ext
-      actionref action_name ctrl_args action retv,
+      actionref action retv,
   hoare_table_match ge p (MEM pre_mem (EXT pre_ext)) name keys const_entries actionref ->
-  (if is_some actionref
-   then
-    actionref = Some (mk_action_ref action_name ctrl_args) /\
-    add_ctrl_args (get_action actions action_name) ctrl_args = Some action /\
-    retv = table_retv true String.EmptyString (get_expr_func_name action)
-   else
-    action = default_action /\
-    actionref = None /\
-    retv = table_retv false String.EmptyString (get_expr_func_name default_action)) ->
+  get_table_call actions default_action actionref action retv ->
   hoare_call ge p (MEM pre_mem (EXT pre_ext)) action (RET ValBaseNull (MEM post_mem (EXT post_ext))) ->
   hoare_func ge p (ARG [] (MEM pre_mem (EXT pre_ext)))
       (FTable name keys actions (Some default_action) const_entries)
