@@ -774,20 +774,11 @@ Proof.
     apply H2; auto.
 Qed.
 
-Lemma get_table_call_det : forall actions default_action actionref action retv action' retv',
-  get_table_call actions default_action actionref action retv ->
-  get_table_call actions default_action actionref action' retv' ->
-  action = action' /\ retv = retv'.
-Proof.
-  intros.
-  inv H0; inv H1; sfirstorder.
-Qed.
-
 (* A quite coarse version of Hoare logic for table. *)
 Lemma hoare_func_table : forall p pre name keys actions default_action const_entries post
       actionref action retv,
   hoare_table_match p pre name keys const_entries actionref ->
-  get_table_call actions default_action actionref action retv ->
+  get_table_call actions default_action actionref = Some (action, retv) ->
   hoare_call p pre action (fun _ st => post st) ->
   hoare_func p (fun _ => pre) (FTable name keys actions (Some default_action) const_entries)
       [] (fun args retv' st => args = [] /\ retv' = retv /\ post st).
@@ -797,8 +788,7 @@ Proof.
   inv H4.
   specialize (H0 _ _ H3 ltac:(eassumption)).
   subst actionref0.
-  pose proof (get_table_call_det _ _ _ _ _ _ _ H1 H17) as [? ?].
-  subst.
+  rewrite H17 in H1; inv H1.
   specialize_hoare_call.
   simpl; auto.
 Qed.

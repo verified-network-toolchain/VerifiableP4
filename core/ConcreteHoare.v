@@ -553,7 +553,7 @@ Qed.
 Lemma hoare_func_table' : forall p pre_mem pre_ext name keys actions default_action const_entries post_mem post_ext
       actionref action retv,
   hoare_table_match ge p (MEM pre_mem (EXT pre_ext)) name keys const_entries actionref ->
-  get_table_call actions default_action actionref action retv ->
+  get_table_call actions default_action actionref = Some (action, retv) ->
   hoare_call ge p (MEM pre_mem (EXT pre_ext)) action (RET ValBaseNull (MEM post_mem (EXT post_ext))) ->
   hoare_func ge p (ARG [] (MEM pre_mem (EXT pre_ext)))
       (FTable name keys actions (Some default_action) const_entries)
