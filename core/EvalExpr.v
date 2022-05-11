@@ -444,20 +444,7 @@ Qed.
 Lemma sval_to_val_Some_case2:
   forall svals_to_avals : AList.StringAList Sval -> option (AList.StringAList Val),
     svals_to_avals =
-      (fix sval_to_avals (sl : AList.StringAList Sval) :
-        option (AList.StringAList Val) :=
-         match sl with
-         | [] => Some []
-         | (k, s) :: rest =>
-             match eval_sval_to_val s with
-             | Some v =>
-                 match sval_to_avals rest with
-                 | Some l' => Some ((k, v) :: l')
-                 | None => None
-                 end
-             | None => None
-             end
-         end) ->
+      (fun sl => lift_option_kv (kv_map eval_sval_to_val sl)) ->
     forall vs : list (ident * Sval),
       Forall
         (fun '(_, v) =>
@@ -471,7 +458,7 @@ Proof.
   intros svals_to_avals Havals vs H0 kvs' s H1 H4.
   revert kvs' s H1 H4. induction H0; intros.
   - rewrite Havals in H1. inv H1. inv H4. auto.
-  - rewrite Havals, <- Havals in H2. destruct x. destruct_match H2. 2: inv H2.
+  - rewrite Havals in H2. simpl in H2. rewrite <- (equal_f Havals) in H2. destruct x. simpl in H2. destruct_match H2. 2 : inv H2.
     inversion H4. subst x l0 kvs'. clear H4. destruct y. simpl in *. destruct H7.
     subst s0. destruct_match H2; inversion H2. subst s. clear H2.
     specialize (H0 v1 H5 v0 eq_refl). subst v0.
@@ -510,20 +497,10 @@ Proof.
     fun (sl : list Sval) =>
       lift_option (map eval_sval_to_val sl)
   ) as eval_sval_to_vals. rename Heqeval_sval_to_vals into Hvals.
-  remember (fix sval_to_avals (sl : AList.StringAList Sval) :
-             option (AList.StringAList Val) :=
-              match sl with
-              | [] => Some []
-              | (k, s) :: rest =>
-                  match eval_sval_to_val s with
-                  | Some v =>
-                      match sval_to_avals rest with
-                      | Some l' => Some ((k, v) :: l')
-                      | None => None
-                      end
-                  | None => None
-                  end
-              end) as svals_to_avals. rename Heqsvals_to_avals into Havals.
+  remember (
+    fun (sl : AList.StringAList Sval) =>
+      lift_option_kv (kv_map eval_sval_to_val sl)
+  ) as svals_to_avals. rename Heqsvals_to_avals into Havals.
   intro. induction v using custom_ValueBase_ind;
     intros; simpl in H1; try (inv H1; now inv H0).
   2-4: destruct_match H1; inv H1; inv H0; f_equal;
@@ -534,13 +511,13 @@ Proof.
     rewrite <- (equal_f Hvals) in H1. eapply sval_to_val_Some_case3; eauto.
   - inversion H1. subst kvs oldv. clear H1. simpl in H2.
     destruct_match H2; inversion H2. subst v0. clear H2. f_equal.
-    rewrite <- Havals in H1. eapply sval_to_val_Some_case2; eauto.
+    rewrite <- (equal_f Havals) in H1. eapply sval_to_val_Some_case2; eauto.
   - inversion H1. subst kvs b0 oldv. clear H1. simpl in H2. destruct_match b.
     2: inv H2. subst b. destruct_match H2; inversion H2. subst v0. clear H2.
-    inversion H5. subst b b0. clear H5. f_equal. rewrite <- Havals in H1.
+    inversion H5. subst b b0. clear H5. f_equal. rewrite <- (equal_f Havals) in H1.
     eapply sval_to_val_Some_case2; eauto.
   - inversion H1. subst kvs oldv. clear H1. simpl in H2.
-    destruct_match H2; inversion H2. subst v0. clear H2. rewrite <- Havals in H1.
+    destruct_match H2; inversion H2. subst v0. clear H2. rewrite <- (equal_f Havals) in H1.
     f_equal. eapply sval_to_val_Some_case2; eauto.
   - inversion H1. subst lv next oldv. clear H1. simpl in H2.
     destruct_match H2; inversion H2. subst v0. clear H2. f_equal.
@@ -555,16 +532,12 @@ Proof. intros. apply (val_sim_on_top read_detbit). now rewrite val_to_sval_iff. 
 Lemma sval_refine_liberal:
   forall v1 v2, val_sim v1 v2 -> sval_refine (val_to_liberal_sval v1) v2.
 Proof.
-  remember (fix sval_to_vals (sl : list Val) : list Sval :=
-              match sl with
-              | [] => []
-              | s :: rest => val_to_liberal_sval s :: sval_to_vals rest
-              end) as to_vals. rename Heqto_vals into Hvals.
-  remember (fix sval_to_avals (sl : AList.StringAList Val) : AList.StringAList Sval :=
-              match sl with
-              | [] => []
-              | (k, s) :: rest => (k, val_to_liberal_sval s) :: sval_to_avals rest
-              end) as to_avals. rename Heqto_avals into Havals.
+  remember (fun (sl : list Val) =>
+              map val_to_liberal_sval sl
+           ) as to_vals. rename Heqto_vals into Hvals.
+  remember (fun (sl : AList.StringAList Val) =>
+              kv_map val_to_liberal_sval sl
+           ) as to_avals. rename Heqto_avals into Havals.
   induction v1 using custom_ValueBase_ind; intros;
     try (inv H0; simpl; now constructor).
   - inv H0. simpl. constructor. constructor.
@@ -577,27 +550,27 @@ Proof.
   - inversion H1. subst lv v2. clear H1. simpl. constructor. rewrite <- (equal_f Hvals).
     revert H0 lv' H3. induction vs; intros; inversion H3; subst lv'; clear H3;
       rewrite Hvals; constructor; inversion H0; subst x0 l0; clear H0. 1: now apply H7.
-    rewrite <- Hvals. subst x l. apply IHvs; auto.
-  - inversion H1. subst kvs v2. clear H1. simpl. constructor. rewrite <- Havals.
+    rewrite <- (equal_f Hvals). subst x l. apply IHvs; auto.
+  - inversion H1. subst kvs v2. clear H1. simpl. constructor. rewrite <- (equal_f Havals).
     revert kvs' H3. induction H0; intros; inversion H3; subst kvs'; rewrite Havals.
     1: constructor. subst x0 l0. destruct x. simpl in *. constructor.
     + simpl. destruct H5. split; auto. apply H0. auto.
-    + rewrite <- Havals. apply IHForall. auto.
+    + rewrite <- (equal_f Havals). apply IHForall. auto.
   - inversion H1. subst kvs b0 v2. clear H1 H4. simpl. constructor.
-    1: unfold bool_to_none; constructor. rewrite <- Havals. revert kvs' H6.
+    1: unfold bool_to_none; constructor. rewrite <- (equal_f Havals). revert kvs' H6.
     induction H0; intros; inversion H6; subst kvs'; rewrite Havals.
     1: constructor. subst x0 l0. destruct x. simpl in *. constructor.
     + simpl. destruct H4; split; auto. apply H0. auto.
-    + rewrite <- Havals. apply IHForall; auto.
-  - inversion H1. subst kvs v2. clear H1. simpl. constructor. rewrite <- Havals.
+    + rewrite <- (equal_f Havals). apply IHForall; auto.
+  - inversion H1. subst kvs v2. clear H1. simpl. constructor. rewrite <- (equal_f Havals).
     revert kvs' H3. induction H0; intros; inversion H3; subst kvs'; rewrite Havals.
     1: constructor. subst x0 l0. destruct x. simpl in *. constructor.
     + simpl. destruct H5. split; auto. apply H0. auto.
-    + rewrite <- Havals. apply IHForall. auto.
+    + rewrite <- (equal_f Havals). apply IHForall. auto.
   - inversion H1. subst lv next v2. clear H1. simpl. constructor. rewrite <- (equal_f Hvals).
     revert H0 lv' H5. induction vs; intros; inversion H5; subst lv'; clear H5;
       rewrite Hvals; constructor; inversion H0; subst x0 l0; clear H0. 1: now apply H7.
-    rewrite <- Hvals. subst x l. apply IHvs; auto.
+    rewrite <- (equal_f Hvals). subst x l. apply IHvs; auto.
   - inversion H0. subst typ_name v v2. clear H0. simpl. constructor. apply IHv1. auto.
 Qed.
 
@@ -622,11 +595,9 @@ Proof.
               | [] => []
               | s :: rest => force_sval_to_val s :: sval_to_vals rest
               end) as to_vals. rename Heqto_vals into Hvals.
-  remember (fix sval_to_avals (sl : AList.StringAList Sval) : AList.StringAList Val :=
-              match sl with
-              | [] => []
-              | (k, s) :: rest => (k, force_sval_to_val s) :: sval_to_avals rest
-              end) as to_avals. rename Heqto_avals into Havals.
+  remember (fun (sl : AList.StringAList Sval) =>
+              kv_map force_sval_to_val sl
+           ) as to_avals. rename Heqto_avals into Havals.
   induction v using custom_ValueBase_ind; simpl; try (now constructor).
   - destruct b; now constructor.
   - constructor. apply Forall2_True. now rewrite map_length.
@@ -634,14 +605,14 @@ Proof.
   - constructor. apply Forall2_True. now rewrite map_length.
   - constructor. rewrite <- (equal_f Hvals). induction vs; rewrite Hvals. 1: constructor.
     rewrite <- Hvals. inversion H0. subst x l. clear H0. constructor; auto.
-  - constructor. rewrite <- Havals. induction vs; rewrite Havals. 1: constructor.
-    rewrite <- Havals. inversion H0. subst x l. clear H0. destruct a.
+  - constructor. rewrite <- (equal_f Havals). induction vs; rewrite Havals. 1: constructor.
+    simpl; rewrite <- (equal_f Havals). inversion H0. subst x l. clear H0. destruct a.
     constructor; auto. apply IHvs. auto.
-  - constructor; auto. rewrite <- Havals. induction vs; rewrite Havals. 1: constructor.
-    rewrite <- Havals. destruct a. inversion H0. subst x l. clear H0.
+  - constructor; auto. rewrite <- (equal_f Havals). induction vs; rewrite Havals. 1: constructor.
+    simpl; rewrite <- (equal_f Havals). destruct a. inversion H0. subst x l. clear H0.
     constructor; auto. apply IHvs; auto.
-  - constructor. rewrite <- Havals. induction vs; rewrite Havals. 1: constructor.
-    rewrite <- Havals. inversion H0. subst x l. clear H0. destruct a.
+  - constructor. rewrite <- (equal_f Havals). induction vs; rewrite Havals. 1: constructor.
+    simpl; rewrite <- (equal_f Havals). inversion H0. subst x l. clear H0. destruct a.
     constructor; auto. apply IHvs. auto.
   - constructor. rewrite <- (equal_f Hvals). induction vs; rewrite Hvals. 1: constructor.
     rewrite <- Hvals. inversion H0. subst x l. clear H0. constructor; auto.

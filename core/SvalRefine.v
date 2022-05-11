@@ -359,18 +359,8 @@ End exec_val_impl.
 Fixpoint eval_sval_to_val (sval: Sval): option Val :=
   let sval_to_vals (sl: list Sval): option (list Val) :=
     lift_option (map eval_sval_to_val sl) in
-  let fix sval_to_avals (sl: AList.StringAList Sval): option (AList.StringAList Val) :=
-    (* We will want to have a function like lift_option for AList. *)
-    match sl with
-    | [] => Some []
-    | (k, s) :: rest => match eval_sval_to_val s with
-                        | None => None
-                        | Some v => match sval_to_avals rest with
-                                    | None => None
-                                    | Some l' => Some ((k, v) :: l')
-                                    end
-                        end
-    end in
+  let sval_to_avals (sl: AList.StringAList Sval): option (AList.StringAList Val) :=
+    lift_option_kv (kv_map eval_sval_to_val sl) in
   match sval with
   | ValBaseNull => Some ValBaseNull
   | ValBaseBool (Some b) => Some (ValBaseBool b)
@@ -427,12 +417,8 @@ Definition opt_to_bool : option bool -> bool :=
 Fixpoint force_sval_to_val (sval: Sval): Val :=
   let sval_to_vals (sl: list Sval): list Val :=
     map force_sval_to_val sl in
-  (* I believe we have a map function for alist, but I cannot find it. *)
-  let fix sval_to_avals (sl: AList.StringAList Sval): AList.StringAList Val :=
-    match sl with
-    | [] => []
-    | (k, s) :: rest => (k, force_sval_to_val s) :: sval_to_avals rest
-    end in
+  let sval_to_avals (sl: AList.StringAList Sval): AList.StringAList Val :=
+    kv_map force_sval_to_val sl in
   match sval with
   | ValBaseNull => ValBaseNull
   | ValBaseBool (Some b) => ValBaseBool b
@@ -468,11 +454,8 @@ Qed.
 Fixpoint val_to_liberal_sval (val: Val): Sval :=
   let sval_to_vals (sl: list Val): list Sval :=
     map val_to_liberal_sval sl in
-  let fix sval_to_avals (sl: AList.StringAList Val): AList.StringAList Sval :=
-    match sl with
-    | [] => []
-    | (k, s) :: rest => (k, val_to_liberal_sval s) :: sval_to_avals rest
-    end in
+  let sval_to_avals (sl: AList.StringAList Val): AList.StringAList Sval :=
+    kv_map val_to_liberal_sval sl in
   match val with
   | ValBaseNull => ValBaseNull
   | ValBaseBool b => ValBaseBool None
