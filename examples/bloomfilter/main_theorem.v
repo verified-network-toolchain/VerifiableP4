@@ -114,13 +114,13 @@ Proof.
       inv H10. inv H1. destruct H5.
       clear -H3 H4 H0. inv H0. inv H7. destruct H2.
       clear -H3 H4 H0.
-      apply SvalRefine.sval_refine_to_loptbool_eq in H0; eauto.
+      apply Members.sval_refine_to_loptbool_eq in H0; eauto.
     - inv H12. inv H13.
       clear -H5 H11.
-      apply SvalRefine.sval_refine_get with (f := "egress_spec") in H11.
+      apply Members.sval_refine_get with (f := "egress_spec") in H11.
       simpl in H11.
       rewrite H5 in H11.
-      apply SvalRefine.sval_refine_to_loptbool_eq in H11; eauto.
+      apply Members.sval_refine_to_loptbool_eq in H11; eauto.
       + destruct in_port; simpl.
         2 : destruct (query [CRC_pad0; CRC_pad1; CRC_pad2] bf data); simpl.
         all : lia.
