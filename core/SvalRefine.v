@@ -161,7 +161,7 @@ Definition rel_trans {A B C} (f : A -> B -> Prop) (g : B -> C -> Prop) (h : A ->
     g b c ->
     h a c.
 
-(* exec_val_trans : forall {A B C} (f g h),
+(* exec_val_trans : forall {A B C} f g h,
   rel_trans f g h -> rel_trans (exec_val f) (exec_val g) (exec_val h)
   This is more general than standard transitivity. *)
 Section exec_val_trans.
@@ -244,7 +244,54 @@ Proof.
   apply exec_val_trans. exact bit_refine_trans.
 Qed.
 
-(* exec_val_trans : forall {A B} (f g : A -> B -> Prop),
+(* exec_val_eq : forall {A}
+  exec_val eq x y -> x = y *)
+Section exec_val_eq.
+  Context {A : Type}.
+
+  Hint Resolve -> ForallMap.Forall2_eq : core.
+
+  Lemma exec_val_eq_case1 : forall vs1 vs2,
+    Forall
+      (fun v2 : ValueBase => forall v1 : ValueBase, exec_val eq v1 v2 -> v1 = v2) vs2 ->
+    Forall2 (exec_val (A := A) eq) vs1 vs2 ->
+    vs1 = vs2.
+  Proof.
+    intros vs1 vs2; revert vs1.
+    induction vs2; intros; inv H0; inv H; f_equal; only 1 : apply H2; auto.
+  Qed.
+
+  Lemma exec_val_eq_case2 : forall (vs1 : list (ident * ValueBase)) vs2,
+    Forall
+      (fun '(_, v2) => forall v1 : ValueBase, exec_val eq v1 v2 -> v1 = v2) vs2 ->
+    AList.all_values (exec_val (A := A) eq) vs1 vs2 ->
+    vs1 = vs2.
+  Proof.
+    intros vs1 vs2; revert vs1.
+    induction vs2; intros; inv H0; inv H; f_equal.
+    - destruct H4. destruct x; destruct a; f_equal.
+      + auto.
+      + apply H2; auto.
+    - apply IHvs2; auto.
+  Qed.
+
+  Lemma exec_val_eq : forall v1 v2,
+    exec_val (A := A) eq v1 v2 ->
+    v1 = v2.
+  Proof.
+    intros v1 v2; revert v1.
+    induction v2 using custom_ValueBase_ind; intros * H_eq;
+      inv H_eq;
+      f_equal; eauto.
+    - eapply exec_val_eq_case1; eauto.
+    - eapply exec_val_eq_case2; eauto.
+    - eapply exec_val_eq_case2; eauto.
+    - eapply exec_val_eq_case2; eauto.
+    - eapply exec_val_eq_case1; eauto.
+  Qed.
+End exec_val_eq.
+
+(* exec_val_impl : forall {A B} (f g : A -> B -> Prop),
   (f implies g) -> ((exec_val f) implies (exec_val g)) *)
 Section exec_val_impl.
   Context {A B : Type} (f : A -> B -> Prop) (g : A -> B -> Prop).

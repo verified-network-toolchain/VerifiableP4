@@ -2,6 +2,7 @@ Require Export Coq.Lists.List.
 Require Export Coq.ssr.ssrbool.
 Require Export Coq.micromega.Lia.
 Require Export Coq.Logic.FunctionalExtensionality.
+Require Export Poulet4.Utils.Utils.
 Export ListNotations.
 
 Notation "~~" := negb.

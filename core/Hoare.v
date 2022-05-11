@@ -76,6 +76,13 @@ Definition hoare_expr_det (p : path) (pre : assertion) (expr : Expression) (sv :
     val_to_sval v' sv' ->
     sval_refine sv sv'.
 
+Definition hoare_exprs_det (p : path) (pre : assertion) (exprs : list Expression) (svs : list Sval) :=
+  forall st vs' svs',
+    pre st ->
+    exec_exprs_det ge read_ndetbit p st exprs vs' ->
+    Forall2 val_to_sval vs' svs' ->
+    Forall2 sval_refine svs svs'.
+
 Definition hoare_lexpr (p : path) (pre : assertion) (expr : Expression) (lv : Lval) :=
   forall st lv' sig,
     pre st ->
@@ -772,6 +779,69 @@ Proof.
     apply H2; auto.
   - destruct sig0; try solve [inv H1].
     apply H2; auto.
+Qed.
+
+Definition hoare_table_entries p entries entryvs : Prop :=
+  forall st entryvs',
+    exec_table_entries ge read_ndetbit p st entries entryvs' ->
+    entryvs' = entryvs.
+
+(* For now, we only support constant entries in this rule. *)
+Definition hoare_table_match_intro : forall p pre name keys keysvals keyvals const_entries entryvs matched_action,
+  let entries := const_entries in
+  let match_kinds := map table_key_matchkind keys in
+  hoare_exprs_det p pre (map table_key_key keys) keysvals ->
+  Forall2 val_to_sval keyvals keysvals ->
+  hoare_table_entries p entries entryvs ->
+  extern_match (combine keyvals match_kinds) entryvs = matched_action ->
+  hoare_table_match p pre name keys (Some const_entries) matched_action.
+Proof.
+  unfold hoare_table_match; intros.
+  inv H5.
+  assert (
+    forall keysvals',
+      Forall2 val_to_sval keyvals0 keysvals' ->
+      Forall2 sval_refine keysvals keysvals')
+    by (intros; eapply H0; eassumption).
+  assert (
+    forall keysvals',
+      Forall2 val_to_sval keyvals0 keysvals' ->
+      Forall2 val_to_sval keyvals keysvals'). {
+    intros.
+    specialize (H3 _ ltac:(eassumption)).
+    eapply Forall2_trans; [ | eassumption | eassumption].
+    unfold rel_trans.
+    eapply exec_val_trans.
+    unfold rel_trans.
+    sauto.
+  }
+  assert (Forall2 val_to_sval keyvals0 (map eval_val_to_sval keyvals0)). {
+    clear.
+    induction keyvals0; constructor.
+    - apply val_to_sval_iff; auto.
+    - assumption.
+  }
+  specialize (H5 _ ltac:(eassumption)).
+  assert (Forall2 (sval_to_val strict_read_ndetbit) (map eval_val_to_sval keyvals0) keyvals). {
+    eapply Forall2_sym; [ | eassumption].
+    eapply exec_val_sym.
+    sauto.
+  }
+  assert (Forall2 (exec_val eq) keyvals0 keyvals). {
+    eapply Forall2_trans; [ | eassumption | eassumption].
+    unfold rel_trans.
+    eapply exec_val_trans.
+    unfold rel_trans.
+    sauto.
+  }
+  assert (keyvals0 = keyvals). {
+    apply ForallMap.Forall2_eq.
+    eapply Forall2_impl; [exact exec_val_eq | eassumption].
+  }
+  subst.
+  specialize (H2 _ _ ltac:(eassumption)).
+  subst.
+  reflexivity.
 Qed.
 
 (* A quite coarse version of Hoare logic for table. *)
