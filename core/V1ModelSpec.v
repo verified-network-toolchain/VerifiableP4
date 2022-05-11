@@ -61,7 +61,7 @@ Proof.
   - red in H0. destruct H0. do 2 red in H0. inv H0. inv H7. inv H5. red. inv H1.
     inv H5. inv H7. inv H4. inv H8. simpl in H0. inv H0. simpl. red.
     split; [|split]; auto.
-    + inv H14. inv H10. apply SvalRefine.Forall2_bit_refine_Some_same' in H3.
+    + inv H14. inv H10. apply Members.Forall2_bit_refine_Some_same' in H3.
       subst. apply Forall2_ndetbit in H1. subst. rewrite bit_from_to_bool in H7.
       constructor. 2: constructor. destruct H2. red in H1. red in H1. simpl in H1.
       destruct H1. rewrite H6 in H1. inv H1. simpl in H. rewrite H in H5. inv H5.
@@ -109,7 +109,7 @@ Proof.
     + inv H15. constructor.
     + repeat intro. inv H. constructor.
     + red. destruct H2. split; auto. red. red. simpl. split; auto.
-      apply SvalRefine.Forall2_bit_refine_Some_same' in H3. subst.
+      apply Members.Forall2_bit_refine_Some_same' in H3. subst.
       apply Forall2_ndetbit in H1. subst. rewrite bit_from_to_bool in H14.
       assert ((-1 <? index) && (index <? size) = true). {
         apply andb_true_intro. pose proof (BitArith.upper_bound_ge_1 32). split.

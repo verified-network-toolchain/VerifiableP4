@@ -1,13 +1,13 @@
 Require Import Coq.Strings.String.
+Require Import Coq.ZArith.BinInt.
+Require Import Coq.ZArith.ZArith.
+Require Import Coq.NArith.BinNat.
 Require Import Poulet4.P4light.Syntax.Typed.
 Require Import Poulet4.P4light.Syntax.Syntax.
 Require Import Poulet4.P4light.Semantics.Semantics.
 Require Import Poulet4.P4light.Syntax.Value.
-Require Import VST.zlist.sublist.
 Require Import ProD3.core.Coqlib.
-Require Import Coq.ZArith.BinInt.
-Require Import Coq.ZArith.ZArith.
-Require Import Coq.NArith.BinNat.
+Require Import ProD3.core.SvalRefine.
 Open Scope type_scope.
 
 Section Members.
@@ -176,6 +176,179 @@ Proof.
   - apply get_set_some; auto.
   - destruct is_valid as [[] | ]; try solve [inv H].
     apply get_set_some; auto.
+Qed.
+
+(* Auxiliary lemmas for sval_refine_get. *)
+
+Lemma Forall2_True: forall {A B: Type} (l1: list A) (l2: list B),
+    length l1 = length l2 -> Forall2 (fun _ _ => True) l1 l2.
+Proof.
+  induction l1; intros; destruct l2; simpl in H; inv H; constructor; auto.
+Qed.
+
+Lemma all_values_get_some_rel : forall {A} (kvl kvl' : AList.StringAList A) f rel v v',
+  AList.all_values rel kvl kvl' ->
+  AList.get kvl f = Some v ->
+  AList.get kvl' f = Some v' ->
+  rel v v'.
+Proof.
+  intros.
+  induction H.
+  - inv H0.
+  - destruct x as [kx vx]; destruct y as [ky vy].
+    destruct H. simpl in H. subst ky.
+    destruct (String.string_dec f kx) eqn:?.
+    + rewrite AList.get_eq_cons in H1, H0 by auto.
+      inv H1; inv H0.
+      auto.
+    + rewrite AList.get_neq_cons in H1, H0 by auto.
+      auto.
+Qed.
+
+Lemma all_values_get_some_is_some : forall {A} (kvl kvl' : AList.StringAList A) f rel v,
+  AList.all_values rel kvl kvl' ->
+  AList.get kvl f = Some v ->
+  is_some (AList.get kvl' f).
+Proof.
+  intros.
+  induction H.
+  - inv H0.
+  - destruct x as [kx vx]; destruct y as [ky vy].
+    destruct H. simpl in H. subst ky.
+    destruct (String.string_dec f kx) eqn:?.
+    + rewrite AList.get_eq_cons in H0 |- * by auto.
+      auto.
+    + rewrite AList.get_neq_cons in H0 |- * by auto.
+      auto.
+Qed.
+
+Lemma all_values_get_some_exists_rel: forall {A} (kvl kvl' : AList.StringAList A) f rel v,
+  AList.all_values rel kvl kvl' ->
+  AList.get kvl f = Some v ->
+  exists v', AList.get kvl' f = Some v' /\ rel v v'.
+Proof.
+  intros. pose proof H0. eapply all_values_get_some_is_some in H0; eauto.
+  unfold is_some, isSome in H0. destruct (AList.get kvl' f) eqn:?H. 2: inv H0.
+  eapply all_values_get_some_rel in H2; eauto.
+Qed.
+
+Lemma all_values_get_none_is_none : forall {A} (kvl kvl' : AList.StringAList A) f rel,
+  AList.all_values rel kvl kvl' ->
+  AList.get kvl f = None ->
+  AList.get kvl' f = None.
+Proof.
+  intros.
+  induction H; auto.
+  destruct x as [kx vx]; destruct y as [ky vy].
+  destruct H. simpl in H. subst ky.
+  destruct (String.string_dec f kx) eqn:?.
+  - rewrite AList.get_eq_cons in H0 |- * by auto. inv H0.
+  - rewrite AList.get_neq_cons in H0 |- * by auto. auto.
+Qed.
+
+Lemma all_values_get_some_is_some' : forall {A} (kvl kvl' : AList.StringAList A) f rel v',
+  AList.all_values rel kvl kvl' ->
+  AList.get kvl' f = Some v' ->
+  is_some (AList.get kvl f).
+Proof.
+  intros.
+  induction H.
+  - inv H0.
+  - destruct x as [kx vx]; destruct y as [ky vy].
+    destruct H. simpl in H. subst ky.
+    destruct (String.string_dec f kx) eqn:?.
+    + rewrite AList.get_eq_cons in H0 |- * by auto.
+      auto.
+    + rewrite AList.get_neq_cons in H0 |- * by auto.
+      auto.
+Qed.
+
+Lemma all_values_get_is_some : forall {A} (kvl kvl' : AList.StringAList A) f rel,
+  AList.all_values rel kvl kvl' ->
+  is_some (AList.get kvl f) = is_some (AList.get kvl' f).
+Proof.
+  intros.
+  destruct (AList.get kvl f) eqn:H_get1; destruct (AList.get kvl' f) eqn:H_get2; auto.
+  - epose proof (all_values_get_some_is_some _ _ _ _ _ ltac:(eauto) ltac:(eauto)) as H0; auto.
+    rewrite H_get2 in H0. inv H0.
+  - epose proof (all_values_get_some_is_some' _ _ _ _ _ ltac:(eauto) ltac:(eauto)) as H0; auto.
+    rewrite H_get1 in H0. inv H0.
+Qed.
+
+Lemma all_values_key_unique : forall {A} (kvl kvl' : AList.StringAList A) rel,
+    AList.all_values rel kvl kvl' ->
+    AList.key_unique kvl -> AList.key_unique kvl'.
+Proof.
+  intros. induction H; auto. inv H0. destruct x. destruct (AList.get l s) eqn:?H.
+  1: inv H3. simpl. destruct y. eapply all_values_get_none_is_none in H0; eauto.
+  simpl in H. destruct H. subst s0. rewrite H0. apply IHForall2; auto.
+Qed.
+
+Lemma sval_refine_get_case1 : forall f kvs kvs',
+  AList.all_values (exec_val bit_refine) kvs kvs' ->
+  sval_refine (force ValBaseNull (AList.get kvs f)) (force ValBaseNull (AList.get kvs' f)).
+Proof.
+  intros.
+  destruct (AList.get kvs f) eqn:H_get1; destruct (AList.get kvs' f) eqn:H_get2.
+  + eapply all_values_get_some_rel; eauto.
+  + epose proof (all_values_get_some_is_some _ _ _ _ _ ltac:(eauto) ltac:(eauto)) as H0.
+    rewrite H_get2 in H0. inv H0.
+  + epose proof (all_values_get_some_is_some' _ _ _ _ _ ltac:(eauto) ltac:(eauto)) as H0.
+    rewrite H_get1 in H0. inv H0.
+  + constructor.
+Qed.
+
+Lemma sval_refine_get : forall sv sv' f,
+  sval_refine sv sv' ->
+  sval_refine (get f sv) (get f sv').
+Proof.
+  intros.
+  inv H; try solve [constructor | apply sval_refine_get_case1; auto].
+  - unfold get.
+    destruct (String.eqb f "size").
+    {
+      apply Forall2_length in H0.
+      pose proof (Zlength_correct lv).
+      pose proof (Zlength_correct lv').
+      replace (Zlength lv) with (Zlength lv') by lia.
+      apply sval_refine_refl.
+    }
+    destruct (String.eqb f "lastIndex");
+      apply sval_refine_refl.
+Qed.
+
+Lemma Forall2_bit_refine_Some_same':
+  forall l1 l2, Forall2 bit_refine (map Some l1) l2 -> l2 = map Some l1.
+Proof.
+  induction l1; intros.
+  - inv H. simpl. auto.
+  - destruct l2; simpl in H; inv H. inv H3. simpl. f_equal. now apply IHl1.
+Qed.
+
+Lemma Forall2_bit_refine_Some_same:
+  forall l1 l2 : list bool, Forall2 bit_refine (map Some l1) (map Some l2) -> l1 = l2.
+Proof.
+  induction l1; intros.
+  - inv H. symmetry in H0. apply map_eq_nil in H0. now subst.
+  - destruct l2; simpl in H; inv H. inv H3. f_equal. now apply IHl1.
+Qed.
+
+#[local] Open Scope Z_scope.
+
+Lemma sval_refine_to_loptbool_eq : forall w n1 n2,
+  0 <= n1 < Z.pow 2 (Z.of_N w) ->
+  0 <= n2 < Z.pow 2 (Z.of_N w) ->
+  SvalRefine.sval_refine
+    (Value.ValBaseBit (P4Arith.to_loptbool w n1))
+    (Value.ValBaseBit (P4Arith.to_loptbool w n2)) ->
+  n1 = n2.
+Proof.
+  intros. inv H1. unfold P4Arith.to_loptbool in H4.
+  apply Forall2_bit_refine_Some_same in H4.
+  pose proof (eq_refl (P4Arith.BitArith.lbool_to_val (P4Arith.to_lbool w n1) 1 0)).
+  rewrite H4 in H1 at 2. rewrite !P4Arith.bit_to_lbool_back in H1.
+  unfold P4Arith.BitArith.mod_bound, P4Arith.BitArith.upper_bound in H1.
+  rewrite !Zmod_small in H1; auto.
 Qed.
 
 End Members.

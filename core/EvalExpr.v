@@ -60,155 +60,6 @@ Notation Expression := (@Expression tags_t).
 
 Context `{@Target tags_t Expression}.
 
-(* Convert Sval to Val only when all bits are known. *)
-Fixpoint eval_sval_to_val (sval: Sval): option Val :=
-  let fix sval_to_vals (sl: list Sval): option (list Val) :=
-    match sl with
-    | [] => Some []
-    | s :: rest => match eval_sval_to_val s with
-                   | None => None
-                   | Some v => match sval_to_vals rest with
-                               | Some l' => Some (v :: l')
-                               | None => None
-                               end
-                   end
-    end in
-  let fix sval_to_avals (sl: AList.StringAList Sval): option (AList.StringAList Val) :=
-    match sl with
-    | [] => Some []
-    | (k, s) :: rest => match eval_sval_to_val s with
-                        | None => None
-                        | Some v => match sval_to_avals rest with
-                                    | None => None
-                                    | Some l' => Some ((k, v) :: l')
-                                    end
-                        end
-    end in
-  match sval with
-  | ValBaseNull => Some ValBaseNull
-  | ValBaseBool (Some b) => Some (ValBaseBool b)
-  | ValBaseBool None => None
-  | ValBaseInteger z => Some (ValBaseInteger z)
-  | ValBaseBit bits => match lift_option bits with
-                       | Some l => Some (ValBaseBit l)
-                       | None => None
-                       end
-  | ValBaseInt bits => match lift_option bits with
-                       | Some l => Some (ValBaseInt l)
-                       | None => None
-                       end
-  | ValBaseVarbit n bits => match lift_option bits with
-                            | Some l => Some (ValBaseVarbit n l)
-                            | None => None
-                            end
-  | ValBaseString s => Some (ValBaseString s)
-  | ValBaseTuple l => match sval_to_vals l with
-                      | Some l' => Some (ValBaseTuple l')
-                      | None => None
-                      end
-  | ValBaseError err => Some (ValBaseError err)
-  | ValBaseMatchKind k => Some (ValBaseMatchKind k)
-  | ValBaseStruct l => match sval_to_avals l with
-                       | Some l' => Some (ValBaseStruct l')
-                       | None => None
-                       end
-  | ValBaseHeader _ None => None
-  | ValBaseHeader l (Some b) => match sval_to_avals l with
-                                | Some l' => Some (ValBaseHeader l' b)
-                                | None => None
-                                end
-  | ValBaseUnion l => match sval_to_avals l with
-                      | Some l' => Some (ValBaseUnion l')
-                      | None => None
-                      end
-  | ValBaseStack l n => match sval_to_vals l with
-                          | Some l' => Some (ValBaseStack l' n)
-                          | None => None
-                          end
-  | ValBaseEnumField s1 s2 => Some (ValBaseEnumField s1 s2)
-  | ValBaseSenumField s1 s => match eval_sval_to_val s with
-                                 | None => None
-                                 | Some v => Some (ValBaseSenumField s1 v)
-                                 end
-  end.
-
-Definition opt_to_bool (op: option bool) : bool :=
-  match op with
-  | None => false
-  | Some b => b
-  end.
-
-(* Convert Sval to Val, convert unknown bits to false. *)
-Fixpoint force_sval_to_val (sval: Sval): Val :=
-  let fix sval_to_vals (sl: list Sval): list Val :=
-    match sl with
-    | [] => []
-    | s :: rest => force_sval_to_val s :: sval_to_vals rest
-    end in
-  let fix sval_to_avals (sl: AList.StringAList Sval): AList.StringAList Val :=
-    match sl with
-    | [] => []
-    | (k, s) :: rest => (k, force_sval_to_val s) :: sval_to_avals rest
-    end in
-  match sval with
-  | ValBaseNull => ValBaseNull
-  | ValBaseBool (Some b) => ValBaseBool b
-  | ValBaseBool None => ValBaseBool false
-  | ValBaseInteger z => ValBaseInteger z
-  | ValBaseBit bits => ValBaseBit (map opt_to_bool bits)
-  | ValBaseInt bits => ValBaseInt (map opt_to_bool bits)
-  | ValBaseVarbit n bits => ValBaseVarbit n (map opt_to_bool bits)
-  | ValBaseString s => ValBaseString s
-  | ValBaseTuple l => ValBaseTuple (sval_to_vals l)
-  | ValBaseError err => ValBaseError err
-  | ValBaseMatchKind k => ValBaseMatchKind k
-  | ValBaseStruct l => ValBaseStruct (sval_to_avals l)
-  | ValBaseHeader l valid => ValBaseHeader (sval_to_avals l) (opt_to_bool valid)
-  | ValBaseUnion l => ValBaseUnion (sval_to_avals l)
-  | ValBaseStack l n => ValBaseStack (sval_to_vals l) n
-  | ValBaseEnumField s1 s2 => ValBaseEnumField s1 s2
-  | ValBaseSenumField s1 s => ValBaseSenumField s1 (force_sval_to_val s)
-  end.
-
-Definition bool_to_none: bool -> option bool := fun _ => None.
-
-Lemma map_bool_to_none: forall l,
-    map bool_to_none l = repeat None (length l).
-Proof.
-  induction l; simpl; auto. unfold bool_to_none at 1. now rewrite IHl.
-Qed.
-
-(* Convert Val to Sval, but convert all bits to unknown. *)
-Fixpoint val_to_liberal_sval (val: Val): Sval :=
-  let fix sval_to_vals (sl: list Val): list Sval :=
-    match sl with
-    | [] => []
-    | s :: rest => val_to_liberal_sval s :: sval_to_vals rest
-    end in
-  let fix sval_to_avals (sl: AList.StringAList Val): AList.StringAList Sval :=
-    match sl with
-    | [] => []
-    | (k, s) :: rest => (k, val_to_liberal_sval s) :: sval_to_avals rest
-    end in
-  match val with
-  | ValBaseNull => ValBaseNull
-  | ValBaseBool b => ValBaseBool None
-  | ValBaseInteger z => ValBaseInteger z
-  | ValBaseBit bits => ValBaseBit (map bool_to_none bits)
-  | ValBaseInt bits => ValBaseInt (map bool_to_none bits)
-  | ValBaseVarbit n bits => ValBaseVarbit n (map bool_to_none bits)
-  | ValBaseString s => ValBaseString s
-  | ValBaseTuple l => ValBaseTuple (sval_to_vals l)
-  | ValBaseError err => ValBaseError err
-  | ValBaseMatchKind k => ValBaseMatchKind k
-  | ValBaseStruct l => ValBaseStruct (sval_to_avals l)
-  | ValBaseHeader l valid => ValBaseHeader (sval_to_avals l) (bool_to_none valid)
-  | ValBaseUnion l => ValBaseUnion (sval_to_avals l)
-  | ValBaseStack l n => ValBaseStack (sval_to_vals l) n
-  | ValBaseEnumField s1 s2 => ValBaseEnumField s1 s2
-  | ValBaseSenumField s1 s => ValBaseSenumField s1 (val_to_liberal_sval s)
-  end.
-
 Definition build_abs_unary_op (actual_unary_op : Val -> option Val) : Sval -> Sval :=
   fun sv =>
     match eval_sval_to_val sv with
@@ -630,19 +481,7 @@ Qed.
 Lemma sval_to_val_Some_case3:
   forall eval_sval_to_vals : list Sval -> option (list Val),
     eval_sval_to_vals =
-      (fix sval_to_vals (sl : list Sval) : option (list Val) :=
-         match sl with
-         | [] => Some []
-         | s :: rest =>
-             match eval_sval_to_val s with
-             | Some v =>
-                 match sval_to_vals rest with
-                 | Some l' => Some (v :: l')
-                 | None => None
-                 end
-             | None => None
-             end
-         end) ->
+      (fun sl => lift_option (map eval_sval_to_val sl)) ->
     forall vs : list Sval,
       Forall
         (fun v : Sval =>
@@ -656,7 +495,7 @@ Proof.
   intros eval_sval_to_vals Hvals vs H0 lv' l H1 H4.
   revert lv' l H1 H4. induction H0; intros.
   - rewrite Hvals in H1. inv H1. inv H4. auto.
-  - rewrite Hvals, <- Hvals in H2. destruct_match H2. 2: inv H2.
+  - rewrite Hvals in H2. simpl in H2. rewrite <- (equal_f Hvals) in H2. destruct_match H2. 2: inv H2.
     inversion H4. subst x0 l1 lv'. clear H4. specialize (H0 _ H7 v eq_refl).
     subst v. destruct_match H2; inversion H2. subst l0. clear H2.
     specialize (IHForall l' l1 eq_refl H9). now subst.
@@ -667,19 +506,10 @@ Lemma sval_to_val_Some:
     sval_to_val read_ndetbit v oldv ->
     forall v0 : Val, eval_sval_to_val v = Some v0 -> v0 = oldv.
 Proof.
-  remember (fix sval_to_vals (sl : list Sval) : option (list Val) :=
-              match sl with
-              | [] => Some []
-              | s :: rest =>
-                  match eval_sval_to_val s with
-                  | Some v =>
-                      match sval_to_vals rest with
-                      | Some l' => Some (v :: l')
-                      | None => None
-                      end
-                  | None => None
-                  end
-              end) as eval_sval_to_vals. rename Heqeval_sval_to_vals into Hvals.
+  remember (
+    fun (sl : list Sval) =>
+      lift_option (map eval_sval_to_val sl)
+  ) as eval_sval_to_vals. rename Heqeval_sval_to_vals into Hvals.
   remember (fix sval_to_avals (sl : AList.StringAList Sval) :
              option (AList.StringAList Val) :=
               match sl with
@@ -701,7 +531,7 @@ Proof.
   - destruct_match b; inv H1. inv H0. inv H2. auto.
   - inversion H1. subst lv oldv. clear H1. simpl in H2.
     destruct_match H2; inversion H2. subst v0. clear H2. f_equal.
-    rewrite <- Hvals in H1. eapply sval_to_val_Some_case3; eauto.
+    rewrite <- (equal_f Hvals) in H1. eapply sval_to_val_Some_case3; eauto.
   - inversion H1. subst kvs oldv. clear H1. simpl in H2.
     destruct_match H2; inversion H2. subst v0. clear H2. f_equal.
     rewrite <- Havals in H1. eapply sval_to_val_Some_case2; eauto.
@@ -714,7 +544,7 @@ Proof.
     f_equal. eapply sval_to_val_Some_case2; eauto.
   - inversion H1. subst lv next oldv. clear H1. simpl in H2.
     destruct_match H2; inversion H2. subst v0. clear H2. f_equal.
-    rewrite <- Hvals in H1. eapply sval_to_val_Some_case3; eauto.
+    rewrite <- (equal_f Hvals) in H1. eapply sval_to_val_Some_case3; eauto.
   - destruct_match H1; inversion H1. subst v0. clear H1. inversion H0. subst t v0 oldv.
     clear H0. f_equal. specialize (IHv _ H5 v1 eq_refl). now subst v1.
 Qed.
@@ -744,7 +574,7 @@ Proof.
       simpl; constructor; auto. constructor.
   - inv H0. simpl. constructor. induction H4; unfold bool_to_none in *;
       simpl; constructor; auto. constructor.
-  - inversion H1. subst lv v2. clear H1. simpl. constructor. rewrite <- Hvals.
+  - inversion H1. subst lv v2. clear H1. simpl. constructor. rewrite <- (equal_f Hvals).
     revert H0 lv' H3. induction vs; intros; inversion H3; subst lv'; clear H3;
       rewrite Hvals; constructor; inversion H0; subst x0 l0; clear H0. 1: now apply H7.
     rewrite <- Hvals. subst x l. apply IHvs; auto.
@@ -764,7 +594,7 @@ Proof.
     1: constructor. subst x0 l0. destruct x. simpl in *. constructor.
     + simpl. destruct H5. split; auto. apply H0. auto.
     + rewrite <- Havals. apply IHForall. auto.
-  - inversion H1. subst lv next v2. clear H1. simpl. constructor. rewrite <- Hvals.
+  - inversion H1. subst lv next v2. clear H1. simpl. constructor. rewrite <- (equal_f Hvals).
     revert H0 lv' H5. induction vs; intros; inversion H5; subst lv'; clear H5;
       rewrite Hvals; constructor; inversion H0; subst x0 l0; clear H0. 1: now apply H7.
     rewrite <- Hvals. subst x l. apply IHvs; auto.
@@ -802,7 +632,7 @@ Proof.
   - constructor. apply Forall2_True. now rewrite map_length.
   - constructor. apply Forall2_True. now rewrite map_length.
   - constructor. apply Forall2_True. now rewrite map_length.
-  - constructor. rewrite <- Hvals. induction vs; rewrite Hvals. 1: constructor.
+  - constructor. rewrite <- (equal_f Hvals). induction vs; rewrite Hvals. 1: constructor.
     rewrite <- Hvals. inversion H0. subst x l. clear H0. constructor; auto.
   - constructor. rewrite <- Havals. induction vs; rewrite Havals. 1: constructor.
     rewrite <- Havals. inversion H0. subst x l. clear H0. destruct a.
@@ -813,7 +643,7 @@ Proof.
   - constructor. rewrite <- Havals. induction vs; rewrite Havals. 1: constructor.
     rewrite <- Havals. inversion H0. subst x l. clear H0. destruct a.
     constructor; auto. apply IHvs. auto.
-  - constructor. rewrite <- Hvals. induction vs; rewrite Hvals. 1: constructor.
+  - constructor. rewrite <- (equal_f Hvals). induction vs; rewrite Hvals. 1: constructor.
     rewrite <- Hvals. inversion H0. subst x l. clear H0. constructor; auto.
 Qed.
 

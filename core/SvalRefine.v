@@ -2,12 +2,12 @@ Require Import Coq.Strings.String.
 Require Import Coq.ZArith.ZArith.
 Require Import Coq.NArith.BinNat.
 Require Import Coq.micromega.Lia.
+Require Import Poulet4.Utils.Utils.
 Require Import Poulet4.P4light.Syntax.Typed.
 Require Import Poulet4.P4light.Syntax.Syntax.
 Require Import Poulet4.P4light.Syntax.Value.
 Require Import Poulet4.P4light.Semantics.Semantics.
 Require Import ProD3.core.Coqlib.
-Require Import ProD3.core.Members.
 Require Import Poulet4.P4light.Syntax.SyntaxUtil.
 Require Import Hammer.Plugin.Hammer.
 
@@ -21,14 +21,23 @@ Notation Lval := ValueLvalue.
 Notation ident := (String.string).
 Notation path := (list ident).
 
-(* bit_refine a b means a includes b. *)
+(* bit_refine : option bool -> option bool -> Prop
+  We treat (option bool) as a set where None means an arbitrary Boolean.
+  bit_refine a b means a includes b. *)
 Inductive bit_refine : option bool -> option bool -> Prop :=
   | read_none : forall ob, bit_refine None ob
   | read_some : forall b, bit_refine (Some b) (Some b).
 
-(* sval_refine a b means a includes b. *)
+(* sval_refine : Sval -> Sval -> Prop
+  Similarly, we treat Sval as a set of Val's where None means an arbitrary bit.
+  sval_refine a b means a includes b. *)
 Definition sval_refine := exec_val bit_refine.
 
+(* In order to handle sval_refine, we prove some generic lemmas about exec_val,
+  including exec_val_refl, exec_val_sym, exec_val_trans. *)
+
+(* exec_val_refl : forall {A} (f : A -> A -> Prop),
+  (f is reflexive) -> ((exec_val f) is reflexive). *)
 Section exec_val_refl.
   Context {A : Type} (f : A -> A -> Prop).
   Hypothesis H_f_refl : forall x, f x x.
@@ -85,12 +94,76 @@ Proof.
   apply exec_val_refl. exact bit_refine_refl.
 Qed.
 
+(* exec_val_sym : forall {A B} (f : A -> B -> Prop) (g : B -> A -> Prop),
+  (f x y -> g y x) -> (exec_val f x y -> exec_val g y x).
+  This is more general than standard symmetricity. *)
+Section exec_val_sym.
+  Context {A B : Type} (f : A -> B -> Prop) (g : B -> A -> Prop).
+  Hypothesis H_rel_sym : forall a b, f a b -> g b a.
+
+  Lemma Forall2_sym : forall v1 v2,
+    Forall2 f v1 v2 ->
+    Forall2 g v2 v1.
+  Proof.
+    intros v1 v2; revert v1.
+    induction v2; intros.
+    - inv H; constructor.
+    - inv H; constructor; eauto.
+  Qed.
+
+  Hint Resolve Forall2_sym : core.
+
+  Lemma exec_val_sym_case1 : forall vs1 vs2,
+    Forall
+      (fun v2 : ValueBase =>
+        forall v1 : ValueBase, exec_val f v1 v2 -> exec_val g v2 v1) vs2 ->
+    Forall2 (exec_val f) vs1 vs2 ->
+    Forall2 (exec_val g) vs2 vs1.
+  Proof.
+    intros vs1 vs2; revert vs1.
+    induction vs2; intros; inv H0; inv H; constructor; only 1 : apply H2; auto.
+  Qed.
+
+  Lemma exec_val_sym_case2 : forall (vs1 : list (ident * ValueBase)) vs2,
+    Forall
+      (fun '(_, v2) =>
+        forall v1 : ValueBase, exec_val f v1 v2 -> exec_val g v2 v1) vs2 ->
+    AList.all_values (exec_val f) vs1 vs2 ->
+    AList.all_values (exec_val g) vs2 vs1.
+  Proof.
+    intros vs1 vs2; revert vs1.
+    induction vs2; intros; inv H0; inv H; constructor.
+    - destruct H4; split.
+      + congruence.
+      + destruct a; apply H2; auto.
+    - apply IHvs2; auto.
+  Qed.
+
+  Lemma exec_val_sym : forall v1 v2,
+    exec_val f v1 v2 ->
+    exec_val g v2 v1.
+  Proof.
+    intros v1 v2; revert v1.
+    induction v2 using custom_ValueBase_ind; intros * H_f;
+      inv H_f;
+      constructor; eauto.
+    - eapply exec_val_sym_case1; eauto.
+    - eapply exec_val_sym_case2; eauto.
+    - eapply exec_val_sym_case2; eauto.
+    - eapply exec_val_sym_case2; eauto.
+    - eapply exec_val_sym_case1; eauto.
+  Qed.
+End exec_val_sym.
+
 Definition rel_trans {A B C} (f : A -> B -> Prop) (g : B -> C -> Prop) (h : A -> C -> Prop) :=
   forall a b c,
     f a b ->
     g b c ->
     h a c.
 
+(* exec_val_trans : forall {A B C} (f g h),
+  rel_trans f g h -> rel_trans (exec_val f) (exec_val g) (exec_val h)
+  This is more general than standard transitivity. *)
 Section exec_val_trans.
   Context {A B C : Type} (f : A -> B -> Prop) (g : B -> C -> Prop) (h : A -> C -> Prop).
   Hypothesis H_rel_trans : rel_trans f g h.
@@ -154,64 +227,25 @@ Section exec_val_trans.
   Qed.
 End exec_val_trans.
 
-Section exec_val_sym.
-  Context {A B : Type} (f : A -> B -> Prop) (g : B -> A -> Prop).
-  Hypothesis H_rel_sym : forall a b, f a b -> g b a.
+Lemma bit_refine_trans : forall b1 b2 b3 : option bool,
+  bit_refine b1 b2 ->
+  bit_refine b2 b3 ->
+  bit_refine b1 b3.
+Proof.
+  intros.
+  inv H; inv H0; constructor.
+Qed.
 
-  Lemma Forall2_sym : forall v1 v2,
-    Forall2 f v1 v2 ->
-    Forall2 g v2 v1.
-  Proof.
-    intros v1 v2; revert v1.
-    induction v2; intros.
-    - inv H; constructor.
-    - inv H; constructor; eauto.
-  Qed.
+Lemma sval_refine_trans : forall sv1 sv2 sv3,
+  sval_refine sv1 sv2 ->
+  sval_refine sv2 sv3 ->
+  sval_refine sv1 sv3.
+Proof.
+  apply exec_val_trans. exact bit_refine_trans.
+Qed.
 
-  Hint Resolve Forall2_sym : core.
-
-  Lemma exec_val_sym_case1 : forall vs1 vs2,
-    Forall
-      (fun v2 : ValueBase =>
-        forall v1 : ValueBase, exec_val f v1 v2 -> exec_val g v2 v1) vs2 ->
-    Forall2 (exec_val f) vs1 vs2 ->
-    Forall2 (exec_val g) vs2 vs1.
-  Proof.
-    intros vs1 vs2; revert vs1.
-    induction vs2; intros; inv H0; inv H; constructor; only 1 : apply H2; auto.
-  Qed.
-
-  Lemma exec_val_sym_case2 : forall (vs1 : list (ident * ValueBase)) vs2,
-    Forall
-      (fun '(_, v2) =>
-        forall v1 : ValueBase, exec_val f v1 v2 -> exec_val g v2 v1) vs2 ->
-    AList.all_values (exec_val f) vs1 vs2 ->
-    AList.all_values (exec_val g) vs2 vs1.
-  Proof.
-    intros vs1 vs2; revert vs1.
-    induction vs2; intros; inv H0; inv H; constructor.
-    - destruct H4; split.
-      + congruence.
-      + destruct a; apply H2; auto.
-    - apply IHvs2; auto.
-  Qed.
-
-  Lemma exec_val_sym : forall v1 v2,
-    exec_val f v1 v2 ->
-    exec_val g v2 v1.
-  Proof.
-    intros v1 v2; revert v1.
-    induction v2 using custom_ValueBase_ind; intros * H_f;
-      inv H_f;
-      constructor; eauto.
-    - eapply exec_val_sym_case1; eauto.
-    - eapply exec_val_sym_case2; eauto.
-    - eapply exec_val_sym_case2; eauto.
-    - eapply exec_val_sym_case2; eauto.
-    - eapply exec_val_sym_case1; eauto.
-  Qed.
-End exec_val_sym.
-
+(* exec_val_trans : forall {A B} (f g : A -> B -> Prop),
+  (f implies g) -> ((exec_val f) implies (exec_val g)) *)
 Section exec_val_impl.
   Context {A B : Type} (f : A -> B -> Prop) (g : A -> B -> Prop).
   Hypothesis H_rel_impl : forall a b, f a b -> g a b.
@@ -270,193 +304,145 @@ Section exec_val_impl.
   Qed.
 End exec_val_impl.
 
-Lemma Forall2_True: forall {A B: Type} (l1: list A) (l2: list B),
-    length l1 = length l2 -> Forall2 (fun _ _ => True) l1 l2.
+(* We define the following functions to convert between Sval and Val. *)
+
+(* eval_sval_to_val : Sval -> option Val
+  eval_sval_to_val sv = (Some v) if all bits of sv are known.
+  eval_sval_to_val sv = None if sv has unknown bits. *)
+Fixpoint eval_sval_to_val (sval: Sval): option Val :=
+  let sval_to_vals (sl: list Sval): option (list Val) :=
+    lift_option (map eval_sval_to_val sl) in
+  let fix sval_to_avals (sl: AList.StringAList Sval): option (AList.StringAList Val) :=
+    (* We will want to have a function like lift_option for AList. *)
+    match sl with
+    | [] => Some []
+    | (k, s) :: rest => match eval_sval_to_val s with
+                        | None => None
+                        | Some v => match sval_to_avals rest with
+                                    | None => None
+                                    | Some l' => Some ((k, v) :: l')
+                                    end
+                        end
+    end in
+  match sval with
+  | ValBaseNull => Some ValBaseNull
+  | ValBaseBool (Some b) => Some (ValBaseBool b)
+  | ValBaseBool None => None
+  | ValBaseInteger z => Some (ValBaseInteger z)
+  | ValBaseBit bits => match lift_option bits with
+                       | Some l => Some (ValBaseBit l)
+                       | None => None
+                       end
+  | ValBaseInt bits => match lift_option bits with
+                       | Some l => Some (ValBaseInt l)
+                       | None => None
+                       end
+  | ValBaseVarbit n bits => match lift_option bits with
+                            | Some l => Some (ValBaseVarbit n l)
+                            | None => None
+                            end
+  | ValBaseString s => Some (ValBaseString s)
+  | ValBaseTuple l => match sval_to_vals l with
+                      | Some l' => Some (ValBaseTuple l')
+                      | None => None
+                      end
+  | ValBaseError err => Some (ValBaseError err)
+  | ValBaseMatchKind k => Some (ValBaseMatchKind k)
+  | ValBaseStruct l => match sval_to_avals l with
+                       | Some l' => Some (ValBaseStruct l')
+                       | None => None
+                       end
+  | ValBaseHeader _ None => None
+  | ValBaseHeader l (Some b) => match sval_to_avals l with
+                                | Some l' => Some (ValBaseHeader l' b)
+                                | None => None
+                                end
+  | ValBaseUnion l => match sval_to_avals l with
+                      | Some l' => Some (ValBaseUnion l')
+                      | None => None
+                      end
+  | ValBaseStack l n => match sval_to_vals l with
+                          | Some l' => Some (ValBaseStack l' n)
+                          | None => None
+                          end
+  | ValBaseEnumField s1 s2 => Some (ValBaseEnumField s1 s2)
+  | ValBaseSenumField s1 s => match eval_sval_to_val s with
+                                 | None => None
+                                 | Some v => Some (ValBaseSenumField s1 v)
+                                 end
+  end.
+
+Definition opt_to_bool : option bool -> bool :=
+  force false.
+
+(* force_sval_to_val : Sval -> Val
+  force_sval_to_val replaces None (unknown) with false. *)
+Fixpoint force_sval_to_val (sval: Sval): Val :=
+  let sval_to_vals (sl: list Sval): list Val :=
+    map force_sval_to_val sl in
+  (* I believe we have a map function for alist, but I cannot find it. *)
+  let fix sval_to_avals (sl: AList.StringAList Sval): AList.StringAList Val :=
+    match sl with
+    | [] => []
+    | (k, s) :: rest => (k, force_sval_to_val s) :: sval_to_avals rest
+    end in
+  match sval with
+  | ValBaseNull => ValBaseNull
+  | ValBaseBool (Some b) => ValBaseBool b
+  | ValBaseBool None => ValBaseBool false
+  | ValBaseInteger z => ValBaseInteger z
+  | ValBaseBit bits => ValBaseBit (map opt_to_bool bits)
+  | ValBaseInt bits => ValBaseInt (map opt_to_bool bits)
+  | ValBaseVarbit n bits => ValBaseVarbit n (map opt_to_bool bits)
+  | ValBaseString s => ValBaseString s
+  | ValBaseTuple l => ValBaseTuple (sval_to_vals l)
+  | ValBaseError err => ValBaseError err
+  | ValBaseMatchKind k => ValBaseMatchKind k
+  | ValBaseStruct l => ValBaseStruct (sval_to_avals l)
+  | ValBaseHeader l valid => ValBaseHeader (sval_to_avals l) (opt_to_bool valid)
+  | ValBaseUnion l => ValBaseUnion (sval_to_avals l)
+  | ValBaseStack l n => ValBaseStack (sval_to_vals l) n
+  | ValBaseEnumField s1 s2 => ValBaseEnumField s1 s2
+  | ValBaseSenumField s1 s => ValBaseSenumField s1 (force_sval_to_val s)
+  end.
+
+Definition bool_to_none: bool -> option bool := fun _ => None.
+
+Lemma map_bool_to_none: forall l,
+    map bool_to_none l = repeat None (length l).
 Proof.
-  intros. revert l2 H.
-  induction l1; intros; destruct l2; simpl in H; inv H; constructor; auto.
+  induction l; simpl; auto. unfold bool_to_none at 1. now rewrite IHl.
 Qed.
 
-Lemma bit_refine_trans : forall b1 b2 b3 : option bool,
-  bit_refine b1 b2 ->
-  bit_refine b2 b3 ->
-  bit_refine b1 b3.
-Proof.
-  intros.
-  inv H; inv H0; constructor.
-Qed.
-
-Lemma sval_refine_trans : forall sv1 sv2 sv3,
-  sval_refine sv1 sv2 ->
-  sval_refine sv2 sv3 ->
-  sval_refine sv1 sv3.
-Proof.
-  apply exec_val_trans. exact bit_refine_trans.
-Qed.
-
-Lemma all_values_get_some_rel : forall {A} (kvl kvl' : AList.StringAList A) f rel v v',
-  AList.all_values rel kvl kvl' ->
-  AList.get kvl f = Some v ->
-  AList.get kvl' f = Some v' ->
-  rel v v'.
-Proof.
-  intros.
-  induction H.
-  - inv H0.
-  - destruct x as [kx vx]; destruct y as [ky vy].
-    destruct H. simpl in H. subst ky.
-    destruct (String.string_dec f kx) eqn:?.
-    + rewrite AList.get_eq_cons in H1, H0 by auto.
-      inv H1; inv H0.
-      auto.
-    + rewrite AList.get_neq_cons in H1, H0 by auto.
-      auto.
-Qed.
-
-Lemma all_values_get_some_is_some : forall {A} (kvl kvl' : AList.StringAList A) f rel v,
-  AList.all_values rel kvl kvl' ->
-  AList.get kvl f = Some v ->
-  is_some (AList.get kvl' f).
-Proof.
-  intros.
-  induction H.
-  - inv H0.
-  - destruct x as [kx vx]; destruct y as [ky vy].
-    destruct H. simpl in H. subst ky.
-    destruct (String.string_dec f kx) eqn:?.
-    + rewrite AList.get_eq_cons in H0 |- * by auto.
-      auto.
-    + rewrite AList.get_neq_cons in H0 |- * by auto.
-      auto.
-Qed.
-
-Lemma all_values_get_some_exists_rel: forall {A} (kvl kvl' : AList.StringAList A) f rel v,
-  AList.all_values rel kvl kvl' ->
-  AList.get kvl f = Some v ->
-  exists v', AList.get kvl' f = Some v' /\ rel v v'.
-Proof.
-  intros. pose proof H0. eapply all_values_get_some_is_some in H0; eauto.
-  unfold is_some, isSome in H0. destruct (AList.get kvl' f) eqn:?H. 2: inv H0.
-  eapply all_values_get_some_rel in H2; eauto.
-Qed.
-
-Lemma all_values_get_none_is_none : forall {A} (kvl kvl' : AList.StringAList A) f rel,
-  AList.all_values rel kvl kvl' ->
-  AList.get kvl f = None ->
-  AList.get kvl' f = None.
-Proof.
-  intros.
-  induction H; auto.
-  destruct x as [kx vx]; destruct y as [ky vy].
-  destruct H. simpl in H. subst ky.
-  destruct (String.string_dec f kx) eqn:?.
-  - rewrite AList.get_eq_cons in H0 |- * by auto. inv H0.
-  - rewrite AList.get_neq_cons in H0 |- * by auto. auto.
-Qed.
-
-Lemma all_values_get_some_is_some' : forall {A} (kvl kvl' : AList.StringAList A) f rel v',
-  AList.all_values rel kvl kvl' ->
-  AList.get kvl' f = Some v' ->
-  is_some (AList.get kvl f).
-Proof.
-  intros.
-  induction H.
-  - inv H0.
-  - destruct x as [kx vx]; destruct y as [ky vy].
-    destruct H. simpl in H. subst ky.
-    destruct (String.string_dec f kx) eqn:?.
-    + rewrite AList.get_eq_cons in H0 |- * by auto.
-      auto.
-    + rewrite AList.get_neq_cons in H0 |- * by auto.
-      auto.
-Qed.
-
-Lemma all_values_get_is_some : forall {A} (kvl kvl' : AList.StringAList A) f rel,
-  AList.all_values rel kvl kvl' ->
-  is_some (AList.get kvl f) = is_some (AList.get kvl' f).
-Proof.
-  intros.
-  destruct (AList.get kvl f) eqn:H_get1; destruct (AList.get kvl' f) eqn:H_get2; auto.
-  - epose proof (all_values_get_some_is_some _ _ _ _ _ ltac:(eauto) ltac:(eauto)) as H0; auto.
-    rewrite H_get2 in H0. inv H0.
-  - epose proof (all_values_get_some_is_some' _ _ _ _ _ ltac:(eauto) ltac:(eauto)) as H0; auto.
-    rewrite H_get1 in H0. inv H0.
-Qed.
-
-Lemma all_values_key_unique : forall {A} (kvl kvl' : AList.StringAList A) rel,
-    AList.all_values rel kvl kvl' ->
-    AList.key_unique kvl -> AList.key_unique kvl'.
-Proof.
-  intros. induction H; auto. inv H0. destruct x. destruct (AList.get l s) eqn:?H.
-  1: inv H3. simpl. destruct y. eapply all_values_get_none_is_none in H0; eauto.
-  simpl in H. destruct H. subst s0. rewrite H0. apply IHForall2; auto.
-Qed.
-
-Lemma sval_refine_get_case1 : forall f kvs kvs',
-  AList.all_values (exec_val bit_refine) kvs kvs' ->
-  sval_refine (force ValBaseNull (AList.get kvs f)) (force ValBaseNull (AList.get kvs' f)).
-Proof.
-  intros.
-  destruct (AList.get kvs f) eqn:H_get1; destruct (AList.get kvs' f) eqn:H_get2.
-  + eapply all_values_get_some_rel; eauto.
-  + epose proof (all_values_get_some_is_some _ _ _ _ _ ltac:(eauto) ltac:(eauto)) as H0.
-    rewrite H_get2 in H0. inv H0.
-  + epose proof (all_values_get_some_is_some' _ _ _ _ _ ltac:(eauto) ltac:(eauto)) as H0.
-    rewrite H_get1 in H0. inv H0.
-  + constructor.
-Qed.
-
-Lemma sval_refine_get : forall sv sv' f,
-  sval_refine sv sv' ->
-  sval_refine (get f sv) (get f sv').
-Proof.
-  intros.
-  inv H; try solve [constructor | apply sval_refine_get_case1; auto].
-  - unfold get.
-    destruct (String.eqb f "size").
-    {
-      apply Forall2_length in H0.
-      pose proof (Zlength_correct lv).
-      pose proof (Zlength_correct lv').
-      replace (Zlength lv) with (Zlength lv') by lia.
-      apply sval_refine_refl.
-    }
-    destruct (String.eqb f "lastIndex");
-      apply sval_refine_refl.
-Qed.
-
-Lemma Forall2_bit_refine_Some_same':
-  forall l1 l2, Forall2 bit_refine (map Some l1) l2 -> l2 = map Some l1.
-Proof.
-  induction l1; intros.
-  - inv H. simpl. auto.
-  - destruct l2; simpl in H; inv H. inv H3. simpl. f_equal. now apply IHl1.
-Qed.
-
-Lemma Forall2_bit_refine_Some_same:
-  forall l1 l2 : list bool, Forall2 bit_refine (map Some l1) (map Some l2) -> l1 = l2.
-Proof.
-  induction l1; intros.
-  - inv H. symmetry in H0. apply map_eq_nil in H0. now subst.
-  - destruct l2; simpl in H; inv H. inv H3. f_equal. now apply IHl1.
-Qed.
-
-#[local] Open Scope Z_scope.
-
-Lemma sval_refine_to_loptbool_eq : forall w n1 n2,
-  0 <= n1 < Z.pow 2 (Z.of_N w) ->
-  0 <= n2 < Z.pow 2 (Z.of_N w) ->
-  SvalRefine.sval_refine
-    (Value.ValBaseBit (P4Arith.to_loptbool w n1))
-    (Value.ValBaseBit (P4Arith.to_loptbool w n2)) ->
-  n1 = n2.
-Proof.
-  intros. inv H1. unfold P4Arith.to_loptbool in H4.
-  apply Forall2_bit_refine_Some_same in H4.
-  pose proof (eq_refl (P4Arith.BitArith.lbool_to_val (P4Arith.to_lbool w n1) 1 0)).
-  rewrite H4 in H1 at 2. rewrite !P4Arith.bit_to_lbool_back in H1.
-  unfold P4Arith.BitArith.mod_bound, P4Arith.BitArith.upper_bound in H1.
-  rewrite !Zmod_small in H1; auto.
-Qed.
+(* val_to_liberal_sval : Val -> Sval
+  val_to_liberal_sval v returns the most liberal Sval that includes v.
+  That means the result only has the shape of v but all bits are unknown.
+  This is used to generate results for operators on Svals. *)
+Fixpoint val_to_liberal_sval (val: Val): Sval :=
+  let sval_to_vals (sl: list Val): list Sval :=
+    map val_to_liberal_sval sl in
+  let fix sval_to_avals (sl: AList.StringAList Val): AList.StringAList Sval :=
+    match sl with
+    | [] => []
+    | (k, s) :: rest => (k, val_to_liberal_sval s) :: sval_to_avals rest
+    end in
+  match val with
+  | ValBaseNull => ValBaseNull
+  | ValBaseBool b => ValBaseBool None
+  | ValBaseInteger z => ValBaseInteger z
+  | ValBaseBit bits => ValBaseBit (map bool_to_none bits)
+  | ValBaseInt bits => ValBaseInt (map bool_to_none bits)
+  | ValBaseVarbit n bits => ValBaseVarbit n (map bool_to_none bits)
+  | ValBaseString s => ValBaseString s
+  | ValBaseTuple l => ValBaseTuple (sval_to_vals l)
+  | ValBaseError err => ValBaseError err
+  | ValBaseMatchKind k => ValBaseMatchKind k
+  | ValBaseStruct l => ValBaseStruct (sval_to_avals l)
+  | ValBaseHeader l valid => ValBaseHeader (sval_to_avals l) (bool_to_none valid)
+  | ValBaseUnion l => ValBaseUnion (sval_to_avals l)
+  | ValBaseStack l n => ValBaseStack (sval_to_vals l) n
+  | ValBaseEnumField s1 s2 => ValBaseEnumField s1 s2
+  | ValBaseSenumField s1 s => ValBaseSenumField s1 (val_to_liberal_sval s)
+  end.
 
 End SvalRefine.

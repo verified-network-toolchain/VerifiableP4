@@ -230,7 +230,7 @@ Proof.
   intros. unfold hash_spec. simpl. split.
   - repeat intro. red. red in H. destruct H. do 2 red in H. inv H. inv H4.
     inv H6. inv H3. inv H5. inv H4. inv H7. inv H8. inv H5.
-    apply SvalRefine.Forall2_bit_refine_Some_same' in H2, H4. subst. inv H0. inv H7.
+    apply Members.Forall2_bit_refine_Some_same' in H2, H4. subst. inv H0. inv H7.
     simpl in H. inv H. simpl. red. split; [|split]; auto.
     + Opaque to_lbool. inv H4. inv H6. inv H8. inv H4. apply Forall2_ndetbit in H2.
       inv H7. inv H6. inv H10. inv H8. inv H6. apply Forall2_ndetbit in H4. subst.
