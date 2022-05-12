@@ -294,8 +294,27 @@ Ltac step_call_tac func_spec :=
           eapply hoare_block_cons;
           only 1 : step_stmt_call func_spec
       end
+  | |- hoare_stmt _ _ _ _ _ =>
+      step_stmt_call func_spec
+  | |- hoare_call _ _ _ _ _ =>
+      step_call_func func_spec
   | _ => fail "The goal is not in the form of (hoare_block _ _ (MEM _ (EXT _)) _ _)"
   end.
+
+(* We use a fancy hack here. The function body lemma has form
+      forall x_1, ..., x_n,
+        (forall y_1, ..., y_m,
+          hoare_func ...)
+        /\
+        (func_modifies ...).
+  The lemma func_spec_combine' expects a proof for
+      (hoare_func ...)
+      /\
+      (func_modifies ...).
+  The variables x_1, ..., x_n are epxected to be resolved automatically.
+  But user might need to supply some of y_1, ..., y_m. So we generate a
+  proof in the second form with from user supplied lemma and variables in
+  the following tactics, and then call step_call_tac. *)
 
 Ltac step_call_wrapper func_spec callback :=
   let func_body := fresh "func_body" in

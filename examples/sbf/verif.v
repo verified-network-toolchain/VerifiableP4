@@ -79,7 +79,6 @@ Definition Row_insert_spec : func_spec :=
         (MEM [(["rw"], eval_val_to_sval (ValBaseBit (P4Arith.to_lbool 8%N 1)))]
         (EXT [row_repr p (row_insert r i)]))).
 
-(* Spec of regact_insert.execute. *)
 Definition Row_regact_insert_execute_spec : func_spec :=
   WITH (* p *),
     PATH p ++ ["regact_insert"]
@@ -100,8 +99,8 @@ Definition dummy_fundef : @fundef Info := FExternal "" "".
 Opaque dummy_fundef.
 Definition execute_fundef : @fundef Info := FExternal "RegisterAction" "execute".
 
-Axiom Row_regact_insert_execute_body : forall targs,
-  fundef_satisfies_spec ge execute_fundef targs Row_regact_insert_execute_spec.
+Axiom Row_regact_insert_execute_body :
+  fundef_satisfies_spec ge execute_fundef nil Row_regact_insert_execute_spec.
 
 #[local] Hint Extern 5 (Modifies.func_modifies _ _ _ _ _) => (apply Row_regact_insert_execute_body) : func_specs.
 #[local] Hint Extern 1 (list P4Type) => (exact (@nil _)) : func_specs.
@@ -132,6 +131,20 @@ Definition Row_fundef := Eval compute in
   ensure that the action will be executed by tables are only actions listed in the
   action list. That can be guaranteed in the lookup and synthesize step. *)
 
+(* This should be true. Ideally we write it as a function instead of a relation. *)
+Axiom exec_table_entries_det : forall ge p p' st st' entries entryvs entryvs',
+  exec_table_entries ge read_ndetbit p st entries entryvs ->
+  exec_table_entries ge read_ndetbit p' st' entries entryvs' ->
+  entryvs' = entryvs.
+
+Lemma hoare_table_entries_intros : forall ge p entries entryvs,
+  exec_table_entries ge read_ndetbit [] (PathMap.empty, PathMap.empty) entries entryvs ->
+  hoare_table_entries ge p entries entryvs.
+Proof.
+  unfold hoare_table_entries; intros.
+  eapply exec_table_entries_det; eauto.
+Qed.
+
 Lemma Row_body :
   fundef_satisfies_spec ge Row_fundef nil Row_spec.
 Proof.
@@ -148,5 +161,28 @@ Proof.
       { eapply hoare_table_match_intro'.
         { reflexivity. }
         { reflexivity. }
-        {
+        { eapply hoare_table_entries_intros.
+          repeat econstructor.
+        }
+        { reflexivity. }
+      }
+      { subst op. reflexivity. }
+      { step_call Row_insert_body.
+        2 : { entailer. }
+        auto.
+      }
+    }
+    { reflexivity. }
+    { reflexivity. }
+  }
+  { step.
+    entailer.
+    { destruct ((op =? INSERT)%Z) eqn:?; try lia.
+      apply sval_refine_refl.
+    }
+    { simpl.
+      destruct ((op =? INSERT)%Z) eqn:?; try lia.
+      entailer.
+    }
+  }
 Abort.
