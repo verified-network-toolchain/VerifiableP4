@@ -3,12 +3,12 @@ Require Import Poulet4.P4light.Syntax.Syntax.
 Require Import Poulet4.P4light.Semantics.Semantics.
 Require Import Poulet4.Utils.Utils.
 Require Import ProD3.core.Coqlib.
+Require Import ProD3.core.SvalRefine.
 Require Import ProD3.core.Hoare.
 Require Import ProD3.core.AssertionLang.
 Require Import ProD3.core.AssertionNotations.
 Require Import ProD3.core.EvalExpr.
 Require Import ProD3.core.EvalBuiltin.
-Require Import Poulet4.P4light.Architecture.V1Model.
 Require Import Hammer.Tactics.Tactics.
 Require Import Hammer.Plugin.Hammer.
 Require Import Coq.ZArith.BinInt.
@@ -548,6 +548,35 @@ Proof.
     + eapply inv_implicit_return_sound. eassumption.
     + sfirstorder.
   - apply inv_func_copy_out_sound; auto.
+Qed.
+
+(* For now, we only support constant entries in this rule. *)
+Lemma hoare_table_match_intro' : forall p pre_mem pre_ext name keys keysvals keyvals const_entries entryvs matched_action,
+  let entries := const_entries in
+  let match_kinds := map table_key_matchkind keys in
+  eval_exprs ge p pre_mem (map table_key_key keys) = Some keysvals ->
+  lift_option (map eval_sval_to_val keysvals) = Some keyvals ->
+  hoare_table_entries ge p entries entryvs ->
+  extern_match (combine keyvals match_kinds) entryvs = matched_action ->
+  hoare_table_match ge p (MEM pre_mem (EXT pre_ext)) name keys (Some const_entries) matched_action.
+Proof.
+  intros.
+  eapply hoare_table_match_intro.
+  - apply eval_exprs_sound; eauto.
+  - assert (Forall2 (sval_to_val strict_read_ndetbit) keysvals keyvals). {
+      clear -H1.
+      apply lift_option_inv in H1.
+      generalize dependent keyvals.
+      induction keysvals; destruct keyvals; intros; inv H1.
+      - constructor.
+      - constructor; auto.
+        apply eval_sval_to_val_sval_to_val; auto.
+    }
+    eapply Forall2_sym; [ | eassumption].
+    eapply exec_val_sym.
+    sauto.
+  - eauto.
+  - eauto.
 Qed.
 
 Lemma hoare_func_table' : forall p pre_mem pre_ext name keys actions default_action const_entries post_mem post_ext

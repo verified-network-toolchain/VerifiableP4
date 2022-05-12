@@ -17,7 +17,7 @@ Opaque PathMap.empty PathMap.set.
 
 (* This currently takes 7s to evaluate. The reason is the exec_abstract_method takes a
   partial_ge as a parameter and this partial_ge is fully expended and we have as many copies
-  as the number of instances. We would try to prevent thhis partial_ge from unfolding later. *)
+  as the number of instances. We would try to prevent this partial_ge from unfolding later. *)
 Definition ge : genv := Eval compute in gen_ge prog.
 
 Transparent PathMap.empty PathMap.set.
@@ -136,12 +136,17 @@ Lemma Row_body :
   fundef_satisfies_spec ge Row_fundef nil Row_spec.
 Proof.
   start_function.
+  2 : admit.
+  destruct (Z.eq_dec op INSERT).
   eapply hoare_block_cons.
   { eapply hoare_stmt_method_call'.
     eapply hoare_call_func'.
     { reflexivity. }
     { reflexivity. }
     { reflexivity. }
-    { (* eapply hoare_func_post. *)
-      eapply hoare_func_table'.
+    { eapply hoare_func_table'.
+      { eapply hoare_table_match_intro'.
+        { reflexivity. }
+        { reflexivity. }
+        {
 Abort.

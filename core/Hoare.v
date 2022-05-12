@@ -787,7 +787,7 @@ Definition hoare_table_entries p entries entryvs : Prop :=
     entryvs' = entryvs.
 
 (* For now, we only support constant entries in this rule. *)
-Definition hoare_table_match_intro : forall p pre name keys keysvals keyvals const_entries entryvs matched_action,
+Lemma hoare_table_match_intro : forall p pre name keys keysvals keyvals const_entries entryvs matched_action,
   let entries := const_entries in
   let match_kinds := map table_key_matchkind keys in
   hoare_exprs_det p pre (map table_key_key keys) keysvals ->

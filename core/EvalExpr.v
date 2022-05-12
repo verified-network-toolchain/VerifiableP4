@@ -526,6 +526,89 @@ Proof.
     clear H0. f_equal. specialize (IHv _ H5 v1 eq_refl). now subst v1.
 Qed.
 
+Section eval_sval_to_val_sval_to_val.
+  Lemma lift_option_strict_read_ndetbit : forall sbs bs,
+    lift_option sbs = Some bs ->
+    Forall2 strict_read_ndetbit sbs bs.
+  Proof.
+    induction sbs; intros; inv H0.
+    - constructor.
+    - destruct_match H2. 2 : inv H2.
+      destruct_match H2; inv H2.
+      constructor.
+      + constructor.
+      + auto.
+  Qed.
+
+  Hint Resolve lift_option_strict_read_ndetbit : core.
+
+  Lemma exec_val_impl_case1 : forall svs vs,
+    Forall
+       (fun sv : Sval =>
+        forall v : Val, eval_sval_to_val sv = Some v -> sval_to_val strict_read_ndetbit sv v) svs ->
+    lift_option (map eval_sval_to_val svs) = Some vs ->
+    Forall2 (exec_val strict_read_ndetbit) svs vs.
+  Proof.
+    intros.
+    generalize dependent vs.
+    induction svs; intros; inv H1.
+    - constructor.
+    - inv H0.
+      destruct_match H3; inv H3.
+      destruct_match H2; inv H2.
+      constructor.
+      + eapply H4; auto.
+      + auto.
+  Qed.
+
+  Lemma exec_val_impl_case2 : forall (svs : list (ident * ValueBase)) vs,
+    Forall
+       (fun '(_, sv) =>
+        forall v : Val, eval_sval_to_val sv = Some v -> sval_to_val strict_read_ndetbit sv v) svs ->
+    lift_option_kv (kv_map eval_sval_to_val svs) = Some vs ->
+    AList.all_values (exec_val strict_read_ndetbit) svs vs.
+  Proof.
+    induction svs; intros; inv H1.
+    - constructor.
+    - inv H0.
+      destruct_match H3; inv H3.
+      destruct_match H2; inv H2.
+      destruct_match H3; inv H3.
+      constructor.
+      + split; auto.
+        apply H4; auto.
+      + apply IHsvs; auto.
+  Qed.
+
+  Lemma eval_sval_to_val_sval_to_val : forall sv v,
+    eval_sval_to_val sv = Some v ->
+    sval_to_val strict_read_ndetbit sv v.
+  Proof.
+    intros sv v; revert v.
+      induction sv using custom_ValueBase_ind; intros * H_eval;
+      inv H_eval;
+      try constructor; eauto.
+    - destruct_match H_eval; inv H1. constructor. constructor.
+    - destruct_match H_eval; inv H1. constructor; auto.
+    - destruct_match H_eval; inv H1. constructor; auto.
+    - destruct_match H_eval; inv H1. constructor; auto.
+    - destruct_match H_eval; inv H2. constructor.
+      eapply exec_val_impl_case1; auto.
+    - destruct_match H_eval; inv H2. constructor.
+      eapply exec_val_impl_case2; auto.
+    - destruct_match H_eval; inv H2.
+      destruct_match H4; inv H4.
+      constructor; only 1 : constructor.
+      eapply exec_val_impl_case2; auto.
+    - destruct_match H2; inv H2. constructor.
+      eapply exec_val_impl_case2; auto.
+    - destruct_match H2; inv H2. constructor.
+      eapply exec_val_impl_case1; auto.
+    - destruct_match H1; inv H1. constructor.
+      apply IHsv; auto.
+  Qed.
+End eval_sval_to_val_sval_to_val.
+
 Lemma eval_val_to_sval_val_sim: forall v, val_sim v (eval_val_to_sval v).
 Proof. intros. apply (val_sim_on_top read_detbit). now rewrite val_to_sval_iff. Qed.
 
