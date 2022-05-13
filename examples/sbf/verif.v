@@ -131,58 +131,20 @@ Definition Row_fundef := Eval compute in
   ensure that the action will be executed by tables are only actions listed in the
   action list. That can be guaranteed in the lookup and synthesize step. *)
 
-(* This should be true. Ideally we write it as a function instead of a relation. *)
-Axiom exec_table_entries_det : forall ge p p' st st' entries entryvs entryvs',
-  exec_table_entries ge read_ndetbit p st entries entryvs ->
-  exec_table_entries ge read_ndetbit p' st' entries entryvs' ->
-  entryvs' = entryvs.
-
-Lemma hoare_table_entries_intros : forall ge p entries entryvs,
-  exec_table_entries ge read_ndetbit [] (PathMap.empty, PathMap.empty) entries entryvs ->
-  hoare_table_entries ge p entries entryvs.
-Proof.
-  unfold hoare_table_entries; intros.
-  eapply exec_table_entries_det; eauto.
-Qed.
-
 Lemma Row_body :
   fundef_satisfies_spec ge Row_fundef nil Row_spec.
 Proof.
   start_function.
   2 : admit.
   destruct (Z.eq_dec op INSERT).
-  eapply hoare_block_cons.
-  { eapply hoare_stmt_method_call'.
-    eapply hoare_call_func'.
-    { reflexivity. }
-    { reflexivity. }
-    { reflexivity. }
-    { eapply hoare_func_table'.
-      { eapply hoare_table_match_intro'.
-        { reflexivity. }
-        { reflexivity. }
-        { eapply hoare_table_entries_intros.
-          repeat econstructor.
-        }
-        { reflexivity. }
-      }
-      { subst op. reflexivity. }
-      { step_call Row_insert_body.
-        2 : { entailer. }
-        auto.
-      }
-    }
-    { reflexivity. }
-    { reflexivity. }
+  { subst op.
+    step_into_call.
+  { hoare_func_table.
+    step_call Row_insert_body.
+    2 : { entailer. }
+    auto.
   }
-  { step.
-    entailer.
-    { destruct ((op =? INSERT)%Z) eqn:?; try lia.
-      apply sval_refine_refl.
-    }
-    { simpl.
-      destruct ((op =? INSERT)%Z) eqn:?; try lia.
-      entailer.
-    }
-  }
+  { reflexivity. }
+  { reflexivity. }
+  { entailer. }
 Abort.

@@ -786,6 +786,23 @@ Definition hoare_table_entries p entries entryvs : Prop :=
     exec_table_entries ge read_ndetbit p st entries entryvs' ->
     entryvs' = entryvs.
 
+(* This should be true eventually.
+  The reason that this is currently not true is that it allows to read from st.
+  But actually table entries can only depends on constants.
+  Ideally we write exec_table_entries as a function instead of a relation. *)
+Axiom exec_table_entries_det : forall p p' st st' entries entryvs entryvs',
+  exec_table_entries ge read_ndetbit p st entries entryvs ->
+  exec_table_entries ge read_ndetbit p' st' entries entryvs' ->
+  entryvs' = entryvs.
+
+Lemma hoare_table_entries_intros : forall p entries entryvs,
+  exec_table_entries ge read_ndetbit [] (PathMap.empty, PathMap.empty) entries entryvs ->
+  hoare_table_entries p entries entryvs.
+Proof.
+  unfold hoare_table_entries; intros.
+  eapply exec_table_entries_det; eauto.
+Qed.
+
 (* For now, we only support constant entries in this rule. *)
 Lemma hoare_table_match_intro : forall p pre name keys keysvals keyvals const_entries entryvs matched_action,
   let entries := const_entries in

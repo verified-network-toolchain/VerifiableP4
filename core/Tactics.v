@@ -368,6 +368,96 @@ Tactic Notation "step_call" uconstr(func_spec) :=
       epose proof (func_body := conj func_body1 func_body2))
   || step_call func_spec _.
 
+(* Tactics for step into a function call, instead of using a function spec.
+  They may need some refactoring. *)
+
+Ltac step_into_call_func :=
+  lazymatch goal with
+  | |- hoare_call _ _ _ _ _ =>
+      eapply hoare_call_func';
+        [ reflexivity (* is_builtin_func *)
+        | reflexivity (* eval_args *)
+        | reflexivity (* lookup_func *)
+        | (* step into function body *)
+        | (* reflexivity *) (* is_no_dup *)
+        | (* reflexivity *) (* eval_call_copy_out *)
+        ]
+  | _ => fail "The goal is not in the form of (hoare_call _ _ _ _ _)"
+  end.
+
+Ltac step_stmt_into_call :=
+  lazymatch goal with
+  | |- hoare_stmt _ _ (MEM _ (EXT _)) ?stmt _ =>
+      lazymatch stmt with
+      (* hoare_stmt_assign_call' *)
+      | MkStatement _ (StatAssignment _ (MkExpression _ (ExpFunctionCall ?func _ _) _ _)) _ =>
+          eapply hoare_stmt_assign_call';
+            [ reflexivity (* is_call_expression *)
+            | reflexivity (* eval_lexpr *)
+            | step_into_call_func (* hoare_call *)
+            | reflexivity (* is_no_dup *)
+            | reflexivity (* eval_write *)
+            ]
+      (* hoare_stmt_method_call' *)
+      | MkStatement _ (StatMethodCall ?func _ _) _ =>
+          eapply hoare_stmt_method_call';
+            step_into_call_func (* hoare_call *)
+      (* hoare_stmt_var_call' *)
+      | MkStatement _
+            (StatVariable _ _
+                (Some (MkExpression _ (ExpFunctionCall ?func _ _) _ _))
+                ?loc) _ =>
+          lazymatch loc with
+          | LInstance _ => idtac (* ok *)
+          | LGlobal _ => fail "Cannot declacre a variable with LGlobal locator"
+          | _ => fail "Unrecognized locator expression" loc
+          end;
+          eapply hoare_stmt_var_call';
+            [ reflexivity (* is_call_expression *)
+            | step_into_call_func (* hoare_call *)
+            | reflexivity (* is_no_dup *)
+            | reflexivity (* eval_write *)
+            ]
+      (* hoare_stmt_direct_application' *)
+      | MkStatement _ (StatDirectApplication _ _ _) _ =>
+          eapply hoare_stmt_direct_application';
+            step_into_call_func (* hoare_call *)
+      | _ => fail "This function call is not supported"
+      end
+  | _ => fail "The goal is not in the form of (hoare_stmt _ _ (MEM _ (EXT _)) ?stmt _)"
+  end.
+
+Ltac step_into_call :=
+  lazymatch goal with
+  | |- hoare_block _ _ (MEM _ (EXT _)) (BlockCons ?stmt _) _ =>
+      eapply hoare_block_cons;
+      [ step_stmt_into_call
+      | eapply hoare_block_nil
+      ]
+  | |- hoare_stmt _ _ (MEM _ (EXT _)) ?stmt _ =>
+      step_stmt_into_call
+  | _ => fail "The goal is not in the form of (hoare_block _ _ (MEM _ (EXT _)) (BlockCons _ _) _)"
+              "or (hoare_stmt _ _ (MEM _ (EXT _)) _ _)"
+  end.
+
+(* Handles table when the keys are constant values. *)
+Ltac hoare_func_table :=
+  lazymatch goal with
+  | |- hoare_func _ _ _ (FTable _ _ _ _ _) _ _ =>
+      eapply hoare_func_table';
+      [ eapply hoare_table_match_intro'; (* hoare_table_match *)
+        [ reflexivity (* eval_exprs *)
+        | reflexivity (* lift_option (.. keysvals) *)
+        | eapply hoare_table_entries_intros; (* hoare_table_entries *)
+          repeat econstructor
+        | reflexivity (* extern_match *)
+        ]
+      | reflexivity (* get_table_call *)
+      | idtac
+      ]
+  | _ => fail "The goal is not in the form of (hoare_func _ _ _ (FTable _ _ _ _ _) _ _)"
+  end.
+
 Ltac Forall2_sval_refine :=
   lazymatch goal with
   | |- Forall2 sval_refine _ _ =>
