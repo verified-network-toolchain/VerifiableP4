@@ -449,21 +449,6 @@ Proof.
     eapply modifies_exts_incl; eauto.
 Qed.
 
-Lemma call_modifies_func' : forall p tags func targs args typ dir obj_path fd vars' exts' vars exts,
-  is_builtin_func func = false ->
-  let dirs := get_arg_directions func in
-  Forall2 (out_arg_In_vars vars) args dirs ->
-  lookup_func ge p func = Some (obj_path, fd) ->
-  func_modifies (force p obj_path) fd vars' exts' ->
-  incl_vars (if is_some obj_path then None else vars) vars' ->
-  Forall (fun x => in_scopes x exts) exts' ->
-  call_modifies p (MkExpression tags (ExpFunctionCall func targs args) typ dir) vars exts.
-Proof.
-  intros.
-  eapply call_modifies_func; eauto.
-  eapply func_modifies_frame; eauto.
-Qed.
-
 Lemma func_modifies_internal_part1 : forall in_params vars exts st inargs,
   Forall (fun x => In_vars x vars) in_params ->
   modifies vars exts st (update_memory (PathMap.sets in_params inargs) st).
@@ -493,6 +478,9 @@ Qed.
 
 End Modifies.
 
+(* Importnant note: in order to avoid backtracking, there should be only one hint
+  works in one case. *)
+
 #[export] Hint Resolve In_vars_None In_vars_Some : modifies.
 #[export] Hint Resolve in_eq in_cons : modifies.
 #[export] Hint Constructors Forall : modifies.
@@ -508,10 +496,13 @@ End Modifies.
     stmt_modifies_var stmt_modifies_var_call stmt_modifies_if_none stmt_modifies_if_some stmt_modifies_block
     : modifies.
 #[export] Hint Resolve call_modifies_builtin call_modifies_func : modifies.
-#[export] Hint Extern 1 (func_modifies _ _ _ _ _) => apply func_modifies_internal : modifies.
+#[export] Hint Extern 2 (func_modifies _ _ _ _ _) => apply func_modifies_internal : modifies.
+(* This is needed, because (simple apply eq_refl) cannot unify. I don't think it causes any
+  backtracking, because it seems eauto does not backtrack terminal rules. *)
 #[export] Hint Extern 0 (eq _ (Some _)) => reflexivity : modifies.
 #[export] Hint Extern 1 (is_true _) => reflexivity : modifies.
 #[export] Hint Resolve eq_refl : modifies.
 #[export] Hint Constructors out_arg_In_vars : modifies.
-#[export] Hint Resolve call_modifies_func' : modifies.
-#[export] Hint Resolve func_modifies_internal : modifies.
+(* Apply func_modifies_frame only if there is already a function body proof. *)
+#[export] Hint Extern 1 (func_modifies _ _ _ _ _) =>
+  eapply func_modifies_frame; only 1 : solve [eauto 15 with nocore func_specs] : modifies.

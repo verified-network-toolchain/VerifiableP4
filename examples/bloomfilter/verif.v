@@ -305,7 +305,6 @@ Definition Add_spec : func_spec :=
 
 Lemma Add_body : fundef_satisfies_spec ge Add_fundef nil Add_spec.
 Proof.
-  unfold Add_spec, bloomfilter_exts.
   start_function.
   destruct H_bf. do 3 (destruct bf; [exfalso; list_solve |]).
   destruct bf; [|exfalso; list_solve].

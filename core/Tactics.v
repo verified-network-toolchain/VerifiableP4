@@ -183,7 +183,7 @@ Create HintDb func_specs.
 
 Ltac solve_modifies :=
   first [
-    solve [eauto 100 with nocore modifies func_specs]
+    solve [eauto 100 with nocore modifies]
   | idtac "The modifies clause cannot be solved automatically."
   ].
 
