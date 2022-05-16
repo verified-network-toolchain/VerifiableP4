@@ -804,7 +804,7 @@ Proof.
 Qed.
 
 (* For now, we only support constant entries in this rule. *)
-Lemma hoare_table_match_intro : forall p pre name keys keysvals keyvals const_entries entryvs matched_action,
+Lemma hoare_table_match_case : forall p pre name keys keysvals keyvals const_entries entryvs matched_action,
   let entries := const_entries in
   let match_kinds := map table_key_matchkind keys in
   hoare_exprs_det p pre (map table_key_key keys) keysvals ->
@@ -880,11 +880,35 @@ Proof.
   simpl; auto.
 Qed.
 
+Definition hoare_extern_match_list (keys_match_kinds : list (Val * ident)) (entryvs : list table_entry_valset)
+      (cases : list (Prop * option action_ref)) : Prop :=
+  fold_right or False (map fst cases) /\
+    Forall
+      (fun '(P, matched_action) => (P : Prop) -> (extern_match keys_match_kinds entryvs = matched_action)) cases.
+
 Definition hoare_table_match_list (p : path) (pre : assertion) (name : ident) (keys : list TableKey)
       (const_entries : option (list table_entry)) (cases : list (Prop * option action_ref)) :=
   fold_right or False (map fst cases) /\
     Forall
       (fun '(P, matched_action) => (P : Prop) -> hoare_table_match p pre name keys const_entries matched_action) cases.
+
+Definition hoare_table_match_list_intro : forall p pre name keys keysvals keyvals const_entries entryvs cases,
+  let entries := const_entries in
+  let match_kinds := map table_key_matchkind keys in
+  hoare_exprs_det p pre (map table_key_key keys) keysvals ->
+  Forall2 val_to_sval keyvals keysvals ->
+  hoare_table_entries p entries entryvs ->
+  hoare_extern_match_list (combine keyvals match_kinds) entryvs cases ->
+  hoare_table_match_list p pre name keys (Some const_entries) cases.
+Proof.
+  intros.
+  destruct H3.
+  split; auto.
+  eapply Forall_impl. 2 : eapply H4.
+  intros. destruct a.
+  intros H_P; specialize (H5 H_P).
+  eapply hoare_table_match_case; eauto.
+Qed.
 
 Inductive hoare_table_match_case_valid : path -> assertion -> list Expression -> Expression -> arg_ret_assertion ->
       (Prop * option action_ref) -> Prop :=

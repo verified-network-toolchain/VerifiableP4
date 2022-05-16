@@ -551,7 +551,7 @@ Proof.
 Qed.
 
 (* For now, we only support constant entries in this rule. *)
-Lemma hoare_table_match_intro' : forall p pre_mem pre_ext name keys keysvals keyvals const_entries entryvs matched_action,
+Lemma hoare_table_match_case' : forall p pre_mem pre_ext name keys keysvals keyvals const_entries entryvs matched_action,
   let entries := const_entries in
   let match_kinds := map table_key_matchkind keys in
   eval_exprs ge p pre_mem (map table_key_key keys) = Some keysvals ->
@@ -561,7 +561,7 @@ Lemma hoare_table_match_intro' : forall p pre_mem pre_ext name keys keysvals key
   hoare_table_match ge p (MEM pre_mem (EXT pre_ext)) name keys (Some const_entries) matched_action.
 Proof.
   intros.
-  eapply hoare_table_match_intro.
+  eapply hoare_table_match_case.
   - apply eval_exprs_sound; eauto.
   - assert (Forall2 (sval_to_val strict_read_ndetbit) keysvals keyvals). {
       clear -H1.
@@ -577,6 +577,24 @@ Proof.
     sauto.
   - eauto.
   - eauto.
+Qed.
+
+Definition hoare_table_match_list_intro' : forall p pre_mem pre_ext name keys keysvals keyvals const_entries entryvs cases,
+  let entries := const_entries in
+  let match_kinds := map table_key_matchkind keys in
+  eval_exprs ge p pre_mem (map table_key_key keys) = Some keysvals ->
+  lift_option (map eval_sval_to_val keysvals) = Some keyvals ->
+  hoare_table_entries ge p entries entryvs ->
+  hoare_extern_match_list (combine keyvals match_kinds) entryvs cases ->
+  hoare_table_match_list ge p (MEM pre_mem (EXT pre_ext)) name keys (Some const_entries) cases.
+Proof.
+  intros.
+  destruct H3.
+  split; auto.
+  eapply Forall_impl. 2 : eapply H4.
+  intros. destruct a.
+  intros H_P; specialize (H5 H_P).
+  eapply hoare_table_match_case'; eauto.
 Qed.
 
 Inductive hoare_table_match_case_valid' : path -> assertion -> list Expression -> Expression -> arg_ret_assertion ->

@@ -440,12 +440,12 @@ Ltac step_into_call :=
               "or (hoare_stmt _ _ (MEM _ (EXT _)) _ _)"
   end.
 
-(* Handles table when the keys are constant values. *)
-Ltac hoare_func_table :=
+(* Handles table when we have a particular case. *)
+Ltac hoare_func_table_case :=
   lazymatch goal with
   | |- hoare_func _ _ _ (FTable _ _ _ _ _) _ _ =>
       eapply hoare_func_table';
-      [ eapply hoare_table_match_intro'; (* hoare_table_match *)
+      [ eapply hoare_table_match_case'; (* hoare_table_match *)
         [ reflexivity (* eval_exprs *)
         | reflexivity (* lift_option (.. keysvals) *)
         | eapply hoare_table_entries_intros; (* hoare_table_entries *)
@@ -454,6 +454,23 @@ Ltac hoare_func_table :=
         ]
       | reflexivity (* get_table_call *)
       | idtac
+      ]
+  | _ => fail "The goal is not in the form of (hoare_func _ _ _ (FTable _ _ _ _ _) _ _)"
+  end.
+
+(* Handles table with constant entries. *)
+Ltac hoare_func_table :=
+  lazymatch goal with
+  | |- hoare_func _ _ _ (FTable _ _ _ _ _) _ _ =>
+      eapply hoare_func_table';
+      [ eapply hoare_table_match_list_intro'; (* hoare_table_match_list *)
+        [ reflexivity (* eval_exprs *)
+        | reflexivity (* lift_option (.. keysvals) *)
+        | eapply hoare_table_entries_intros; (* hoare_table_entries *)
+          repeat econstructor
+        | idtac (* hoare_extern_match_list *)
+        ]
+      | idtac (* Forall (hoare_table_match_case_valid' ...) *)
       ]
   | _ => fail "The goal is not in the form of (hoare_func _ _ _ (FTable _ _ _ _ _) _ _)"
   end.

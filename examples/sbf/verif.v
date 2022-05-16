@@ -136,7 +136,12 @@ Lemma Row_body :
 Proof.
   start_function.
   2 : admit.
-  destruct (Z.eq_dec op INSERT).
+  step_into_call.
+  { hoare_func_table.
+    admit.
+    admit.
+  }
+  (* destruct (Z.eq_dec op INSERT).
   { subst op.
     step_into_call.
   { hoare_func_table.
@@ -146,5 +151,5 @@ Proof.
   }
   { reflexivity. }
   { reflexivity. }
-  { entailer. }
+  { entailer. } *)
 Abort.
