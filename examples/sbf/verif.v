@@ -102,8 +102,23 @@ Definition execute_fundef : @fundef Info := FExternal "RegisterAction" "execute"
 Axiom Row_regact_insert_execute_body :
   fundef_satisfies_spec ge execute_fundef nil Row_regact_insert_execute_spec.
 
-#[local] Hint Extern 5 (Modifies.func_modifies _ _ _ _ _) => (apply Row_regact_insert_execute_body) : func_specs.
-#[local] Hint Extern 1 (list P4Type) => (exact (@nil _)) : func_specs.
+#[local] Hint Extern 5 (func_modifies _ _ _ _ _) => (apply Row_regact_insert_execute_body) : func_specs.
+(* #[local] Hint Extern 1 (list P4Type) => (exact (@nil _)) : func_specs. *)
+
+Axiom Row_regact_query_execute_modifies :
+  func_modifies ge (p ++ ["regact_query"]) (FExternal "RegisterAction" "execute") None [].
+#[local] Hint Extern 5 (func_modifies _ _ _ _ _) => (apply Row_regact_query_execute_modifies) : func_specs.
+
+Axiom Row_regact_clear_execute_modifies :
+  func_modifies ge (p ++ ["regact_clear"]) (FExternal "RegisterAction" "execute") None [p ++ ["reg_row"]].
+#[local] Hint Extern 5 (func_modifies _ _ _ _ _) => (apply Row_regact_clear_execute_modifies) : func_specs.
+
+Definition NoAction_fundef : @fundef Info := Eval compute in
+  force dummy_fundef (PathMap.get ["NoAction"] (ge_func ge)).
+
+(* Axiom Row_regact_clear_execute_modifies :
+  func_modifies ge (p ++ ["regact_clear"]) (FExternal "RegisterAction" "execute") None [p ++ ["reg_row"]].
+#[local] Hint Extern 5 (func_modifies _ _ _ _ _) => (apply Row_regact_clear_execute_modifies) : func_specs. *)
 
 Definition Row_insert_fundef := Eval compute in
   force dummy_fundef (PathMap.get ["Bf2BloomFilterRow"; "act_insert"] (ge_func ge)).
@@ -135,7 +150,6 @@ Lemma Row_body :
   fundef_satisfies_spec ge Row_fundef nil Row_spec.
 Proof.
   start_function.
-  2 : admit.
   step_into_call.
   { hoare_func_table.
     admit.

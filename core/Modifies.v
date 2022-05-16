@@ -604,24 +604,29 @@ Qed.
 
 End Modifies.
 
-(* Importnant note: in order to avoid backtracking, there should be only one hint
+(* The following code is a automation system based on auto/eauto for modifies clauses.
+  WARNING: In order to avoid backtracking and fail quickly, there should be only one hint
   works in one case. *)
 
 #[export] Hint Resolve In_vars_None In_vars_Some : modifies.
 #[export] Hint Resolve in_eq in_cons : modifies.
-#[export] Hint Constructors Forall : modifies.
 #[export] Hint Constructors incl_vars : modifies.
-#[export] Hint Extern 0 (Forall _ (filter_in _)) => (progress (simpl filter_in)) : modifies.
-#[export] Hint Extern 0 (Forall2 _ _ (get_arg_directions _))
-    => (progress (simpl get_arg_directions)) : modifies.
-#[export] Hint Constructors Forall2 : modifies.
-#[export] Hint Resolve block_modifies_nil : modifies.
-#[export] Hint Resolve block_modifies_cons : modifies.
+(* We define these rules using apply, so it works when the lists are computed. *)
+#[export] Hint Extern 1 (Forall _ _) => (apply Forall_nil) : modifies.
+#[export] Hint Extern 1 (Forall _ _) => (apply Forall_cons) : modifies.
+#[export] Hint Extern 1 (Forall2 _ _ _) => (apply Forall2_nil) : modifies.
+#[export] Hint Extern 1 (Forall2 _ _ _) => (apply Forall2_cons) : modifies.
+(* block_modifies rules *)
+#[export] Hint Resolve block_modifies_nil block_modifies_cons : modifies.
+(* stmt_modifies rules *)
 #[export] Hint Resolve
     stmt_modifies_assign stmt_modifies_assign_call stmt_modifies_method_call stmt_modifies_direct_application
     stmt_modifies_var stmt_modifies_var_call stmt_modifies_if_none stmt_modifies_if_some stmt_modifies_block
     : modifies.
+(* call_modifies rules *)
 #[export] Hint Resolve call_modifies_builtin call_modifies_func : modifies.
+(* func_modifies rules, func_modifies_internal has a lower priority than applying a func_spec. *)
+#[export] Hint Resolve func_modifies_table : modifies.
 #[export] Hint Extern 2 (func_modifies _ _ _ _ _) => apply func_modifies_internal : modifies.
 (* This is needed, because (simple apply eq_refl) cannot unify. I don't think it causes any
   backtracking, because it seems eauto does not backtrack terminal rules. *)
@@ -629,6 +634,7 @@ End Modifies.
 #[export] Hint Extern 1 (is_true _) => reflexivity : modifies.
 #[export] Hint Resolve eq_refl : modifies.
 #[export] Hint Constructors out_arg_In_vars : modifies.
+#[export] Hint Constructors action_modifies' : modifies.
 (* Apply func_modifies_frame only if there is already a function body proof. *)
 #[export] Hint Extern 1 (func_modifies _ _ _ _ _) =>
   eapply func_modifies_frame; only 1 : solve [eauto 15 with nocore func_specs] : modifies.
