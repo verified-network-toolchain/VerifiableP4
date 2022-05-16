@@ -1,4 +1,7 @@
 Require Import Coq.Lists.List.
+Require Import Coq.ZArith.BinInt.
+Require Import Coq.ZArith.Zcomplements.
+Require Import Coq.ZArith.Zcomplements.
 Require Import Poulet4.P4light.Syntax.Typed.
 Require Import Poulet4.P4light.Syntax.Syntax.
 Require Import Poulet4.P4light.Syntax.Value.
@@ -10,6 +13,7 @@ Require Import ProD3.core.AssertionNotations.
 Require Import ProD3.core.ConcreteHoare.
 Require Import ProD3.core.ExtPred.
 Require Import Hammer.Plugin.Hammer.
+Open Scope Z_scope.
 
 Section Modifies.
 
@@ -92,6 +96,11 @@ Definition func_modifies (p : path) (func : @fundef tags_t) (vars : option (list
   forall st inargs targs st' outargs sig,
     exec_func ge read_ndetbit p st func targs inargs st' outargs sig ->
     modifies vars exts st st'.
+
+Definition action_modifies (p : path) (expr : Expression) (targs : list P4Type) (args1 : list (option Expression)) (vars : option (list path))
+    (exts : list path) :=
+  forall tags args2 typ dir,
+  call_modifies p (MkExpression tags (ExpFunctionCall expr targs (args1 ++ args2)) typ dir) vars exts.
 
 Lemma block_modifies_nil : forall p tags vars exts,
   block_modifies p (BlockEmpty tags) vars exts.
@@ -341,18 +350,18 @@ Proof.
 Qed.
 
 Inductive out_arg_In_vars (vars : option (list path)) : option Expression -> direction -> Prop :=
-| out_arg_In_vars_in : forall expr,
-    out_arg_In_vars vars expr Typed.In
-| out_arg_In_vars_out_dontcare :
-    out_arg_In_vars vars None Out
-| out_arg_In_vars_out : forall expr lv,
-    get_lexpr_base expr = Some lv ->
-    In_vars lv vars ->
-    out_arg_In_vars vars (Some expr) Out
-| out_arg_In_vars_inout : forall expr lv,
-    get_lexpr_base expr = Some lv ->
-    In_vars lv vars ->
-    out_arg_In_vars vars (Some expr) InOut.
+  | out_arg_In_vars_in : forall expr,
+      out_arg_In_vars vars expr Typed.In
+  | out_arg_In_vars_out_dontcare :
+      out_arg_In_vars vars None Out
+  | out_arg_In_vars_out : forall expr lv,
+      get_lexpr_base expr = Some lv ->
+      In_vars lv vars ->
+      out_arg_In_vars vars (Some expr) Out
+  | out_arg_In_vars_inout : forall expr lv,
+      get_lexpr_base expr = Some lv ->
+      In_vars lv vars ->
+      out_arg_In_vars vars (Some expr) InOut.
 
 Lemma call_modifies_func_part1 : forall p st0 st args dirs argvals sig outvals st' vars exts,
   Forall2 (out_arg_In_vars vars) args dirs ->
@@ -397,13 +406,13 @@ Proof.
 Qed.
 
 Inductive incl_vars : (option (list path)) -> (option (list path)) -> Prop :=
-| incl_vars_None_None :
-    incl_vars None None
-| incl_vars_None_Some : forall vars',
-    incl_vars None (Some vars')
-| incl_vars_Some_Some : forall vars vars',
-    Forall (fun x => In x vars) vars' ->
-    incl_vars (Some vars) (Some vars').
+  | incl_vars_None_None :
+      incl_vars None None
+  | incl_vars_None_Some : forall vars',
+      incl_vars None (Some vars')
+  | incl_vars_Some_Some : forall vars vars',
+      Forall (fun x => In x vars) vars' ->
+      incl_vars (Some vars) (Some vars').
 
 Lemma Forall_In : forall {A} (l l' : list A),
   Forall (fun x => In x l) l' ->
@@ -474,6 +483,125 @@ Proof.
   intros.
   inv H1.
   eauto using func_modifies_internal_part1.
+Qed.
+
+Inductive action_modifies' : path -> Expression -> option (list path)
+    -> list path -> Prop :=
+  | action_modifies'_intro : forall p tags func args1 typ dir vars exts obj_path fd,
+      is_builtin_func func = false ->
+      let dirs := get_arg_directions func in
+      (* I'm not sure if this form is okay for auto to solve. *)
+      Forall2 (out_arg_In_vars vars) args1 (sublist 0 (Zlength args1) dirs) ->
+      Forall (eq Typed.In) (sublist (Zlength args1) (Zlength dirs) dirs) ->
+      lookup_func ge p func = Some (obj_path, fd) ->
+      func_modifies (force p obj_path) fd (if is_some obj_path then None else vars) exts ->
+      action_modifies' p (MkExpression tags (ExpFunctionCall func nil args1) typ dir) vars exts.
+
+Instance Inhabitant_dir : Inhabitant direction := Typed.In.
+
+Lemma action_modifies_intro : forall p tags func type_args args1 typ dir vars exts,
+  action_modifies' p (MkExpression tags (ExpFunctionCall func type_args args1) typ dir) vars exts ->
+  action_modifies p func type_args args1 vars exts.
+Proof.
+  unfold action_modifies; intros.
+  inv H.
+  unfold call_modifies; intros.
+  assert (Zlength dirs = Zlength args1 + Zlength args2). {
+    inv H.
+    - inv H9.
+    - clear -H7.
+      assert (dirs0 = dirs) by auto.
+      clearbody dirs0.
+      subst dirs0.
+      clearbody dirs.
+      rewrite <- Zlength_app.
+      revert H7.
+      generalize (args1 ++ args2) as args.
+      intros. induction H7.
+      + list_solve.
+      + list_solve.
+  }
+  eapply call_modifies_func; eauto.
+  fold dirs.
+  clearbody dirs.
+  clear -H10 H11 H0.
+  generalize dependent dirs.
+  induction args1; intros.
+  - clear H10.
+    simpl in H11.
+    replace (sublist (@Zlength (option (@Expression tags_t)) []) (Zlength dirs) dirs) with dirs in H11 by list_solve.
+    generalize dependent args2.
+    induction dirs; intros.
+    + assert (args2 = []) by list_solve.
+      subst; constructor.
+    + destruct args2. 1 : list_solve.
+      constructor.
+      { list_simplify.
+        specialize (H9 0 ltac:(lia)).
+        list_simplify.
+        subst.
+        constructor.
+      }
+      { apply IHdirs.
+        - inv H11; auto.
+        - list_solve.
+      }
+  - destruct dirs. 1 : list_solve.
+    autorewrite with sublist in H10.
+    replace (sublist 0 (Z.succ (Zlength args1)) (d :: dirs))
+      with (d :: sublist 0 (Zlength args1) dirs) in H10 by list_solve.
+    inv H10.
+    autorewrite with sublist in H11.
+    replace (sublist (Z.succ (Zlength args1)) (Z.succ (Zlength dirs)) (d :: dirs))
+      with (sublist (Zlength args1) (Zlength dirs) dirs) in H11 by list_solve.
+    simpl.
+    constructor.
+    + auto.
+    + apply IHargs1; auto.
+      list_solve.
+Qed.
+
+Lemma func_modifies_table : forall p name keys actions default_action const_entries vars exts,
+  Forall (fun expr => action_modifies' p expr vars exts) actions ->
+  call_modifies p default_action vars exts ->
+  (* Forall (fun x => In_vars x vars) (filter_in params) ->
+  block_modifies p body vars exts -> *)
+  func_modifies p (FTable name keys actions (Some default_action) const_entries) vars exts.
+Proof.
+  unfold func_modifies; intros.
+  inv H1.
+  rename H15 into H_get_table_call.
+  rename H16 into H_exec_call.
+  clear -H H0 H_get_table_call H_exec_call.
+  destruct actionref as [[] |].
+  2 : { (* default_action *)
+    inv H_get_table_call.
+    eapply H0; eauto.
+  }
+  unfold get_table_call in H_get_table_call.
+  destruct (add_ctrl_args (get_action actions action0) args) eqn:H_add_ctrl_args;
+    inv H_get_table_call.
+  induction actions.
+  - inv H_add_ctrl_args.
+  - simpl get_action in H_add_ctrl_args.
+    assert (add_ctrl_args (Some a) args = Some action -> modifies vars exts st st'). {
+      intros.
+      destruct a.
+      simpl in H1.
+      destruct expr; inv H1.
+      inv H.
+      eapply action_modifies_intro; eauto.
+    }
+    assert (add_ctrl_args (get_action actions action0) args = Some action
+        -> modifies vars exts st st'). {
+      inv H.
+      eapply IHactions; auto.
+    }
+    destruct a; destruct expr; auto.
+    destruct func; destruct expr; auto.
+    destruct n.
+    + destruct (String.eqb action0 (P4String.str name)); auto.
+    + destruct (String.eqb action0 (P4String.str name)); auto.
 Qed.
 
 End Modifies.
