@@ -564,8 +564,6 @@ Qed.
 Lemma func_modifies_table : forall p name keys actions default_action const_entries vars exts,
   Forall (fun expr => action_modifies' p expr vars exts) actions ->
   call_modifies p default_action vars exts ->
-  (* Forall (fun x => In_vars x vars) (filter_in params) ->
-  block_modifies p body vars exts -> *)
   func_modifies p (FTable name keys actions (Some default_action) const_entries) vars exts.
 Proof.
   unfold func_modifies; intros.

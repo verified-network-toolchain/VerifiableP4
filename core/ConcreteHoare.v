@@ -579,38 +579,66 @@ Proof.
   - eauto.
 Qed.
 
-Lemma hoare_func_table' : forall p pre_mem pre_ext name keys actions default_action const_entries post_mem post_ext
-      actionref action retv,
-  hoare_table_match ge p (MEM pre_mem (EXT pre_ext)) name keys const_entries actionref ->
-  get_table_call actions default_action actionref = Some (action, retv) ->
-  hoare_call ge p (MEM pre_mem (EXT pre_ext)) action (RET ValBaseNull (MEM post_mem (EXT post_ext))) ->
-  hoare_func ge p (ARG [] (MEM pre_mem (EXT pre_ext)))
-      (FTable name keys actions (Some default_action) const_entries)
-      [] (ARG_RET [] (eval_val_to_sval retv) (MEM post_mem (EXT post_ext))).
+Inductive hoare_table_match_case_valid' : path -> assertion -> list Expression -> Expression -> arg_ret_assertion ->
+      (Prop * option action_ref) -> Prop :=
+  | hoare_table_match_case_valid'_intro : forall p pre_mem pre_ext actions default_action post_retv post_mem post_ext (P : Prop) actionref action retv,
+      get_table_call actions default_action actionref = Some (action, retv) ->
+      (P -> hoare_call ge p (MEM pre_mem (EXT pre_ext)) action (RET ValBaseNull (MEM post_mem (EXT post_ext)))) ->
+      (P -> post_retv = eval_val_to_sval retv) ->
+      hoare_table_match_case_valid' p
+        (MEM pre_mem (EXT pre_ext))
+        actions default_action
+        (ARG_RET [] post_retv (MEM post_mem (EXT post_ext))) (P, actionref).
+
+Lemma hoare_table_match_case_valid'_hoare_table_match_case_valid : forall p pre actions default_action post case,
+  hoare_table_match_case_valid' p pre actions default_action post case ->
+  hoare_table_match_case_valid ge p pre actions default_action post case.
 Proof.
   intros.
-  eapply hoare_func_post.
-  { unfold hoare_func; intros.
-    eapply hoare_func_table; try eassumption.
-    { eapply hoare_call_post.
-      { apply H2. }
-      { unfold ret_implies.
-        intros ? ? H_post.
-        apply (proj2 H_post).
-      }
-    }
-    apply H3.
+  inv H0.
+  econstructor; eauto.
+  intros H_P.
+  specialize (H2 H_P).
+  specialize (H3 H_P).
+  eapply hoare_call_post. 1 : eauto.
+  unfold ret_implies.
+  intros. destruct H0. split.
+  { constructor. }
+  split; auto.
+  subst.
+  unfold ret_denote, ret_satisfies.
+  remember (eval_val_to_sval retv) as retsv eqn:H3.
+  symmetry in H3.
+  rewrite <- val_to_sval_iff in H3.
+  intros.
+  eapply sval_to_val_to_sval; eauto.
+  eapply exec_val_sym; only 2 : eapply H3.
+  sauto lq: on.
+Qed.
+
+Lemma hoare_func_table' : forall p pre_mem pre_ext name keys actions default_action const_entries post_retv post_mem post_ext
+      cases,
+  hoare_table_match_list ge p (MEM pre_mem (EXT pre_ext)) name keys const_entries cases ->
+  Forall (
+    hoare_table_match_case_valid' p
+      (MEM pre_mem (EXT pre_ext))
+      actions default_action
+      (ARG_RET [] post_retv (MEM post_mem (EXT post_ext))))
+    cases ->
+  hoare_func ge p
+    (ARG [] (MEM pre_mem (EXT pre_ext)))
+    (FTable name keys actions (Some default_action) const_entries) []
+    (ARG_RET [] post_retv (MEM post_mem (EXT post_ext))).
+Proof.
+  intros.
+  eapply hoare_func_pre.
+  2 : { eapply hoare_func_table; eauto.
+    eapply Forall_impl; only 2 : eassumption.
+    apply hoare_table_match_case_valid'_hoare_table_match_case_valid.
   }
-  { clear.
-    unfold arg_ret_implies; intros.
-    destruct H0 as [? []]; subst.
-    split; only 2 : split; auto.
-    - constructor.
-    - unfold ret_denote, ret_satisfies.
-      intros. eapply sval_to_val_to_sval; eauto.
-      apply sval_to_val_eval_val_to_sval.
-      intros; constructor.
-  }
+  unfold ARG.
+  intros * [].
+  eassumption.
 Qed.
 
 End ConcreteHoare.

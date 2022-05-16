@@ -861,8 +861,8 @@ Proof.
   reflexivity.
 Qed.
 
-(* A quite coarse version of Hoare logic for table. *)
-Lemma hoare_func_table : forall p pre name keys actions default_action const_entries post
+(* Hoare rule for table if we know a particular case. *)
+Lemma hoare_func_table_case : forall p pre name keys actions default_action const_entries post
       actionref action retv,
   hoare_table_match p pre name keys const_entries actionref ->
   get_table_call actions default_action actionref = Some (action, retv) ->
@@ -880,8 +880,30 @@ Proof.
   simpl; auto.
 Qed.
 
+Definition hoare_table_match_list (p : path) (pre : assertion) (name : ident) (keys : list TableKey)
+      (const_entries : option (list table_entry)) (cases : list (Prop * option action_ref)) :=
+  fold_right or False (map fst cases) /\
+    Forall
+      (fun '(P, matched_action) => (P : Prop) -> hoare_table_match p pre name keys const_entries matched_action) cases.
+
+Inductive hoare_table_match_case_valid : path -> assertion -> list Expression -> Expression -> arg_ret_assertion ->
+      (Prop * option action_ref) -> Prop :=
+  | hoare_table_match_case_valid_intro : forall p pre actions default_action post (P : Prop) actionref action retv,
+      get_table_call actions default_action actionref = Some (action, retv) ->
+      (P -> hoare_call p pre action (fun _ st => post [] retv st)) ->
+      hoare_table_match_case_valid p pre actions default_action post (P, actionref).
+
 Definition arg_ret_implies (P Q : arg_ret_assertion) :=
   forall args retv st, P args retv st -> Q args retv st.
+
+Lemma hoare_func_pre : forall p pre pre' func targs post,
+  hoare_func p pre' func targs post ->
+  arg_implies pre pre' ->
+  hoare_func p pre func targs post.
+Proof.
+  unfold hoare_func, arg_implies; intros.
+  sfirstorder.
+Qed.
 
 Lemma hoare_func_post : forall p pre func targs post post',
   hoare_func p pre func targs post' ->
@@ -893,24 +915,27 @@ Proof.
   destruct sig; sfirstorder.
 Qed.
 
-(* Lemma hoare_func_table_case : forall p pre params body targs mid1 mid2 post,
-  hoare_func_copy_in pre params mid1 ->
-  hoare_block p mid1 body (return_post_assertion_1 mid2) ->
-  hoare_func_copy_out mid2 params post ->
-  hoare_func p pre (FTable name keys actions (Some default_action) const_entries)
-  [] [] s' [] retv targs post.
+Lemma hoare_func_table : forall p pre name keys actions default_action const_entries post cases,
+  hoare_table_match_list p pre name keys const_entries cases ->
+  Forall (hoare_table_match_case_valid p pre actions default_action post) cases ->
+  hoare_func p (fun _ => pre) (FTable name keys actions (Some default_action) const_entries)
+      [] post.
 Proof.
-  unfold hoare_func_copy_in, hoare_block, hoare_func_copy_out, hoare_func.
-  intros.
-  inv H4.
-  specialize (H0 _ _ _ H3 ltac:(reflexivity)).
-  specialize (H1 _ _ _ H0 ltac:(eassumption)).
-  destruct H1.
-  - destruct H1 as [? H1]; subst.
-    apply H2; auto.
-  - destruct sig0; try solve [inv H1].
-    apply H2; auto.
-Qed. *)
+  induction 2.
+  - inv H0.
+    inv H1.
+  - inv H0.
+    inv H3.
+    + inv H1.
+      eapply hoare_func_post.
+      * inv H4.
+        eapply hoare_func_table_case; eauto.
+      * clear.
+        unfold arg_ret_implies; intros.
+        hauto lq: on.
+    + apply IHForall.
+      inv H4. split; eauto.
+Qed.
 
 Lemma implies_refl : forall (pre : assertion),
   implies pre pre.
