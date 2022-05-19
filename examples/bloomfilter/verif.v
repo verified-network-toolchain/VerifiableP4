@@ -28,8 +28,8 @@ Opaque PathMap.empty PathMap.set.
 Definition ge : genv := Eval compute in gen_ge prog.
 
 (* Initial extern state *)
-Definition instantiation := Eval compute in instantiate_prog ge prog.
-Definition init_es := Eval compute in snd instantiation.
+(* Definition instantiation := Eval compute in instantiate_prog ge prog.
+Definition init_es := Eval compute in snd instantiation. *)
 
 Transparent IdentMap.empty IdentMap.set PathMap.empty PathMap.set.
 

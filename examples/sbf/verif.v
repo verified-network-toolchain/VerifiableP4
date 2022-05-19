@@ -13,14 +13,11 @@ Notation path := (list ident).
 Notation Val := (@ValueBase bool).
 Notation Sval := (@ValueBase (option bool)).
 
-Opaque PathMap.empty PathMap.set.
-
 (* This currently takes 7s to evaluate. The reason is the exec_abstract_method takes a
   partial_ge as a parameter and this partial_ge is fully expended and we have as many copies
   as the number of instances. We would try to prevent this partial_ge from unfolding later. *)
-Definition ge : genv := Eval compute in gen_ge prog.
-
-Transparent PathMap.empty PathMap.set.
+Definition am_ge : genv := Eval compute -[PathMap.empty PathMap.set] in gen_am_ge prog.
+Definition ge : genv := Eval compute -[PathMap.empty PathMap.set am_ge] in gen_ge' am_ge prog.
 
 Definition p :=  ["pipe"; "ingress"; "bf2_ds"; "win_1"; "row_1"].
 
