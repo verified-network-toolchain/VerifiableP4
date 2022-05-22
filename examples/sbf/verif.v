@@ -13,13 +13,17 @@ Notation path := (list ident).
 Notation Val := (@ValueBase bool).
 Notation Sval := (@ValueBase (option bool)).
 
-(* This currently takes 7s to evaluate. The reason is the exec_abstract_method takes a
-  partial_ge as a parameter and this partial_ge is fully expended and we have as many copies
-  as the number of instances. We would try to prevent this partial_ge from unfolding later. *)
+(* After fixing type parameter evaluation, the enviroment becomes much larger than before. The old result
+  was short, but it was wrong. We cannot make am_ge opaque now because type parameters are needed to be
+  evaluated using it. Adding these together, the current evaluation of ge takes 110s. We need to improve
+  it soon. *)
 Definition am_ge : genv := Eval compute -[PathMap.empty PathMap.set] in gen_am_ge prog.
-Definition ge : genv := Eval compute -[PathMap.empty PathMap.set am_ge] in gen_ge' am_ge prog.
+Definition ge : genv := Eval compute -[(* am_ge *) PathMap.empty PathMap.set] in gen_ge' am_ge prog.
 
 Definition p :=  ["pipe"; "ingress"; "bf2_ds"; "win_1"; "row_1"].
+
+(* Eval compute in PathMap.get (p ++ ["regact_insert"]) (ge_ext ge).
+Time Eval compute in PathMap.get (p ++ ["regact_insert"; "apply"]) (ge_ext ge). *)
 
 (* Constants *)
 

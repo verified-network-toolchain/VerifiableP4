@@ -3235,6 +3235,11 @@ Definition Bf2BloomFilterRow := DeclControl NoInfo
                 (ExpInt
                  {| itags := NoInfo; value := 65536;
                     width_signed := (Some ( 32%N, false )) |}) (TypBit 32%N)
+                Directionless);
+           (MkExpression NoInfo
+                (ExpInt
+                 {| itags := NoInfo; value := 0;
+                    width_signed := (Some ( 8%N, false )) |}) (TypBit 8%N)
                 Directionless)] {| stags := NoInfo; str := "reg_row" |} nil);
      (DeclInstantiation NoInfo
           (TypSpecializedType
