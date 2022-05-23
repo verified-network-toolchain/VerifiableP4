@@ -44,6 +44,7 @@ Hint Unfold modifies_exts modifies_vars : core.
 Definition modifies (vars : option (list path)) (exts : list path) (st st' : state) : Prop :=
   modifies_vars vars st st' /\ modifies_exts exts st st'.
 
+(* These two may be deprecated sometime. *)
 Definition func_modifies_vars (p : path) (func : @fundef tags_t) (vars : option (list path)) :=
   forall st inargs targs st' outargs sig,
     exec_func ge read_ndetbit p st func targs inargs st' outargs sig ->
@@ -72,6 +73,21 @@ Proof.
 Qed.
 
 Local Hint Resolve modifies_trans : core.
+
+Lemma modifies_set_ext : forall p eo vars exts st,
+  in_scopes p exts ->
+  modifies vars exts st (let (m, es) := st in (m, (PathMap.set p eo) es)).
+Proof.
+  clear ge.
+  intros.
+  unfold modifies, modifies_exts, modifies_vars; intros; destruct st.
+  split.
+  { sauto. }
+  intros.
+  assert (p <> q) by sfirstorder.
+  symmetry.
+  eapply PathMap.get_set_diff; eauto.
+Qed.
 
 Definition stmt_modifies (p : path) (stmt : Statement) (vars : option (list path))
     (exts : list path) :=

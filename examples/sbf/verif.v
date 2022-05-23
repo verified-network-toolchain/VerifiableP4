@@ -100,8 +100,33 @@ Definition dummy_fundef : @fundef Info := FExternal "" "".
 Opaque dummy_fundef.
 Definition execute_fundef : @fundef Info := FExternal "RegisterAction" "execute".
 
-Axiom Row_regact_insert_execute_body :
+Lemma Row_regact_insert_execute_body :
   fundef_satisfies_spec ge execute_fundef nil Row_regact_insert_execute_spec.
+Proof.
+  split.
+  intro.
+  2 : {
+    unfold func_modifies; intros.
+    inv H.
+    inv H5. inv H. compute in H0. inv H0.
+    compute in H3; inv H3.
+    destruct (-1 <? index) eqn:?.
+    2 : {
+      simpl in H8. destruct H8; subst.
+      apply modifies_refl.
+    }
+    destruct (index <? 65536) eqn:?.
+    2 : {
+      simpl in H8. destruct H8; subst.
+      apply modifies_refl.
+    }
+    simpl in H8. destruct H8; subst.
+    assert (es = s') by admit.
+    subst.
+    eapply modifies_set_ext with (st := (m, s')).
+    auto.
+  }
+Admitted.
 
 #[local] Hint Extern 5 (func_modifies _ _ _ _ _) => (apply Row_regact_insert_execute_body) : func_specs.
 (* #[local] Hint Extern 1 (list P4Type) => (exact (@nil _)) : func_specs. *)
