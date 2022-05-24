@@ -72,7 +72,7 @@ Ltac step_stmt :=
             | reflexivity (* eval_write *)
             ]
       (* hoare_stmt_var' *)
-      | MkStatement _ (StatVariable _ _ _ ?loc) _ =>
+      | MkStatement _ (StatVariable _ _ (Some _) ?loc) _ =>
           lazymatch loc with
           | LInstance _ => idtac (* ok *)
           | LGlobal _ => fail "Cannot declacre a variable with LGlobal locator"
@@ -82,6 +82,19 @@ Ltac step_stmt :=
             [ reflexivity (* is_call_expression *)
             | reflexivity (* is_no_dup *)
             | reflexivity (* eval_expr *)
+            | reflexivity (* eval_write *)
+            ]
+      (* hoare_stmt_var_none' *)
+      | MkStatement _ (StatVariable _ _ None ?loc) _ =>
+          lazymatch loc with
+          | LInstance _ => idtac (* ok *)
+          | LGlobal _ => fail "Cannot declacre a variable with LGlobal locator"
+          | _ => fail "Unrecognized locator expression" loc
+          end;
+          eapply hoare_stmt_var_none';
+            [ reflexivity (* is_no_dup *)
+            | reflexivity (* get_real_type *)
+            | reflexivity (* uninit_sval_of_typ *)
             | reflexivity (* eval_write *)
             ]
       (* hoare_stmt_direct_application' *)

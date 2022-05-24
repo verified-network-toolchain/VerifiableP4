@@ -294,9 +294,9 @@ Ltac specialize_hoare_lexpr :=
 Ltac specialize_hoare_write :=
   lazymatch goal with
   | H : hoare_write _ _ _ _ |- _ =>
-      specialize (H _ _ _ ltac:(eassumption) ltac:(eassumption) ltac:(eassumption))
+      specialize (H _ _ _ ltac:(eassumption) ltac:(first [eassumption | apply sval_refine_refl]) ltac:(eassumption))
   | H : forall _ _ _, _ -> exec_write _ _ _ _ _ -> _ |- _ =>
-      specialize (H _ _ _ ltac:(eassumption) ltac:(eassumption) ltac:(eassumption))
+      specialize (H _ _ _ ltac:(eassumption) ltac:(first [eassumption | apply sval_refine_refl]) ltac:(eassumption))
   end.
 
 Ltac specialize_hoare_call :=
@@ -401,6 +401,20 @@ Proof.
     inv H15; inv H0.
   }
   specialize_hoare_expr_det.
+  specialize_hoare_write.
+  auto.
+Qed.
+
+Lemma hoare_stmt_var_none : forall p pre tags typ' name loc typ post rtyp sv,
+  get_real_type ge typ' = Some rtyp ->
+  uninit_sval_of_typ (Some false) rtyp = Some sv ->
+  hoare_write pre (ValLeftName loc) sv (post_continue post) ->
+  hoare_stmt p pre (MkStatement tags (StatVariable typ' name None loc) typ) post.
+Proof.
+  unfold hoare_stmt. intros.
+  left.
+  inv H4.
+  assert (sv0 = sv) by congruence; subst.
   specialize_hoare_write.
   auto.
 Qed.

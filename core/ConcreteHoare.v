@@ -83,6 +83,20 @@ Proof.
   eapply hoare_stmt_var; eauto with hoare.
 Qed.
 
+Lemma hoare_stmt_var_none' : forall p pre_mem pre_ext tags typ' name loc typ post_mem ret_post rtyp sv,
+  is_no_dup (map fst pre_mem) ->
+  get_real_type ge typ' = Some rtyp ->
+  uninit_sval_of_typ (Some false) rtyp = Some sv ->
+  eval_write pre_mem (ValLeftName loc) sv = Some post_mem ->
+  hoare_stmt ge p
+    (MEM pre_mem (EXT pre_ext))
+    (MkStatement tags (StatVariable typ' name None loc) typ)
+    (mk_post_assertion (MEM post_mem (EXT pre_ext)) ret_post).
+Proof.
+  intros.
+  eapply hoare_stmt_var_none; eauto with hoare.
+Qed.
+
 Lemma hoare_stmt_var_call' : forall p pre_mem pre_ext tags typ' name expr loc typ vret mid_mem post_mem post_ext ret_post,
   is_call_expression expr = true ->
   hoare_call ge p (MEM pre_mem (EXT pre_ext)) expr (RET vret (MEM mid_mem (EXT post_ext))) ->
@@ -667,17 +681,21 @@ Definition AM_ARG_RET (a_arg : list Sval) (a_ret : Sval) (a : extern_state -> Pr
     /\ ret_denote a_ret retv
     /\ a es.
 
-Lemma hoare_abstract_method_intro' : forall am_ge p fd pre_arg pre_ext (func : AbsMet) post_arg
-    post_retv post_mem post_ext,
+Definition AM_EXT (a_ext : ext_assertion) : extern_state -> Prop :=
+  ext_denote a_ext.
+
+Lemma hoare_abstract_method_intro' : forall am_ge p fd pre_arg pre_ext post_arg
+    post_retv post_ext,
   hoare_func am_ge p
     (ARG pre_arg (MEM [] (EXT pre_ext)))
     fd []
-    (ARG_RET post_arg post_retv (MEM post_mem (EXT post_ext))) ->
+    (ARG_RET post_arg post_retv (MEM [] (EXT post_ext))) ->
   hoare_abstract_method
-    (AM_ARG pre_arg (ext_denote pre_ext))
+    (AM_ARG pre_arg (AM_EXT pre_ext))
     (exec_abstract_method am_ge p fd)
-    (AM_ARG_RET post_arg post_retv (ext_denote post_ext)).
+    (AM_ARG_RET post_arg post_retv (AM_EXT post_ext)).
 Proof.
+  clear ge.
   unfold hoare_func, hoare_abstract_method; intros.
   inv H3.
   eapply H0 in H6.

@@ -15,7 +15,7 @@ Notation Sval := (@ValueBase (option bool)).
 
 (* By making am_ge opaque, now it takes 28s. *)
 Definition am_ge : genv := Eval compute -[PathMap.empty PathMap.set] in gen_am_ge prog.
-Time Definition ge : genv := Eval compute -[am_ge PathMap.empty PathMap.set] in gen_ge' am_ge prog.
+Definition ge : genv := Eval compute -[am_ge PathMap.empty PathMap.set] in gen_ge' am_ge prog.
 
 Definition p :=  ["pipe"; "ingress"; "bf2_ds"; "win_1"; "row_1"].
 
@@ -96,6 +96,61 @@ Definition Row_regact_insert_execute_spec : func_spec :=
 Definition dummy_fundef : @fundef Info := FExternal "" "".
 Opaque dummy_fundef.
 Definition execute_fundef : @fundef Info := FExternal "RegisterAction" "execute".
+
+Definition Row_regact_insert_apply_fundef := Eval compute -[am_ge] in
+  (force Tofino.EnvPin (PathMap.get (p ++ ["regact_insert"; "apply"]) (ge_ext ge))).
+
+Definition Row_regact_insert_apply_sem :=
+  (exec_abstract_method am_ge ["pipe"; "ingress"; "bf2_ds"; "win_1"; "row_1"; "regact_insert"]
+       (FInternal [(["apply"; "value"], InOut); (["apply"; "rv"], Out)]
+          (BlockCons
+             (MkStatement NoInfo
+                (StatVariable (TypTypeName {| P4String.tags := NoInfo; str := "bf2_value_t" |})
+                   {| P4String.tags := NoInfo; str := "rv" |} None (LInstance ["rv"])) StmUnit)
+             (BlockCons
+                (MkStatement NoInfo
+                   (StatAssignment
+                      (MkExpression NoInfo
+                         (ExpName (BareName {| P4String.tags := NoInfo; str := "value" |})
+                            (LInstance ["apply"; "value"]))
+                         (TypTypeName {| P4String.tags := NoInfo; str := "bf2_value_t" |}) InOut)
+                      (MkExpression NoInfo
+                         (ExpInt
+                            {| tags := NoInfo; value := 1; width_signed := Some (8%N, false) |})
+                         (TypBit 8) Directionless)) StmUnit)
+                (BlockCons
+                   (MkStatement NoInfo
+                      (StatAssignment
+                         (MkExpression NoInfo
+                            (ExpName (BareName {| P4String.tags := NoInfo; str := "rv" |})
+                               (LInstance ["apply"; "rv"]))
+                            (TypTypeName {| P4String.tags := NoInfo; str := "bf2_value_t" |}) Out)
+                         (MkExpression NoInfo
+                            (ExpInt
+                               {| tags := NoInfo; value := 1; width_signed := Some (8%N, false) |})
+                            (TypBit 8) Directionless)) StmUnit) (BlockEmpty NoInfo)))))).
+
+Lemma Row_regact_insert_apply_body :
+  hoare_abstract_method (AM_ARG [ValBaseBit (repeat None 8)] (AM_EXT []))
+    Row_regact_insert_apply_sem
+    (AM_ARG_RET [ValBaseBit (P4Arith.to_loptbool 8%N 1); ValBaseBit (P4Arith.to_loptbool 8%N 1)]
+      ValBaseNull (AM_EXT [])).
+Proof.
+  apply hoare_abstract_method_intro'.
+  eapply hoare_func_internal';
+    [ reflexivity (* length (filter_in params) = length pre_arg *)
+    | reflexivity (* is_no_dup *)
+    | reflexivity (* eval_write_vars *)
+    | idtac (* hoare_block *)
+    | inv_func_copy_out (* inv_func_copy_out *)
+    | inv_implicit_return
+    ].
+  step.
+  step.
+  step.
+  step.
+  entailer.
+Qed.
 
 Lemma Row_regact_insert_execute_body :
   fundef_satisfies_spec ge execute_fundef nil Row_regact_insert_execute_spec.
