@@ -13,12 +13,9 @@ Notation path := (list ident).
 Notation Val := (@ValueBase bool).
 Notation Sval := (@ValueBase (option bool)).
 
-(* After fixing type parameter evaluation, the enviroment becomes much larger than before. The old result
-  was short, but it was wrong. We cannot make am_ge opaque now because type parameters are needed to be
-  evaluated using it. Adding these together, the current evaluation of ge takes 110s. We need to improve
-  it soon. *)
+(* By making am_ge opaque, now it takes 28s. *)
 Definition am_ge : genv := Eval compute -[PathMap.empty PathMap.set] in gen_am_ge prog.
-Definition ge : genv := Eval compute -[(* am_ge *) PathMap.empty PathMap.set] in gen_ge' am_ge prog.
+Time Definition ge : genv := Eval compute -[am_ge PathMap.empty PathMap.set] in gen_ge' am_ge prog.
 
 Definition p :=  ["pipe"; "ingress"; "bf2_ds"; "win_1"; "row_1"].
 
@@ -121,6 +118,7 @@ Proof.
       apply modifies_refl.
     }
     simpl in H8. destruct H8; subst.
+    compute - [am_ge] in H1. inv H1.
     assert (es = s') by admit.
     subst.
     eapply modifies_set_ext with (st := (m, s')).

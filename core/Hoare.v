@@ -830,7 +830,9 @@ Proof.
     unfold rel_trans.
     eapply exec_val_trans.
     unfold rel_trans.
-    sauto.
+    (* I don't know why we need to clear here. But after changing AbsMet to be an element of
+      ExternSem, sauto no longer wokrs and reports "Anomaly "Unable to handle arbitrary u+k <= v constraints."" *)
+    clear; sauto.
   }
   assert (Forall2 val_to_sval keyvals0 (map eval_val_to_sval keyvals0)). {
     clear.
@@ -842,14 +844,14 @@ Proof.
   assert (Forall2 (sval_to_val strict_read_ndetbit) (map eval_val_to_sval keyvals0) keyvals). {
     eapply Forall2_sym; [ | eassumption].
     eapply exec_val_sym.
-    sauto.
+    clear; sauto.
   }
   assert (Forall2 (exec_val eq) keyvals0 keyvals). {
     eapply Forall2_trans; [ | eassumption | eassumption].
     unfold rel_trans.
     eapply exec_val_trans.
     unfold rel_trans.
-    sauto.
+    clear; sauto.
   }
   assert (keyvals0 = keyvals). {
     apply ForallMap.Forall2_eq.
@@ -960,6 +962,18 @@ Proof.
     + apply IHForall.
       inv H4. split; eauto.
 Qed.
+
+Definition hoare_abstract_method (pre : list Sval -> extern_state -> Prop)
+    (func : AbsMet) (post : list Sval -> Val -> extern_state -> Prop) :=
+  forall es inargs inargs' es' outargs' outargs sig,
+    pre inargs es ->
+    svals_to_vals read_ndetbit inargs inargs' ->
+    func es inargs' es' outargs' sig ->
+    vals_to_svals outargs' outargs ->
+    match sig with
+    | SReturn vret => post outargs vret es'
+    | _ => False
+    end.
 
 Lemma implies_refl : forall (pre : assertion),
   implies pre pre.
