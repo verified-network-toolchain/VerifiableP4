@@ -100,57 +100,67 @@ Definition execute_fundef : @fundef Info := FExternal "RegisterAction" "execute"
 Definition Row_regact_insert_apply_fundef := Eval compute -[am_ge] in
   (force Tofino.EnvPin (PathMap.get (p ++ ["regact_insert"; "apply"]) (ge_ext ge))).
 
-Definition Row_regact_insert_apply_sem :=
-  (exec_abstract_method am_ge ["pipe"; "ingress"; "bf2_ds"; "win_1"; "row_1"; "regact_insert"]
-       (FInternal [(["apply"; "value"], InOut); (["apply"; "rv"], Out)]
+Definition Row_regact_insert_apply :=
+  FInternal [(["apply"; "value"], InOut); (["apply"; "rv"], Out)]
+    (BlockCons
+       (MkStatement NoInfo
+          (StatVariable (TypTypeName {| P4String.tags := NoInfo; str := "bf2_value_t" |})
+             {| P4String.tags := NoInfo; str := "rv" |} None (LInstance ["rv"])) StmUnit)
+       (BlockCons
+          (MkStatement NoInfo
+             (StatAssignment
+                (MkExpression NoInfo
+                   (ExpName (BareName {| P4String.tags := NoInfo; str := "value" |})
+                      (LInstance ["apply"; "value"]))
+                   (TypTypeName {| P4String.tags := NoInfo; str := "bf2_value_t" |}) InOut)
+                (MkExpression NoInfo
+                   (ExpInt
+                      {| tags := NoInfo; value := 1; width_signed := Some (8%N, false) |})
+                   (TypBit 8) Directionless)) StmUnit)
           (BlockCons
              (MkStatement NoInfo
-                (StatVariable (TypTypeName {| P4String.tags := NoInfo; str := "bf2_value_t" |})
-                   {| P4String.tags := NoInfo; str := "rv" |} None (LInstance ["rv"])) StmUnit)
-             (BlockCons
-                (MkStatement NoInfo
-                   (StatAssignment
-                      (MkExpression NoInfo
-                         (ExpName (BareName {| P4String.tags := NoInfo; str := "value" |})
-                            (LInstance ["apply"; "value"]))
-                         (TypTypeName {| P4String.tags := NoInfo; str := "bf2_value_t" |}) InOut)
-                      (MkExpression NoInfo
-                         (ExpInt
-                            {| tags := NoInfo; value := 1; width_signed := Some (8%N, false) |})
-                         (TypBit 8) Directionless)) StmUnit)
-                (BlockCons
-                   (MkStatement NoInfo
-                      (StatAssignment
-                         (MkExpression NoInfo
-                            (ExpName (BareName {| P4String.tags := NoInfo; str := "rv" |})
-                               (LInstance ["apply"; "rv"]))
-                            (TypTypeName {| P4String.tags := NoInfo; str := "bf2_value_t" |}) Out)
-                         (MkExpression NoInfo
-                            (ExpInt
-                               {| tags := NoInfo; value := 1; width_signed := Some (8%N, false) |})
-                            (TypBit 8) Directionless)) StmUnit) (BlockEmpty NoInfo)))))).
+                (StatAssignment
+                   (MkExpression NoInfo
+                      (ExpName (BareName {| P4String.tags := NoInfo; str := "rv" |})
+                         (LInstance ["apply"; "rv"]))
+                      (TypTypeName {| P4String.tags := NoInfo; str := "bf2_value_t" |}) Out)
+                   (MkExpression NoInfo
+                      (ExpInt
+                         {| tags := NoInfo; value := 1; width_signed := Some (8%N, false) |})
+                      (TypBit 8) Directionless)) StmUnit) (BlockEmpty NoInfo)))).
+
+Definition Row_regact_insert_apply_spec : func_spec :=
+  WITH,
+    PATH (p ++ ["regact_insert"])
+    MOD None []
+    WITH,
+      PRE
+        (ARG [ValBaseBit (repeat None 8)]
+        (MEM []
+        (EXT [])))
+      POST
+        (ARG_RET [ValBaseBit (P4Arith.to_loptbool 8%N 1);
+                  ValBaseBit (P4Arith.to_loptbool 8%N 1)]
+           ValBaseNull
+        (MEM []
+        (EXT []))).
 
 Lemma Row_regact_insert_apply_body :
-  hoare_abstract_method (AM_ARG [ValBaseBit (repeat None 8)] (AM_EXT []))
-    Row_regact_insert_apply_sem
-    (AM_ARG_RET [ValBaseBit (P4Arith.to_loptbool 8%N 1); ValBaseBit (P4Arith.to_loptbool 8%N 1)]
-      ValBaseNull (AM_EXT [])).
+  fundef_satisfies_spec am_ge Row_regact_insert_apply nil Row_regact_insert_apply_spec.
 Proof.
-  apply hoare_abstract_method_intro'.
-  eapply hoare_func_internal';
-    [ reflexivity (* length (filter_in params) = length pre_arg *)
-    | reflexivity (* is_no_dup *)
-    | reflexivity (* eval_write_vars *)
-    | idtac (* hoare_block *)
-    | inv_func_copy_out (* inv_func_copy_out *)
-    | inv_implicit_return
-    ].
+  start_function.
   step.
   step.
   step.
   step.
   entailer.
 Qed.
+
+(* So the problem here is that, we need to define a rule for execute.
+  And, should the ge constraint in spec for read and write be on the path quantifier? *)
+
+(* Currently we have two problem. One is to use abstract method spec to prove execute.
+The other is to find a way to prevent unfolding Extern typeclass in the computation of ge. *)
 
 Lemma Row_regact_insert_execute_body :
   fundef_satisfies_spec ge execute_fundef nil Row_regact_insert_execute_spec.
@@ -174,8 +184,26 @@ Proof.
     }
     simpl in H8. destruct H8; subst.
     compute - [am_ge] in H1. inv H1.
-    assert (es = s') by admit.
-    subst.
+    eapply modifies_trans.
+    { eapply modifies_incl.
+      assert (modifies None [] (m, es) (m, s')). {
+        change
+          (exec_abstract_method (tags_t := Info) (target := target) am_ge (p ++ ["regact_insert"])
+            Row_regact_insert_apply
+            es [old_value] s' [new_value; retv] SReturnNull)
+          in H7.
+        inv H7.
+        split.
+        { constructor. }
+        { simpl.
+          apply Row_regact_insert_apply_body in H1.
+          apply H1.
+        }
+      }
+      eassumption.
+      solve_modifies.
+      solve_modifies.
+    }
     eapply modifies_set_ext with (st := (m, s')).
     auto.
   }

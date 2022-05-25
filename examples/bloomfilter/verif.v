@@ -11,6 +11,7 @@ Require Import Poulet4.P4light.Architecture.V1Model.
 Require Import Poulet4.Utils.P4Arith.
 
 Require Import ProD3.core.Core.
+Require Import ProD3.core.V1ModelSpec.
 Require Import ProD3.examples.bloomfilter.p4ast.
 Require Import ProD3.examples.sbf.ConFilter.
 Require Import ProD3.examples.sbf.general_bf.
@@ -28,8 +29,8 @@ Opaque PathMap.empty PathMap.set.
 Definition ge : genv := Eval compute in gen_ge prog.
 
 (* Initial extern state *)
-(* Definition instantiation := Eval compute in instantiate_prog ge prog.
-Definition init_es := Eval compute in snd instantiation. *)
+Definition instantiation := Eval compute in instantiate_prog ge (ge_typ ge) prog.
+Definition init_es := Eval compute in snd instantiation.
 
 Transparent IdentMap.empty IdentMap.set PathMap.empty PathMap.set.
 
