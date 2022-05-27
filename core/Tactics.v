@@ -346,10 +346,16 @@ Ltac step_call_wrapper func_spec callback :=
   try clear func_body1;
   try clear func_body2.
 
+Tactic Notation "step_call" uconstr(func_spec) uconstr(x1) uconstr(x2) uconstr(x3) uconstr(x4) uconstr(x5) uconstr(x6) :=
+  step_call_wrapper func_spec
+    ltac:(fun func_body func_body1 func_body2 =>
+      epose proof (func_body := conj (func_body1 x1 x2 x3 x4 x5 x6) func_body2)).
+
 Tactic Notation "step_call" uconstr(func_spec) uconstr(x1) uconstr(x2) uconstr(x3) uconstr(x4) uconstr(x5) :=
   step_call_wrapper func_spec
     ltac:(fun func_body func_body1 func_body2 =>
-      epose proof (func_body := conj (func_body1 x1 x2 x3 x4 x5) func_body2)).
+      epose proof (func_body := conj (func_body1 x1 x2 x3 x4 x5) func_body2))
+  || step_call func_spec x1 x2 x3 x4 x5 _.
 
 Tactic Notation "step_call" uconstr(func_spec) uconstr(x1) uconstr(x2) uconstr(x3) uconstr(x4) :=
   step_call_wrapper func_spec
