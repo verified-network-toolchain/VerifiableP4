@@ -343,19 +343,12 @@ Proof.
   entailer.
 Qed.
 
+(* I would like to make it opaque, but I don't know how to. *)
 Program Definition Row_regact_insert_execute_body :=
   RegisterAction_execute_body _ 16%N 8%N num_cells (p ++ ["reg_row"]) eq_refl eq_refl ltac:(abstract (unfold num_cells; lia))
     Row_regact_insert_apply_fd (fun _ => 1) (fun _ => ValBaseBit (P4Arith.to_loptbool 8%N 1)) eq_refl Row_regact_insert_apply_body.
 
 #[local] Hint Extern 5 (func_modifies _ _ _ _ _) => (apply Row_regact_insert_execute_body) : func_specs.
-
-Axiom Row_regact_query_execute_modifies :
-  func_modifies ge (p ++ ["regact_query"]) (FExternal "RegisterAction" "execute") None [].
-#[local] Hint Extern 5 (func_modifies _ _ _ _ _) => (apply Row_regact_query_execute_modifies) : func_specs.
-
-Axiom Row_regact_clear_execute_modifies :
-  func_modifies ge (p ++ ["regact_clear"]) (FExternal "RegisterAction" "execute") None [p ++ ["reg_row"]].
-#[local] Hint Extern 5 (func_modifies _ _ _ _ _) => (apply Row_regact_clear_execute_modifies) : func_specs.
 
 Definition NoAction_fundef : @fundef Info := Eval compute in
   force dummy_fundef (PathMap.get ["NoAction"] (ge_func ge)).
@@ -408,6 +401,264 @@ Proof.
   unfold row_insert.
   list_solve.
 Qed.
+
+#[local] Hint Extern 5 (func_modifies _ _ _ _ _) => (apply Row_insert_body) : func_specs.
+
+Definition Row_regact_query_apply_sem := Eval compute -[am_ge] in
+  (force Tofino.EnvPin (PathMap.get (p ++ ["regact_query"; "apply"]) (ge_ext ge))).
+
+Definition Row_regact_query_apply_fd :=
+  ltac : (
+    let sem := eval unfold Row_regact_query_apply_sem in Row_regact_query_apply_sem in
+    match sem with
+    | Tofino.EnvAbsMet (exec_abstract_method ?ge ?p ?fd) =>
+        exact fd
+    end).
+
+Definition Row_regact_query_apply_spec : func_spec :=
+  RegisterAction_apply_spec (p ++ ["regact_query"]) 8 (fun b => b)
+    (fun b => ValBaseBit (P4Arith.to_loptbool 8%N b)).
+
+Lemma Row_regact_query_apply_body :
+  fundef_satisfies_spec am_ge Row_regact_query_apply_fd nil Row_regact_query_apply_spec.
+Proof.
+  start_function.
+  step.
+  step.
+  step.
+  entailer.
+Qed.
+
+Program Definition Row_regact_query_execute_body :=
+  RegisterAction_execute_body _ 16%N 8%N num_cells (p ++ ["reg_row"]) eq_refl eq_refl ltac:(abstract (unfold num_cells; lia))
+    Row_regact_query_apply_fd (fun b => b) (fun b => ValBaseBit (P4Arith.to_loptbool 8%N b)) eq_refl Row_regact_query_apply_body.
+
+#[local] Hint Extern 5 (func_modifies _ _ _ _ _) => (apply Row_regact_query_execute_body) : func_specs.
+
+Definition Row_query_fundef := Eval compute in
+  force dummy_fundef (PathMap.get ["Bf2BloomFilterRow"; "act_query"] (ge_func ge)).
+
+(* Program:
+  action act_query() {
+      rw = regact_query.execute(index);
+  }
+*)
+
+Definition Row_query_spec : func_spec :=
+  WITH (* p *),
+    PATH p
+    MOD (Some [["rw"]]) [p]
+    WITH (r : row) (i : Z)
+      (_ : Zlength r = num_cells)
+      (_ : 0 <= i < Zlength r),
+      PRE
+        (ARG []
+        (MEM [(["index"], eval_val_to_sval (ValBaseBit (P4Arith.to_lbool 16%N i)))]
+        (EXT [row_repr p r])))
+      POST
+        (ARG_RET [] ValBaseNull
+        (MEM [(["rw"], eval_val_to_sval (bool_to_val (row_query r i)))]
+        (EXT [row_repr p r]))).
+
+Fixpoint to_lbool'' (width : nat) (value : Z) : list bool :=
+  match width with
+  | 0%nat => []
+  | S n => Z.odd value :: to_lbool'' n (value / 2)
+  end.
+
+Lemma to_lbool'_app : forall width value res,
+  P4Arith.to_lbool' width value res = P4Arith.to_lbool' width value [] ++ res.
+Proof.
+  induction width; intros.
+  - auto.
+  - simpl.
+    rewrite IHwidth.
+    rewrite IHwidth with (res := [Z.odd value]).
+    list_solve.
+Qed.
+
+Lemma to_lbool''_to_lbool' : forall width value,
+  to_lbool'' width value = rev (P4Arith.to_lbool' width value []).
+Proof.
+  induction width; intros.
+  - auto.
+  - simpl.
+    rewrite to_lbool'_app.
+    rewrite rev_app_distr.
+    rewrite IHwidth.
+    auto.
+Qed.
+
+Lemma to_lbool_lbool_to_val : forall bs,
+  P4Arith.to_lbool (Z.to_N (Zlength bs))
+      (P4Arith.BitArith.lbool_to_val bs 1 0)
+  = bs.
+Proof.
+  intros.
+  unfold P4Arith.to_lbool.
+  rewrite <- to_lbool''_to_lbool'.
+  induction bs.
+  - auto.
+  - replace (N.to_nat (Z.to_N (Zlength (a :: bs))))
+      with (S (N.to_nat (Z.to_N (Zlength bs)))) by list_solve.
+    simpl.
+    rewrite P4Arith.BitArith.lbool_to_val_1_0.
+    rewrite P4Arith.BitArith.lbool_to_val_1_0 with (o := 2).
+    destruct a.
+    + replace (Z.odd (P4Arith.BitArith.lbool_to_val bs 1 0 * 2 + 1)) with true. 2 : {
+        rewrite Z.add_comm.
+        rewrite Z.mul_comm.
+        rewrite Z.odd_add_mul_2.
+        auto.
+      }
+      rewrite Z.div_add_l by lia.
+      replace (1 / 2) with 0 by auto.
+      rewrite Z.add_0_r.
+      f_equal; auto.
+    + replace (Z.odd (P4Arith.BitArith.lbool_to_val bs 1 0 * 2 + 0)) with false. 2 : {
+        rewrite Z.add_comm.
+        rewrite Z.mul_comm.
+        rewrite Z.odd_add_mul_2.
+        auto.
+      }
+      rewrite Z.div_add_l by lia.
+      replace (1 / 2) with 0 by auto.
+      rewrite Z.add_0_r.
+      f_equal; auto.
+Qed.
+
+Lemma to_lbool_lbool_to_val' : forall bs w,
+  w = Z.to_N (Zlength bs) ->
+  P4Arith.to_lbool w
+      (P4Arith.BitArith.lbool_to_val bs 1 0)
+  = bs.
+Proof.
+  intros; subst.
+  apply to_lbool_lbool_to_val.
+Qed.
+
+Lemma upd_Znth_Znth_same : forall {A} {dA : Inhabitant A} (al : list A) i,
+  upd_Znth i al (Znth i al) = al.
+Proof.
+  intros.
+  list_solve.
+Qed.
+
+Lemma upd_Znth_Znth_same' : forall {A} {dA : Inhabitant A} (al : list A) a i,
+  a = Znth i al ->
+  upd_Znth i al a = al.
+Proof.
+  intros.
+  list_solve.
+Qed.
+
+Lemma Row_query_body :
+  fundef_satisfies_spec ge Row_query_fundef nil Row_query_spec.
+Proof.
+  start_function.
+  unfold row_repr, row_reg_repr.
+  normalize_EXT.
+  step_call Row_regact_query_execute_body.
+  4 : { entailer. }
+  { list_solve. }
+  { list_solve. }
+  { rewrite Znth_map by list_solve.
+    split; reflexivity.
+  }
+  step.
+  entailer.
+  { unfold P4Arith.to_loptbool.
+    rewrite to_lbool_lbool_to_val' by auto.
+    repeat constructor.
+  }
+  { rewrite to_lbool_lbool_to_val' by auto.
+    f_equal.
+    apply upd_Znth_Znth_same'.
+    unfold bool_to_val.
+    list_solve.
+  }
+Qed.
+
+#[local] Hint Extern 5 (func_modifies _ _ _ _ _) => (apply Row_query_body) : func_specs.
+
+Definition Row_regact_clear_apply_sem := Eval compute -[am_ge] in
+  (force Tofino.EnvPin (PathMap.get (p ++ ["regact_clear"; "apply"]) (ge_ext ge))).
+
+Definition Row_regact_clear_apply_fd :=
+  ltac : (
+    let sem := eval unfold Row_regact_clear_apply_sem in Row_regact_clear_apply_sem in
+    match sem with
+    | Tofino.EnvAbsMet (exec_abstract_method ?ge ?p ?fd) =>
+        exact fd
+    end).
+
+Definition Row_regact_clear_apply_spec : func_spec :=
+  RegisterAction_apply_spec (p ++ ["regact_clear"]) 8 (fun _ => 0)
+    (fun _ => ValBaseBit (P4Arith.to_loptbool 8%N 0)).
+
+Lemma Row_regact_clear_apply_body :
+  fundef_satisfies_spec am_ge Row_regact_clear_apply_fd nil Row_regact_clear_apply_spec.
+Proof.
+  start_function.
+  step.
+  step.
+  step.
+  step.
+  entailer.
+Qed.
+
+Program Definition Row_regact_clear_execute_body :=
+  RegisterAction_execute_body _ 16%N 8%N num_cells (p ++ ["reg_row"]) eq_refl eq_refl ltac:(abstract (unfold num_cells; lia))
+    Row_regact_clear_apply_fd (fun _ => 0) (fun _ => ValBaseBit (P4Arith.to_loptbool 8%N 0)) eq_refl Row_regact_clear_apply_body.
+
+#[local] Hint Extern 5 (func_modifies _ _ _ _ _) => (apply Row_regact_clear_execute_body) : func_specs.
+
+Definition Row_clear_fundef := Eval compute in
+  force dummy_fundef (PathMap.get ["Bf2BloomFilterRow"; "act_clear"] (ge_func ge)).
+
+(* Program:
+  action act_clear() {
+      rw = regact_clear.execute(index);
+  }
+*)
+
+Definition Row_clear_spec : func_spec :=
+  WITH (* p *),
+    PATH p
+    MOD (Some [["rw"]]) [p]
+    WITH (r : row) (i : Z)
+      (_ : Zlength r = num_cells)
+      (_ : 0 <= i < Zlength r),
+      PRE
+        (ARG []
+        (MEM [(["index"], eval_val_to_sval (ValBaseBit (P4Arith.to_lbool 16%N i)))]
+        (EXT [row_repr p r])))
+      POST
+        (ARG_RET [] ValBaseNull
+        (MEM [(["rw"], eval_val_to_sval (ValBaseBit (P4Arith.to_lbool 8%N 0)))]
+        (EXT [row_repr p (row_clear r i)]))).
+
+Lemma Row_clear_body :
+  fundef_satisfies_spec ge Row_clear_fundef nil Row_clear_spec.
+Proof.
+  start_function.
+  unfold row_repr, row_reg_repr.
+  normalize_EXT.
+  step_call Row_regact_clear_execute_body.
+  4 : { entailer. }
+  { list_solve. }
+  { list_solve. }
+  { rewrite Znth_map by list_solve.
+    split; reflexivity.
+  }
+  step.
+  entailer.
+  f_equal.
+  unfold row_clear.
+  list_solve.
+Qed.
+
+#[local] Hint Extern 5 (func_modifies _ _ _ _ _) => (apply Row_clear_body) : func_specs.
 
 Definition Row_fundef := Eval compute in
   force dummy_fundef (PathMap.get ["Bf2BloomFilterRow"; "apply"] (ge_func ge)).
