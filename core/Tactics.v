@@ -194,6 +194,22 @@ Ltac inv_implicit_return :=
 
 Create HintDb func_specs.
 
+Ltac intros_fs_bind :=
+  repeat lazymatch goal with
+  | |- fundef_satisfies_spec _ _ _ (fs_bind (fun x => _)) =>
+    let x := fresh x in intro x
+  | |- fundef_satisfies_spec _ _ _ ?x =>
+    unfold x
+  end.
+
+Ltac intros_fsh_bind :=
+  repeat lazymatch goal with
+  | |- fundef_satisfies_hoare _ _ _ _ (fsh_bind (fun x => _)) =>
+    let x := fresh x in intro x
+  | |- fundef_satisfies_hoare _ _ _ _ ?x =>
+    unfold x
+  end.
+
 Ltac solve_modifies :=
   first [
     solve [eauto 100 with nocore modifies]
@@ -201,10 +217,7 @@ Ltac solve_modifies :=
   ].
 
 Ltac init_function :=
-  repeat lazymatch goal with
-  | |- fundef_satisfies_hoare _ _ _ _ (fsh_bind (fun x => _)) =>
-    let x := fresh x in intro x
-  end;
+  intros_fsh_bind;
   unfold fundef_satisfies_hoare;
   (* handle hoare_func *)
   lazymatch goal with
@@ -224,11 +237,7 @@ Ltac init_function :=
 Ltac start_function :=
   lazymatch goal with
   | |- fundef_satisfies_spec _ _ _ ?spec =>
-      try unfold spec;
-      repeat lazymatch goal with
-      | |- fundef_satisfies_spec _ _ _ (fs_bind (fun x => _)) =>
-        let x := fresh x in intro x
-      end;
+      intros_fs_bind;
       split; [init_function | solve_modifies]
   | _ => fail "The goal is not in the form of (fundef_satisfies_spec _ _ _)"
   end.
@@ -248,7 +257,7 @@ Ltac step_call_func func_spec :=
             | reflexivity (* exclude *)
               (* This is dangerous if there are other evars. *)
             | instantiate (2 := ltac:(test_ext_exclude)); reflexivity (* exclude_ext *)
-            | repeat constructor (* func_post_combine *)
+            | solve [repeat constructor] (* func_post_combine *)
             ]
         | reflexivity (* is_no_dup *)
         | reflexivity (* eval_call_copy_out *)
@@ -310,7 +319,8 @@ Ltac step_call_tac func_spec :=
   | |- hoare_stmt _ _ _ _ _ =>
       step_stmt_call func_spec
   | |- hoare_call _ _ _ _ _ =>
-      step_call_func func_spec
+      eapply hoare_call_post;
+      only 1 : step_call_func func_spec
   | _ => fail "The goal is not in the form of (hoare_block _ _ (MEM _ (EXT _)) _ _)"
   end.
 
@@ -542,13 +552,6 @@ Ltac entailer :=
           | Forall_uncurry_sval_refine
           | simpl_ext_implies
           ]
-      (* | eapply implies_simplify_ret;
-          [ idtac (* retv *)
-          | reflexivity (* mem_implies_simplify *)
-          | idtac
-          | reflexivity (* ext_implies_simplify *)
-          | idtac
-          ] *)
       ]
   | |- arg_implies _ _ =>
       first [
@@ -558,13 +561,15 @@ Ltac entailer :=
           | Forall_uncurry_sval_refine
           | simpl_ext_implies
         ]
-      (* | eapply implies_simplify_ret;
-          [ idtac (* retv *)
+      ]
+  | |- ret_implies _ _ =>
+      first [
+        eapply ret_implies_simplify;
+          [ try apply sval_refine_refl
           | reflexivity (* mem_implies_simplify *)
-          | idtac
-          | reflexivity (* ext_implies_simplify *)
-          | idtac
-          ] *)
+          | Forall_uncurry_sval_refine
+          | simpl_ext_implies
+        ]
       ]
   | |- ext_implies _ _ =>
       simpl_ext_implies

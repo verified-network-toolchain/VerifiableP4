@@ -32,11 +32,15 @@ Definition INSQUERY := 4.
 
 Open Scope func_spec.
 
+Definition num_cells := 65536.
+
 Definition Row_spec : func_spec :=
   WITH (* p *),
     PATH p
     MOD None [p]
     WITH (r : row) (op : Z) (i : Z)
+      (_ : Zlength r = num_cells)
+      (_ : In op [NOOP; INSERT; QUERY; CLEAR])
       (_ : 0 <= i < Zlength r),
       PRE
         (ARG [eval_val_to_sval (ValBaseBit (P4Arith.to_lbool 8%N op));
@@ -55,8 +59,6 @@ Definition Row_spec : func_spec :=
            if (op =? QUERY)%Z then r else
            if (op =? CLEAR)%Z then row_clear r i else
            r)]))).
-
-Definition num_cells := 65536.
 
 Definition dummy_fundef : @fundef Info := FExternal "" "".
 Opaque dummy_fundef.
@@ -112,21 +114,82 @@ Definition RegisterAction_execute_spec : func_spec :=
             (Tofino.ObjRegister (upd_Znth i c
                 (ValBaseBit (P4Arith.to_lbool w (apply_f (P4Arith.BitArith.lbool_to_val old_v 1 0))))))]))).
 
-Ltac intros_fs_bind :=
-  repeat lazymatch goal with
-  | |- fundef_satisfies_spec _ _ _ (fs_bind (fun x => _)) =>
-    let x := fresh x in intro x
-  | |- fundef_satisfies_spec _ _ _ ?x =>
-    unfold x
+Fixpoint to_lbool'' (width : nat) (value : Z) : list bool :=
+  match width with
+  | 0%nat => []
+  | S n => Z.odd value :: to_lbool'' n (value / 2)
   end.
 
-Ltac intros_fsh_bind :=
-  repeat lazymatch goal with
-  | |- fundef_satisfies_hoare _ _ _ _ (fsh_bind (fun x => _)) =>
-    let x := fresh x in intro x
-  | |- fundef_satisfies_hoare _ _ _ _ ?x =>
-    unfold x
-  end.
+Lemma to_lbool'_app : forall width value res,
+  P4Arith.to_lbool' width value res = P4Arith.to_lbool' width value [] ++ res.
+Proof.
+  induction width; intros.
+  - auto.
+  - simpl.
+    rewrite IHwidth.
+    rewrite IHwidth with (res := [Z.odd value]).
+    list_solve.
+Qed.
+
+Lemma to_lbool''_to_lbool' : forall width value,
+  to_lbool'' width value = rev (P4Arith.to_lbool' width value []).
+Proof.
+  induction width; intros.
+  - auto.
+  - simpl.
+    rewrite to_lbool'_app.
+    rewrite rev_app_distr.
+    rewrite IHwidth.
+    auto.
+Qed.
+
+Lemma to_lbool_lbool_to_val : forall bs,
+  P4Arith.to_lbool (Z.to_N (Zlength bs))
+      (P4Arith.BitArith.lbool_to_val bs 1 0)
+  = bs.
+Proof.
+  intros.
+  unfold P4Arith.to_lbool.
+  rewrite <- to_lbool''_to_lbool'.
+  induction bs.
+  - auto.
+  - replace (N.to_nat (Z.to_N (Zlength (a :: bs))))
+      with (S (N.to_nat (Z.to_N (Zlength bs)))) by list_solve.
+    simpl.
+    rewrite P4Arith.BitArith.lbool_to_val_1_0.
+    rewrite P4Arith.BitArith.lbool_to_val_1_0 with (o := 2).
+    destruct a.
+    + replace (Z.odd (P4Arith.BitArith.lbool_to_val bs 1 0 * 2 + 1)) with true. 2 : {
+        rewrite Z.add_comm.
+        rewrite Z.mul_comm.
+        rewrite Z.odd_add_mul_2.
+        auto.
+      }
+      rewrite Z.div_add_l by lia.
+      replace (1 / 2) with 0 by auto.
+      rewrite Z.add_0_r.
+      f_equal; auto.
+    + replace (Z.odd (P4Arith.BitArith.lbool_to_val bs 1 0 * 2 + 0)) with false. 2 : {
+        rewrite Z.add_comm.
+        rewrite Z.mul_comm.
+        rewrite Z.odd_add_mul_2.
+        auto.
+      }
+      rewrite Z.div_add_l by lia.
+      replace (1 / 2) with 0 by auto.
+      rewrite Z.add_0_r.
+      f_equal; auto.
+Qed.
+
+Lemma to_lbool_lbool_to_val' : forall bs w,
+  w = Z.to_N (Zlength bs) ->
+  P4Arith.to_lbool w
+      (P4Arith.BitArith.lbool_to_val bs 1 0)
+  = bs.
+Proof.
+  intros; subst.
+  apply to_lbool_lbool_to_val.
+Qed.
 
 Lemma RegisterAction_execute_body :
   fundef_satisfies_spec ge execute_fundef nil RegisterAction_execute_spec.
@@ -258,12 +321,9 @@ Proof.
       inv H1. inv H8.
       rewrite H in H6. constructor. 2 : constructor.
       subst old_value.
-      assert (forall b, P4Arith.to_lbool (fst (P4Arith.BitArith.from_lbool b)) (snd (P4Arith.BitArith.from_lbool b)) = b)
-        as to_lbool_from_lbool by admit.
-      replace w with (fst (P4Arith.BitArith.from_lbool old_v))
-        by (unfold P4Arith.BitArith.from_lbool, fst; lia).
+      replace w with (Z.to_N (Zlength old_v)) by (lia).
       unfold P4Arith.to_loptbool.
-      rewrite to_lbool_from_lbool.
+      rewrite to_lbool_lbool_to_val.
       eapply exec_val_trans with (f := read_ndetbit). 3 : eassumption.
       { red. sauto. }
       constructor.
@@ -315,7 +375,7 @@ Proof.
     rewrite PathMap.get_set_same.
     auto.
   }
-Admitted.
+Qed.
 
 Definition Row_regact_insert_apply_sem := Eval compute -[am_ge] in
   (force Tofino.EnvPin (PathMap.get (p ++ ["regact_insert"; "apply"]) (ge_ext ge))).
@@ -460,83 +520,6 @@ Definition Row_query_spec : func_spec :=
         (MEM [(["rw"], eval_val_to_sval (bool_to_val (row_query r i)))]
         (EXT [row_repr p r]))).
 
-Fixpoint to_lbool'' (width : nat) (value : Z) : list bool :=
-  match width with
-  | 0%nat => []
-  | S n => Z.odd value :: to_lbool'' n (value / 2)
-  end.
-
-Lemma to_lbool'_app : forall width value res,
-  P4Arith.to_lbool' width value res = P4Arith.to_lbool' width value [] ++ res.
-Proof.
-  induction width; intros.
-  - auto.
-  - simpl.
-    rewrite IHwidth.
-    rewrite IHwidth with (res := [Z.odd value]).
-    list_solve.
-Qed.
-
-Lemma to_lbool''_to_lbool' : forall width value,
-  to_lbool'' width value = rev (P4Arith.to_lbool' width value []).
-Proof.
-  induction width; intros.
-  - auto.
-  - simpl.
-    rewrite to_lbool'_app.
-    rewrite rev_app_distr.
-    rewrite IHwidth.
-    auto.
-Qed.
-
-Lemma to_lbool_lbool_to_val : forall bs,
-  P4Arith.to_lbool (Z.to_N (Zlength bs))
-      (P4Arith.BitArith.lbool_to_val bs 1 0)
-  = bs.
-Proof.
-  intros.
-  unfold P4Arith.to_lbool.
-  rewrite <- to_lbool''_to_lbool'.
-  induction bs.
-  - auto.
-  - replace (N.to_nat (Z.to_N (Zlength (a :: bs))))
-      with (S (N.to_nat (Z.to_N (Zlength bs)))) by list_solve.
-    simpl.
-    rewrite P4Arith.BitArith.lbool_to_val_1_0.
-    rewrite P4Arith.BitArith.lbool_to_val_1_0 with (o := 2).
-    destruct a.
-    + replace (Z.odd (P4Arith.BitArith.lbool_to_val bs 1 0 * 2 + 1)) with true. 2 : {
-        rewrite Z.add_comm.
-        rewrite Z.mul_comm.
-        rewrite Z.odd_add_mul_2.
-        auto.
-      }
-      rewrite Z.div_add_l by lia.
-      replace (1 / 2) with 0 by auto.
-      rewrite Z.add_0_r.
-      f_equal; auto.
-    + replace (Z.odd (P4Arith.BitArith.lbool_to_val bs 1 0 * 2 + 0)) with false. 2 : {
-        rewrite Z.add_comm.
-        rewrite Z.mul_comm.
-        rewrite Z.odd_add_mul_2.
-        auto.
-      }
-      rewrite Z.div_add_l by lia.
-      replace (1 / 2) with 0 by auto.
-      rewrite Z.add_0_r.
-      f_equal; auto.
-Qed.
-
-Lemma to_lbool_lbool_to_val' : forall bs w,
-  w = Z.to_N (Zlength bs) ->
-  P4Arith.to_lbool w
-      (P4Arith.BitArith.lbool_to_val bs 1 0)
-  = bs.
-Proof.
-  intros; subst.
-  apply to_lbool_lbool_to_val.
-Qed.
-
 Lemma upd_Znth_Znth_same : forall {A} {dA : Inhabitant A} (al : list A) i,
   upd_Znth i al (Znth i al) = al.
 Proof.
@@ -660,6 +643,103 @@ Qed.
 
 #[local] Hint Extern 5 (func_modifies _ _ _ _ _) => (apply Row_clear_body) : func_specs.
 
+Definition Row_tbl_bloom_fundef := Eval compute in
+  force dummy_fundef (PathMap.get ["Bf2BloomFilterRow"; "tbl_bloom"; "apply"] (ge_func ge)).
+
+Definition Row_tbl_bloom_spec : func_spec :=
+  WITH (* p *),
+    PATH p
+    MOD (Some [["rw"]]) [p]
+    WITH (r : row) (op i : Z)
+      (_ : Zlength r = num_cells)
+      (_ : In op [NOOP; INSERT; QUERY; CLEAR])
+      (_ : 0 <= i < Zlength r),
+      PRE
+        (ARG []
+        (MEM [(["api"], eval_val_to_sval (ValBaseBit (P4Arith.to_lbool 8%N op)));
+              (["index"], eval_val_to_sval (ValBaseBit (P4Arith.to_lbool 16%N i)))]
+        (EXT [row_repr p r])))
+      POST
+        (ARG_RET [] ValBaseNull
+        (MEM [(["rw"], eval_val_to_sval (ValBaseBit (P4Arith.to_lbool 8%N
+          (if (op =? INSERT)%Z then 1 else
+           if (op =? QUERY)%Z then Z.b2z (row_query r i) else
+           if (op =? CLEAR)%Z then 0 else
+           0))))]
+        (EXT [row_repr p
+          (if (op =? INSERT)%Z then row_insert r i else
+           if (op =? QUERY)%Z then r else
+           if (op =? CLEAR)%Z then row_clear r i else
+           r)]))).
+
+Lemma Row_tbl_bloom_body :
+  fundef_satisfies_spec ge Row_tbl_bloom_fundef nil Row_tbl_bloom_spec.
+Proof.
+  split. 2 : {
+    unfold Row_tbl_bloom_fundef.
+    solve_modifies.
+  }
+  intros_fsh_bind.
+  red.
+  unfold Row_tbl_bloom_fundef.
+  hoare_func_table.
+  { (* I ignore the NOOP case here. I think we eventually need to say
+      In op [NOOP; INSERT; QUERY; CLEAR]. *)
+    instantiate (1 :=
+        [(is_true (op =? INSERT)%Z, Some (mk_action_ref "act_insert" []));
+         (not (is_true (op =? INSERT)%Z) /\ is_true (op =? QUERY)%Z,
+            Some (mk_action_ref "act_query" []));
+         (not (is_true (op =? INSERT)%Z) /\ not (is_true (op =? QUERY)%Z)
+            /\ is_true (op =? CLEAR)%Z, Some (mk_action_ref "act_clear" []))]).
+    admit.
+  }
+  constructor. {
+    econstructor.
+    { reflexivity. }
+    { intros.
+      replace (op =? INSERT)%Z with true.
+      step_call Row_insert_body.
+      3 : { entailer. }
+      { auto. }
+      { auto. }
+      entailer.
+    }
+    { admit. }
+  }
+  constructor. {
+    econstructor.
+    { reflexivity. }
+    { intros [].
+      replace (op =? INSERT)%Z with false by hauto.
+      replace (op =? QUERY)%Z with true.
+      step_call Row_query_body.
+      3 : { entailer. }
+      { auto. }
+      { auto. }
+      entailer.
+      destruct (row_query r i);
+        apply sval_refine_refl.
+    }
+    { admit. }
+  }
+  constructor. {
+    econstructor.
+    { reflexivity. }
+    { intros [? []].
+      replace (op =? INSERT)%Z with false by hauto.
+      replace (op =? QUERY)%Z with false by hauto.
+      replace (op =? CLEAR)%Z with true.
+      step_call Row_clear_body.
+      3 : { entailer. }
+      { auto. }
+      { auto. }
+      entailer.
+    }
+    { admit. }
+  }
+  constructor.
+Admitted.
+
 Definition Row_fundef := Eval compute in
   force dummy_fundef (PathMap.get ["Bf2BloomFilterRow"; "apply"] (ge_func ge)).
 
@@ -671,20 +751,9 @@ Lemma Row_body :
   fundef_satisfies_spec ge Row_fundef nil Row_spec.
 Proof.
   start_function.
-  step_into_call.
-  { hoare_func_table.
-    admit.
-    admit.
-  }
-  (* destruct (Z.eq_dec op INSERT).
-  { subst op.
-    step_into_call.
-  { hoare_func_table.
-    step_call Row_insert_body.
-    2 : { entailer. }
-    auto.
-  }
-  { reflexivity. }
-  { reflexivity. }
-  { entailer. } *)
-Abort.
+  step_call Row_tbl_bloom_body.
+  4 : { entailer. }
+  1-3 : auto.
+  step.
+  entailer.
+Qed.

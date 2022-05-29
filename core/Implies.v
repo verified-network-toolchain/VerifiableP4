@@ -142,21 +142,21 @@ Proof.
   all : eauto.
 Qed.
 
-(* Lemma implies_simplify_ret : forall pre_mem pre_ext post_ret post_mem post_ext retv svps eops,
-  ret_denote post_ret retv ->
+Lemma ret_implies_simplify : forall pre_ret pre_mem pre_ext post_ret post_mem post_ext svps,
+  sval_refine post_ret pre_ret ->
   mem_implies_simplify pre_mem post_mem = Some svps ->
   Forall (uncurry sval_refine) svps ->
-  ext_implies_simplify pre_ext post_ext = Some eops ->
-  Forall (uncurry eq) eops ->
-  implies (MEM pre_mem (EXT pre_ext)) (RET post_ret (MEM post_mem (EXT post_ext)) retv).
+  ext_implies pre_ext post_ext ->
+  ret_implies (RET pre_ret (MEM pre_mem (EXT pre_ext))) (RET post_ret (MEM post_mem (EXT post_ext))).
 Proof.
   unfold implies; intros.
-  destruct st as [m es].
-  destruct H4; split; only 2 : split.
-  - eauto.
-  - eapply mem_implies_simplify_sound; eauto.
-  - eapply ext_implies_simplify_sound; eauto.
-Qed. *)
+  unfold ret_implies; intros.
+  destruct H3.
+  split. 2 : { eapply implies_simplify; eauto. }
+  clear -H H3. unfold ret_denote, ret_satisfies in *.
+  intros sv' H0. specialize (H3 sv' H0).
+  eapply sval_refine_trans; eauto.
+Qed.
 
 End Implies.
 

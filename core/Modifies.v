@@ -647,8 +647,10 @@ End Modifies.
 
 #[export] Hint Resolve In_vars_None In_vars_Some : modifies.
 #[export] Hint Resolve in_eq in_cons : modifies.
-#[export] Hint Constructors incl_vars : modifies.
 (* We define these rules using apply, so it works when the lists are computed. *)
+#[export] Hint Extern 1 (incl_vars _ _) => apply incl_vars_None_None : modifies.
+#[export] Hint Extern 1 (incl_vars _ _) => apply incl_vars_None_Some : modifies.
+#[export] Hint Extern 1 (incl_vars _ _) => apply incl_vars_Some_Some : modifies.
 #[export] Hint Extern 1 (Forall _ _) => (apply Forall_nil) : modifies.
 #[export] Hint Extern 1 (Forall _ _) => (apply Forall_cons) : modifies.
 #[export] Hint Extern 1 (Forall2 _ _ _) => (apply Forall2_nil) : modifies.
