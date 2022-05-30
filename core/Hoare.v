@@ -294,9 +294,9 @@ Ltac specialize_hoare_lexpr :=
 Ltac specialize_hoare_write :=
   lazymatch goal with
   | H : hoare_write _ _ _ _ |- _ =>
-      specialize (H _ _ _ ltac:(eassumption) ltac:(eassumption) ltac:(eassumption))
+      specialize (H _ _ _ ltac:(eassumption) ltac:(first [eassumption | apply sval_refine_refl]) ltac:(eassumption))
   | H : forall _ _ _, _ -> exec_write _ _ _ _ _ -> _ |- _ =>
-      specialize (H _ _ _ ltac:(eassumption) ltac:(eassumption) ltac:(eassumption))
+      specialize (H _ _ _ ltac:(eassumption) ltac:(first [eassumption | apply sval_refine_refl]) ltac:(eassumption))
   end.
 
 Ltac specialize_hoare_call :=
@@ -401,6 +401,20 @@ Proof.
     inv H15; inv H0.
   }
   specialize_hoare_expr_det.
+  specialize_hoare_write.
+  auto.
+Qed.
+
+Lemma hoare_stmt_var_none : forall p pre tags typ' name loc typ post rtyp sv,
+  get_real_type ge typ' = Some rtyp ->
+  uninit_sval_of_typ (Some false) rtyp = Some sv ->
+  hoare_write pre (ValLeftName loc) sv (post_continue post) ->
+  hoare_stmt p pre (MkStatement tags (StatVariable typ' name None loc) typ) post.
+Proof.
+  unfold hoare_stmt. intros.
+  left.
+  inv H4.
+  assert (sv0 = sv) by congruence; subst.
   specialize_hoare_write.
   auto.
 Qed.
@@ -830,7 +844,9 @@ Proof.
     unfold rel_trans.
     eapply exec_val_trans.
     unfold rel_trans.
-    sauto.
+    (* I don't know why we need to clear here. But after changing AbsMet to be an element of
+      ExternSem, sauto no longer wokrs and reports "Anomaly "Unable to handle arbitrary u+k <= v constraints."" *)
+    clear; sauto.
   }
   assert (Forall2 val_to_sval keyvals0 (map eval_val_to_sval keyvals0)). {
     clear.
@@ -842,14 +858,14 @@ Proof.
   assert (Forall2 (sval_to_val strict_read_ndetbit) (map eval_val_to_sval keyvals0) keyvals). {
     eapply Forall2_sym; [ | eassumption].
     eapply exec_val_sym.
-    sauto.
+    clear; sauto.
   }
   assert (Forall2 (exec_val eq) keyvals0 keyvals). {
     eapply Forall2_trans; [ | eassumption | eassumption].
     unfold rel_trans.
     eapply exec_val_trans.
     unfold rel_trans.
-    sauto.
+    clear; sauto.
   }
   assert (keyvals0 = keyvals). {
     apply ForallMap.Forall2_eq.
@@ -960,6 +976,18 @@ Proof.
     + apply IHForall.
       inv H4. split; eauto.
 Qed.
+
+Definition hoare_abstract_method (pre : list Sval -> extern_state -> Prop)
+    (func : AbsMet) (post : list Sval -> Val -> extern_state -> Prop) :=
+  forall es inargs inargs' es' outargs' outargs sig,
+    pre inargs es ->
+    svals_to_vals read_ndetbit inargs inargs' ->
+    func es inargs' es' outargs' sig ->
+    vals_to_svals outargs' outargs ->
+    match sig with
+    | SReturn vret => post outargs vret es'
+    | _ => False
+    end.
 
 Lemma implies_refl : forall (pre : assertion),
   implies pre pre.

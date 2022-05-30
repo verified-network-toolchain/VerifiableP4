@@ -476,3 +476,35 @@ Fixpoint val_to_liberal_sval (val: Val): Sval :=
   end.
 
 End SvalRefine.
+
+Lemma Forall2_bit_refine:
+  forall (l : list bool) (lb' : list (option bool)),
+    Forall2 bit_refine (map Some l) lb' -> lb' = map Some l.
+Proof.
+  induction l; intros.
+  - simpl in *. inv H. auto.
+  - destruct lb'.
+    + simpl in H. inv H.
+    + inv H. simpl. apply IHl in H5. inv H3. easy.
+Qed.
+
+Lemma sval_refine_bit_to_loptbool: forall width value sv,
+    sval_refine (ValBaseBit (P4Arith.to_loptbool width value)) sv ->
+    sv = (ValBaseBit (P4Arith.to_loptbool width value)).
+Proof.
+  intros. inv H. f_equal. unfold P4Arith.to_loptbool in *.
+  now apply Forall2_bit_refine.
+Qed.
+
+Lemma sval_to_val_bit_to_loptbool: forall width value v,
+    sval_to_val read_ndetbit (ValBaseBit (P4Arith.to_loptbool width value)) v ->
+    v = (ValBaseBit (P4Arith.to_lbool width value)).
+Proof.
+  intros. symmetry. eapply sval_to_val_eval_val_to_sval_eq; eauto.
+  intros. inv H0. auto.
+Qed.
+
+Lemma val_to_sval_bit_to_lbool: forall width value sv,
+    val_to_sval (ValBaseBit (P4Arith.to_lbool width value)) sv ->
+    sv = (ValBaseBit (P4Arith.to_loptbool width value)).
+Proof. intros. rewrite val_to_sval_iff in H. simpl in H. auto. Qed.

@@ -10,6 +10,5 @@ Require Export ProD3.core.FuncSpec.
 Require Export ProD3.core.Implies.
 Require Export ProD3.core.Modifies.
 Require Export ProD3.core.Tactics.
-Require Export ProD3.core.V1ModelSpec.
 Require Export ProD3.core.ExtPred.
 Require Export ProD3.core.DisjointTest.

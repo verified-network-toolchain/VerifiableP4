@@ -72,7 +72,7 @@ Ltac step_stmt :=
             | reflexivity (* eval_write *)
             ]
       (* hoare_stmt_var' *)
-      | MkStatement _ (StatVariable _ _ _ ?loc) _ =>
+      | MkStatement _ (StatVariable _ _ (Some _) ?loc) _ =>
           lazymatch loc with
           | LInstance _ => idtac (* ok *)
           | LGlobal _ => fail "Cannot declacre a variable with LGlobal locator"
@@ -82,6 +82,19 @@ Ltac step_stmt :=
             [ reflexivity (* is_call_expression *)
             | reflexivity (* is_no_dup *)
             | reflexivity (* eval_expr *)
+            | reflexivity (* eval_write *)
+            ]
+      (* hoare_stmt_var_none' *)
+      | MkStatement _ (StatVariable _ _ None ?loc) _ =>
+          lazymatch loc with
+          | LInstance _ => idtac (* ok *)
+          | LGlobal _ => fail "Cannot declacre a variable with LGlobal locator"
+          | _ => fail "Unrecognized locator expression" loc
+          end;
+          eapply hoare_stmt_var_none';
+            [ reflexivity (* is_no_dup *)
+            | reflexivity (* get_real_type *)
+            | reflexivity (* uninit_sval_of_typ *)
             | reflexivity (* eval_write *)
             ]
       (* hoare_stmt_direct_application' *)
@@ -181,6 +194,22 @@ Ltac inv_implicit_return :=
 
 Create HintDb func_specs.
 
+Ltac intros_fs_bind :=
+  repeat lazymatch goal with
+  | |- fundef_satisfies_spec _ _ _ (fs_bind (fun x => _)) =>
+    let x := fresh x in intro x
+  | |- fundef_satisfies_spec _ _ _ ?x =>
+    unfold x
+  end.
+
+Ltac intros_fsh_bind :=
+  repeat lazymatch goal with
+  | |- fundef_satisfies_hoare _ _ _ _ (fsh_bind (fun x => _)) =>
+    let x := fresh x in intro x
+  | |- fundef_satisfies_hoare _ _ _ _ ?x =>
+    unfold x
+  end.
+
 Ltac solve_modifies :=
   first [
     solve [eauto 100 with nocore modifies]
@@ -188,10 +217,7 @@ Ltac solve_modifies :=
   ].
 
 Ltac init_function :=
-  repeat lazymatch goal with
-  | |- fundef_satisfies_hoare _ _ _ _ (fsh_bind (fun x => _)) =>
-    let x := fresh x in intro x
-  end;
+  intros_fsh_bind;
   unfold fundef_satisfies_hoare;
   (* handle hoare_func *)
   lazymatch goal with
@@ -211,11 +237,7 @@ Ltac init_function :=
 Ltac start_function :=
   lazymatch goal with
   | |- fundef_satisfies_spec _ _ _ ?spec =>
-      try unfold spec;
-      repeat lazymatch goal with
-      | |- fundef_satisfies_spec _ _ _ (fs_bind (fun x => _)) =>
-        let x := fresh x in intro x
-      end;
+      intros_fs_bind;
       split; [init_function | solve_modifies]
   | _ => fail "The goal is not in the form of (fundef_satisfies_spec _ _ _)"
   end.
@@ -235,7 +257,7 @@ Ltac step_call_func func_spec :=
             | reflexivity (* exclude *)
               (* This is dangerous if there are other evars. *)
             | instantiate (2 := ltac:(test_ext_exclude)); reflexivity (* exclude_ext *)
-            | repeat constructor (* func_post_combine *)
+            | solve [repeat constructor] (* func_post_combine *)
             ]
         | reflexivity (* is_no_dup *)
         | reflexivity (* eval_call_copy_out *)
@@ -297,7 +319,8 @@ Ltac step_call_tac func_spec :=
   | |- hoare_stmt _ _ _ _ _ =>
       step_stmt_call func_spec
   | |- hoare_call _ _ _ _ _ =>
-      step_call_func func_spec
+      eapply hoare_call_post;
+      only 1 : step_call_func func_spec
   | _ => fail "The goal is not in the form of (hoare_block _ _ (MEM _ (EXT _)) _ _)"
   end.
 
@@ -333,10 +356,16 @@ Ltac step_call_wrapper func_spec callback :=
   try clear func_body1;
   try clear func_body2.
 
+Tactic Notation "step_call" uconstr(func_spec) uconstr(x1) uconstr(x2) uconstr(x3) uconstr(x4) uconstr(x5) uconstr(x6) :=
+  step_call_wrapper func_spec
+    ltac:(fun func_body func_body1 func_body2 =>
+      epose proof (func_body := conj (func_body1 x1 x2 x3 x4 x5 x6) func_body2)).
+
 Tactic Notation "step_call" uconstr(func_spec) uconstr(x1) uconstr(x2) uconstr(x3) uconstr(x4) uconstr(x5) :=
   step_call_wrapper func_spec
     ltac:(fun func_body func_body1 func_body2 =>
-      epose proof (func_body := conj (func_body1 x1 x2 x3 x4 x5) func_body2)).
+      epose proof (func_body := conj (func_body1 x1 x2 x3 x4 x5) func_body2))
+  || step_call func_spec x1 x2 x3 x4 x5 _.
 
 Tactic Notation "step_call" uconstr(func_spec) uconstr(x1) uconstr(x2) uconstr(x3) uconstr(x4) :=
   step_call_wrapper func_spec
@@ -523,13 +552,6 @@ Ltac entailer :=
           | Forall_uncurry_sval_refine
           | simpl_ext_implies
           ]
-      (* | eapply implies_simplify_ret;
-          [ idtac (* retv *)
-          | reflexivity (* mem_implies_simplify *)
-          | idtac
-          | reflexivity (* ext_implies_simplify *)
-          | idtac
-          ] *)
       ]
   | |- arg_implies _ _ =>
       first [
@@ -539,13 +561,15 @@ Ltac entailer :=
           | Forall_uncurry_sval_refine
           | simpl_ext_implies
         ]
-      (* | eapply implies_simplify_ret;
-          [ idtac (* retv *)
+      ]
+  | |- ret_implies _ _ =>
+      first [
+        eapply ret_implies_simplify;
+          [ try apply sval_refine_refl
           | reflexivity (* mem_implies_simplify *)
-          | idtac
-          | reflexivity (* ext_implies_simplify *)
-          | idtac
-          ] *)
+          | Forall_uncurry_sval_refine
+          | simpl_ext_implies
+        ]
       ]
   | |- ext_implies _ _ =>
       simpl_ext_implies

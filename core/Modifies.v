@@ -68,6 +68,7 @@ Lemma modifies_trans : forall (vars : option (list path)) (exts : list path) (st
   modifies vars exts st2 st3 ->
   modifies vars exts st1 st3.
 Proof.
+  clear ge.
   intros. unfold modifies, modifies_exts, modifies_vars in *.
   fcrush.
 Qed.
@@ -282,6 +283,15 @@ Proof.
   inv H14. eapply write_var_modifies_intro; auto.
 Qed.
 
+Lemma stmt_modifies_var_none : forall p tags typ' name p' typ vars exts,
+  In_vars p' vars ->
+  stmt_modifies p (MkStatement tags (StatVariable typ' name None (LInstance p')) typ) vars exts.
+Proof.
+  unfold stmt_modifies. intros.
+  inv H0.
+  inv H12. eapply write_var_modifies_intro; auto.
+Qed.
+
 Lemma stmt_modifies_var_call : forall p tags typ' name e p' typ vars exts,
   is_call_expression e = true ->
   call_modifies p e vars exts ->
@@ -441,6 +451,7 @@ Proof.
   - inv H1; auto.
 Qed.
 
+(* This may be not used. *)
 Lemma modifies_exts_incl:
      forall (exts exts' : list path) st st',
        modifies_exts exts' st st' ->
@@ -448,6 +459,28 @@ Lemma modifies_exts_incl:
 Proof.
   intros. unfold modifies_exts in *. intros. apply H.
   intro. apply H1. eapply in_scopes_incl; eauto.
+Qed.
+
+Lemma modifies_incl : forall st st' vars exts vars' exts',
+  modifies vars' exts' st st' ->
+  incl_vars vars vars' ->
+  Forall (fun x => in_scopes x exts) exts' ->
+  modifies vars exts st st'.
+Proof.
+  clear ge.
+  intros.
+  unfold modifies in *; destruct st; destruct st'.
+  assert (forall q, in_scopes q exts' -> in_scopes q exts). {
+    clear -H1; intros.
+    induction H1.
+    - inv H.
+    - simpl in H. rewrite Reflect.orE in H. destruct H.
+      + eauto using in_scopes_trans.
+      + auto.
+  }
+  inv H0;
+  try pose proof (Forall_In _ _ H3);
+  split; destruct H; try sfirstorder.
 Qed.
 
 Lemma func_modifies_frame : forall p fd vars exts vars' exts',
@@ -459,19 +492,7 @@ Proof.
   unfold func_modifies.
   intros.
   apply H in H2. clear H.
-  unfold modifies in *; destruct st; destruct st'.
-    assert (forall q, in_scopes q exts' -> in_scopes q exts). {
-      clear -H1; intros.
-      induction H1.
-      - inv H.
-      - simpl in H. rewrite Reflect.orE in H. destruct H.
-        + eauto using in_scopes_trans.
-        + auto.
-    }
-    inv H0;
-    try pose proof (Forall_In _ _ H3);
-    split; destruct H2; try sfirstorder;
-    eapply modifies_exts_incl; eauto.
+  eapply modifies_incl; eassumption.
 Qed.
 
 Lemma func_modifies_internal_part1 : forall in_params vars exts st inargs,
@@ -626,8 +647,10 @@ End Modifies.
 
 #[export] Hint Resolve In_vars_None In_vars_Some : modifies.
 #[export] Hint Resolve in_eq in_cons : modifies.
-#[export] Hint Constructors incl_vars : modifies.
 (* We define these rules using apply, so it works when the lists are computed. *)
+#[export] Hint Extern 1 (incl_vars _ _) => apply incl_vars_None_None : modifies.
+#[export] Hint Extern 1 (incl_vars _ _) => apply incl_vars_None_Some : modifies.
+#[export] Hint Extern 1 (incl_vars _ _) => apply incl_vars_Some_Some : modifies.
 #[export] Hint Extern 1 (Forall _ _) => (apply Forall_nil) : modifies.
 #[export] Hint Extern 1 (Forall _ _) => (apply Forall_cons) : modifies.
 #[export] Hint Extern 1 (Forall2 _ _ _) => (apply Forall2_nil) : modifies.
@@ -638,6 +661,7 @@ End Modifies.
 #[export] Hint Resolve
     stmt_modifies_assign stmt_modifies_assign_call stmt_modifies_method_call stmt_modifies_direct_application
     stmt_modifies_var stmt_modifies_var_call stmt_modifies_if_none stmt_modifies_if_some stmt_modifies_block
+    stmt_modifies_var_none
     : modifies.
 (* call_modifies rules *)
 #[export] Hint Resolve call_modifies_builtin call_modifies_func : modifies.
