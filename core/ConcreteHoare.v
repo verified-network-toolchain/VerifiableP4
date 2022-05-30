@@ -269,23 +269,6 @@ Proof.
   eapply eval_write_options_sound; eauto.
 Qed.
 
-Lemma hoare_func_pre : forall ge p (pre pre' : Hoare.arg_assertion) fd targs post,
-  (forall args st, pre args st -> pre' args st) ->
-  hoare_func ge p pre' fd targs post ->
-  hoare_func ge p pre fd targs post.
-Proof.
-  sfirstorder.
-Qed.
-
-Lemma hoare_call_copy_out_pre : forall (pre pre' : Hoare.arg_ret_assertion) args post,
-  (forall args sig st, satisfies_arg_ret_assertion pre args sig st ->
-      satisfies_arg_ret_assertion pre' args sig st) ->
-  hoare_call_copy_out pre' args post ->
-  hoare_call_copy_out pre args post.
-Proof.
-  sfirstorder.
-Qed.
-
 (* This is quite dirty, maybe some improvement. *)
 Lemma hoare_call_func' : forall p pre_mem pre_ext tags func targs args typ dir argvals obj_path fd
     outargs vret mid_mem post_mem post_ext,
@@ -311,7 +294,7 @@ Proof.
   - eassumption.
   - reflexivity.
   - eapply hoare_func_pre. 2 : eassumption.
-    clear; intros.
+    clear; unfold arg_implies; intros.
     destruct (is_some obj_path).
     + destruct st. destruct H0 as [? [? [? []]]].
       split. { auto. }
@@ -320,10 +303,9 @@ Proof.
     + destruct H0; split; assumption.
   - reflexivity.
   - eapply hoare_call_copy_out_pre. 2 : { eapply eval_call_copy_out_sound; eauto with hoare. }
-    clear; intros.
+    clear; unfold arg_ret_implies; intros.
     destruct (is_some obj_path).
-    + destruct sig; try solve [inv H0].
-      destruct st. destruct H0 as [[? []] [? [? [? []]]]].
+    + destruct st. destruct H0 as [[? []] [? [? [? []]]]].
       repeat split; auto.
     + auto.
 Qed.
@@ -668,9 +650,7 @@ Proof.
     eapply Forall_impl; only 2 : eassumption.
     apply hoare_table_match_case_valid'_hoare_table_match_case_valid.
   }
-  unfold ARG.
-  intros * [].
-  eassumption.
+  sfirstorder.
 Qed.
 
 Definition AM_ARG (a_arg : list Sval) (a : extern_state -> Prop) :=

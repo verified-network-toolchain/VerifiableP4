@@ -188,7 +188,7 @@ Definition satisfies_arg_ret_assertion (post : arg_ret_assertion) (args : list S
   | _ => False
   end.
 
-(* Semantic Hoare judgments. *)
+(* Major semantic Hoare judgments. *)
 
 Definition hoare_stmt (p : path) (pre : assertion) (stmt : Statement) (post : post_assertion) :=
   forall st st' sig,
@@ -216,6 +216,8 @@ Definition hoare_func (p : path) (pre : arg_assertion) (func : @fundef tags_t) (
     exec_func ge read_ndetbit p st func targs inargs st' outargs sig ->
     satisfies_arg_ret_assertion post outargs sig st'.
 
+(* Auxiliary Hoare judgments. *)
+
 Definition hoare_table_match (p : path) (pre : assertion) (name : ident) (keys : list TableKey)
       (const_entries : option (list table_entry)) (matched_action : option action_ref) :=
   forall st matched_action',
@@ -223,41 +225,13 @@ Definition hoare_table_match (p : path) (pre : assertion) (name : ident) (keys :
     exec_table_match ge read_ndetbit p st name keys const_entries matched_action' ->
     matched_action' = matched_action.
 
-(* Hoare proof rules ass lemmas. *)
+Definition hoare_call_copy_out (pre : arg_ret_assertion) (args : list (option Lval * direction)) (post : ret_assertion) : Prop :=
+  forall outvals sig st st',
+    satisfies_arg_ret_assertion pre outvals sig st ->
+    exec_call_copy_out args outvals st  st' ->
+      satisfies_ret_assertion post sig st'.
 
-Definition is_call_expression (expr : Expression) : bool :=
-  match expr with
-  | MkExpression _ (ExpFunctionCall _ _ _) _ _ => true
-  | _ => false
-  end.
-
-Lemma bit_to_nbit_to_bit : forall nb b nb',
-  read_ndetbit nb b ->
-  read_detbit b nb' ->
-  bit_refine nb nb'.
-Proof.
-  intros.
-  inv H0; inv H1; constructor.
-Qed.
-
-Lemma sval_to_val_to_sval : forall (sv : Sval) (v : Val) (sv' : Sval),
-  sval_to_val read_ndetbit sv v ->
-  val_to_sval v sv' ->
-  sval_refine sv sv'.
-Proof.
-  apply exec_val_trans. exact bit_to_nbit_to_bit.
-Qed.
-
-Lemma hoare_expr_det_intro : forall (p : path) (pre : assertion) (expr : Expression) (sv : Sval),
-  hoare_expr p pre expr sv ->
-  hoare_expr_det p pre expr sv.
-Proof.
-  unfold hoare_expr, hoare_expr_det. intros.
-  inv H2.
-  eapply sval_refine_trans.
-  - eapply H0; eauto.
-  - eapply sval_to_val_to_sval; eauto.
-Qed.
+(* Tactics for forward proof. *)
 
 Ltac specialize_hoare_block :=
   lazymatch goal with
@@ -314,6 +288,127 @@ Ltac specialize_hoare_func :=
   | H : forall _ _ _ _ _ , _ -> exec_func _ _ _ _ _ _ _ _ _ _ -> _ |- _ =>
       specialize (H _ _ _ _ _ ltac:(eassumption) ltac:(eassumption))
   end.
+
+(* Hoare proof rules as lemmas. *)
+
+(* Assertion implies. *)
+
+Definition implies (pre post : assertion) :=
+  forall st, pre st -> post st.
+
+Definition ret_implies (P Q : ret_assertion) :=
+  forall retv st, P retv st -> Q retv st.
+
+Definition arg_implies (P Q : arg_assertion) :=
+  forall args st, P args st -> Q args st.
+
+Definition arg_ret_implies (P Q : arg_ret_assertion) :=
+  forall args retv st, P args retv st -> Q args retv st.
+
+Definition post_implies (pre post : post_assertion) :=
+  implies (post_continue pre) (post_continue post)
+    /\ ret_implies (post_return pre) (post_return post).
+
+(* Pre and post rules. *)
+
+Lemma hoare_block_pre : forall p pre pre' block post,
+  implies pre pre' ->
+  hoare_block p pre' block post ->
+  hoare_block p pre block post.
+Proof.
+  sfirstorder.
+Qed.
+
+Lemma hoare_block_post : forall p pre block post' post,
+  hoare_block p pre block post' ->
+  post_implies post' post ->
+  hoare_block p pre block post.
+Proof.
+  unfold implies, hoare_block; intros.
+  destruct post'; destruct post.
+  specialize_hoare_block.
+  destruct H0.
+  - left. sauto.
+  - right. destruct sig; only 1, 3, 4 : inv H0. sauto.
+Qed.
+
+Lemma hoare_func_pre : forall p pre pre' func targs post,
+  arg_implies pre pre' ->
+  hoare_func p pre' func targs post ->
+  hoare_func p pre func targs post.
+Proof.
+  sfirstorder.
+Qed.
+
+Lemma hoare_func_post : forall p pre func targs post post',
+  hoare_func p pre func targs post' ->
+  arg_ret_implies post' post ->
+  hoare_func p pre func targs post.
+Proof.
+  unfold hoare_func, arg_ret_implies; intros.
+  specialize_hoare_func.
+  destruct sig; sfirstorder.
+Qed.
+
+(* This lemma may be not really used. *)
+Lemma hoare_call_post : forall p pre expr post post',
+  hoare_call p pre expr post' ->
+  ret_implies post' post ->
+  hoare_call p pre expr post.
+Proof.
+  unfold hoare_call, ret_implies; intros.
+  specialize_hoare_call.
+  destruct sig; sfirstorder.
+Qed.
+
+Lemma hoare_call_copy_out_pre : forall (pre pre' : Hoare.arg_ret_assertion) args post,
+  arg_ret_implies pre pre' ->
+  (* (forall args sig st, satisfies_arg_ret_assertion pre args sig st ->
+      satisfies_arg_ret_assertion pre' args sig st) -> *)
+  hoare_call_copy_out pre' args post ->
+  hoare_call_copy_out pre args post.
+Proof.
+  clear ge.
+  unfold hoare_call_copy_out; intros.
+  assert (satisfies_arg_ret_assertion pre' outvals sig st). {
+    destruct sig; sfirstorder.
+  }
+  sfirstorder.
+Qed.
+
+Definition is_call_expression (expr : Expression) : bool :=
+  match expr with
+  | MkExpression _ (ExpFunctionCall _ _ _) _ _ => true
+  | _ => false
+  end.
+
+Lemma bit_to_nbit_to_bit : forall nb b nb',
+  read_ndetbit nb b ->
+  read_detbit b nb' ->
+  bit_refine nb nb'.
+Proof.
+  intros.
+  inv H0; inv H1; constructor.
+Qed.
+
+Lemma sval_to_val_to_sval : forall (sv : Sval) (v : Val) (sv' : Sval),
+  sval_to_val read_ndetbit sv v ->
+  val_to_sval v sv' ->
+  sval_refine sv sv'.
+Proof.
+  apply exec_val_trans. exact bit_to_nbit_to_bit.
+Qed.
+
+Lemma hoare_expr_det_intro : forall (p : path) (pre : assertion) (expr : Expression) (sv : Sval),
+  hoare_expr p pre expr sv ->
+  hoare_expr_det p pre expr sv.
+Proof.
+  unfold hoare_expr, hoare_expr_det. intros.
+  inv H2.
+  eapply sval_refine_trans.
+  - eapply H0; eauto.
+  - eapply sval_to_val_to_sval; eauto.
+Qed.
 
 Lemma hoare_stmt_assign : forall p pre tags lhs rhs typ post lv sv,
   is_call_expression rhs = false ->
@@ -559,9 +654,6 @@ Proof.
   inv H1; auto.
 Qed.
 
-Definition implies (pre post : assertion) :=
-  forall st, pre st -> post st.
-
 Lemma hoare_block_nil : forall p pre post tags,
   implies pre (post_continue post) ->
   hoare_block p pre (BlockEmpty tags) post.
@@ -581,38 +673,6 @@ Proof.
   - inv H11. hauto.
   - inv H11. hauto.
   - inv H11. hauto.
-Qed.
-
-Lemma hoare_block_pre : forall p pre pre' block post,
-  implies pre pre' ->
-  hoare_block p pre' block post ->
-  hoare_block p pre block post.
-Proof.
-  unfold implies, hoare_block.
-  sfirstorder.
-Qed.
-
-Definition ret_implies (P Q : ret_assertion) :=
-  forall retv st, P retv st -> Q retv st.
-
-Definition arg_implies (P Q : arg_assertion) :=
-  forall args st, P args st -> Q args st.
-
-Definition post_implies (pre post : post_assertion) :=
-  implies (post_continue pre) (post_continue post)
-    /\ ret_implies (post_return pre) (post_return post).
-
-Lemma hoare_block_post : forall p pre block post' post,
-  hoare_block p pre block post' ->
-  post_implies post' post ->
-  hoare_block p pre block post.
-Proof.
-  unfold implies, hoare_block; intros.
-  destruct post'; destruct post.
-  specialize_hoare_block.
-  destruct H0.
-  - left. sauto.
-  - right. destruct sig; only 1, 3, 4 : inv H0. sauto.
 Qed.
 
 Definition arg_refine (arg arg' : argument) :=
@@ -698,12 +758,6 @@ Proof.
   assumption.
 Qed.
 
-Definition hoare_call_copy_out (pre : arg_ret_assertion) (args : list (option Lval * direction)) (post : ret_assertion) : Prop :=
-  forall outvals sig st st',
-    satisfies_arg_ret_assertion pre outvals sig st ->
-    exec_call_copy_out args outvals st  st' ->
-      satisfies_ret_assertion post sig st'.
-
 Lemma hoare_call_func : forall p (pre : assertion) tags func targs args typ dir post argvals obj_path fd
     (mid1 : arg_assertion) mid2 mid3,
   is_builtin_func func = false ->
@@ -745,17 +799,6 @@ Proof.
   }
   inv H26.
   assumption.
-Qed.
-
-(* An simple lemma may be not really used. *)
-Lemma hoare_call_post : forall p pre expr post post',
-  hoare_call p pre expr post' ->
-  ret_implies post' post ->
-  hoare_call p pre expr post.
-Proof.
-  unfold hoare_call, ret_implies; intros.
-  specialize_hoare_call.
-  destruct sig; sfirstorder.
 Qed.
 
 Definition hoare_func_copy_in (pre : arg_assertion) (params : list (path * direction)) (post : assertion) : Prop :=
@@ -932,28 +975,6 @@ Inductive hoare_table_match_case_valid : path -> assertion -> list Expression ->
       get_table_call actions default_action actionref = Some (action, retv) ->
       (P -> hoare_call p pre action (fun _ st => post [] retv st)) ->
       hoare_table_match_case_valid p pre actions default_action post (P, actionref).
-
-Definition arg_ret_implies (P Q : arg_ret_assertion) :=
-  forall args retv st, P args retv st -> Q args retv st.
-
-Lemma hoare_func_pre : forall p pre pre' func targs post,
-  hoare_func p pre' func targs post ->
-  arg_implies pre pre' ->
-  hoare_func p pre func targs post.
-Proof.
-  unfold hoare_func, arg_implies; intros.
-  sfirstorder.
-Qed.
-
-Lemma hoare_func_post : forall p pre func targs post post',
-  hoare_func p pre func targs post' ->
-  arg_ret_implies post' post ->
-  hoare_func p pre func targs post.
-Proof.
-  unfold hoare_func, arg_ret_implies; intros.
-  specialize_hoare_func.
-  destruct sig; sfirstorder.
-Qed.
 
 Lemma hoare_func_table : forall p pre name keys actions default_action const_entries post cases,
   hoare_table_match_list p pre name keys const_entries cases ->
