@@ -32,7 +32,7 @@ Definition INSQUERY := 4.
 
 Open Scope func_spec.
 
-Definition num_cells := 65536.
+Definition num_cells := 262144.
 
 Definition Row_spec : func_spec :=
   WITH (* p *),
@@ -44,7 +44,7 @@ Definition Row_spec : func_spec :=
       (_ : 0 <= i < Zlength r),
       PRE
         (ARG [eval_val_to_sval (ValBaseBit (P4Arith.to_lbool 8%N op));
-              eval_val_to_sval (ValBaseBit (P4Arith.to_lbool 16%N i))]
+              eval_val_to_sval (ValBaseBit (P4Arith.to_lbool 18%N i))]
         (MEM []
         (EXT [row_repr p r])))
       POST
@@ -405,7 +405,7 @@ Qed.
 
 (* I would like to make it opaque, but I don't know how to. *)
 Program Definition Row_regact_insert_execute_body :=
-  RegisterAction_execute_body _ 16%N 8%N num_cells (p ++ ["reg_row"]) eq_refl eq_refl ltac:(abstract (unfold num_cells; lia))
+  RegisterAction_execute_body _ 18%N 8%N num_cells (p ++ ["reg_row"]) eq_refl eq_refl ltac:(abstract (unfold num_cells; lia))
     Row_regact_insert_apply_fd (fun _ => 1) (fun _ => ValBaseBit (P4Arith.to_loptbool 8%N 1)) eq_refl Row_regact_insert_apply_body.
 
 #[local] Hint Extern 5 (func_modifies _ _ _ _ _) => (apply Row_regact_insert_execute_body) : func_specs.
@@ -435,7 +435,7 @@ Definition Row_insert_spec : func_spec :=
       (_ : 0 <= i < Zlength r),
       PRE
         (ARG []
-        (MEM [(["index"], eval_val_to_sval (ValBaseBit (P4Arith.to_lbool 16%N i)))]
+        (MEM [(["index"], eval_val_to_sval (ValBaseBit (P4Arith.to_lbool 18%N i)))]
         (EXT [row_repr p r])))
       POST
         (ARG_RET [] ValBaseNull
@@ -490,7 +490,7 @@ Proof.
 Qed.
 
 Program Definition Row_regact_query_execute_body :=
-  RegisterAction_execute_body _ 16%N 8%N num_cells (p ++ ["reg_row"]) eq_refl eq_refl ltac:(abstract (unfold num_cells; lia))
+  RegisterAction_execute_body _ 18%N 8%N num_cells (p ++ ["reg_row"]) eq_refl eq_refl ltac:(abstract (unfold num_cells; lia))
     Row_regact_query_apply_fd (fun b => b) (fun b => ValBaseBit (P4Arith.to_loptbool 8%N b)) eq_refl Row_regact_query_apply_body.
 
 #[local] Hint Extern 5 (func_modifies _ _ _ _ _) => (apply Row_regact_query_execute_body) : func_specs.
@@ -513,7 +513,7 @@ Definition Row_query_spec : func_spec :=
       (_ : 0 <= i < Zlength r),
       PRE
         (ARG []
-        (MEM [(["index"], eval_val_to_sval (ValBaseBit (P4Arith.to_lbool 16%N i)))]
+        (MEM [(["index"], eval_val_to_sval (ValBaseBit (P4Arith.to_lbool 18%N i)))]
         (EXT [row_repr p r])))
       POST
         (ARG_RET [] ValBaseNull
@@ -592,7 +592,7 @@ Qed.
 
 (* Finished transaction in 85.022 secs (79.562u,3.343s) (successful) *)
 Program Definition Row_regact_clear_execute_body :=
-  RegisterAction_execute_body _ 16%N 8%N num_cells (p ++ ["reg_row"]) eq_refl eq_refl ltac:(abstract (unfold num_cells; lia))
+  RegisterAction_execute_body _ 18%N 8%N num_cells (p ++ ["reg_row"]) eq_refl eq_refl ltac:(abstract (unfold num_cells; lia))
     Row_regact_clear_apply_fd (fun _ => 0) (fun _ => ValBaseBit (P4Arith.to_loptbool 8%N 0)) eq_refl Row_regact_clear_apply_body.
 
 #[local] Hint Extern 5 (func_modifies _ _ _ _ _) => (apply Row_regact_clear_execute_body) : func_specs.
@@ -615,7 +615,7 @@ Definition Row_clear_spec : func_spec :=
       (_ : 0 <= i < Zlength r),
       PRE
         (ARG []
-        (MEM [(["index"], eval_val_to_sval (ValBaseBit (P4Arith.to_lbool 16%N i)))]
+        (MEM [(["index"], eval_val_to_sval (ValBaseBit (P4Arith.to_lbool 18%N i)))]
         (EXT [row_repr p r])))
       POST
         (ARG_RET [] ValBaseNull
@@ -658,7 +658,7 @@ Definition Row_tbl_bloom_spec : func_spec :=
       PRE
         (ARG []
         (MEM [(["api"], eval_val_to_sval (ValBaseBit (P4Arith.to_lbool 8%N op)));
-              (["index"], eval_val_to_sval (ValBaseBit (P4Arith.to_lbool 16%N i)))]
+              (["index"], eval_val_to_sval (ValBaseBit (P4Arith.to_lbool 18%N i)))]
         (EXT [row_repr p r])))
       POST
         (EX retv,
