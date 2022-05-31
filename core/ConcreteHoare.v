@@ -69,6 +69,38 @@ Proof.
   eapply hoare_stmt_method_call; eauto with hoare.
 Qed.
 
+Inductive hoare_stmt_method_call_ex_layer : Hoare.ret_assertion -> Hoare.assertion -> Prop :=
+  | hoare_stmt_method_call_ex_layer_base : forall vret post_mem post_ext,
+      hoare_stmt_method_call_ex_layer
+        (RET vret (MEM post_mem (EXT post_ext)))
+        (MEM post_mem (EXT post_ext))
+  | hoare_stmt_method_call_ex_layer_ex : forall [A] (P : A -> Hoare.ret_assertion) Q,
+      (forall (x : A), hoare_stmt_method_call_ex_layer (P x) (Q x)) ->
+      hoare_stmt_method_call_ex_layer (ret_exists P) (assr_exists Q).
+
+Lemma hoare_stmt_method_call'_ex : forall p pre_mem pre_ext tags func targs args typ post' post ret_post,
+  hoare_call ge p
+    (MEM pre_mem (EXT pre_ext))
+    (MkExpression dummy_tags (ExpFunctionCall func targs args) TypVoid Directionless)
+    post' ->
+  hoare_stmt_method_call_ex_layer post' post ->
+  hoare_stmt ge p (MEM pre_mem (EXT pre_ext)) (MkStatement tags (StatMethodCall func targs args) typ)
+    (mk_post_assertion post ret_post).
+Proof.
+  unfold hoare_stmt. intros.
+  inv H3.
+  specialize (H0 _ _ _ H2 H13).
+  clear -H0 H1.
+  left.
+  induction H1.
+  - destruct sig0; inv H0.
+    auto.
+  - destruct sig0; inv H0.
+    specialize (H2 _ ltac:(eauto)).
+    split; auto.
+    eexists; apply H2.
+Qed.
+
 Lemma hoare_stmt_var' : forall p pre_mem pre_ext tags typ' name expr loc typ post_mem ret_post sv,
   is_call_expression expr = false ->
   is_no_dup (map fst pre_mem) ->
@@ -308,6 +340,70 @@ Proof.
     + destruct st. destruct H0 as [[? []] [? [? [? []]]]].
       repeat split; auto.
     + auto.
+Qed.
+
+Inductive hoare_call_func_ex_layer (obj_path : option path) pre_mem out_argvals : arg_ret_assertion -> Hoare.ret_assertion -> Prop :=
+  | hoare_call_func_ex_layer_base : forall outargs vret mid_mem post_ext post_mem,
+      is_no_dup (map fst (if is_some obj_path then pre_mem else mid_mem)) ->
+      eval_call_copy_out (if is_some obj_path then pre_mem else mid_mem) out_argvals outargs = Some post_mem ->
+      hoare_call_func_ex_layer obj_path pre_mem out_argvals
+        (ARG_RET outargs vret (MEM mid_mem (EXT post_ext)))
+        (RET vret (MEM post_mem (EXT post_ext)))
+  | hoare_call_func_ex_layer_ex : forall [A] (P : A -> arg_ret_assertion) Q,
+      (forall (x : A), hoare_call_func_ex_layer obj_path pre_mem out_argvals (P x) (Q x)) ->
+      hoare_call_func_ex_layer obj_path pre_mem out_argvals
+        (arg_ret_exists P) (ret_exists Q).
+
+Lemma hoare_call_func'_ex : forall p pre_mem pre_ext tags func targs args typ dir argvals obj_path fd
+    mid post,
+  is_builtin_func func = false ->
+  let dirs := get_arg_directions func in
+  eval_args ge p pre_mem args dirs = Some argvals ->
+  lookup_func ge p func = Some (obj_path, fd) ->
+  hoare_func ge (force p obj_path)
+      (ARG (extract_invals argvals) (MEM (if is_some obj_path then [] else pre_mem) (EXT pre_ext)))
+      fd targs
+      mid ->
+  hoare_call_func_ex_layer obj_path pre_mem (combine (map snd argvals) dirs) mid post ->
+  hoare_call ge p
+    (MEM pre_mem (EXT pre_ext))
+    (MkExpression tags (ExpFunctionCall func targs args) typ dir)
+    post.
+Proof.
+  intros.
+  eapply hoare_call_func.
+  - assumption.
+  - eapply eval_args_sound. eassumption.
+  - eassumption.
+  - reflexivity.
+  - eapply hoare_func_pre. 2 : eassumption.
+    clear; unfold arg_implies; intros.
+    destruct (is_some obj_path).
+    + destruct st. destruct H0 as [? [? [? []]]].
+      split. { auto. }
+      split. { subst. constructor. }
+      auto.
+    + destruct H0; split; assumption.
+  - reflexivity.
+  - clear -H4.
+    induction H4.
+    + eapply hoare_call_copy_out_pre. 2 : { eapply eval_call_copy_out_sound; eauto with hoare. }
+      clear; unfold arg_ret_implies; intros.
+      destruct (is_some obj_path).
+      * destruct st. destruct H0 as [[? []] [? [? [? []]]]].
+        repeat split; auto.
+      * auto.
+    + clear H0; unfold hoare_call_copy_out; intros.
+      destruct (is_some obj_path).
+      * destruct st; destruct sig; destruct H0.
+        destruct H0; destruct H3 as [? []].
+        unshelve (epose proof (H1 _ _ (SReturn v) _ _ _ H2));
+          shelve_unifiable.
+        { split; eauto. }
+        { econstructor. eapply H4. }
+      * destruct sig; inv H0.
+        specialize (H1 _ _ (SReturn v) _ _ ltac:(eauto) H2).
+        econstructor. eapply H1.
 Qed.
 
 Inductive inv_func_copy_out (out_params : list path) : Hoare.ret_assertion -> Hoare.arg_ret_assertion -> Prop :=

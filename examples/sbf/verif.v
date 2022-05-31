@@ -590,6 +590,7 @@ Proof.
   entailer.
 Qed.
 
+(* Finished transaction in 85.022 secs (79.562u,3.343s) (successful) *)
 Program Definition Row_regact_clear_execute_body :=
   RegisterAction_execute_body _ 16%N 8%N num_cells (p ++ ["reg_row"]) eq_refl eq_refl ltac:(abstract (unfold num_cells; lia))
     Row_regact_clear_apply_fd (fun _ => 0) (fun _ => ValBaseBit (P4Arith.to_loptbool 8%N 0)) eq_refl Row_regact_clear_apply_body.
@@ -660,7 +661,8 @@ Definition Row_tbl_bloom_spec : func_spec :=
               (["index"], eval_val_to_sval (ValBaseBit (P4Arith.to_lbool 16%N i)))]
         (EXT [row_repr p r])))
       POST
-        (ARG_RET [] ValBaseNull
+        (EX retv,
+        (ARG_RET [] (* ValBaseNull *) retv
         (MEM [(["rw"], eval_val_to_sval (ValBaseBit (P4Arith.to_lbool 8%N
           (if (op =? INSERT)%Z then 1 else
            if (op =? QUERY)%Z then Z.b2z (row_query r i) else
@@ -670,7 +672,7 @@ Definition Row_tbl_bloom_spec : func_spec :=
           (if (op =? INSERT)%Z then row_insert r i else
            if (op =? QUERY)%Z then r else
            if (op =? CLEAR)%Z then row_clear r i else
-           r)]))).
+           r)]))))%arg_ret_assr.
 
 Lemma Row_tbl_bloom_body :
   fundef_satisfies_spec ge Row_tbl_bloom_fundef nil Row_tbl_bloom_spec.
@@ -682,7 +684,7 @@ Proof.
   intros_fsh_bind.
   red.
   unfold Row_tbl_bloom_fundef.
-  hoare_func_table.
+  (* hoare_func_table.
   { (* I ignore the NOOP case here. I think we eventually need to say
       In op [NOOP; INSERT; QUERY; CLEAR]. *)
     instantiate (1 :=
@@ -737,7 +739,7 @@ Proof.
     }
     { admit. }
   }
-  constructor.
+  constructor. *)
 Admitted.
 
 Definition Row_fundef := Eval compute in
@@ -751,9 +753,30 @@ Lemma Row_body :
   fundef_satisfies_spec ge Row_fundef nil Row_spec.
 Proof.
   start_function.
-  step_call Row_tbl_bloom_body.
-  4 : { entailer. }
-  1-3 : auto.
+  eapply hoare_block_cons.
+  { eapply hoare_stmt_method_call'_ex.
+    { eapply hoare_call_func'_ex.
+      { reflexivity. }
+      { reflexivity. }
+      { reflexivity. }
+      { eapply func_spec_combine'.
+        { process_func_body Row_tbl_bloom_body
+            ltac:(fun func_body func_body1 func_body2 =>
+              epose proof (func_body := conj (func_body1 _ _ _ _ _ _) func_body2))
+            ltac:(fun H => eapply H).
+          all : eauto.
+        }
+        { entailer. }
+        { reflexivity. }
+        { instantiate (2 := ltac:(test_ext_exclude)); reflexivity. }
+        { solve [repeat constructor]. }
+      }
+      { solve [repeat constructor]. }
+    }
+    { solve [repeat constructor]. }
+  }
+  eapply hoare_block_pre_ex_elim.
+  intros _.
   step.
   entailer.
 Qed.

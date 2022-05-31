@@ -376,6 +376,25 @@ Proof.
   sfirstorder.
 Qed.
 
+(* Exists. *)
+
+Definition assr_exists {A} (a : A -> assertion) : Hoare.assertion :=
+  fun st => ex (fun x => a x st).
+
+Definition ret_exists {A} (a : A -> ret_assertion) : Hoare.ret_assertion :=
+  fun retv st => ex (fun x => a x retv st).
+
+Definition arg_ret_exists {A} (a : A -> arg_ret_assertion) : Hoare.arg_ret_assertion :=
+  fun args retv st => ex (fun x => a x args retv st).
+
+(* Pre and post ex rules. *)
+Lemma hoare_block_pre_ex_elim : forall {A} p (pre : A -> _) block post,
+  (forall x, hoare_block p (pre x) block post) ->
+  hoare_block p (assr_exists pre) block post.
+Proof.
+  sfirstorder.
+Qed.
+
 Definition is_call_expression (expr : Expression) : bool :=
   match expr with
   | MkExpression _ (ExpFunctionCall _ _ _) _ _ => true

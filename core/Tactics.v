@@ -339,7 +339,7 @@ Ltac step_call_tac func_spec :=
   proof in the second form with from user supplied lemma and variables in
   the following tactics, and then call step_call_tac. *)
 
-Ltac func_body_process func_spec callback1 callback2 :=
+Ltac process_func_body func_spec callback1 callback2 :=
   let func_body := fresh "func_body" in
   pose proof (func_body := func_spec);
   let func_body1 := fresh "func_body1" in
@@ -357,7 +357,7 @@ Ltac func_body_process func_spec callback1 callback2 :=
   try clear func_body2.
 
 Ltac step_call_wrapper func_spec callback1 :=
-  func_body_process func_spec callback1 step_call_tac.
+  process_func_body func_spec callback1 step_call_tac.
 
 Tactic Notation "step_call" uconstr(func_spec) uconstr(x1) uconstr(x2) uconstr(x3) uconstr(x4) uconstr(x5) uconstr(x6) :=
   step_call_wrapper func_spec
