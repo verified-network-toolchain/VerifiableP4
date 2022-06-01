@@ -666,8 +666,8 @@ End Modifies.
 (* call_modifies rules *)
 #[export] Hint Resolve call_modifies_builtin call_modifies_func : modifies.
 (* func_modifies rules, func_modifies_internal has a lower priority than applying a func_spec. *)
-#[export] Hint Resolve func_modifies_table : modifies.
 #[export] Hint Extern 2 (func_modifies _ _ _ _ _) => apply func_modifies_internal : modifies.
+#[export] Hint Extern 2 (func_modifies _ _ _ _ _) => apply func_modifies_table : modifies.
 (* This is needed, because (simple apply eq_refl) cannot unify. I don't think it causes any
   backtracking, because it seems eauto does not backtrack terminal rules. *)
 #[export] Hint Extern 0 (eq _ (Some _)) => reflexivity : modifies.

@@ -245,7 +245,7 @@ Ltac start_function :=
 Ltac step_call_func func_spec :=
   lazymatch goal with
   | |- hoare_call _ _ _ _ _ =>
-      eapply hoare_call_func';
+      eapply hoare_call_func'_ex;
         [ reflexivity (* is_builtin_func *)
         | reflexivity (* eval_args *)
         | reflexivity (* lookup_func *)
@@ -259,8 +259,7 @@ Ltac step_call_func func_spec :=
             | instantiate (2 := ltac:(test_ext_exclude)); reflexivity (* exclude_ext *)
             | solve [repeat constructor] (* func_post_combine *)
             ]
-        | reflexivity (* is_no_dup *)
-        | reflexivity (* eval_call_copy_out *)
+        | solve [repeat constructor] (* hoare_call_func_ex_layer *)
         ]
   | _ => fail "The goal is not in the form of (hoare_call _ _ _ _ _)"
   end.
@@ -280,8 +279,10 @@ Ltac step_stmt_call func_spec :=
             ]
       (* hoare_stmt_method_call' *)
       | MkStatement _ (StatMethodCall ?func _ _) _ =>
-          eapply hoare_stmt_method_call';
-            step_call_func func_spec (* hoare_call *)
+          eapply hoare_stmt_method_call'_ex;
+            [ step_call_func func_spec (* hoare_call *)
+            | solve [repeat constructor] (* hoare_stmt_method_call_ex_layer *)
+            ]
       (* hoare_stmt_var_call' *)
       | MkStatement _
             (StatVariable _ _
@@ -577,6 +578,15 @@ Ltac entailer :=
   | |- ext_implies _ _ =>
       simpl_ext_implies
   | _ => fail "The goal is not an entailment"
+  end.
+
+Tactic Notation "Intros" simple_intropattern(x) :=
+  lazymatch goal with
+  | |- hoare_block _ _ (assr_exists _) _ _ =>
+      eapply hoare_block_pre_ex_elim;
+      intros x
+  | _ =>
+      fail "There is nothing to Intro."
   end.
 
 Ltac normalize_EXT :=

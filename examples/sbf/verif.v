@@ -662,7 +662,7 @@ Definition Row_tbl_bloom_spec : func_spec :=
         (EXT [row_repr p r])))
       POST
         (EX retv,
-        (ARG_RET [] (* ValBaseNull *) retv
+        (ARG_RET [] retv
         (MEM [(["rw"], eval_val_to_sval (ValBaseBit (P4Arith.to_lbool 8%N
           (if (op =? INSERT)%Z then 1 else
            if (op =? QUERY)%Z then Z.b2z (row_query r i) else
@@ -710,7 +710,6 @@ Lemma Row_tbl_bloom_body :
   fundef_satisfies_spec ge Row_tbl_bloom_fundef nil Row_tbl_bloom_spec.
 Proof.
   split. 2 : {
-    unfold Row_tbl_bloom_fundef.
     solve_modifies.
   }
   intros_fsh_bind.
@@ -811,30 +810,10 @@ Lemma Row_body :
   fundef_satisfies_spec ge Row_fundef nil Row_spec.
 Proof.
   start_function.
-  eapply hoare_block_cons.
-  { eapply hoare_stmt_method_call'_ex.
-    { eapply hoare_call_func'_ex.
-      { reflexivity. }
-      { reflexivity. }
-      { reflexivity. }
-      { eapply func_spec_combine'.
-        { process_func_body Row_tbl_bloom_body
-            ltac:(fun func_body func_body1 func_body2 =>
-              epose proof (func_body := conj (func_body1 _ _ _ _ _ _) func_body2))
-            ltac:(fun H => eapply H).
-          all : eauto.
-        }
-        { entailer. }
-        { reflexivity. }
-        { instantiate (2 := ltac:(test_ext_exclude)); reflexivity. }
-        { solve [repeat constructor]. }
-      }
-      { solve [repeat constructor]. }
-    }
-    { solve [repeat constructor]. }
-  }
-  eapply hoare_block_pre_ex_elim.
-  intros _.
+  step_call Row_tbl_bloom_body.
+  4 : entailer.
+  1-3 : auto.
+  Intros _.
   step.
   entailer.
 Qed.
