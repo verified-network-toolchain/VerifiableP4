@@ -958,17 +958,29 @@ Proof.
   simpl; auto.
 Qed.
 
-Definition hoare_extern_match_list (keys_match_kinds : list (Val * ident)) (entryvs : list table_entry_valset)
-      (cases : list (Prop * option action_ref)) : Prop :=
-  fold_right or False (map fst cases) /\
-    Forall
-      (fun '(P, matched_action) => (P : Prop) -> (extern_match keys_match_kinds entryvs = matched_action)) cases.
+(* These two predicates describe the list of cases is corresponding to the matching result. *)
 
-Definition hoare_table_match_list (p : path) (pre : assertion) (name : ident) (keys : list TableKey)
-      (const_entries : option (list table_entry)) (cases : list (Prop * option action_ref)) :=
-  fold_right or False (map fst cases) /\
-    Forall
-      (fun '(P, matched_action) => (P : Prop) -> hoare_table_match p pre name keys const_entries matched_action) cases.
+Fixpoint hoare_extern_match_list (keys_match_kinds : list (Val * ident)) (entryvs : list table_entry_valset)
+      (cases : list (bool * action_ref)) : Prop :=
+  match cases with
+  | (cond, matched_action) :: cases' =>
+      if cond then
+        extern_match keys_match_kinds entryvs = Some matched_action
+      else
+        hoare_extern_match_list keys_match_kinds entryvs cases'
+  | nil => extern_match keys_match_kinds entryvs = None
+  end.
+
+Fixpoint hoare_table_match_list (p : path) (pre : assertion) (name : ident) (keys : list TableKey)
+      (const_entries : option (list table_entry)) (cases : list (bool * action_ref)) : Prop :=
+  match cases with
+  | (cond, matched_action) :: cases' =>
+      if cond then
+        hoare_table_match p pre name keys const_entries (Some matched_action)
+      else
+        hoare_table_match_list p pre name keys const_entries cases'
+  | nil => hoare_table_match p pre name keys const_entries None
+  end.
 
 Definition hoare_table_match_list_intro : forall p pre name keys keysvals keyvals const_entries entryvs cases,
   let entries := const_entries in
@@ -980,41 +992,53 @@ Definition hoare_table_match_list_intro : forall p pre name keys keysvals keyval
   hoare_table_match_list p pre name keys (Some const_entries) cases.
 Proof.
   intros.
-  destruct H3.
-  split; auto.
-  eapply Forall_impl. 2 : eapply H4.
-  intros. destruct a.
-  intros H_P; specialize (H5 H_P).
-  eapply hoare_table_match_case; eauto.
+  assert (forall matched_action,
+      extern_match (combine keyvals match_kinds) entryvs = matched_action ->
+      hoare_table_match p pre name keys (Some const_entries) matched_action). {
+    unfold hoare_table_match; intros.
+    eapply hoare_table_match_case; eauto.
+  }
+  induction cases.
+  - simpl in H3 |- *.
+    auto.
+  - simpl in H3 |- *.
+    destruct a as [[] ?]; auto.
 Qed.
 
-Inductive hoare_table_match_case_valid : path -> assertion -> list Expression -> Expression -> arg_ret_assertion ->
-      (Prop * option action_ref) -> Prop :=
-  | hoare_table_match_case_valid_intro : forall p pre actions default_action post (P : Prop) actionref action retv,
-      get_table_call actions default_action actionref = Some (action, retv) ->
-      (P -> hoare_call p pre action (fun _ st => post [] retv st)) ->
-      hoare_table_match_case_valid p pre actions default_action post (P, actionref).
+(* This predicate desribes that the execution of the case list satisfies the post condition. *)
+
+Inductive hoare_table_match_cases_valid (p : path) (pre : assertion) (actions : list Expression)
+      (default_action : Expression) (post : arg_ret_assertion) : list (bool * action_ref) -> Prop :=
+  | hoare_table_match_cases_valid_cons : forall (cond : bool) matched_action cases' action retv,
+      get_table_call actions default_action (Some matched_action) = Some (action, retv) ->
+      (cond -> hoare_call p pre action (fun _ st => post [] retv st)) ->
+      (negb cond -> hoare_table_match_cases_valid p pre actions default_action post cases') ->
+      hoare_table_match_cases_valid p pre actions default_action post ((cond, matched_action) :: cases')
+  | hoare_table_match_cases_valid_nil : forall action retv,
+      get_table_call actions default_action None = Some (action, retv) ->
+      hoare_call p pre action (fun _ st => post [] retv st) ->
+      hoare_table_match_cases_valid p pre actions default_action post nil.
 
 Lemma hoare_func_table : forall p pre name keys actions default_action const_entries post cases,
   hoare_table_match_list p pre name keys const_entries cases ->
-  Forall (hoare_table_match_case_valid p pre actions default_action post) cases ->
+  hoare_table_match_cases_valid p pre actions default_action post cases ->
   hoare_func p (fun _ => pre) (FTable name keys actions (Some default_action) const_entries)
       [] post.
 Proof.
   induction 2.
-  - inv H0.
-    inv H1.
-  - inv H0.
-    inv H3.
-    + inv H1.
-      eapply hoare_func_post.
-      * inv H4.
-        eapply hoare_func_table_case; eauto.
+  - simpl in H0.
+    destruct cond.
+    + eapply hoare_func_post.
+      * eapply hoare_func_table_case; eauto.
       * clear.
         unfold arg_ret_implies; intros.
         hauto lq: on.
-    + apply IHForall.
-      inv H4. split; eauto.
+    + auto.
+  - eapply hoare_func_post.
+    + eapply hoare_func_table_case; eauto.
+    + clear.
+      unfold arg_ret_implies; intros.
+      hauto lq: on.
 Qed.
 
 Definition hoare_abstract_method (pre : list Sval -> extern_state -> Prop)

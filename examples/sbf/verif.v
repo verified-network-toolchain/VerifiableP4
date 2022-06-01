@@ -677,11 +677,10 @@ Definition Row_tbl_bloom_spec : func_spec :=
 Lemma hoare_func_table'' : forall p pre_mem pre_ext name keys actions default_action const_entries post
       cases,
   hoare_table_match_list ge p (MEM pre_mem (EXT pre_ext)) name keys const_entries cases ->
-  Forall (
-    hoare_table_match_case_valid ge p
-      (MEM pre_mem (EXT pre_ext))
-      actions default_action
-      post)
+  hoare_table_match_cases_valid ge p
+    (MEM pre_mem (EXT pre_ext))
+    actions default_action
+    post
     cases ->
   hoare_func ge p
     (ARG [] (MEM pre_mem (EXT pre_ext)))
@@ -700,9 +699,9 @@ Proof.
   tauto.
 Qed.
 
-Lemma hoare_table_match_case_valid_ex : forall {A} p pre actions default_action (post : A -> _) case,
-  (exists x, hoare_table_match_case_valid ge p pre actions default_action (post x) case) ->
-  hoare_table_match_case_valid ge p pre actions default_action (arg_ret_exists post) case.
+Lemma hoare_table_match_cases_valid_ex : forall {A} p pre actions default_action (post : A -> _) case,
+  (exists x, hoare_table_match_cases_valid ge p pre actions default_action (post x) case) ->
+  hoare_table_match_cases_valid ge p pre actions default_action (arg_ret_exists post) case.
 Proof.
 Admitted.
 
@@ -736,14 +735,12 @@ Ltac hoare_func_table ::=
   { (* I ignore the NOOP case here. I think we eventually need to say
       In op [NOOP; INSERT; QUERY; CLEAR]. *)
     instantiate (1 :=
-        [(is_true (op =? INSERT)%Z, Some (mk_action_ref "act_insert" []));
-         (not (is_true (op =? INSERT)%Z) /\ is_true (op =? QUERY)%Z,
-            Some (mk_action_ref "act_query" []));
-         (not (is_true (op =? INSERT)%Z) /\ not (is_true (op =? QUERY)%Z)
-            /\ is_true (op =? CLEAR)%Z, Some (mk_action_ref "act_clear" []))]).
+        [((op =? INSERT)%Z, mk_action_ref "act_insert" []);
+         ((op =? QUERY)%Z, mk_action_ref "act_query" []);
+         ((op =? CLEAR)%Z, mk_action_ref "act_clear" [])]).
     admit.
   }
-  constructor. {
+  (* constructor. {
     eapply hoare_table_match_case_valid_ex.
     eexists.
     apply hoare_table_match_case_valid'_hoare_table_match_case_valid.
@@ -796,7 +793,7 @@ Ltac hoare_func_table ::=
     }
     { reflexivity. }
   }
-  constructor.
+  constructor. *)
 Admitted.
 
 Definition Row_fundef := Eval compute in
