@@ -293,8 +293,8 @@ Ltac specialize_hoare_func :=
 
 (* Assertion implies. *)
 
-Definition implies (pre post : assertion) :=
-  forall st, pre st -> post st.
+Definition implies (P Q : assertion) :=
+  forall st, P st -> Q st.
 
 Definition ret_implies (P Q : ret_assertion) :=
   forall retv st, P retv st -> Q retv st.
@@ -308,6 +308,12 @@ Definition arg_ret_implies (P Q : arg_ret_assertion) :=
 Definition post_implies (pre post : post_assertion) :=
   implies (post_continue pre) (post_continue post)
     /\ ret_implies (post_return pre) (post_return post).
+
+Lemma ret_implies_refl : forall P,
+  ret_implies P P.
+Proof.
+  sfirstorder.
+Qed.
 
 (* Pre and post rules. *)
 
@@ -378,17 +384,25 @@ Qed.
 
 (* Exists. *)
 
-Definition assr_exists {A} (a : A -> assertion) : Hoare.assertion :=
-  fun st => ex (fun x => a x st).
+Definition assr_exists {A} (P : A -> assertion) : Hoare.assertion :=
+  fun st => ex (fun x => P x st).
 
-Definition ret_exists {A} (a : A -> ret_assertion) : Hoare.ret_assertion :=
-  fun retv st => ex (fun x => a x retv st).
+Definition ret_exists {A} (P : A -> ret_assertion) : Hoare.ret_assertion :=
+  fun retv st => ex (fun x => P x retv st).
 
-Definition arg_ret_exists {A} (a : A -> arg_ret_assertion) : Hoare.arg_ret_assertion :=
-  fun args retv st => ex (fun x => a x args retv st).
+Definition arg_ret_exists {A} (P : A -> arg_ret_assertion) : Hoare.arg_ret_assertion :=
+  fun args retv st => ex (fun x => P x args retv st).
+
+Lemma arg_ret_implies_post_ex : forall {A} P (Q : A -> _),
+  (exists x, arg_ret_implies P (Q x)) ->
+  arg_ret_implies P (arg_ret_exists Q).
+Proof.
+  clear ge.
+  sfirstorder.
+Qed.
 
 (* Pre and post ex rules. *)
-Lemma hoare_block_pre_ex_elim : forall {A} p (pre : A -> _) block post,
+Lemma hoare_block_pre_ex : forall {A} p (pre : A -> _) block post,
   (forall x, hoare_block p (pre x) block post) ->
   hoare_block p (assr_exists pre) block post.
 Proof.
@@ -1006,6 +1020,7 @@ Proof.
 Qed.
 
 (* This predicate desribes that the execution of the case list satisfies the post condition. *)
+(* This name may be bad (too long and not accurate). We might find a better name later. *)
 
 Inductive hoare_table_match_cases_valid (p : path) (pre : assertion) (actions : list Expression)
       (default_action : Expression) (post : arg_ret_assertion) : list (bool * action_ref) -> Prop :=

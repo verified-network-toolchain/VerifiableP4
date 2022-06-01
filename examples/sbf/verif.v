@@ -674,37 +674,6 @@ Definition Row_tbl_bloom_spec : func_spec :=
            if (op =? CLEAR)%Z then row_clear r i else
            r)]))))%arg_ret_assr.
 
-Lemma hoare_func_table'' : forall p pre_mem pre_ext name keys actions default_action const_entries post
-      cases,
-  hoare_table_match_list ge p (MEM pre_mem (EXT pre_ext)) name keys const_entries cases ->
-  hoare_table_match_cases_valid ge p
-    (MEM pre_mem (EXT pre_ext))
-    actions default_action
-    post
-    cases ->
-  hoare_func ge p
-    (ARG [] (MEM pre_mem (EXT pre_ext)))
-    (FTable name keys actions (Some default_action) const_entries) []
-    post.
-Proof.
-  intros.
-  eapply hoare_func_pre.
-  2 : { eapply hoare_func_table; eauto.
-    (* eapply Forall_impl; only 2 : eassumption.
-    apply hoare_table_match_case_valid'_hoare_table_match_case_valid. *)
-  }
-  (* We hope to use sfirstorder here. *)
-  clear.
-  unfold arg_implies, ARG.
-  tauto.
-Qed.
-
-Lemma hoare_table_match_cases_valid_ex : forall {A} p pre actions default_action (post : A -> _) case,
-  (exists x, hoare_table_match_cases_valid ge p pre actions default_action (post x) case) ->
-  hoare_table_match_cases_valid ge p pre actions default_action (arg_ret_exists post) case.
-Proof.
-Admitted.
-
 Lemma Row_tbl_bloom_body :
   fundef_satisfies_spec ge Row_tbl_bloom_fundef nil Row_tbl_bloom_spec.
 Proof.
@@ -714,86 +683,69 @@ Proof.
   intros_fsh_bind.
   red.
   unfold Row_tbl_bloom_fundef.
-
-Ltac hoare_func_table ::=
-  lazymatch goal with
-  | |- hoare_func _ _ _ (FTable _ _ _ _ _) _ _ =>
-      eapply hoare_func_table'';
-      [ eapply hoare_table_match_list_intro'; (* hoare_table_match_list *)
-        [ reflexivity (* eval_exprs *)
-        | reflexivity (* lift_option (.. keysvals) *)
-        | eapply hoare_table_entries_intros; (* hoare_table_entries *)
-          repeat econstructor
-        | idtac (* hoare_extern_match_list *)
-        ]
-      | idtac (* Forall (hoare_table_match_case_valid' ...) *)
-      ]
-  | _ => fail "The goal is not in the form of (hoare_func _ _ _ (FTable _ _ _ _ _) _ _)"
-  end.
-
   hoare_func_table.
-  { (* I ignore the NOOP case here. I think we eventually need to say
-      In op [NOOP; INSERT; QUERY; CLEAR]. *)
-    instantiate (1 :=
+  { instantiate (1 :=
         [((op =? INSERT)%Z, mk_action_ref "act_insert" []);
          ((op =? QUERY)%Z, mk_action_ref "act_query" []);
          ((op =? CLEAR)%Z, mk_action_ref "act_clear" [])]).
     admit.
   }
-  (* constructor. {
-    eapply hoare_table_match_case_valid_ex.
-    eexists.
-    apply hoare_table_match_case_valid'_hoare_table_match_case_valid.
-    econstructor.
-    { reflexivity. }
-    { intros.
-      replace (op =? INSERT)%Z with true.
-      step_call Row_insert_body.
-      3 : { entailer. }
-      { auto. }
-      { auto. }
-      entailer.
-    }
-    { reflexivity. }
+  econstructor.
+  (* INSERT case *)
+  { reflexivity. }
+  { intros.
+    step_call Row_insert_body.
+    3 : { entailer. }
+    { auto. }
+    { auto. }
+    apply ret_implies_refl.
   }
-  constructor. {
-    eapply hoare_table_match_case_valid_ex.
-    eexists.
-    apply hoare_table_match_case_valid'_hoare_table_match_case_valid.
-    econstructor.
-    { reflexivity. }
-    { intros [].
-      replace (op =? INSERT)%Z with false by hauto.
-      replace (op =? QUERY)%Z with true.
-      step_call Row_query_body.
-      3 : { entailer. }
-      { auto. }
-      { auto. }
-      entailer.
-      destruct (row_query r i);
-        apply sval_refine_refl.
-    }
-    { reflexivity. }
+  { constructor. }
+  { intros.
+    replace (op =? INSERT)%Z with true.
+    apply arg_ret_implies_post_ex. eexists.
+    entailer.
   }
-  constructor. {
-    eapply hoare_table_match_case_valid_ex.
-    eexists.
-    apply hoare_table_match_case_valid'_hoare_table_match_case_valid.
-    econstructor.
-    { reflexivity. }
-    { intros [? []].
-      replace (op =? INSERT)%Z with false by hauto.
-      replace (op =? QUERY)%Z with false by hauto.
-      replace (op =? CLEAR)%Z with true.
-      step_call Row_clear_body.
-      3 : { entailer. }
-      { auto. }
-      { auto. }
-      entailer.
-    }
-    { reflexivity. }
+  econstructor.
+  (* QUERY case *)
+  { reflexivity. }
+  { intros.
+    step_call Row_query_body.
+    3 : { entailer. }
+    { auto. }
+    { auto. }
+    apply ret_implies_refl.
   }
-  constructor. *)
+  { constructor. }
+  { intros.
+    replace (op =? INSERT)%Z with false by hauto.
+    replace (op =? QUERY)%Z with true.
+    apply arg_ret_implies_post_ex. eexists.
+    entailer.
+    destruct (row_query r i);
+      apply sval_refine_refl.
+  }
+  econstructor.
+  (* CLEAR case *)
+  { reflexivity. }
+  { intros.
+    step_call Row_clear_body.
+    3 : { entailer. }
+    { auto. }
+    { auto. }
+    apply ret_implies_refl.
+  }
+  { constructor. }
+  { intros.
+    replace (op =? INSERT)%Z with false by hauto.
+    replace (op =? QUERY)%Z with false by hauto.
+    replace (op =? CLEAR)%Z with true.
+    apply arg_ret_implies_post_ex. eexists.
+    entailer.
+  }
+  econstructor.
+  (* NOOP case *)
+  (* We cannot prove the NOOP case with the current spec. *)
 Admitted.
 
 Definition Row_fundef := Eval compute in

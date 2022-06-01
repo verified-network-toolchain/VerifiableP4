@@ -575,6 +575,16 @@ Ltac entailer :=
           | simpl_ext_implies
         ]
       ]
+  | |- arg_ret_implies _ _ =>
+      first [
+        eapply arg_ret_implies_simplify;
+          [ Forall2_sval_refine
+          | try apply sval_refine_refl
+          | reflexivity (* mem_implies_simplify *)
+          | Forall_uncurry_sval_refine
+          | simpl_ext_implies
+        ]
+      ]
   | |- ext_implies _ _ =>
       simpl_ext_implies
   | _ => fail "The goal is not an entailment"
@@ -583,7 +593,7 @@ Ltac entailer :=
 Tactic Notation "Intros" simple_intropattern(x) :=
   lazymatch goal with
   | |- hoare_block _ _ (assr_exists _) _ _ =>
-      eapply hoare_block_pre_ex_elim;
+      eapply hoare_block_pre_ex;
       intros x
   | _ =>
       fail "There is nothing to Intro."

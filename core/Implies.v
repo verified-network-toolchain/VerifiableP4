@@ -134,7 +134,6 @@ Lemma arg_implies_simplify : forall pre_arg pre_mem pre_ext post_arg post_mem po
   ext_implies pre_ext post_ext ->
   arg_implies (ARG pre_arg (MEM pre_mem (EXT pre_ext))) (ARG post_arg (MEM post_mem (EXT post_ext))).
 Proof.
-  unfold implies; intros.
   unfold arg_implies; intros.
   destruct H3.
   split. 2 : { eapply implies_simplify; eauto. }
@@ -149,13 +148,29 @@ Lemma ret_implies_simplify : forall pre_ret pre_mem pre_ext post_ret post_mem po
   ext_implies pre_ext post_ext ->
   ret_implies (RET pre_ret (MEM pre_mem (EXT pre_ext))) (RET post_ret (MEM post_mem (EXT post_ext))).
 Proof.
-  unfold implies; intros.
   unfold ret_implies; intros.
   destruct H3.
   split. 2 : { eapply implies_simplify; eauto. }
   clear -H H3. unfold ret_denote, ret_satisfies in *.
   intros sv' H0. specialize (H3 sv' H0).
   eapply sval_refine_trans; eauto.
+Qed.
+
+Lemma arg_ret_implies_simplify : forall pre_arg pre_ret pre_mem pre_ext post_arg post_ret post_mem post_ext svps,
+  Forall2 sval_refine post_arg pre_arg ->
+  sval_refine post_ret pre_ret ->
+  mem_implies_simplify pre_mem post_mem = Some svps ->
+  Forall (uncurry sval_refine) svps ->
+  ext_implies pre_ext post_ext ->
+  arg_ret_implies
+    (ARG_RET pre_arg pre_ret (MEM pre_mem (EXT pre_ext)))
+    (ARG_RET post_arg post_ret (MEM post_mem (EXT post_ext))).
+Proof.
+  unfold arg_ret_implies; intros.
+  destruct H4.
+  split. 2 : { eapply ret_implies_simplify; eauto. }
+  eapply Forall2_trans. 1 : { unfold rel_trans. apply sval_refine_trans. }
+  all : eauto.
 Qed.
 
 End Implies.
