@@ -3,6 +3,8 @@ Require Export Coq.ssr.ssrbool.
 Require Export Coq.micromega.Lia.
 Require Export Coq.Logic.FunctionalExtensionality.
 Require Export Poulet4.Utils.Utils.
+Require Export Coq.ZArith.Zcomplements.
+Require Export VST.zlist.Zlist.
 Export ListNotations.
 
 Notation "~~" := negb.
