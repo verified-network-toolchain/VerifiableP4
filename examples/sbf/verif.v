@@ -100,6 +100,28 @@ Definition Row_regact_insert_execute_body :=
 Definition NoAction_fundef : @fundef Info := Eval compute in
   force dummy_fundef (PathMap.get ["NoAction"] (ge_func ge)).
 
+Definition NoAction_spec : func_spec :=
+  WITH,
+    PATH []
+    MOD None []
+    WITH,
+      PRE
+        (ARG []
+        (MEM []
+        (EXT [])))
+      POST
+        (ARG_RET [] ValBaseNull
+        (MEM []
+        (EXT []))).
+
+Lemma NoAction_body :
+  fundef_satisfies_spec ge NoAction_fundef nil NoAction_spec.
+Proof.
+  start_function.
+  step.
+  entailer.
+Qed.
+
 Definition Row_insert_fundef := Eval compute in
   force dummy_fundef (PathMap.get ["Bf2BloomFilterRow"; "act_insert"] (ge_func ge)).
 
@@ -442,9 +464,327 @@ Lemma Row_body :
   fundef_satisfies_spec ge Row_fundef nil Row_spec.
 Proof.
   start_function.
+  step.
   step_call Row_tbl_bloom_body.
   4 : entailer.
   1-3 : auto.
+  Intros _.
+  step.
+  entailer.
+Qed.
+
+Definition Row_noop_case_spec : func_spec :=
+  WITH (* p *),
+    PATH p
+    MOD None [p]
+    WITH (r : row) (i : Z)
+      (_ : Zlength r = num_cells)
+      (_ : 0 <= i < Zlength r),
+      PRE
+        (ARG [eval_val_to_sval (ValBaseBit (P4Arith.to_lbool 8%N NOOP));
+              eval_val_to_sval (ValBaseBit (P4Arith.to_lbool 18%N i))]
+        (MEM []
+        (EXT [row_repr p r])))
+      POST
+        (ARG_RET [ValBaseBit (Zrepeat None 8)] ValBaseNull
+        (MEM []
+        (EXT [row_repr p r]))).
+
+Definition Row_tbl_bloom_noop_spec : func_spec :=
+  WITH (* p *),
+    PATH p
+    MOD (Some [["rw"]]) [p]
+    WITH (r : row) (i : Z)
+      (_ : Zlength r = num_cells)
+      (_ : 0 <= i < Zlength r),
+      PRE
+        (ARG []
+        (MEM [(["api"], eval_val_to_sval (ValBaseBit (P4Arith.to_lbool 8%N NOOP)));
+              (["index"], eval_val_to_sval (ValBaseBit (P4Arith.to_lbool 18%N i)));
+              (["rw"], ValBaseBit (Zrepeat None 8))]
+        (EXT [row_repr p r])))
+      POST
+        (EX retv,
+        (ARG_RET [] retv
+        (MEM [(["rw"], ValBaseBit (Zrepeat None 8))]
+        (EXT [row_repr p r]))))%arg_ret_assr.
+
+Lemma Row_tbl_bloom_noop_body :
+  fundef_satisfies_spec ge Row_tbl_bloom_fundef nil Row_tbl_bloom_noop_spec.
+Proof.
+  split. 2 : {
+    solve_modifies.
+  }
+  intros_fsh_bind.
+  red.
+  unfold Row_tbl_bloom_fundef.
+  hoare_func_table.
+  { instantiate (1 := [(true, mk_action_ref "NoAction" [])]).
+    constructor.
+  }
+  econstructor.
+  (* NOOP case *)
+  { reflexivity. }
+  { intros.
+    step_call NoAction_body.
+    { entailer. }
+    apply ret_implies_refl.
+  }
+  { constructor. }
+  { intros.
+    apply arg_ret_implies_post_ex. eexists.
+    entailer.
+  }
+  intros H; inv H.
+Qed.
+
+Lemma Row_noop_case_body :
+  fundef_satisfies_spec ge Row_fundef nil Row_noop_case_spec.
+Proof.
+  start_function.
+  step.
+  step_call Row_tbl_bloom_noop_body.
+  3 : entailer.
+  1-2 : auto.
+  Intros _.
+  step.
+  entailer.
+Qed.
+
+Definition Row_insert_case_spec : func_spec :=
+  WITH (* p *),
+    PATH p
+    MOD None [p]
+    WITH (r : row) (i : Z)
+      (_ : Zlength r = num_cells)
+      (_ : 0 <= i < Zlength r),
+      PRE
+        (ARG [eval_val_to_sval (ValBaseBit (P4Arith.to_lbool 8%N INSERT));
+              eval_val_to_sval (ValBaseBit (P4Arith.to_lbool 18%N i))]
+        (MEM []
+        (EXT [row_repr p r])))
+      POST
+        (ARG_RET [eval_val_to_sval (ValBaseBit (P4Arith.to_lbool 8 1))] ValBaseNull
+        (MEM []
+        (EXT [row_repr p (row_insert r i)]))).
+
+Definition Row_tbl_bloom_insert_spec : func_spec :=
+  WITH (* p *),
+    PATH p
+    MOD (Some [["rw"]]) [p]
+    WITH (r : row) (i : Z)
+      (_ : Zlength r = num_cells)
+      (_ : 0 <= i < Zlength r),
+      PRE
+        (ARG []
+        (MEM [(["api"], eval_val_to_sval (ValBaseBit (P4Arith.to_lbool 8%N INSERT)));
+              (["index"], eval_val_to_sval (ValBaseBit (P4Arith.to_lbool 18%N i)))]
+        (EXT [row_repr p r])))
+      POST
+        (EX retv,
+        (ARG_RET [] retv
+        (MEM [(["rw"], eval_val_to_sval (ValBaseBit (P4Arith.to_lbool 8 1)))]
+        (EXT [row_repr p (row_insert r i)]))))%arg_ret_assr.
+
+Lemma Row_tbl_bloom_insert_body :
+  fundef_satisfies_spec ge Row_tbl_bloom_fundef nil Row_tbl_bloom_insert_spec.
+Proof.
+  split. 2 : {
+    solve_modifies.
+  }
+  intros_fsh_bind.
+  red.
+  unfold Row_tbl_bloom_fundef.
+  hoare_func_table.
+  { instantiate (1 := [(true, mk_action_ref "act_insert" [])]).
+    constructor.
+  }
+  econstructor.
+  (* INSERT case *)
+  { reflexivity. }
+  { intros.
+    step_call Row_insert_body.
+    3 : { entailer. }
+    { auto. }
+    { auto. }
+    apply ret_implies_refl.
+  }
+  { constructor. }
+  { intros.
+    apply arg_ret_implies_post_ex. eexists.
+    entailer.
+  }
+  intros H; inv H.
+Qed.
+
+Lemma Row_insert_case_body :
+  fundef_satisfies_spec ge Row_fundef nil Row_insert_case_spec.
+Proof.
+  start_function.
+  step.
+  step_call Row_tbl_bloom_insert_body.
+  3 : entailer.
+  1-2 : auto.
+  Intros _.
+  step.
+  entailer.
+Qed.
+
+Definition Row_query_case_spec : func_spec :=
+  WITH (* p *),
+    PATH p
+    MOD None [p]
+    WITH (r : row) (i : Z)
+      (_ : Zlength r = num_cells)
+      (_ : 0 <= i < Zlength r),
+      PRE
+        (ARG [eval_val_to_sval (ValBaseBit (P4Arith.to_lbool 8%N QUERY));
+              eval_val_to_sval (ValBaseBit (P4Arith.to_lbool 18%N i))]
+        (MEM []
+        (EXT [row_repr p r])))
+      POST
+        (ARG_RET [eval_val_to_sval (ValBaseBit (P4Arith.to_lbool 8 (Z.b2z (row_query r i))))] ValBaseNull
+        (MEM []
+        (EXT [row_repr p r]))).
+
+Definition Row_tbl_bloom_query_spec : func_spec :=
+  WITH (* p *),
+    PATH p
+    MOD (Some [["rw"]]) [p]
+    WITH (r : row) (i : Z)
+      (_ : Zlength r = num_cells)
+      (_ : 0 <= i < Zlength r),
+      PRE
+        (ARG []
+        (MEM [(["api"], eval_val_to_sval (ValBaseBit (P4Arith.to_lbool 8%N QUERY)));
+              (["index"], eval_val_to_sval (ValBaseBit (P4Arith.to_lbool 18%N i)))]
+        (EXT [row_repr p r])))
+      POST
+        (EX retv,
+        (ARG_RET [] retv
+        (MEM [(["rw"], eval_val_to_sval (ValBaseBit (P4Arith.to_lbool 8 (Z.b2z (row_query r i)))))]
+        (EXT [row_repr p r]))))%arg_ret_assr.
+
+Lemma Row_tbl_bloom_query_body :
+  fundef_satisfies_spec ge Row_tbl_bloom_fundef nil Row_tbl_bloom_query_spec.
+Proof.
+  split. 2 : {
+    solve_modifies.
+  }
+  intros_fsh_bind.
+  red.
+  unfold Row_tbl_bloom_fundef.
+  hoare_func_table.
+  { instantiate (1 := [(true, mk_action_ref "act_query" [])]).
+    constructor.
+  }
+  econstructor.
+  (* QUERY case *)
+  { reflexivity. }
+  { intros.
+    step_call Row_query_body.
+    3 : { entailer. }
+    { auto. }
+    { auto. }
+    apply ret_implies_refl.
+  }
+  { constructor. }
+  { intros.
+    apply arg_ret_implies_post_ex. eexists.
+    entailer.
+    destruct (row_query r i);
+      apply sval_refine_refl.
+  }
+  intros H; inv H.
+Qed.
+
+Lemma Row_query_case_body :
+  fundef_satisfies_spec ge Row_fundef nil Row_query_case_spec.
+Proof.
+  start_function.
+  step.
+  step_call Row_tbl_bloom_query_body.
+  3 : entailer.
+  1-2 : auto.
+  Intros _.
+  step.
+  entailer.
+Qed.
+
+Definition Row_clear_case_spec : func_spec :=
+  WITH (* p *),
+    PATH p
+    MOD None [p]
+    WITH (r : row) (i : Z)
+      (_ : Zlength r = num_cells)
+      (_ : 0 <= i < Zlength r),
+      PRE
+        (ARG [eval_val_to_sval (ValBaseBit (P4Arith.to_lbool 8%N CLEAR));
+              eval_val_to_sval (ValBaseBit (P4Arith.to_lbool 18%N i))]
+        (MEM []
+        (EXT [row_repr p r])))
+      POST
+        (ARG_RET [eval_val_to_sval (ValBaseBit (P4Arith.to_lbool 8 0))] ValBaseNull
+        (MEM []
+        (EXT [row_repr p (row_clear r i)]))).
+
+Definition Row_tbl_bloom_clear_spec : func_spec :=
+  WITH (* p *),
+    PATH p
+    MOD (Some [["rw"]]) [p]
+    WITH (r : row) (i : Z)
+      (_ : Zlength r = num_cells)
+      (_ : 0 <= i < Zlength r),
+      PRE
+        (ARG []
+        (MEM [(["api"], eval_val_to_sval (ValBaseBit (P4Arith.to_lbool 8%N CLEAR)));
+              (["index"], eval_val_to_sval (ValBaseBit (P4Arith.to_lbool 18%N i)))]
+        (EXT [row_repr p r])))
+      POST
+        (EX retv,
+        (ARG_RET [] retv
+        (MEM [(["rw"], eval_val_to_sval (ValBaseBit (P4Arith.to_lbool 8 0)))]
+        (EXT [row_repr p (row_clear r i)]))))%arg_ret_assr.
+
+Lemma Row_tbl_bloom_clear_body :
+  fundef_satisfies_spec ge Row_tbl_bloom_fundef nil Row_tbl_bloom_clear_spec.
+Proof.
+  split. 2 : {
+    solve_modifies.
+  }
+  intros_fsh_bind.
+  red.
+  unfold Row_tbl_bloom_fundef.
+  hoare_func_table.
+  { instantiate (1 := [(true, mk_action_ref "act_clear" [])]).
+    constructor.
+  }
+  econstructor.
+  (* CLEAR case *)
+  { reflexivity. }
+  { intros.
+    step_call Row_clear_body.
+    3 : { entailer. }
+    { auto. }
+    { auto. }
+    apply ret_implies_refl.
+  }
+  { constructor. }
+  { intros.
+    apply arg_ret_implies_post_ex. eexists.
+    entailer.
+  }
+  intros H; inv H.
+Qed.
+
+Lemma Row_clear_case_body :
+  fundef_satisfies_spec ge Row_fundef nil Row_clear_case_spec.
+Proof.
+  start_function.
+  step.
+  step_call Row_tbl_bloom_clear_body.
+  3 : entailer.
+  1-2 : auto.
   Intros _.
   step.
   entailer.
