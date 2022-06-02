@@ -33,10 +33,10 @@ Definition row_inv : ext_pred :=
 Definition bool_to_val (b : bool) : ValueBase :=
   ValBaseBit [b; false; false; false; false; false; false; false].
 
-Definition row_reg_repr (cr : ConFilter.row) : ext_pred :=
-  ExtPred.singleton (p ++ ["reg_row"]) (Tofino.ObjRegister (map bool_to_val cr)).
+Definition row_reg_repr {num_slots} (cr : ConFilter.row num_slots) : ext_pred :=
+  ExtPred.singleton (p ++ ["reg_row"]) (Tofino.ObjRegister (map bool_to_val (proj1_sig cr))).
 
-Program Definition row_repr (cr : ConFilter.row) : ext_pred :=
+Program Definition row_repr {num_slots} (cr : ConFilter.row num_slots) : ext_pred :=
   ExtPred.wrap [p] [row_reg_repr cr] _.
 Next Obligation.
   unfold in_scope.

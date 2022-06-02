@@ -1,5 +1,5 @@
 Require Import Coq.ZArith.BinInt.
-Require Import Coq.Program.Basics.
+Require Import Coq.Program.Program.
 Require Poulet4.Utils.Utils.
 Require Import ProD3.examples.sbf.Utils.
 Require Import ProD3.examples.sbf.ConFilter.
@@ -25,13 +25,12 @@ Inductive row : Type :=
   | Clear (i : Z)
   | Normal (hs : list header_type).
 
-Inductive row_sim : row -> ConFilter.row -> Prop :=
+Inductive row_sim : row -> ConFilter.row num_cells -> Prop :=
   | rom_sim_clear : forall i cr,
-      Zlength cr = num_cells ->
-      (forall j, 0 <= j < i -> Znth j cr = false) ->
+      (forall j, 0 <= j < i -> Znth j (` cr) = false) ->
       row_sim (Clear i) cr
   | rom_sim_normal : forall hs cr,
-      cr = fold_left (fun l i => upd_Znth i l true) (map hash hs) (Zrepeat false num_cells) ->
+      ` cr = fold_left (fun l i => upd_Znth i l true) (map hash hs) (Zrepeat false num_cells) ->
       row_sim (Normal hs) cr.
 
 Definition row_insert (r : row) (h : header_type) : option row :=
@@ -48,6 +47,7 @@ Proof.
   intros.
   destruct r as [? | hs]; inv H0.
   inv H. constructor.
+  simpl. rewrite H1.
   rewrite map_app.
   rewrite fold_left_app.
   reflexivity.
@@ -99,15 +99,12 @@ Proof.
   - unfold row_clear in *.
     destruct (i =? j) eqn:H_i_j.
     + destruct (i+1 >=? num_cells) eqn:H_i1_num_cells.
-      * inv H0. inv H.
-        replace (ConFilter.row_clear cr i) with (Zrepeat false num_cells). 2 : {
-          unfold ConFilter.row_clear; list_simplify. symmetry; apply H2; list_solve.
-        }
-        constructor. auto.
+      * inv H0. inv H. constructor. destruct cr as [cr ?H]. simpl in *.
+        list_simplify. apply H1. lia.
       * inv H0. inv H.
         unfold ConFilter.row_clear; constructor.
-        { list_solve. }
-        { list_simplify. apply H2; list_solve. }
+        intros. simpl. destruct cr as [cr ?H]. simpl in *. list_simplify.
+        apply H1. lia.
     + inv H0.
   - unfold row_clear in *.
     destruct (i =? 0) eqn:H_i_0.
@@ -118,9 +115,8 @@ Proof.
         { list_solve. }
         { list_solve. }
       }
-      unfold ConFilter.row_clear; constructor.
-      { list_solve. }
-      { list_solve. }
+      unfold ConFilter.row_clear; constructor. simpl. rewrite H1.
+      intros. list_solve.
     + inv H0.
 Qed.
 
@@ -140,12 +136,13 @@ Proof.
   destruct r; inv H0.
   inv H.
   unfold fold_orb.
-  rewrite <- !fold_left_rev_right.
-  rewrite <- !map_rev.
+  rewrite <- !fold_left_rev_right in *.
+  rewrite <- !map_rev in *. destruct cr as [cr ?H].  simpl in *. subst cr.
+  unfold ConFilter.row_query. simpl. clear H.
   generalize (rev hs) as hs0. clear hs; intro hs.
-  induction hs as [ | h' hs].
-  - unfold ConFilter.row_query. simpl. specialize (H_hash h). list_solve.
-  - unfold ConFilter.row_query. simpl. unfold compose.
+  induction hs as [ | h' hs]; simpl.
+  - specialize (H_hash h). list_solve.
+  - unfold compose.
     assert (Zlength (fold_right (fun (y : Z) (x : list bool) => upd_Znth y x true)
           (Zrepeat false num_cells) (map hash hs)) = num_cells). {
       apply fold_right_pres.
@@ -170,25 +167,32 @@ Hypothesis H_hashes : Forall (fun hash => forall h, 0 <= hash h < num_cells) has
 
 Definition frame : Type := row.
 
-Definition frame_sim (f : frame) (cf : ConFilter.frame) : Prop :=
-  Forall2 (fun hash cr => row_sim hash f cr) hashes cf.
+Definition frame_sim (f : frame) (cf : ConFilter.frame num_rows num_cells) : Prop :=
+  Forall2 (fun hash cr => row_sim hash f cr) hashes (` cf).
 
 Definition frame_insert : forall (f : frame) (h : header_type), option frame :=
   row_insert.
 
+Program Definition map_hashes (h: header_type) : items num_rows :=
+  map (fun hash => hash h) hashes.
+Next Obligation.
+  list_solve.
+Qed.
+
+#[local] Instance row_inhabitant: Inhabitant (ConFilter.row num_cells) :=
+  empty_row num_cells H_num_cells.
+
 Lemma frame_insert_sound : forall f cf h f',
   frame_sim f cf ->
   frame_insert f h = Some f' ->
-  frame_sim f' (ConFilter.frame_insert cf (map (fun hash => hash h) hashes)).
+  frame_sim f' (ConFilter.frame_insert cf (map_hashes h)).
 Proof.
   intros.
   unfold frame_sim in *.
-  assert (Zlength hashes = Zlength cf). {
-    eapply Forall2_Zlength. eauto.
-  }
-  unfold ConFilter.frame_insert in *.
+  unfold map_hashes.
+  unfold ConFilter.frame_insert in *. simpl.
   rewrite Forall2_forall_range2.
-  split; only 1 : list_solve.
+  destruct cf as [cf ?H]. simpl in *. split. 1: list_solve.
   unfold forall_range2, forall_i; intros.
   rewrite Znth_map2 by list_solve.
   rewrite Znth_map by list_solve.
@@ -202,18 +206,23 @@ Qed.
 Definition frame_clear : forall (f : frame) (i : Z), option frame :=
   row_clear.
 
+Program Definition repeat_items i: items num_rows :=
+  Zrepeat i num_rows.
+Next Obligation.
+  list_solve.
+Qed.
+
 Lemma frame_clear_sound : forall f cf i f',
   frame_sim f cf ->
   frame_clear f i = Some f' ->
-  frame_sim f' (ConFilter.frame_clear cf (Zrepeat i num_rows)).
+  frame_sim f' (ConFilter.frame_clear cf (repeat_items i)).
 Proof.
   intros.
   unfold frame_sim in *.
-  assert (Zlength hashes = Zlength cf). {
-    eapply Forall2_Zlength. eauto.
-  }
-  unfold ConFilter.frame_clear in *.
+  unfold repeat_items.
+  unfold ConFilter.frame_clear in *. simpl.
   rewrite Forall2_forall_range2.
+  destruct cf as [cf ?H]. simpl in *.
   split; only 1 : list_solve.
   unfold forall_range2, forall_i; intros.
   rewrite Znth_map2 by list_solve.
@@ -249,9 +258,7 @@ Proof.
   rewrite <- H1.
   unfold ConFilter.frame_query; f_equal.
   unfold frame_sim in H.
-  assert (Zlength hashes = Zlength cf). {
-    eapply Forall2_Zlength. eauto.
-  }
+  destruct cf as [cf ?H]. simpl in *.
   assert (Zlength (map2 ConFilter.row_query cf (map (fun hash : header_type -> Z => hash h) hashes))
     = Zlength x). {
     list_solve.

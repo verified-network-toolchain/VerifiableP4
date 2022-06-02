@@ -67,3 +67,11 @@ Proof.
       { specialize (H0 0 ltac:(list_solve)). simpl in H0. list_solve. }
       { apply IHal; list_solve. }
 Qed.
+
+Lemma Zlength_fold_right {A B}: forall (f: B -> list A -> list A) init l,
+    (forall b la, Zlength (f b la) = Zlength la) ->
+    Zlength (fold_right f init l) = Zlength init.
+Proof.
+  intros. revert l init. induction l; intros; simpl; auto.
+  rewrite H. easy.
+Qed.
