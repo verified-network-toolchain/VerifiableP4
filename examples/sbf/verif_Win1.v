@@ -70,20 +70,28 @@ Definition Win_insert_spec : func_spec :=
         (MEM []
         (EXT [frame_repr p rows (frame_insert f is)]))).
 
+Lemma destruct_Zlength_3 : forall {A} (l : list A),
+  Zlength l = 3 ->
+  exists x1 x2 x3, l = [x1; x2; x3].
+Proof.
+  intros.
+  destruct l as [ | x1 l]; only 1 : list_solve.
+  destruct l as [ | x2 l]; only 1 : list_solve.
+  destruct l as [ | x3 l]; only 1 : list_solve.
+  destruct l as [ | x4 l]; only 2 : list_solve.
+  eauto.
+Qed.
+
 Lemma Win_insert_body :
   fundef_satisfies_spec ge Win_fundef nil Win_insert_spec.
 Proof.
   start_function.
   unfold frame_repr.
   normalize_EXT.
-  destruct f as [ | r1 f]; only 1 : (unfold num_rows in *; list_solve).
-  destruct f as [ | r2 f]; only 1 : (unfold num_rows in *; list_solve).
-  destruct f as [ | r3 f]; only 1 : (unfold num_rows in *; list_solve).
-  destruct f as []; only 2 : (unfold num_rows in *; list_solve).
-  destruct is as [ | i1 is]; only 1 : (unfold num_rows in *; list_solve).
-  destruct is as [ | i2 is]; only 1 : (unfold num_rows in *; list_solve).
-  destruct is as [ | i3 is]; only 1 : (unfold num_rows in *; list_solve).
-  destruct is as []; only 2 : (unfold num_rows in *; list_solve).
+  apply destruct_Zlength_3 in x.
+  destruct x as [r1 [r2 [r3 ?]]]; subst.
+  apply destruct_Zlength_3 in x0.
+  destruct x0 as [i1 [i2 [i3 ?]]]; subst.
   inv x1. inv H2. inv H4.
   inv x2. inv H6. inv H8.
   step_call verif_Row11.Row_insert_case_body.
