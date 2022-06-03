@@ -872,21 +872,118 @@ Proof.
 Qed.
 
 Definition hoare_table_entries p entries entryvs : Prop :=
-  forall st entryvs',
-    exec_table_entries ge read_ndetbit p st entries entryvs' ->
+  forall entryvs',
+    exec_table_entries ge read_ndetbit p entries entryvs' ->
     entryvs' = entryvs.
+
+Lemma exec_expr_empty_state_det : forall p expr sv sv',
+  exec_expr ge read_ndetbit p empty_state expr sv ->
+  exec_expr ge read_ndetbit p empty_state expr sv' ->
+  sv' = sv.
+Proof.
+  intros. revert sv' H1.
+  induction H0; intros n_sv n_H0; inv n_H0; eauto; try congruence.
+  
+  congruence.
+  inv H0; inv H1.
+  enough (sv0 = sv). {
+    subst.
+    apply aux in H0.
+    eapply aux2; eauto.
+  }
+    destruct H0 as v.
+    
+  induction H0; intros. inv 
+  clear. *)
+Admitted.
+
+Lemma aux : forall p expr sv,
+exec_expr ge read_ndetbit p empty_state expr sv
+-> exists v, exec_val strict_read_ndetbit sv v.
+clear.
+Admitted.
+
+Lemma aux2 : forall sv v v',
+  (exists v : Val, exec_val strict_read_ndetbit sv v) ->
+  sval_to_val read_ndetbit sv v ->
+  sval_to_val read_ndetbit sv v' ->
+  v' = v.
+Proof.
+  intros.
+  destruct H0 as [v0 ?].
+  eapply exec_val_sym with (g := (Basics.flip read_ndetbit)) in H1. 2 : {
+    sfirstorder.
+  }
+  unshelve epose proof (exec_val_trans _ _ eq _ _ _ _ H1 H0).
+  { unfold rel_trans; sauto lq: on. }
+  eapply exec_val_sym with (g := (Basics.flip read_ndetbit)) in H2. 2 : {
+    sfirstorder.
+  }
+  unshelve epose proof (exec_val_trans _ _ eq _ _ _ _ H2 H0).
+  { unfold rel_trans; sauto lq: on. }
+  apply exec_val_eq in H3, H4.
+  subst; auto.
+Qed.
+
+Lemma exec_expr_det_empty_state_det : forall p expr v v',
+  exec_expr_det ge read_ndetbit p empty_state expr v ->
+  exec_expr_det ge read_ndetbit p empty_state expr v' ->
+  v' = v.
+Proof.
+  intros.
+  inv H0; inv H1.
+  enough (sv0 = sv). {
+    subst.
+    apply aux in H0.
+    eapply aux2; eauto.
+  }
+  eapply exec_expr_empty_state_det; eauto.
+Qed.
 
 (* This should be true eventually.
   The reason that this is currently not true is that it allows to read from st.
   But actually table entries can only depends on constants.
   Ideally we write exec_table_entries as a function instead of a relation. *)
-Axiom exec_table_entries_det : forall p p' st st' entries entryvs entryvs',
-  exec_table_entries ge read_ndetbit p st entries entryvs ->
-  exec_table_entries ge read_ndetbit p' st' entries entryvs' ->
+Lemma exec_table_entries_det : forall p entries entryvs entryvs',
+  exec_table_entries ge read_ndetbit p entries entryvs ->
+  exec_table_entries ge read_ndetbit p entries entryvs' ->
   entryvs' = entryvs.
+Proof.
+  intros. revert entryvs' H1.
+  induction H0; intros. { inv H1; auto. }
+  inv H2.
+  f_equal; only 2 : auto.
+  clear -H0 H5.
+  (* exec_table_entry *)
+  inv H0; inv H5.
+  enough (svs0 = svs). {
+    subst.
+    destruct (PeanoNat.Nat.eqb (length svs) 1);
+      subst; auto.
+  }
+  clear -H1 H6.
+  (* exec_matches *)
+  revert svs0 H6.
+  induction H1; intros. { inv H6; auto. }
+  inv H6.
+  f_equal; only 2 : auto.
+  clear -H0 H4.
+  (* exec_match *)
+  inv H0; inv H4.
+  - auto.
+  - f_equal;
+    eapply exec_expr_det_empty_state_det; eauto.
+  - f_equal;
+    eapply exec_expr_det_empty_state_det; eauto.
+  - assert (oldv0 = oldv). {
+      eapply exec_expr_det_empty_state_det; eauto.
+    }
+    subst.
+    congruence.
+Qed.
 
 Lemma hoare_table_entries_intros : forall p entries entryvs,
-  exec_table_entries ge read_ndetbit [] (PathMap.empty, PathMap.empty) entries entryvs ->
+  exec_table_entries ge read_ndetbit p (PathMap.empty, PathMap.empty) entries entryvs ->
   hoare_table_entries p entries entryvs.
 Proof.
   unfold hoare_table_entries; intros.
