@@ -2,6 +2,7 @@ Require Import Coq.ZArith.BinInt.
 Require Import Coq.ZArith.ZArith.
 Require Import Coq.Lists.List.
 Require Import Coq.Logic.FunctionalExtensionality.
+Require Import Coq.Program.Program.
 Require Import ProD3.examples.sbf.Utils.
 Require Import ProD3.examples.sbf.ConFilter.
 
@@ -12,131 +13,85 @@ Section BLOOM_FILTER.
 
   Definition HashFunc := Z -> Index.
 
-  Definition add_hash (z: Z) (h: HashFunc) (F: row) :=
+  Definition add_hash {num_slots} (z: Z) (h: HashFunc) (F: row num_slots) :=
     row_insert F (h z).
 
-  Definition add (hashes: list HashFunc) (fs: frame) (z: Z) : frame :=
-    frame_insert fs (map (fun hash => hash z) hashes).
+  Program Definition map_hashes {num_rows} z (hashes: items HashFunc num_rows):
+    items Z num_rows := map (fun hash => hash z) hashes.
+  Next Obligation.
+    destruct hashes as [hashes ?H].
+    simpl. now rewrite Zlength_map.
+  Qed.
 
-  Definition addm (hashes: list HashFunc) (fs: frame) (zs: list Z) :=
+  Definition add {num_rows num_slots} (hashes: items HashFunc num_rows)
+    (fs: frame num_rows num_slots) (z: Z) : frame num_rows num_slots :=
+    frame_insert fs (map_hashes z hashes).
+
+  Definition addm {num_rows num_slots} (hashes: items HashFunc num_rows)
+    (fs: frame num_rows num_slots) (zs: list Z) :=
     List.fold_left (add hashes) zs fs.
 
-  Definition query (hashes: list HashFunc) (fs: frame) (z: Z): bool :=
+  Definition query {num_rows num_slots} (hashes: list HashFunc)
+    (fs: frame num_rows num_slots) (z: Z): bool :=
     frame_query fs (map (fun hash => hash z) hashes).
 
-  Definition hash_row_compatible (h: HashFunc) (r: row): Prop :=
-    forall x, 0 <= h x < Zlength r.
+  Definition hash_in_range (num_slots: Z) (h: HashFunc): Prop :=
+    forall x, 0 <= h x < num_slots.
 
-  Lemma bf_add_get_true: forall z h a,
-      hash_row_compatible h a ->
-      row_query (add_hash z h a) (h z) = true.
-  Proof.
-    unfold row_query, add_hash, row_insert. intros.
-    rewrite upd_Znth_same; auto.
-  Qed.
-
-  Lemma add_hash_comm: forall x y f h,
-      add_hash x h (add_hash y h f) = add_hash y h (add_hash x h f).
-  Proof.
-    unfold add_hash, row_insert. intros.
-    list_solve.
-  Qed.
-
-  Lemma add_cons: forall h hs f fs z, add (h :: hs) (f :: fs) z = add_hash z h f :: add hs fs z.
-  Proof. intros. unfold add, add_hash, frame_insert. apply map2_cons. Qed.
-
-  Lemma add_comm x y fs hashes:
-    length fs = length hashes ->
+  Lemma add_comm {num_rows num_slots} x y (fs: frame num_rows num_slots)
+    (hashes: items HashFunc num_rows):
     add hashes (add hashes fs x) y = add hashes (add hashes fs y) x.
   Proof.
-    intros. revert fs hashes H. induction fs; intros; simpl; destruct hashes.
-    - now simpl.
-    - simpl in H; inversion H.
-    - simpl in H; inversion H.
-    - rewrite !add_cons. rewrite add_hash_comm. f_equal.
-      apply IHfs. now inversion H.
+    destruct fs as [fs ?H]. destruct hashes as [hashes ?H].
+    revert fs hashes num_rows H H0. induction fs; intros; simpl; destruct hashes.
+    - unfold add, frame_insert. simpl. apply subset_eq_compat. auto.
+    - exfalso. list_solve.
+    - exfalso. list_solve.
+    - unfold add, frame_insert. simpl. apply subset_eq_compat. rewrite !map2_cons. f_equal.
+      + apply row_insert_comm.
+      + assert (Zlength fs = num_rows - 1) by list_solve.
+        assert (Zlength hashes = num_rows - 1) by list_solve.
+        specialize (IHfs hashes (num_rows - 1) H1 H2).
+        unfold add, frame_insert in IHfs. simpl in IHfs.
+        apply EqdepFacts.eq_sig_fst in IHfs. apply IHfs.
   Qed.
 
-  Lemma query_cons: forall h hashes f fs z,
-      query (h :: hashes) (f :: fs) z = (row_query f (h z) && query hashes fs z)%bool.
+  Lemma bf_add_query_true:
+    forall {num_rows num_slots} (fs: frame num_rows num_slots) (hashes: items HashFunc num_rows) z,
+      Forall (hash_in_range num_slots) (` hashes) ->
+      query (` hashes) (add hashes fs z) z = true.
   Proof.
-    intros. unfold query. simpl. unfold frame_query. unfold fold_andb.
-    rewrite map2_cons. simpl. destruct (row_query f (h z)); simpl; auto.
-    now rewrite fold_andb_false.
-  Qed.
-
-  Lemma bf_add_query_true: forall fs hashes z,
-      Forall2 hash_row_compatible hashes fs ->
-      query hashes (add hashes fs z) z = true.
-  Proof.
+    intros. destruct fs as [fs ?H]. destruct hashes as [hashes ?H]. simpl in *.
+    revert fs hashes num_rows H0 H1 H.
     induction fs; intros; simpl; destruct hashes.
     - now simpl.
-    - simpl in H; inversion H.
-    - simpl in H; inversion H.
-    - rewrite add_cons. rewrite query_cons. inversion H. subst. clear H.
-      rewrite IHfs; auto. rewrite Bool.andb_true_r.
-      apply bf_add_get_true; auto.
+    - exfalso. list_solve.
+    - exfalso. list_solve.
+    - inversion H. subst x l.
+      assert (Zlength fs = num_rows - 1) by list_solve.
+      assert (Zlength hashes = num_rows - 1) by list_solve.
+      specialize (IHfs hashes (num_rows - 1) H2 H3 H5).
+      unfold query, add, frame_insert, frame_query in *. simpl in *.
+      rewrite !map2_cons. rewrite fold_andb_cons. rewrite row_query_insert_true. 2: apply H4.
+      simpl. apply IHfs.
   Qed.
 
-  Lemma add_length: forall hashes fs z,
-      length fs = length hashes -> length (add hashes fs z) = length fs.
-  Proof.
-    intros. unfold add, frame_insert, map2. rewrite map_length, combine_length.
-    rewrite map_length, H. rewrite Nat.min_id. easy.
-  Qed.
-
-  Lemma addm_length: forall hashes fs zs,
-      length fs = length hashes -> length (addm hashes fs zs) = length fs.
-  Proof.
-    intros. revert fs H. unfold addm. induction zs; simpl; auto.
-    intros. rewrite IHzs; [| rewrite <- H]; now apply add_length.
-  Qed.
-
-  Lemma addm_add_comm : forall x ys fs hashes,
-      length fs = length hashes ->
+  Lemma addm_add_comm : forall {num_rows num_slots} x ys (fs: frame num_rows num_slots)
+                          (hashes: items HashFunc num_rows),
       addm hashes (add hashes fs x) ys = add hashes (addm hashes fs ys) x.
   Proof.
-    intros. revert ys fs hashes x H.
+    intros. revert ys fs hashes x.
     induction ys; intros.
     - simpl; auto.
-    - simpl. assert (forall z, length (add hashes fs z) = length hashes). {
-        intros. rewrite add_length; auto. }
-      rewrite !IHys; auto. rewrite add_comm; auto.
-      rewrite addm_length; auto.
+    - simpl. rewrite !IHys. rewrite add_comm; auto.
   Qed.
 
-  Lemma hash_row_compatible_add_hash:
-    forall (z : Z) (x : HashFunc) (y : row),
-      hash_row_compatible x y -> hash_row_compatible x (add_hash z x y).
+  Theorem BFNoFalseNegative: forall {num_rows num_slots} z zs (fs: frame num_rows num_slots)
+                               (hashes: items HashFunc num_rows),
+      Forall (hash_in_range num_slots) (` hashes) ->
+      query (` hashes) (addm hashes (add hashes fs z) zs) z  = true.
   Proof.
-    unfold hash_row_compatible. intros. unfold add_hash, row_insert.
-    now rewrite Zlength_upd_Znth.
-  Qed.
-
-  Lemma hash_row_compatible_add: forall hashes fs z,
-      Forall2 hash_row_compatible hashes fs ->
-      Forall2 hash_row_compatible hashes (add hashes fs z).
-  Proof.
-    intros. induction H.
-    - unfold add, frame_insert, map2. simpl. constructor.
-    - rewrite add_cons. constructor; auto. now apply hash_row_compatible_add_hash.
-  Qed.
-
-  Lemma hash_row_compatible_addm:
-    forall (zs : list Z) (fs : list row) (hashes : list HashFunc),
-      Forall2 hash_row_compatible hashes fs ->
-      Forall2 hash_row_compatible hashes (addm hashes fs zs).
-  Proof.
-    induction zs; intros; simpl; auto.
-    apply IHzs. now apply hash_row_compatible_add.
-  Qed.
-
-  Theorem BFNoFalseNegative: forall z zs fs hashes,
-      Forall2 hash_row_compatible hashes fs ->
-      query hashes (addm hashes (add hashes fs z) zs) z  = true.
-  Proof.
-    intros. pose proof (Forall2_length H). rewrite addm_add_comm; auto.
-    apply bf_add_query_true. now apply hash_row_compatible_addm.
+    intros. rewrite addm_add_comm. now apply bf_add_query_true.
   Qed.
 
 End BLOOM_FILTER.

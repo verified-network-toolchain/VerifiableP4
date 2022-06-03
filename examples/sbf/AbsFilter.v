@@ -173,7 +173,7 @@ Definition frame_sim (f : frame) (cf : ConFilter.frame num_rows num_cells) : Pro
 Definition frame_insert : forall (f : frame) (h : header_type), option frame :=
   row_insert.
 
-Program Definition map_hashes (h: header_type) : items num_rows :=
+Program Definition map_hashes (h: header_type) : items Z num_rows :=
   map (fun hash => hash h) hashes.
 Next Obligation.
   list_solve.
@@ -206,7 +206,7 @@ Qed.
 Definition frame_clear : forall (f : frame) (i : Z), option frame :=
   row_clear.
 
-Program Definition repeat_items i: items num_rows :=
+Program Definition repeat_items {T: Type} (i: T): items T num_rows :=
   Zrepeat i num_rows.
 Next Obligation.
   list_solve.
