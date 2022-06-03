@@ -16,12 +16,8 @@ Section BLOOM_FILTER.
   Definition add_hash {num_slots} (z: Z) (h: HashFunc) (F: row num_slots) :=
     row_insert F (h z).
 
-  Program Definition map_hashes {num_rows} z (hashes: items HashFunc num_rows):
-    items Z num_rows := map (fun hash => hash z) hashes.
-  Next Obligation.
-    destruct hashes as [hashes ?H].
-    simpl. now rewrite Zlength_map.
-  Qed.
+  Definition map_hashes {num_rows} z (hashes: items HashFunc num_rows) :=
+    map_items (fun hash => hash z) hashes.
 
   Definition add {num_rows num_slots} (hashes: items HashFunc num_rows)
     (fs: frame num_rows num_slots) (z: Z) : frame num_rows num_slots :=
