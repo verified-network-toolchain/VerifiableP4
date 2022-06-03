@@ -257,7 +257,7 @@ Proof.
   entailer.
   { unfold P4Arith.to_loptbool.
     rewrite to_lbool_lbool_to_val' by auto.
-    repeat constructor.
+    apply sval_refine_refl.
   }
   { rewrite to_lbool_lbool_to_val' by auto.
     f_equal.
@@ -388,13 +388,10 @@ Proof.
   intros_fsh_bind.
   red.
   unfold Row_tbl_bloom_fundef.
+
   hoare_func_table.
-  { instantiate (1 :=
-        [((op =? INSERT)%Z, mk_action_ref "act_insert" []);
-         ((op =? QUERY)%Z, mk_action_ref "act_query" []);
-         ((op =? CLEAR)%Z, mk_action_ref "act_clear" [])]).
-    admit.
-  }
+  { apply hoare_extern_match_list_intro. }
+  simpl Tofino.extern_matches.
   econstructor.
   (* INSERT case *)
   { reflexivity. }
@@ -407,7 +404,12 @@ Proof.
   }
   { constructor. }
   { intros.
-    replace (op =? INSERT)%Z with true.
+    assert (op = INSERT). {
+      repeat destruct x0 as [? | x0]; subst; try solve [inv H].
+      auto.
+      destruct x0.
+    }
+    subst.
     apply arg_ret_implies_post_ex. eexists.
     entailer.
   }
@@ -423,8 +425,12 @@ Proof.
   }
   { constructor. }
   { intros.
-    replace (op =? INSERT)%Z with false by hauto.
-    replace (op =? QUERY)%Z with true.
+    assert (op = QUERY). {
+      repeat destruct x0 as [? | x0]; subst; try solve [inv H0].
+      auto.
+      destruct x0.
+    }
+    subst.
     apply arg_ret_implies_post_ex. eexists.
     entailer.
     destruct (row_query r i);
@@ -442,13 +448,15 @@ Proof.
   }
   { constructor. }
   { intros.
-    replace (op =? INSERT)%Z with false by hauto.
-    replace (op =? QUERY)%Z with false by hauto.
-    replace (op =? CLEAR)%Z with true.
+    assert (op = CLEAR). {
+      repeat destruct x0 as [? | x0]; subst; try solve [inv H1].
+      auto.
+      destruct x0.
+    }
+    subst.
     apply arg_ret_implies_post_ex. eexists.
     entailer.
   }
-  econstructor.
   (* NOOP case *)
   (* We cannot prove the NOOP case with the current spec. *)
 Admitted.

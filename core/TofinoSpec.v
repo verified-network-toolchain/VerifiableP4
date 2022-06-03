@@ -33,6 +33,19 @@ Instance target : @Target tags_t Expression := Tofino.
 Variable ge : genv.
 Variable am_ge : genv.
 
+Lemma hoare_extern_match_list_intro : forall keys_match_kinds entryvs,
+  hoare_extern_match_list keys_match_kinds entryvs (extern_matches keys_match_kinds entryvs).
+Proof.
+  intros. unfold hoare_extern_match_list.
+  simpl. unfold extern_match.
+  remember (extern_matches keys_match_kinds entryvs) as cases.
+  clear Heqcases.
+  induction cases.
+  - auto.
+  - destruct a.
+    destruct b; auto.
+Qed.
+
 Open Scope func_spec.
 
 (* This is the general form of RegisterAction's apply method's spec that we support.

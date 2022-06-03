@@ -872,21 +872,21 @@ Proof.
 Qed.
 
 Definition hoare_table_entries p entries entryvs : Prop :=
-  forall st entryvs',
-    exec_table_entries ge read_ndetbit p st entries entryvs' ->
+  forall entryvs',
+    exec_table_entries ge read_ndetbit p entries entryvs' ->
     entryvs' = entryvs.
 
 (* This should be true eventually.
   The reason that this is currently not true is that it allows to read from st.
   But actually table entries can only depends on constants.
   Ideally we write exec_table_entries as a function instead of a relation. *)
-Axiom exec_table_entries_det : forall p p' st st' entries entryvs entryvs',
-  exec_table_entries ge read_ndetbit p st entries entryvs ->
-  exec_table_entries ge read_ndetbit p' st' entries entryvs' ->
+Axiom exec_table_entries_det : forall p p' entries entryvs entryvs',
+  exec_table_entries ge read_ndetbit p entries entryvs ->
+  exec_table_entries ge read_ndetbit p' entries entryvs' ->
   entryvs' = entryvs.
 
 Lemma hoare_table_entries_intros : forall p entries entryvs,
-  exec_table_entries ge read_ndetbit [] (PathMap.empty, PathMap.empty) entries entryvs ->
+  exec_table_entries ge read_ndetbit [] entries entryvs ->
   hoare_table_entries p entries entryvs.
 Proof.
   unfold hoare_table_entries; intros.
@@ -948,7 +948,7 @@ Proof.
     eapply Forall2_impl; [exact exec_val_eq | eassumption].
   }
   subst.
-  specialize (H2 _ _ ltac:(eassumption)).
+  specialize (H2 _ ltac:(eassumption)).
   subst.
   reflexivity.
 Qed.
@@ -974,16 +974,16 @@ Qed.
 
 (* These two predicates describe the list of cases is corresponding to the matching result. *)
 
-Fixpoint hoare_extern_match_list (keys_match_kinds : list (Val * ident)) (entryvs : list table_entry_valset)
-      (cases : list (bool * action_ref)) : Prop :=
-  match cases with
-  | (cond, matched_action) :: cases' =>
-      if cond then
-        extern_match keys_match_kinds entryvs = Some matched_action
-      else
-        hoare_extern_match_list keys_match_kinds entryvs cases'
-  | nil => extern_match keys_match_kinds entryvs = None
-  end.
+Definition hoare_extern_match_list (keys_match_kinds : list (Val * ident)) (entryvs : list table_entry_valset) :=
+  fix hoare_extern_match_list' (cases : list (bool * action_ref)) : Prop :=
+    match cases with
+    | (cond, matched_action) :: cases' =>
+        if cond then
+          extern_match keys_match_kinds entryvs = Some matched_action
+        else
+          hoare_extern_match_list' cases'
+    | nil => extern_match keys_match_kinds entryvs = None
+    end.
 
 Fixpoint hoare_table_match_list (p : path) (pre : assertion) (name : ident) (keys : list TableKey)
       (const_entries : option (list table_entry)) (cases : list (bool * action_ref)) : Prop :=

@@ -8,6 +8,7 @@ Require Import ProD3.core.Hoare.
 Require Import ProD3.core.Implies.
 Require Import ProD3.core.ConcreteHoare.
 Require Import ProD3.core.AssertionNotations.
+Require Import ProD3.core.Modifies.
 Require Import ProD3.core.FuncSpec.
 Require Import ProD3.core.DisjointTest.
 Import ListNotations.
@@ -350,6 +351,13 @@ Ltac process_func_body func_spec callback1 callback2 :=
   [ .. |
     unshelve(
       callback1 func_body func_body1 func_body2;
+      (* Examine the type of func_body *)
+      lazymatch type of func_body with
+      | hoare_func _ _ _ _ _ _ /\ func_modifies _ _ _ _ _ =>
+          idtac
+      | fundef_satisfies_hoare _ _ _ _ _ /\ func_modifies _ _ _ _ _ =>
+          idtac
+      end;
       callback2 func_body
     )];
   shelve_unifiable;
