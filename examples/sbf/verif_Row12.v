@@ -4,7 +4,7 @@ Require Import ProD3.core.Core.
 Require Import ProD3.core.TofinoSpec.
 Require Import ProD3.examples.sbf.UseTofino.
 Require Import ProD3.examples.sbf.p4ast.
-Require Import ProD3.examples.sbf.ge.
+Require Import ProD3.examples.sbf.common.
 Require Import ProD3.examples.sbf.ConFilter.
 Require Import ProD3.examples.sbf.FilterRepr.
 Require Import Hammer.Plugin.Hammer.
@@ -16,19 +16,9 @@ Notation Val := (@ValueBase bool).
 Notation Sval := (@ValueBase (option bool)).
 
 
-Definition p :=  ["pipe"; "ingress"; "bf2_ds"; "win_1"; "row_2"].
-
-(* Constants *)
-
-Definition NOOP := 0.
-Definition CLEAR := 1.
-Definition INSERT := 2.
-Definition QUERY := 3.
-Definition INSQUERY := 4.
+Definition p := ["pipe"; "ingress"; "bf2_ds"; "win_1"; "row_2"].
 
 Open Scope func_spec.
-
-Definition num_slots := 262144.
 
 Definition Row_spec : func_spec :=
   WITH (* p *),
@@ -55,9 +45,6 @@ Definition Row_spec : func_spec :=
            if (op =? QUERY)%Z then r else
            if (op =? CLEAR)%Z then row_clear r i else
            r)]))).
-
-Definition dummy_fundef : @fundef Info := FExternal "" "".
-Opaque dummy_fundef.
 
 Definition Row_regact_insert_apply_sem := Eval compute -[am_ge] in
   (force Tofino.EnvPin (PathMap.get (p ++ ["regact_insert"; "apply"]) (ge_ext ge))).

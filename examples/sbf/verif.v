@@ -18,7 +18,7 @@ Notation Sval := (@ValueBase (option bool)).
 Definition am_ge : genv := Eval compute -[PathMap.empty PathMap.set] in gen_am_ge prog.
 Definition ge : genv := Eval compute -[am_ge PathMap.empty PathMap.set] in gen_ge' am_ge prog.
 
-Definition p :=  ["pipe"; "ingress"; "bf2_ds"; "win_1"; "row_1"].
+Definition p := ["pipe"; "ingress"; "bf2_ds"; "win_1"; "row_1"].
 
 (* Eval compute in PathMap.get (p ++ ["regact_insert"]) (ge_ext ge).
 Time Eval compute in PathMap.get (p ++ ["regact_insert"; "apply"]) (ge_ext ge). *)

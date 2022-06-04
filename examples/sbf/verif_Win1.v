@@ -4,7 +4,7 @@ Require Import ProD3.core.Core.
 Require Import ProD3.core.TofinoSpec.
 Require Import ProD3.examples.sbf.UseTofino.
 Require Import ProD3.examples.sbf.p4ast.
-Require Import ProD3.examples.sbf.ge.
+Require Import ProD3.examples.sbf.common.
 Require Import ProD3.examples.sbf.ConFilter.
 Require Import ProD3.examples.sbf.FilterRepr.
 Require Import ProD3.examples.sbf.verif_Row11.
@@ -22,16 +22,9 @@ Definition p :=  ["pipe"; "ingress"; "bf2_ds"; "win_1"].
 
 (* Constants *)
 
-Definition NOOP := 0.
-Definition CLEAR := 1.
-Definition INSERT := 2.
-Definition QUERY := 3.
-Definition INSQUERY := 4.
-
 Definition Win_fundef := Eval compute in
   force dummy_fundef (PathMap.get ["Bf2BloomFilterWin"; "apply"] (ge_func ge)).
 
-Definition num_rows := 3.
 Definition rows := ["row_1"; "row_2"; "row_3"].
 
 Definition Win_insert_spec : func_spec :=
