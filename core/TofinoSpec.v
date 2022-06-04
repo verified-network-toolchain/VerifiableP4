@@ -362,6 +362,14 @@ Qed.
 
 End TofinoSpec.
 
+Ltac get_am_fd ge am_ge p :=
+  let am_sem := eval compute -[am_ge] in
+    (force Tofino.EnvPin (PathMap.get p (ge_ext ge))) in
+  lazymatch am_sem with
+  | Tofino.EnvAbsMet (exec_abstract_method ?ge ?p ?fd) =>
+      exact fd
+  end.
+
 Ltac build_execute_body ge index_w body :=
   (* get spec from body *)
   lazymatch type of body with

@@ -1,3 +1,4 @@
+Require Import Coq.Strings.String.
 Require Import Coq.Lists.List.
 Require Import Poulet4.P4light.Syntax.Typed.
 Require Import Poulet4.P4light.Syntax.Syntax.
@@ -610,3 +611,21 @@ Tactic Notation "Intros" simple_intropattern(x) :=
 Ltac normalize_EXT :=
   repeat rewrite AssertionLang.ext_pred_and_cons;
   repeat rewrite AssertionLang.ext_pred_wrap_cons.
+
+(* Term-generating tactics *)
+
+(* We need to specify the type of ge to prevent target from being unfolded in the type of ge. *)
+Ltac get_am_ge prog :=
+  let ge := eval compute -[PathMap.empty PathMap.set] in (gen_am_ge prog) in
+  exact (ge : (@genv _ ltac:(typeclasses eauto))).
+
+Ltac get_ge am_ge prog :=
+  let ge := eval compute -[am_ge PathMap.empty PathMap.set] in (gen_ge' am_ge prog) in
+  exact (ge : (@genv _ ltac:(typeclasses eauto))).
+
+Definition dummy_fundef {tags_t} : @fundef tags_t := FExternal "" "".
+Opaque dummy_fundef.
+
+Ltac get_fd p ge :=
+  let fd := eval compute in (force dummy_fundef (PathMap.get p (ge_func ge))) in
+  exact fd.
