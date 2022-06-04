@@ -20,10 +20,8 @@ Notation Sval := (@ValueBase (option bool)).
 
 Definition p :=  ["pipe"; "ingress"; "bf2_ds"; "win_1"].
 
-(* Constants *)
-
-Definition Win_fundef := Eval compute in
-  force dummy_fundef (PathMap.get ["Bf2BloomFilterWin"; "apply"] (ge_func ge)).
+Definition Win_fundef :=
+  ltac:(get_fd ["Bf2BloomFilterWin"; "apply"] ge).
 
 Definition rows := ["row_1"; "row_2"; "row_3"].
 

@@ -43,33 +43,8 @@ Definition Row_regact_insert_execute_body :=
 
 #[local] Hint Extern 5 (func_modifies _ _ _ _ _) => (apply Row_regact_insert_execute_body) : func_specs.
 
-Definition NoAction_fundef : @fundef Info := Eval compute in
-  force dummy_fundef (PathMap.get ["NoAction"] (ge_func ge)).
-
-Definition NoAction_spec : func_spec :=
-  WITH,
-    PATH []
-    MOD None []
-    WITH,
-      PRE
-        (ARG []
-        (MEM []
-        (EXT [])))
-      POST
-        (ARG_RET [] ValBaseNull
-        (MEM []
-        (EXT []))).
-
-Lemma NoAction_body :
-  fundef_satisfies_spec ge NoAction_fundef nil NoAction_spec.
-Proof.
-  start_function.
-  step.
-  entailer.
-Qed.
-
-Definition Row_insert_fundef := Eval compute in
-  force dummy_fundef (PathMap.get ["Bf2BloomFilterRow"; "act_insert"] (ge_func ge)).
+Definition Row_insert_fundef :=
+  ltac:(get_fd ["Bf2BloomFilterRow"; "act_insert"] ge).
 
 (* Program:
   action act_insert() {
@@ -138,7 +113,7 @@ Definition Row_regact_query_execute_body :=
 #[local] Hint Extern 5 (func_modifies _ _ _ _ _) => (apply Row_regact_query_execute_body) : func_specs.
 
 Definition Row_query_fundef := Eval compute in
-  force dummy_fundef (PathMap.get ["Bf2BloomFilterRow"; "act_query"] (ge_func ge)).
+  ltac:(get_fd ["Bf2BloomFilterRow"; "act_query"] ge).
 
 (* Program:
   action act_query() {
@@ -230,8 +205,8 @@ Definition Row_regact_clear_execute_body :=
 
 #[local] Hint Extern 5 (func_modifies _ _ _ _ _) => (apply Row_regact_clear_execute_body) : func_specs.
 
-Definition Row_clear_fundef := Eval compute in
-  force dummy_fundef (PathMap.get ["Bf2BloomFilterRow"; "act_clear"] (ge_func ge)).
+Definition Row_clear_fundef :=
+  ltac:(get_fd ["Bf2BloomFilterRow"; "act_clear"] ge).
 
 (* Program:
   action act_clear() {
