@@ -74,8 +74,7 @@ Qed.
 
 (* I would like to make it opaque, but I don't know how to. *)
 Definition Row_regact_insert_execute_body :=
-  RegisterAction_execute_body ge am_ge (p ++ ["regact_insert"]) 18%N 8%N num_slots (p ++ ["reg_row"]) eq_refl eq_refl ltac:(abstract (unfold num_slots; lia))
-    Row_regact_insert_apply_fd (fun _ => 1) (fun _ => ValBaseBit (P4Arith.to_loptbool 8%N 1)) eq_refl Row_regact_insert_apply_body.
+  ltac:(build_execute_body ge 18%N Row_regact_insert_apply_body).
 
 #[local] Hint Extern 5 (func_modifies _ _ _ _ _) => (apply Row_regact_insert_execute_body) : func_specs.
 
@@ -138,7 +137,7 @@ Proof.
   step_call Row_regact_insert_execute_body.
   4 : { entailer. }
   { list_solve. }
-  { list_solve. }
+  { unfold num_slots in *; list_solve. }
   { rewrite Znth_map by list_solve.
     split; reflexivity.
   }
@@ -177,8 +176,7 @@ Proof.
 Qed.
 
 Definition Row_regact_query_execute_body :=
-  RegisterAction_execute_body ge am_ge (p ++ ["regact_query"]) 18%N 8%N num_slots (p ++ ["reg_row"]) eq_refl eq_refl ltac:(abstract (unfold num_slots; lia))
-    Row_regact_query_apply_fd (fun b => b) (fun b => ValBaseBit (P4Arith.to_loptbool 8%N b)) eq_refl Row_regact_query_apply_body.
+  ltac:(build_execute_body ge 18%N Row_regact_query_apply_body).
 
 #[local] Hint Extern 5 (func_modifies _ _ _ _ _) => (apply Row_regact_query_execute_body) : func_specs.
 
@@ -231,7 +229,7 @@ Proof.
   step_call Row_regact_query_execute_body.
   4 : { entailer. }
   { list_solve. }
-  { list_solve. }
+  { unfold num_slots in *; list_solve. }
   { rewrite Znth_map by list_solve.
     split; reflexivity.
   }
@@ -277,10 +275,9 @@ Proof.
   entailer.
 Qed.
 
-(* Finished transaction in 0.152 secs (0.14u,0.015s) (successful) *)
+(* Finished transaction in 0.179 secs (0.14u,0.031s) (successful) *)
 Definition Row_regact_clear_execute_body :=
-  RegisterAction_execute_body ge am_ge (p ++ ["regact_clear"]) 18%N 8%N num_slots (p ++ ["reg_row"]) eq_refl eq_refl ltac:(abstract (unfold num_slots; lia))
-    Row_regact_clear_apply_fd (fun _ => 0) (fun _ => ValBaseBit (P4Arith.to_loptbool 8%N 0)) eq_refl Row_regact_clear_apply_body.
+  ltac:(build_execute_body ge 18%N Row_regact_clear_apply_body).
 
 #[local] Hint Extern 5 (func_modifies _ _ _ _ _) => (apply Row_regact_clear_execute_body) : func_specs.
 
@@ -318,7 +315,7 @@ Proof.
   step_call Row_regact_clear_execute_body.
   4 : { entailer. }
   { list_solve. }
-  { list_solve. }
+  { unfold num_slots in *; list_solve. }
   { rewrite Znth_map by list_solve.
     split; reflexivity.
   }

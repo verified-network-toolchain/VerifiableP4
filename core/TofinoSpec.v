@@ -361,3 +361,28 @@ Proof.
 Qed.
 
 End TofinoSpec.
+
+Ltac build_execute_body ge index_w body :=
+  (* get spec from body *)
+  lazymatch type of body with
+  | fundef_satisfies_spec ?am_ge ?fd _ ?spec =>
+    (* unfold spec *)
+    let spec :=
+      lazymatch spec with
+      | RegisterAction_apply_spec _ _ _ _ =>
+          spec
+      | _ =>
+          eval unfold spec in spec
+      end in
+    lazymatch spec with
+    | RegisterAction_apply_spec ?p ?w ?f ?retv =>
+        let r := eval compute in (PathMap.get p (ge_ext ge)) in
+        let r := lazymatch r with (Some (Tofino.EnvRegAction ?r)) => r end in
+        let s := eval compute in (PathMap.get r (ge_ext ge)) in
+        let s := lazymatch s with (Some (Tofino.EnvRegister (_, ?s))) => s end in
+        exact (RegisterAction_execute_body ge am_ge p index_w w s r eq_refl eq_refl ltac:(lia)
+          fd f retv eq_refl body)
+    | _ => fail "body is not a body proof for apply"
+    end
+  | _ => fail "body is not a body proof"
+  end.
