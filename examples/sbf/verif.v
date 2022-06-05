@@ -38,10 +38,9 @@ Definition Row_spec : func_spec :=
   WITH (* p *),
     PATH p
     MOD None [p]
-    WITH (r : row) (op : Z) (i : Z)
-      (_ : Zlength r = num_cells)
+    WITH (r : row num_cells) (op : Z) (i : Z)
       (_ : In op [NOOP; INSERT; QUERY; CLEAR])
-      (_ : 0 <= i < Zlength r),
+      (_ : 0 <= i < num_cells),
       PRE
         (ARG [eval_val_to_sval (ValBaseBit (P4Arith.to_lbool 8%N op));
               eval_val_to_sval (ValBaseBit (P4Arith.to_lbool 16%N i))]
@@ -430,9 +429,8 @@ Definition Row_insert_spec : func_spec :=
   WITH (* p *),
     PATH p
     MOD (Some [["rw"]]) [p]
-    WITH (r : row) (i : Z)
-      (_ : Zlength r = num_cells)
-      (_ : 0 <= i < Zlength r),
+    WITH (r : row num_cells) (i : Z)
+      (_ : 0 <= i < num_cells),
       PRE
         (ARG []
         (MEM [(["index"], eval_val_to_sval (ValBaseBit (P4Arith.to_lbool 16%N i)))]
@@ -446,7 +444,8 @@ Lemma Row_insert_body :
   fundef_satisfies_spec ge Row_insert_fundef nil Row_insert_spec.
 Proof.
   start_function.
-  unfold row_repr, row_reg_repr.
+  destruct r as [r ?H].
+  unfold row_repr, row_reg_repr. cbn [proj1_sig row_insert].
   normalize_EXT.
   step_call Row_regact_insert_execute_body.
   4 : { entailer. }
@@ -508,9 +507,8 @@ Definition Row_query_spec : func_spec :=
   WITH (* p *),
     PATH p
     MOD (Some [["rw"]]) [p]
-    WITH (r : row) (i : Z)
-      (_ : Zlength r = num_cells)
-      (_ : 0 <= i < Zlength r),
+    WITH (r : row num_cells) (i : Z)
+      (_ : 0 <= i < num_cells),
       PRE
         (ARG []
         (MEM [(["index"], eval_val_to_sval (ValBaseBit (P4Arith.to_lbool 16%N i)))]
@@ -539,7 +537,8 @@ Lemma Row_query_body :
   fundef_satisfies_spec ge Row_query_fundef nil Row_query_spec.
 Proof.
   start_function.
-  unfold row_repr, row_reg_repr.
+  destruct r as [r ?H].
+  unfold row_repr, row_reg_repr. cbn [proj1_sig row_query].
   normalize_EXT.
   step_call Row_regact_query_execute_body.
   4 : { entailer. }
@@ -609,9 +608,8 @@ Definition Row_clear_spec : func_spec :=
   WITH (* p *),
     PATH p
     MOD (Some [["rw"]]) [p]
-    WITH (r : row) (i : Z)
-      (_ : Zlength r = num_cells)
-      (_ : 0 <= i < Zlength r),
+    WITH (r : row num_cells) (i : Z)
+      (_ : 0 <= i < num_cells),
       PRE
         (ARG []
         (MEM [(["index"], eval_val_to_sval (ValBaseBit (P4Arith.to_lbool 16%N i)))]
@@ -625,7 +623,8 @@ Lemma Row_clear_body :
   fundef_satisfies_spec ge Row_clear_fundef nil Row_clear_spec.
 Proof.
   start_function.
-  unfold row_repr, row_reg_repr.
+  destruct r as [r ?H].
+  unfold row_repr, row_reg_repr. cbn [proj1_sig row_clear].
   normalize_EXT.
   step_call Row_regact_clear_execute_body.
   4 : { entailer. }
@@ -650,10 +649,9 @@ Definition Row_tbl_bloom_spec : func_spec :=
   WITH (* p *),
     PATH p
     MOD (Some [["rw"]]) [p]
-    WITH (r : row) (op i : Z)
-      (_ : Zlength r = num_cells)
+    WITH (r : row num_cells) (op i : Z)
       (_ : In op [NOOP; INSERT; QUERY; CLEAR])
-      (_ : 0 <= i < Zlength r),
+      (_ : 0 <= i < num_cells),
       PRE
         (ARG []
         (MEM [(["api"], eval_val_to_sval (ValBaseBit (P4Arith.to_lbool 8%N op)));
@@ -701,7 +699,6 @@ Proof.
       step_call Row_insert_body.
       3 : { entailer. }
       { auto. }
-      { auto. }
       entailer.
     }
     { admit. }
@@ -713,8 +710,7 @@ Proof.
       replace (op =? INSERT)%Z with false by hauto.
       replace (op =? QUERY)%Z with true.
       step_call Row_query_body.
-      3 : { entailer. }
-      { auto. }
+      2 : { entailer. }
       { auto. }
       entailer.
       destruct (row_query r i);
@@ -731,7 +727,6 @@ Proof.
       replace (op =? CLEAR)%Z with true.
       step_call Row_clear_body.
       3 : { entailer. }
-      { auto. }
       { auto. }
       entailer.
     }
@@ -752,8 +747,8 @@ Lemma Row_body :
 Proof.
   start_function.
   step_call Row_tbl_bloom_body.
-  4 : { entailer. }
-  1-3 : auto.
+  3 : { entailer. }
+  1-2 : auto.
   step.
   entailer.
 Qed.
