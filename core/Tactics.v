@@ -1,3 +1,4 @@
+Require Import Coq.Strings.String.
 Require Import Coq.Lists.List.
 Require Import Poulet4.P4light.Syntax.Typed.
 Require Import Poulet4.P4light.Syntax.Syntax.
@@ -8,6 +9,7 @@ Require Import ProD3.core.Hoare.
 Require Import ProD3.core.Implies.
 Require Import ProD3.core.ConcreteHoare.
 Require Import ProD3.core.AssertionNotations.
+Require Import ProD3.core.Modifies.
 Require Import ProD3.core.FuncSpec.
 Require Import ProD3.core.DisjointTest.
 Import ListNotations.
@@ -196,9 +198,9 @@ Create HintDb func_specs.
 
 Ltac intros_fs_bind :=
   repeat lazymatch goal with
-  | |- fundef_satisfies_spec _ _ _ (fs_bind (fun x => _)) =>
+  | |- func_sound _ _ _ (fs_bind (fun x => _)) =>
     let x := fresh x in intro x
-  | |- fundef_satisfies_spec _ _ _ ?x =>
+  | |- func_sound _ _ _ ?x =>
     unfold x
   end.
 
@@ -236,16 +238,16 @@ Ltac init_function :=
 
 Ltac start_function :=
   lazymatch goal with
-  | |- fundef_satisfies_spec _ _ _ ?spec =>
+  | |- func_sound _ _ _ ?spec =>
       intros_fs_bind;
       split; [init_function | solve_modifies]
-  | _ => fail "The goal is not in the form of (fundef_satisfies_spec _ _ _)"
+  | _ => fail "The goal is not in the form of (func_sound _ _ _)"
   end.
 
 Ltac step_call_func func_spec :=
   lazymatch goal with
   | |- hoare_call _ _ _ _ _ =>
-      eapply hoare_call_func';
+      eapply hoare_call_func'_ex;
         [ reflexivity (* is_builtin_func *)
         | reflexivity (* eval_args *)
         | reflexivity (* lookup_func *)
@@ -259,8 +261,7 @@ Ltac step_call_func func_spec :=
             | instantiate (2 := ltac:(test_ext_exclude)); reflexivity (* exclude_ext *)
             | solve [repeat constructor] (* func_post_combine *)
             ]
-        | reflexivity (* is_no_dup *)
-        | reflexivity (* eval_call_copy_out *)
+        | solve [repeat constructor] (* hoare_call_func_ex_layer *)
         ]
   | _ => fail "The goal is not in the form of (hoare_call _ _ _ _ _)"
   end.
@@ -280,8 +281,10 @@ Ltac step_stmt_call func_spec :=
             ]
       (* hoare_stmt_method_call' *)
       | MkStatement _ (StatMethodCall ?func _ _) _ =>
-          eapply hoare_stmt_method_call';
-            step_call_func func_spec (* hoare_call *)
+          eapply hoare_stmt_method_call'_ex;
+            [ step_call_func func_spec (* hoare_call *)
+            | solve [repeat constructor] (* hoare_stmt_method_call_ex_layer *)
+            ]
       (* hoare_stmt_var_call' *)
       | MkStatement _
             (StatVariable _ _
@@ -339,7 +342,7 @@ Ltac step_call_tac func_spec :=
   proof in the second form with from user supplied lemma and variables in
   the following tactics, and then call step_call_tac. *)
 
-Ltac step_call_wrapper func_spec callback :=
+Ltac process_func_body func_spec callback1 callback2 :=
   let func_body := fresh "func_body" in
   pose proof (func_body := func_spec);
   let func_body1 := fresh "func_body1" in
@@ -348,13 +351,23 @@ Ltac step_call_wrapper func_spec callback :=
   try clear func_body;
   [ .. |
     unshelve(
-      callback func_body func_body1 func_body2;
-      step_call_tac func_body
+      callback1 func_body func_body1 func_body2;
+      (* Examine the type of func_body *)
+      lazymatch type of func_body with
+      | hoare_func _ _ _ _ _ _ /\ func_modifies _ _ _ _ _ =>
+          idtac
+      | fundef_satisfies_hoare _ _ _ _ _ /\ func_modifies _ _ _ _ _ =>
+          idtac
+      end;
+      callback2 func_body
     )];
   shelve_unifiable;
   try clear func_body;
   try clear func_body1;
   try clear func_body2.
+
+Ltac step_call_wrapper func_spec callback1 :=
+  process_func_body func_spec callback1 step_call_tac.
 
 Tactic Notation "step_call" uconstr(func_spec) uconstr(x1) uconstr(x2) uconstr(x3) uconstr(x4) uconstr(x5) uconstr(x6) :=
   step_call_wrapper func_spec
@@ -469,6 +482,30 @@ Ltac step_into_call :=
               "or (hoare_stmt _ _ (MEM _ (EXT _)) _ _)"
   end.
 
+(* Refine function tactics. *)
+
+Ltac refine_function_hoare func_spec :=
+  intros_fsh_bind;
+  eapply hoare_func_post;
+  only 1 : (
+    eapply hoare_func_pre;
+    only 2 : apply func_spec
+  ).
+
+Ltac refine_function func_spec :=
+  lazymatch goal with
+  | |- func_sound _ _ _ ?spec =>
+      intros_fs_bind;
+      split;
+        [ refine_function_hoare func_spec
+        | apply func_spec ||
+            (eapply func_modifies_frame;
+            only 1 : apply func_spec;
+            solve_modifies)
+        ]
+  | _ => fail "The goal is not in the form of (func_sound _ _ _)"
+  end.
+
 (* Handles table when we have a particular case. *)
 Ltac hoare_func_table_case :=
   lazymatch goal with
@@ -571,11 +608,51 @@ Ltac entailer :=
           | simpl_ext_implies
         ]
       ]
+  | |- arg_ret_implies _ _ =>
+      first [
+        repeat (apply arg_ret_implies_post_ex; eexists);
+        [.. |
+          eapply arg_ret_implies_simplify;
+            [ Forall2_sval_refine
+            | try apply sval_refine_refl
+            | reflexivity (* mem_implies_simplify *)
+            | Forall_uncurry_sval_refine
+            | simpl_ext_implies
+          ]
+        ]
+      ]
   | |- ext_implies _ _ =>
       simpl_ext_implies
   | _ => fail "The goal is not an entailment"
   end.
 
+Tactic Notation "Intros" simple_intropattern(x) :=
+  lazymatch goal with
+  | |- hoare_block _ _ (assr_exists _) _ _ =>
+      eapply hoare_block_pre_ex;
+      intros x
+  | _ =>
+      fail "There is nothing to Intro."
+  end.
+
 Ltac normalize_EXT :=
   repeat rewrite AssertionLang.ext_pred_and_cons;
   repeat rewrite AssertionLang.ext_pred_wrap_cons.
+
+(* Term-generating tactics *)
+
+(* We need to specify the type of ge to prevent target from being unfolded in the type of ge. *)
+Ltac get_am_ge prog :=
+  let ge := eval compute -[PathMap.empty PathMap.set] in (gen_am_ge prog) in
+  exact (ge : (@genv _ ltac:(typeclasses eauto))).
+
+Ltac get_ge am_ge prog :=
+  let ge := eval compute -[am_ge PathMap.empty PathMap.set] in (gen_ge' am_ge prog) in
+  exact (ge : (@genv _ ltac:(typeclasses eauto))).
+
+Definition dummy_fundef {tags_t} : @fundef tags_t := FExternal "" "".
+Opaque dummy_fundef.
+
+Ltac get_fd p ge :=
+  let fd := eval compute in (force dummy_fundef (PathMap.get p (ge_func ge))) in
+  exact fd.

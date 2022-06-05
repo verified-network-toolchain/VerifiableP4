@@ -69,6 +69,38 @@ Proof.
   eapply hoare_stmt_method_call; eauto with hoare.
 Qed.
 
+Inductive hoare_stmt_method_call_ex_layer : Hoare.ret_assertion -> Hoare.assertion -> Prop :=
+  | hoare_stmt_method_call_ex_layer_base : forall vret post_mem post_ext,
+      hoare_stmt_method_call_ex_layer
+        (RET vret (MEM post_mem (EXT post_ext)))
+        (MEM post_mem (EXT post_ext))
+  | hoare_stmt_method_call_ex_layer_ex : forall [A] (P : A -> Hoare.ret_assertion) Q,
+      (forall (x : A), hoare_stmt_method_call_ex_layer (P x) (Q x)) ->
+      hoare_stmt_method_call_ex_layer (ret_exists P) (assr_exists Q).
+
+Lemma hoare_stmt_method_call'_ex : forall p pre_mem pre_ext tags func targs args typ post' post ret_post,
+  hoare_call ge p
+    (MEM pre_mem (EXT pre_ext))
+    (MkExpression dummy_tags (ExpFunctionCall func targs args) TypVoid Directionless)
+    post' ->
+  hoare_stmt_method_call_ex_layer post' post ->
+  hoare_stmt ge p (MEM pre_mem (EXT pre_ext)) (MkStatement tags (StatMethodCall func targs args) typ)
+    (mk_post_assertion post ret_post).
+Proof.
+  unfold hoare_stmt. intros.
+  inv H3.
+  specialize (H0 _ _ _ H2 H13).
+  clear -H0 H1.
+  left.
+  induction H1.
+  - destruct sig0; inv H0.
+    auto.
+  - destruct sig0; inv H0.
+    specialize (H2 _ ltac:(eauto)).
+    split; auto.
+    eexists; apply H2.
+Qed.
+
 Lemma hoare_stmt_var' : forall p pre_mem pre_ext tags typ' name expr loc typ post_mem ret_post sv,
   is_call_expression expr = false ->
   is_no_dup (map fst pre_mem) ->
@@ -269,23 +301,6 @@ Proof.
   eapply eval_write_options_sound; eauto.
 Qed.
 
-Lemma hoare_func_pre : forall ge p (pre pre' : Hoare.arg_assertion) fd targs post,
-  (forall args st, pre args st -> pre' args st) ->
-  hoare_func ge p pre' fd targs post ->
-  hoare_func ge p pre fd targs post.
-Proof.
-  sfirstorder.
-Qed.
-
-Lemma hoare_call_copy_out_pre : forall (pre pre' : Hoare.arg_ret_assertion) args post,
-  (forall args sig st, satisfies_arg_ret_assertion pre args sig st ->
-      satisfies_arg_ret_assertion pre' args sig st) ->
-  hoare_call_copy_out pre' args post ->
-  hoare_call_copy_out pre args post.
-Proof.
-  sfirstorder.
-Qed.
-
 (* This is quite dirty, maybe some improvement. *)
 Lemma hoare_call_func' : forall p pre_mem pre_ext tags func targs args typ dir argvals obj_path fd
     outargs vret mid_mem post_mem post_ext,
@@ -311,7 +326,7 @@ Proof.
   - eassumption.
   - reflexivity.
   - eapply hoare_func_pre. 2 : eassumption.
-    clear; intros.
+    clear; unfold arg_implies; intros.
     destruct (is_some obj_path).
     + destruct st. destruct H0 as [? [? [? []]]].
       split. { auto. }
@@ -320,12 +335,75 @@ Proof.
     + destruct H0; split; assumption.
   - reflexivity.
   - eapply hoare_call_copy_out_pre. 2 : { eapply eval_call_copy_out_sound; eauto with hoare. }
-    clear; intros.
+    clear; unfold arg_ret_implies; intros.
     destruct (is_some obj_path).
-    + destruct sig; try solve [inv H0].
-      destruct st. destruct H0 as [[? []] [? [? [? []]]]].
+    + destruct st. destruct H0 as [[? []] [? [? [? []]]]].
       repeat split; auto.
     + auto.
+Qed.
+
+Inductive hoare_call_func_ex_layer (obj_path : option path) pre_mem out_argvals : arg_ret_assertion -> Hoare.ret_assertion -> Prop :=
+  | hoare_call_func_ex_layer_base : forall outargs vret mid_mem post_ext post_mem,
+      is_no_dup (map fst (if is_some obj_path then pre_mem else mid_mem)) ->
+      eval_call_copy_out (if is_some obj_path then pre_mem else mid_mem) out_argvals outargs = Some post_mem ->
+      hoare_call_func_ex_layer obj_path pre_mem out_argvals
+        (ARG_RET outargs vret (MEM mid_mem (EXT post_ext)))
+        (RET vret (MEM post_mem (EXT post_ext)))
+  | hoare_call_func_ex_layer_ex : forall [A] (P : A -> arg_ret_assertion) Q,
+      (forall (x : A), hoare_call_func_ex_layer obj_path pre_mem out_argvals (P x) (Q x)) ->
+      hoare_call_func_ex_layer obj_path pre_mem out_argvals
+        (arg_ret_exists P) (ret_exists Q).
+
+Lemma hoare_call_func'_ex : forall p pre_mem pre_ext tags func targs args typ dir argvals obj_path fd
+    mid post,
+  is_builtin_func func = false ->
+  let dirs := get_arg_directions func in
+  eval_args ge p pre_mem args dirs = Some argvals ->
+  lookup_func ge p func = Some (obj_path, fd) ->
+  hoare_func ge (force p obj_path)
+      (ARG (extract_invals argvals) (MEM (if is_some obj_path then [] else pre_mem) (EXT pre_ext)))
+      fd targs
+      mid ->
+  hoare_call_func_ex_layer obj_path pre_mem (combine (map snd argvals) dirs) mid post ->
+  hoare_call ge p
+    (MEM pre_mem (EXT pre_ext))
+    (MkExpression tags (ExpFunctionCall func targs args) typ dir)
+    post.
+Proof.
+  intros.
+  eapply hoare_call_func.
+  - assumption.
+  - eapply eval_args_sound. eassumption.
+  - eassumption.
+  - reflexivity.
+  - eapply hoare_func_pre. 2 : eassumption.
+    clear; unfold arg_implies; intros.
+    destruct (is_some obj_path).
+    + destruct st. destruct H0 as [? [? [? []]]].
+      split. { auto. }
+      split. { subst. constructor. }
+      auto.
+    + destruct H0; split; assumption.
+  - reflexivity.
+  - clear -H4.
+    induction H4.
+    + eapply hoare_call_copy_out_pre. 2 : { eapply eval_call_copy_out_sound; eauto with hoare. }
+      clear; unfold arg_ret_implies; intros.
+      destruct (is_some obj_path).
+      * destruct st. destruct H0 as [[? []] [? [? [? []]]]].
+        repeat split; auto.
+      * auto.
+    + clear H0; unfold hoare_call_copy_out; intros.
+      destruct (is_some obj_path).
+      * destruct st; destruct sig; destruct H0.
+        destruct H0; destruct H3 as [? []].
+        unshelve (epose proof (H1 _ _ (SReturn v) _ _ _ H2));
+          shelve_unifiable.
+        { split; eauto. }
+        { econstructor. eapply H4. }
+      * destruct sig; inv H0.
+        specialize (H1 _ _ (SReturn v) _ _ ltac:(eauto) H2).
+        econstructor. eapply H1.
 Qed.
 
 Inductive inv_func_copy_out (out_params : list path) : Hoare.ret_assertion -> Hoare.arg_ret_assertion -> Prop :=
@@ -603,74 +681,133 @@ Definition hoare_table_match_list_intro' : forall p pre_mem pre_ext name keys ke
   hoare_table_match_list ge p (MEM pre_mem (EXT pre_ext)) name keys (Some const_entries) cases.
 Proof.
   intros.
-  destruct H3.
-  split; auto.
-  eapply Forall_impl. 2 : eapply H4.
-  intros. destruct a.
-  intros H_P; specialize (H5 H_P).
-  eapply hoare_table_match_case'; eauto.
+  assert (forall matched_action,
+      extern_match (combine keyvals match_kinds) entryvs = matched_action ->
+      hoare_table_match ge p (MEM pre_mem (EXT pre_ext)) name keys (Some const_entries) matched_action). {
+    unfold hoare_table_match; intros.
+    eapply hoare_table_match_case'; eauto.
+  }
+  induction cases.
+  - simpl in H3 |- *.
+    auto.
+  - simpl in H3 |- *.
+    destruct a as [[] ?]; auto.
 Qed.
 
-Inductive hoare_table_match_case_valid' : path -> assertion -> list Expression -> Expression -> arg_ret_assertion ->
-      (Prop * option action_ref) -> Prop :=
-  | hoare_table_match_case_valid'_intro : forall p pre_mem pre_ext actions default_action post_retv post_mem post_ext (P : Prop) actionref action retv,
-      get_table_call actions default_action actionref = Some (action, retv) ->
-      (P -> hoare_call ge p (MEM pre_mem (EXT pre_ext)) action (RET ValBaseNull (MEM post_mem (EXT post_ext)))) ->
-      (P -> post_retv = eval_val_to_sval retv) ->
-      hoare_table_match_case_valid' p
+Inductive hoare_table_action_ex_layer : Sval -> Hoare.ret_assertion -> arg_ret_assertion -> Prop :=
+  | hoare_table_action_ex_layer_base : forall post_retv post_mem post_ext,
+      hoare_table_action_ex_layer post_retv
+        (RET ValBaseNull (MEM post_mem (EXT post_ext)))
+        (ARG_RET [] post_retv (MEM post_mem (EXT post_ext)))
+  | hoare_table_action_ex_layer_ex : forall sv {A} (P : A -> Hoare.ret_assertion) Q,
+      (forall (x : A), hoare_table_action_ex_layer sv (P x) (Q x)) ->
+      hoare_table_action_ex_layer sv (ret_exists P) (arg_ret_exists Q).
+
+Inductive hoare_table_match_cases_valid' : path -> assertion -> list Expression -> Expression -> arg_ret_assertion ->
+      list (bool * action_ref) -> Prop :=
+  | hoare_table_match_cases_valid'_cons : forall p pre_mem pre_ext actions default_action mid post' post
+        (cond : bool) matched_action cases' action retv,
+      get_table_call actions default_action (Some matched_action) = Some (action, retv) ->
+      (cond -> hoare_call ge p
+        (MEM pre_mem (EXT pre_ext))
+        action
+        mid) ->
+      hoare_table_action_ex_layer (eval_val_to_sval retv) mid post' ->
+      (cond -> arg_ret_implies post' post) ->
+      (negb cond -> hoare_table_match_cases_valid' p
         (MEM pre_mem (EXT pre_ext))
         actions default_action
-        (ARG_RET [] post_retv (MEM post_mem (EXT post_ext))) (P, actionref).
+        post cases') ->
+      hoare_table_match_cases_valid' p
+        (MEM pre_mem (EXT pre_ext))
+        actions default_action
+        post ((cond, matched_action) :: cases')
+  | hoare_table_match_cases_valid'_nil : forall p pre_mem pre_ext actions default_action (* post_retv *) mid post' post
+        action retv,
+      get_table_call actions default_action None = Some (action, retv) ->
+      hoare_call ge p
+        (MEM pre_mem (EXT pre_ext))
+        action
+        mid ->
+      hoare_table_action_ex_layer (eval_val_to_sval retv) mid post' ->
+      arg_ret_implies post' post ->
+      hoare_table_match_cases_valid' p
+        (MEM pre_mem (EXT pre_ext))
+        actions default_action
+        post nil.
 
-Lemma hoare_table_match_case_valid'_hoare_table_match_case_valid : forall p pre actions default_action post case,
-  hoare_table_match_case_valid' p pre actions default_action post case ->
-  hoare_table_match_case_valid ge p pre actions default_action post case.
+Lemma eval_val_to_sval_ret_denote : forall v sv,
+  sv = eval_val_to_sval v ->
+  ret_denote sv v.
 Proof.
-  intros.
-  inv H0.
-  econstructor; eauto.
-  intros H_P.
-  specialize (H2 H_P).
-  specialize (H3 H_P).
-  eapply hoare_call_post. 1 : eauto.
-  unfold ret_implies.
-  intros. destruct H0. split.
-  { constructor. }
-  split; auto.
-  subst.
+  intros; subst.
   unfold ret_denote, ret_satisfies.
-  remember (eval_val_to_sval retv) as retsv eqn:H3.
-  symmetry in H3.
-  rewrite <- val_to_sval_iff in H3.
+  remember (eval_val_to_sval v) as sv' eqn:H0.
+  symmetry in H0.
+  rewrite <- val_to_sval_iff in H0.
   intros.
   eapply sval_to_val_to_sval; eauto.
-  eapply exec_val_sym; only 2 : eapply H3.
+  eapply exec_val_sym; only 2 : eapply H0.
   sauto lq: on.
 Qed.
 
-Lemma hoare_func_table' : forall p pre_mem pre_ext name keys actions default_action const_entries post_retv post_mem post_ext
+Lemma hoare_table_match_cases_valid'_hoare_table_match_cases_valid_aux : forall retv mid post' post,
+  hoare_table_action_ex_layer (eval_val_to_sval retv) mid post' ->
+  arg_ret_implies post' post ->
+  ret_implies mid (fun (_ : Val) (st : state) => post [] retv st).
+Proof.
+  intros.
+  enough (ret_implies mid (fun (_ : Val) (st : state) => post' [] retv st)). {
+    sfirstorder.
+  }
+  clear H1.
+  remember (eval_val_to_sval retv) as sv.
+  induction H0.
+  - unfold ret_implies.
+    intros. destruct H0. split.
+    { constructor. }
+    split; auto.
+    eapply eval_val_to_sval_ret_denote. eauto.
+  - unfold ret_implies. intros.
+    destruct H2.
+    eexists.
+    eapply H1; eauto.
+Qed.
+
+Lemma hoare_table_match_cases_valid'_hoare_table_match_cases_valid : forall p pre actions default_action post cases,
+  hoare_table_match_cases_valid' p pre actions default_action post cases ->
+  hoare_table_match_cases_valid ge p pre actions default_action post cases.
+Proof.
+  induction 1.
+  - econstructor; eauto.
+    intros H_P.
+    specialize (H1 H_P).
+    specialize (H3 H_P).
+    eapply hoare_call_post. 1 : eauto.
+    eapply hoare_table_match_cases_valid'_hoare_table_match_cases_valid_aux; eauto.
+  - econstructor; eauto.
+    eapply hoare_call_post. 1 : eauto.
+    eapply hoare_table_match_cases_valid'_hoare_table_match_cases_valid_aux; eauto.
+Qed.
+
+Lemma hoare_func_table' : forall p pre_mem pre_ext name keys actions default_action const_entries post
       cases,
   hoare_table_match_list ge p (MEM pre_mem (EXT pre_ext)) name keys const_entries cases ->
-  Forall (
-    hoare_table_match_case_valid' p
-      (MEM pre_mem (EXT pre_ext))
-      actions default_action
-      (ARG_RET [] post_retv (MEM post_mem (EXT post_ext))))
-    cases ->
+  hoare_table_match_cases_valid' p
+    (MEM pre_mem (EXT pre_ext))
+    actions default_action
+    post cases ->
   hoare_func ge p
     (ARG [] (MEM pre_mem (EXT pre_ext)))
     (FTable name keys actions (Some default_action) const_entries) []
-    (ARG_RET [] post_retv (MEM post_mem (EXT post_ext))).
+    post.
 Proof.
   intros.
   eapply hoare_func_pre.
   2 : { eapply hoare_func_table; eauto.
-    eapply Forall_impl; only 2 : eassumption.
-    apply hoare_table_match_case_valid'_hoare_table_match_case_valid.
+    eapply hoare_table_match_cases_valid'_hoare_table_match_cases_valid; eauto.
   }
-  unfold ARG.
-  intros * [].
-  eassumption.
+  sfirstorder.
 Qed.
 
 Definition AM_ARG (a_arg : list Sval) (a : extern_state -> Prop) :=

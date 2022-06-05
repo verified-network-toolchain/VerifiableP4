@@ -218,7 +218,7 @@ Definition hash_spec : func_spec :=
         (EXT []))).
 
 Lemma hash_body : forall targs,
-    fundef_satisfies_spec ge hash_fundef (TypBit 32%N :: targs) hash_spec.
+    func_sound ge hash_fundef (TypBit 32%N :: targs) hash_spec.
 Proof.
   intros. unfold hash_spec. simpl. split.
   - repeat intro. red. red in H. destruct H. do 2 red in H. inv H. inv H4.
@@ -296,7 +296,7 @@ Definition Add_spec : func_spec :=
         (MEM []
         (EXT [encode_bloomfilter_state (bloomfilter_add bf data)]))).
 
-Lemma Add_body : fundef_satisfies_spec ge Add_fundef nil Add_spec.
+Lemma Add_body : func_sound ge Add_fundef nil Add_spec.
 Proof.
   start_function.
   destruct bf as [bf ?H]. unfold NUM_ROW in *.
@@ -377,7 +377,7 @@ Proof. intros. now vm_compute. Qed.
 Lemma Znth_2_3 {X: Type} {HX: Inhabitant X}: forall (r0 r1 r2: X), Znth 2 [r0; r1; r2] = r2.
 Proof. intros. now vm_compute. Qed.
 
-Lemma Query_body : fundef_satisfies_spec ge Query_fundef nil Query_spec.
+Lemma Query_body : func_sound ge Query_fundef nil Query_spec.
 Proof.
   start_function.
   step_call hash_body [ValBaseBit (to_lbool 16 data); ValBaseBit (to_lbool 3 3)].
@@ -473,7 +473,7 @@ Proof.
   rewrite Zmod_small; auto.
 Qed.
 
-Lemma bloomfilter_body : fundef_satisfies_spec ge MyIngress_fundef nil bloomfilter_spec.
+Lemma bloomfilter_body : func_sound ge MyIngress_fundef nil bloomfilter_spec.
 Proof.
   start_function.
   step_if.

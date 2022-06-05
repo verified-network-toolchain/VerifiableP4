@@ -45,3 +45,17 @@ Next Obligation.
 Qed.
 
 End FilterRepr.
+
+Program Definition frame_repr (p : path) (rows : list string) (cf : ConFilter.frame) : ext_pred :=
+  ExtPred.wrap [p] (map2 (fun row cr => row_repr (p ++ [row]) cr) rows cf) _.
+Next Obligation.
+  unfold map2. generalize (combine rows cf) as rows_cf.
+  clear; intros.
+  induction rows_cf; auto.
+  destruct a.
+  simpl.
+  rewrite IHrows_cf.
+  unfold in_scope.
+  rewrite <- (app_nil_r p) at 1.
+  rewrite is_prefix_cancel. auto.
+Qed.

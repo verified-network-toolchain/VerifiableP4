@@ -55,7 +55,7 @@ Definition register_read_spec (p : path) (reg_s : register_static) : func_spec :
 
 Lemma register_read_body : forall (p : path) (reg_s : register_static),
   PathMap.get p (ge_ext ge) = Some (EnvRegister reg_s) ->
-  fundef_satisfies_spec ge (FExternal "register" "read") nil (register_read_spec p reg_s).
+  func_sound ge (FExternal "register" "read") nil (register_read_spec p reg_s).
 Proof.
   intros. unfold register_read_spec. simpl. split; repeat intro.
   - red in H0. destruct H0. do 2 red in H0. inv H0. inv H7. inv H5. red. inv H1.
@@ -99,7 +99,7 @@ Definition register_write_spec (p : path) (reg_s : register_static) : func_spec 
 
 Lemma register_write_body : forall (p : path) (reg_s : register_static),
   PathMap.get p (ge_ext ge) = Some (EnvRegister reg_s) ->
-  fundef_satisfies_spec ge (FExternal "register" "write") nil (register_write_spec p reg_s).
+  func_sound ge (FExternal "register" "write") nil (register_write_spec p reg_s).
 Proof.
   intros. unfold register_write_spec. simpl. split; repeat intro.
   - red in H0. destruct H0. do 2 red in H0. inv H0. inv H7. inv H8. inv H5.

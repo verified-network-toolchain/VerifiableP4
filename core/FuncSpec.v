@@ -59,18 +59,18 @@ Fixpoint fundef_satisfies_hoare (ge : genv) (p : path) (func : fundef) (targs : 
       forall (x : A), fundef_satisfies_hoare ge p func targs (fs x)
   end.
 
-Definition fundef_satisfies_spec_aux (ge : genv) (func : fundef) (targs : list (P4Type)) (fs : func_spec_aux) :=
+Definition func_sound_aux (ge : genv) (func : fundef) (targs : list (P4Type)) (fs : func_spec_aux) :=
   let '(mk_func_spec p body vars exts) := fs in
   fundef_satisfies_hoare ge p func targs body
     /\ func_modifies ge p func vars exts.
 
-Fixpoint fundef_satisfies_spec (ge : genv) (func : fundef) (targs : list (P4Type)) (fs : func_spec) :=
+Fixpoint func_sound (ge : genv) (func : fundef) (targs : list (P4Type)) (fs : func_spec) :=
   match fs with
   | fs_base fs =>
-      fundef_satisfies_spec_aux ge func targs fs
+      func_sound_aux ge func targs fs
   | @fs_bind A fs =>
       (* How can we keep binder names? *)
-      forall (x : A), fundef_satisfies_spec ge func targs (fs x)
+      forall (x : A), func_sound ge func targs (fs x)
   end.
 
 Definition path_eq_dec : forall (p p' : path), {p = p'} + {p <> p'}.

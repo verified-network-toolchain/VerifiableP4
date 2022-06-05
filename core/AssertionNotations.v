@@ -57,15 +57,6 @@ Definition ARG_RET (a_arg : list Sval) (a_ret : Sval) (a : Hoare.assertion) : Ho
     /\ ret_denote a_ret retv
     /\ a st.
 
-Definition assr_exists {A} (a : A -> Hoare.assertion) : Hoare.assertion :=
-  fun st => ex (fun x => a x st).
-
-Definition ret_exists {A} (a : A -> Hoare.ret_assertion) : Hoare.ret_assertion :=
-  fun retv st => ex (fun x => a x retv st).
-
-Definition arg_ret_exists {A} (a : A -> Hoare.arg_ret_assertion) : Hoare.arg_ret_assertion :=
-  fun args retv st => ex (fun x => a x args retv st).
-
 End AssertionNotations.
 
 Declare Scope assr.
