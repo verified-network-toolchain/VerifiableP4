@@ -610,12 +610,15 @@ Ltac entailer :=
       ]
   | |- arg_ret_implies _ _ =>
       first [
-        eapply arg_ret_implies_simplify;
-          [ Forall2_sval_refine
-          | try apply sval_refine_refl
-          | reflexivity (* mem_implies_simplify *)
-          | Forall_uncurry_sval_refine
-          | simpl_ext_implies
+        repeat (apply arg_ret_implies_post_ex; eexists);
+        [.. |
+          eapply arg_ret_implies_simplify;
+            [ Forall2_sval_refine
+            | try apply sval_refine_refl
+            | reflexivity (* mem_implies_simplify *)
+            | Forall_uncurry_sval_refine
+            | simpl_ext_implies
+          ]
         ]
       ]
   | |- ext_implies _ _ =>

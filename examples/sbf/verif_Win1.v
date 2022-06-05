@@ -272,11 +272,7 @@ Proof.
   refine_function Win_query_body.
   { entailer. }
   1-4 : auto.
-  apply arg_ret_implies_post_ex. eexists.
-  apply arg_ret_implies_post_ex. eexists.
-  apply arg_ret_implies_post_ex. eexists.
-  apply arg_ret_implies_post_ex. eexists.
-  2 : entailer.
+  entailer.
   apply destruct_Zlength_3 in x.
   destruct x as [r1 [r2 [r3 ?]]]; subst.
   apply destruct_Zlength_3 in x0.

@@ -312,7 +312,6 @@ Proof.
   }
   { constructor. }
   { intros.
-    apply arg_ret_implies_post_ex. eexists.
     entailer.
   }
   intros H; inv H.
@@ -393,7 +392,6 @@ Proof.
   }
   { constructor. }
   { intros.
-    apply arg_ret_implies_post_ex. eexists.
     entailer.
   }
   intros H; inv H.
@@ -472,7 +470,6 @@ Proof.
   }
   { constructor. }
   { intros.
-    apply arg_ret_implies_post_ex. eexists.
     entailer.
   }
   intros H; inv H.
@@ -551,7 +548,6 @@ Proof.
   }
   { constructor. }
   { intros.
-    apply arg_ret_implies_post_ex. eexists.
     entailer.
   }
   intros H; inv H.
