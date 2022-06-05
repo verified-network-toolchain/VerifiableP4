@@ -24,7 +24,7 @@ Definition Row_regact_insert_apply_fd :=
 
 Definition Row_regact_insert_apply_spec : func_spec :=
   RegisterAction_apply_spec (p ++ ["regact_insert"]) 8 (fun _ => 1)
-    (fun _ => ValBaseBit (P4Arith.to_loptbool 8%N 1)).
+    (fun _ => P4Bit 8 1).
 
 Lemma Row_regact_insert_apply_body :
   fundef_satisfies_spec am_ge Row_regact_insert_apply_fd nil Row_regact_insert_apply_spec.
@@ -61,11 +61,11 @@ Definition Row_insert_spec : func_spec :=
       (_ : 0 <= i < Zlength r),
       PRE
         (ARG []
-        (MEM [(["index"], eval_val_to_sval (ValBaseBit (P4Arith.to_lbool 18%N i)))]
+        (MEM [(["index"], P4Bit 18 i)]
         (EXT [row_repr p r])))
       POST
         (ARG_RET [] ValBaseNull
-        (MEM [(["rw"], eval_val_to_sval (ValBaseBit (P4Arith.to_lbool 8%N 1)))]
+        (MEM [(["rw"], P4Bit 8 1)]
         (EXT [row_repr p (row_insert r i)]))).
 
 Lemma Row_insert_body :
@@ -95,7 +95,7 @@ Definition Row_regact_query_apply_fd :=
 
 Definition Row_regact_query_apply_spec : func_spec :=
   RegisterAction_apply_spec (p ++ ["regact_query"]) 8 (fun b => b)
-    (fun b => ValBaseBit (P4Arith.to_loptbool 8%N b)).
+    (fun b => P4Bit 8 b).
 
 Lemma Row_regact_query_apply_body :
   fundef_satisfies_spec am_ge Row_regact_query_apply_fd nil Row_regact_query_apply_spec.
@@ -130,11 +130,11 @@ Definition Row_query_spec : func_spec :=
       (_ : 0 <= i < Zlength r),
       PRE
         (ARG []
-        (MEM [(["index"], eval_val_to_sval (ValBaseBit (P4Arith.to_lbool 18%N i)))]
+        (MEM [(["index"], P4Bit 18 i)]
         (EXT [row_repr p r])))
       POST
         (ARG_RET [] ValBaseNull
-        (MEM [(["rw"], eval_val_to_sval (bool_to_val (row_query r i)))]
+        (MEM [(["rw"], P4Bit 8 (Z.b2z (row_query r i)))]
         (EXT [row_repr p r]))).
 
 Lemma upd_Znth_Znth_same : forall {A} {dA : Inhabitant A} (al : list A) i,
@@ -167,15 +167,10 @@ Proof.
   }
   step.
   entailer.
-  { unfold P4Arith.to_loptbool.
-    rewrite to_lbool_lbool_to_val' by auto.
-    repeat constructor.
-  }
   { rewrite to_lbool_lbool_to_val' by auto.
     f_equal.
-    apply upd_Znth_Znth_same'.
-    unfold bool_to_val.
-    list_solve.
+    list_simplify. subst.
+    reflexivity.
   }
 Qed.
 
@@ -186,7 +181,7 @@ Definition Row_regact_clear_apply_fd :=
 
 Definition Row_regact_clear_apply_spec : func_spec :=
   RegisterAction_apply_spec (p ++ ["regact_clear"]) 8 (fun _ => 0)
-    (fun _ => ValBaseBit (P4Arith.to_loptbool 8%N 0)).
+    (fun _ => ValBaseBit (P4Arith.to_loptbool 8 0)).
 
 Lemma Row_regact_clear_apply_body :
   fundef_satisfies_spec am_ge Row_regact_clear_apply_fd nil Row_regact_clear_apply_spec.
@@ -223,11 +218,11 @@ Definition Row_clear_spec : func_spec :=
       (_ : 0 <= i < Zlength r),
       PRE
         (ARG []
-        (MEM [(["index"], eval_val_to_sval (ValBaseBit (P4Arith.to_lbool 18%N i)))]
+        (MEM [(["index"], P4Bit 18 i)]
         (EXT [row_repr p r])))
       POST
         (ARG_RET [] ValBaseNull
-        (MEM [(["rw"], eval_val_to_sval (ValBaseBit (P4Arith.to_lbool 8%N 0)))]
+        (MEM [(["rw"], P4Bit 8 0)]
         (EXT [row_repr p (row_clear r i)]))).
 
 Lemma Row_clear_body :
@@ -266,12 +261,12 @@ Definition Row_noop_case_spec : func_spec :=
       (_ : Zlength r = num_slots)
       (_ : 0 <= i < Zlength r),
       PRE
-        (ARG [eval_val_to_sval (ValBaseBit (P4Arith.to_lbool 8%N NOOP));
-              eval_val_to_sval (ValBaseBit (P4Arith.to_lbool 18%N i))]
+        (ARG [P4Bit 8 NOOP;
+              P4Bit 18 i]
         (MEM []
         (EXT [row_repr p r])))
       POST
-        (ARG_RET [ValBaseBit (Zrepeat None 8)] ValBaseNull
+        (ARG_RET [P4NewBit 8] ValBaseNull
         (MEM []
         (EXT [row_repr p r]))).
 
@@ -284,14 +279,14 @@ Definition Row_tbl_bloom_noop_spec : func_spec :=
       (_ : 0 <= i < Zlength r),
       PRE
         (ARG []
-        (MEM [(["api"], eval_val_to_sval (ValBaseBit (P4Arith.to_lbool 8%N NOOP)));
-              (["index"], eval_val_to_sval (ValBaseBit (P4Arith.to_lbool 18%N i)));
-              (["rw"], ValBaseBit (Zrepeat None 8))]
+        (MEM [(["api"], P4Bit 8 NOOP);
+              (["index"], P4Bit 18 i);
+              (["rw"], P4NewBit 8)]
         (EXT [row_repr p r])))
       POST
         (EX retv,
         (ARG_RET [] retv
-        (MEM [(["rw"], ValBaseBit (Zrepeat None 8))]
+        (MEM [(["rw"], P4NewBit 8)]
         (EXT [row_repr p r]))))%arg_ret_assr.
 
 Lemma Row_tbl_bloom_noop_body :
@@ -346,12 +341,12 @@ Definition Row_insert_case_spec : func_spec :=
       (_ : Zlength r = num_slots)
       (_ : 0 <= i < Zlength r),
       PRE
-        (ARG [eval_val_to_sval (ValBaseBit (P4Arith.to_lbool 8%N INSERT));
-              eval_val_to_sval (ValBaseBit (P4Arith.to_lbool 18%N i))]
+        (ARG [P4Bit 8 INSERT;
+              P4Bit 18 i]
         (MEM []
         (EXT [row_repr p r])))
       POST
-        (ARG_RET [eval_val_to_sval (ValBaseBit (P4Arith.to_lbool 8 1))] ValBaseNull
+        (ARG_RET [P4Bit 8 1] ValBaseNull
         (MEM []
         (EXT [row_repr p (row_insert r i)]))).
 
@@ -364,13 +359,13 @@ Definition Row_tbl_bloom_insert_spec : func_spec :=
       (_ : 0 <= i < Zlength r),
       PRE
         (ARG []
-        (MEM [(["api"], eval_val_to_sval (ValBaseBit (P4Arith.to_lbool 8%N INSERT)));
-              (["index"], eval_val_to_sval (ValBaseBit (P4Arith.to_lbool 18%N i)))]
+        (MEM [(["api"], P4Bit 8 INSERT);
+              (["index"], P4Bit 18 i)]
         (EXT [row_repr p r])))
       POST
         (EX retv,
         (ARG_RET [] retv
-        (MEM [(["rw"], eval_val_to_sval (ValBaseBit (P4Arith.to_lbool 8 1)))]
+        (MEM [(["rw"], P4Bit 8 1)]
         (EXT [row_repr p (row_insert r i)]))))%arg_ret_assr.
 
 Lemma Row_tbl_bloom_insert_body :
@@ -425,12 +420,12 @@ Definition Row_query_case_spec : func_spec :=
       (_ : Zlength r = num_slots)
       (_ : 0 <= i < Zlength r),
       PRE
-        (ARG [eval_val_to_sval (ValBaseBit (P4Arith.to_lbool 8%N QUERY));
-              eval_val_to_sval (ValBaseBit (P4Arith.to_lbool 18%N i))]
+        (ARG [P4Bit 8 QUERY;
+              P4Bit 18 i]
         (MEM []
         (EXT [row_repr p r])))
       POST
-        (ARG_RET [eval_val_to_sval (ValBaseBit (P4Arith.to_lbool 8 (Z.b2z (row_query r i))))] ValBaseNull
+        (ARG_RET [P4Bit 8 (Z.b2z (row_query r i))] ValBaseNull
         (MEM []
         (EXT [row_repr p r]))).
 
@@ -443,13 +438,13 @@ Definition Row_tbl_bloom_query_spec : func_spec :=
       (_ : 0 <= i < Zlength r),
       PRE
         (ARG []
-        (MEM [(["api"], eval_val_to_sval (ValBaseBit (P4Arith.to_lbool 8%N QUERY)));
-              (["index"], eval_val_to_sval (ValBaseBit (P4Arith.to_lbool 18%N i)))]
+        (MEM [(["api"], P4Bit 8 QUERY);
+              (["index"], P4Bit 18 i)]
         (EXT [row_repr p r])))
       POST
         (EX retv,
         (ARG_RET [] retv
-        (MEM [(["rw"], eval_val_to_sval (ValBaseBit (P4Arith.to_lbool 8 (Z.b2z (row_query r i)))))]
+        (MEM [(["rw"], P4Bit 8 (Z.b2z (row_query r i)))]
         (EXT [row_repr p r]))))%arg_ret_assr.
 
 Lemma Row_tbl_bloom_query_body :
@@ -479,8 +474,6 @@ Proof.
   { intros.
     apply arg_ret_implies_post_ex. eexists.
     entailer.
-    destruct (row_query r i);
-      apply sval_refine_refl.
   }
   intros H; inv H.
 Qed.
@@ -506,12 +499,12 @@ Definition Row_clear_case_spec : func_spec :=
       (_ : Zlength r = num_slots)
       (_ : 0 <= i < Zlength r),
       PRE
-        (ARG [eval_val_to_sval (ValBaseBit (P4Arith.to_lbool 8%N CLEAR));
-              eval_val_to_sval (ValBaseBit (P4Arith.to_lbool 18%N i))]
+        (ARG [P4Bit 8 CLEAR;
+              P4Bit 18 i]
         (MEM []
         (EXT [row_repr p r])))
       POST
-        (ARG_RET [eval_val_to_sval (ValBaseBit (P4Arith.to_lbool 8 0))] ValBaseNull
+        (ARG_RET [P4Bit 8 0] ValBaseNull
         (MEM []
         (EXT [row_repr p (row_clear r i)]))).
 
@@ -524,13 +517,13 @@ Definition Row_tbl_bloom_clear_spec : func_spec :=
       (_ : 0 <= i < Zlength r),
       PRE
         (ARG []
-        (MEM [(["api"], eval_val_to_sval (ValBaseBit (P4Arith.to_lbool 8%N CLEAR)));
-              (["index"], eval_val_to_sval (ValBaseBit (P4Arith.to_lbool 18%N i)))]
+        (MEM [(["api"], P4Bit 8 CLEAR);
+              (["index"], P4Bit 18 i)]
         (EXT [row_repr p r])))
       POST
         (EX retv,
         (ARG_RET [] retv
-        (MEM [(["rw"], eval_val_to_sval (ValBaseBit (P4Arith.to_lbool 8 0)))]
+        (MEM [(["rw"], P4Bit 8 0)]
         (EXT [row_repr p (row_clear r i)]))))%arg_ret_assr.
 
 Lemma Row_tbl_bloom_clear_body :
@@ -576,3 +569,5 @@ Proof.
   step.
   entailer.
 Qed.
+
+#[export] Hint Extern 5 (func_modifies _ _ _ _ _) => (apply Row_noop_case_body) : func_specs.
