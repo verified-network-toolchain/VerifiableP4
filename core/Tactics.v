@@ -482,6 +482,30 @@ Ltac step_into_call :=
               "or (hoare_stmt _ _ (MEM _ (EXT _)) _ _)"
   end.
 
+(* Refine function tactics. *)
+
+Ltac refine_function_hoare func_spec :=
+  intros_fsh_bind;
+  eapply hoare_func_post;
+  only 1 : (
+    eapply hoare_func_pre;
+    only 2 : apply func_spec
+  ).
+
+Ltac refine_function func_spec :=
+  lazymatch goal with
+  | |- func_sound _ _ _ ?spec =>
+      intros_fs_bind;
+      split;
+        [ refine_function_hoare func_spec
+        | apply func_spec ||
+            (eapply func_modifies_frame;
+            only 1 : apply func_spec;
+            solve_modifies)
+        ]
+  | _ => fail "The goal is not in the form of (func_sound _ _ _)"
+  end.
+
 (* Handles table when we have a particular case. *)
 Ltac hoare_func_table_case :=
   lazymatch goal with

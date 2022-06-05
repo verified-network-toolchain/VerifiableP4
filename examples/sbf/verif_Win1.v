@@ -229,6 +229,61 @@ Proof.
   entailer.
 Qed.
 
+Definition Win_query_spec2 : func_spec :=
+  WITH (* p *),
+    PATH p
+    MOD None [p]
+    WITH (f : frame) (is : list Z)
+      (_ : Zlength f = num_rows)
+      (_ : Zlength is = num_rows)
+      (_ : Forall (fun r => Zlength r = num_slots) f)
+      (_ : Forall (fun i => 0 <= i < num_slots) is),
+      PRE
+        (ARG [ValBaseStruct
+               [("api", P4Bit 8 QUERY);
+                ("index_1", P4Bit 18 (Znth 0 is));
+                ("index_2", P4Bit 18 (Znth 1 is));
+                ("index_3", P4Bit 18 (Znth 2 is));
+                ("rw_1", P4NewBit 8);
+                ("rw_2", P4NewBit 8);
+                ("rw_3", P4NewBit 8)
+               ]
+             ]
+        (MEM []
+        (EXT [frame_repr p rows f])))
+      POST (EX r1 r2 r3
+        (_ : r1 && r2 && r3 = frame_query f is),
+        (ARG_RET [ValBaseStruct
+               [("api", P4Bit 8 QUERY);
+                ("index_1", P4Bit 18 (Znth 0 is));
+                ("index_2", P4Bit 18 (Znth 1 is));
+                ("index_3", P4Bit 18 (Znth 2 is));
+                ("rw_1", P4Bit 8 (Z.b2z r1));
+                ("rw_2", P4Bit 8 (Z.b2z r2));
+                ("rw_3", P4Bit 8 (Z.b2z r3))
+               ]
+        ] ValBaseNull
+        (MEM []
+        (EXT [frame_repr p rows f]))))%arg_ret_assr.
+
+Lemma Win_query_body2 :
+  func_sound ge Win_fundef nil Win_query_spec2.
+Proof.
+  refine_function Win_query_body.
+  { entailer. }
+  1-4 : auto.
+  apply arg_ret_implies_post_ex. eexists.
+  apply arg_ret_implies_post_ex. eexists.
+  apply arg_ret_implies_post_ex. eexists.
+  apply arg_ret_implies_post_ex. eexists.
+  2 : entailer.
+  apply destruct_Zlength_3 in x.
+  destruct x as [r1 [r2 [r3 ?]]]; subst.
+  apply destruct_Zlength_3 in x0.
+  destruct x0 as [i1 [i2 [i3 ?]]]; subst.
+  auto.
+Qed.
+
 Definition Win_clear_spec : func_spec :=
   WITH (* p *),
     PATH p
