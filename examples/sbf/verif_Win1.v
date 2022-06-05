@@ -74,7 +74,7 @@ Proof.
 Qed.
 
 Lemma Win_noop_body :
-  fundef_satisfies_spec ge Win_fundef nil Win_noop_spec.
+  func_sound ge Win_fundef nil Win_noop_spec.
 Proof.
   start_function.
   unfold frame_repr.
@@ -138,7 +138,7 @@ Definition Win_insert_spec : func_spec :=
         (EXT [frame_repr p rows (frame_insert f is)]))).
 
 Lemma Win_insert_body :
-  fundef_satisfies_spec ge Win_fundef nil Win_insert_spec.
+  func_sound ge Win_fundef nil Win_insert_spec.
 Proof.
   start_function.
   unfold frame_repr.
@@ -202,7 +202,7 @@ Definition Win_query_spec : func_spec :=
         (EXT [frame_repr p rows f]))).
 
 Lemma Win_query_body :
-  fundef_satisfies_spec ge Win_fundef nil Win_query_spec.
+  func_sound ge Win_fundef nil Win_query_spec.
 Proof.
   start_function.
   unfold frame_repr.
@@ -266,7 +266,7 @@ Definition Win_clear_spec : func_spec :=
         (EXT [frame_repr p rows (frame_clear f is)]))).
 
 Lemma Win_clear_body :
-  fundef_satisfies_spec ge Win_fundef nil Win_clear_spec.
+  func_sound ge Win_fundef nil Win_clear_spec.
 Proof.
   start_function.
   unfold frame_repr.

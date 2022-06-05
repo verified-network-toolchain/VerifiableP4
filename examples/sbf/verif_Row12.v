@@ -27,7 +27,7 @@ Definition Row_regact_insert_apply_spec : func_spec :=
     (fun _ => P4Bit 8 1).
 
 Lemma Row_regact_insert_apply_body :
-  fundef_satisfies_spec am_ge Row_regact_insert_apply_fd nil Row_regact_insert_apply_spec.
+  func_sound am_ge Row_regact_insert_apply_fd nil Row_regact_insert_apply_spec.
 Proof.
   start_function.
   step.
@@ -69,7 +69,7 @@ Definition Row_insert_spec : func_spec :=
         (EXT [row_repr p (row_insert r i)]))).
 
 Lemma Row_insert_body :
-  fundef_satisfies_spec ge Row_insert_fundef nil Row_insert_spec.
+  func_sound ge Row_insert_fundef nil Row_insert_spec.
 Proof.
   start_function.
   unfold row_repr, row_reg_repr.
@@ -98,7 +98,7 @@ Definition Row_regact_query_apply_spec : func_spec :=
     (fun b => P4Bit 8 b).
 
 Lemma Row_regact_query_apply_body :
-  fundef_satisfies_spec am_ge Row_regact_query_apply_fd nil Row_regact_query_apply_spec.
+  func_sound am_ge Row_regact_query_apply_fd nil Row_regact_query_apply_spec.
 Proof.
   start_function.
   step.
@@ -153,7 +153,7 @@ Proof.
 Qed.
 
 Lemma Row_query_body :
-  fundef_satisfies_spec ge Row_query_fundef nil Row_query_spec.
+  func_sound ge Row_query_fundef nil Row_query_spec.
 Proof.
   start_function.
   unfold row_repr, row_reg_repr.
@@ -184,7 +184,7 @@ Definition Row_regact_clear_apply_spec : func_spec :=
     (fun _ => ValBaseBit (P4Arith.to_loptbool 8 0)).
 
 Lemma Row_regact_clear_apply_body :
-  fundef_satisfies_spec am_ge Row_regact_clear_apply_fd nil Row_regact_clear_apply_spec.
+  func_sound am_ge Row_regact_clear_apply_fd nil Row_regact_clear_apply_spec.
 Proof.
   start_function.
   step.
@@ -226,7 +226,7 @@ Definition Row_clear_spec : func_spec :=
         (EXT [row_repr p (row_clear r i)]))).
 
 Lemma Row_clear_body :
-  fundef_satisfies_spec ge Row_clear_fundef nil Row_clear_spec.
+  func_sound ge Row_clear_fundef nil Row_clear_spec.
 Proof.
   start_function.
   unfold row_repr, row_reg_repr.
@@ -290,7 +290,7 @@ Definition Row_tbl_bloom_noop_spec : func_spec :=
         (EXT [row_repr p r]))))%arg_ret_assr.
 
 Lemma Row_tbl_bloom_noop_body :
-  fundef_satisfies_spec ge Row_tbl_bloom_fundef nil Row_tbl_bloom_noop_spec.
+  func_sound ge Row_tbl_bloom_fundef nil Row_tbl_bloom_noop_spec.
 Proof.
   split. 2 : {
     solve_modifies.
@@ -319,7 +319,7 @@ Proof.
 Qed.
 
 Lemma Row_noop_case_body :
-  fundef_satisfies_spec ge Row_fundef nil Row_noop_case_spec.
+  func_sound ge Row_fundef nil Row_noop_case_spec.
 Proof.
   start_function.
   step.
@@ -369,7 +369,7 @@ Definition Row_tbl_bloom_insert_spec : func_spec :=
         (EXT [row_repr p (row_insert r i)]))))%arg_ret_assr.
 
 Lemma Row_tbl_bloom_insert_body :
-  fundef_satisfies_spec ge Row_tbl_bloom_fundef nil Row_tbl_bloom_insert_spec.
+  func_sound ge Row_tbl_bloom_fundef nil Row_tbl_bloom_insert_spec.
 Proof.
   split. 2 : {
     solve_modifies.
@@ -400,7 +400,7 @@ Proof.
 Qed.
 
 Lemma Row_insert_case_body :
-  fundef_satisfies_spec ge Row_fundef nil Row_insert_case_spec.
+  func_sound ge Row_fundef nil Row_insert_case_spec.
 Proof.
   start_function.
   step.
@@ -448,7 +448,7 @@ Definition Row_tbl_bloom_query_spec : func_spec :=
         (EXT [row_repr p r]))))%arg_ret_assr.
 
 Lemma Row_tbl_bloom_query_body :
-  fundef_satisfies_spec ge Row_tbl_bloom_fundef nil Row_tbl_bloom_query_spec.
+  func_sound ge Row_tbl_bloom_fundef nil Row_tbl_bloom_query_spec.
 Proof.
   split. 2 : {
     solve_modifies.
@@ -479,7 +479,7 @@ Proof.
 Qed.
 
 Lemma Row_query_case_body :
-  fundef_satisfies_spec ge Row_fundef nil Row_query_case_spec.
+  func_sound ge Row_fundef nil Row_query_case_spec.
 Proof.
   start_function.
   step.
@@ -527,7 +527,7 @@ Definition Row_tbl_bloom_clear_spec : func_spec :=
         (EXT [row_repr p (row_clear r i)]))))%arg_ret_assr.
 
 Lemma Row_tbl_bloom_clear_body :
-  fundef_satisfies_spec ge Row_tbl_bloom_fundef nil Row_tbl_bloom_clear_spec.
+  func_sound ge Row_tbl_bloom_fundef nil Row_tbl_bloom_clear_spec.
 Proof.
   split. 2 : {
     solve_modifies.
@@ -558,7 +558,7 @@ Proof.
 Qed.
 
 Lemma Row_clear_case_body :
-  fundef_satisfies_spec ge Row_fundef nil Row_clear_case_spec.
+  func_sound ge Row_fundef nil Row_clear_case_spec.
 Proof.
   start_function.
   step.

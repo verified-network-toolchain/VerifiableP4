@@ -75,7 +75,7 @@ Definition RegisterAction_execute_spec : func_spec :=
       apply_fd apply_f apply_retv
       (H_apply_fd : PathMap.get (p ++ ["apply"]) (ge_ext ge) =
           Some (Tofino.EnvAbsMet (exec_abstract_method am_ge p apply_fd)))
-      (H_apply_body : fundef_satisfies_spec am_ge apply_fd nil
+      (H_apply_body : func_sound am_ge apply_fd nil
           (RegisterAction_apply_spec p w apply_f apply_retv)),
     PATH p
     MOD None [r]
@@ -175,7 +175,7 @@ Proof.
 Qed.
 
 Lemma RegisterAction_execute_body :
-  fundef_satisfies_spec ge execute_fundef nil RegisterAction_execute_spec.
+  func_sound ge execute_fundef nil RegisterAction_execute_spec.
 Proof.
   intros_fs_bind.
   split.
@@ -373,7 +373,7 @@ Ltac get_am_fd ge am_ge p :=
 Ltac build_execute_body ge index_w body :=
   (* get spec from body *)
   lazymatch type of body with
-  | fundef_satisfies_spec ?am_ge ?fd _ ?spec =>
+  | func_sound ?am_ge ?fd _ ?spec =>
     (* unfold spec *)
     let spec :=
       lazymatch spec with

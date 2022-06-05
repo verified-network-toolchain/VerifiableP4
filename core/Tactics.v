@@ -198,9 +198,9 @@ Create HintDb func_specs.
 
 Ltac intros_fs_bind :=
   repeat lazymatch goal with
-  | |- fundef_satisfies_spec _ _ _ (fs_bind (fun x => _)) =>
+  | |- func_sound _ _ _ (fs_bind (fun x => _)) =>
     let x := fresh x in intro x
-  | |- fundef_satisfies_spec _ _ _ ?x =>
+  | |- func_sound _ _ _ ?x =>
     unfold x
   end.
 
@@ -238,10 +238,10 @@ Ltac init_function :=
 
 Ltac start_function :=
   lazymatch goal with
-  | |- fundef_satisfies_spec _ _ _ ?spec =>
+  | |- func_sound _ _ _ ?spec =>
       intros_fs_bind;
       split; [init_function | solve_modifies]
-  | _ => fail "The goal is not in the form of (fundef_satisfies_spec _ _ _)"
+  | _ => fail "The goal is not in the form of (func_sound _ _ _)"
   end.
 
 Ltac step_call_func func_spec :=
