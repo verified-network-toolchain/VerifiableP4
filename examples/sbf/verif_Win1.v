@@ -11,6 +11,7 @@ Require Import ProD3.examples.sbf.verif_Row11.
 Require Import ProD3.examples.sbf.verif_Row12.
 Require Import ProD3.examples.sbf.verif_Row13.
 Require Import Hammer.Plugin.Hammer.
+Require Export Coq.Program.Program.
 Import ListNotations.
 
 Notation ident := string.
@@ -29,17 +30,14 @@ Definition Win_noop_spec : func_spec :=
   WITH (* p *),
     PATH p
     MOD None [p]
-    WITH (f : frame) (is : list Z)
-      (_ : Zlength f = num_rows)
-      (_ : Zlength is = num_rows)
-      (_ : Forall (fun r => Zlength r = num_slots) f)
-      (_ : Forall (fun i => 0 <= i < num_slots) is),
+    WITH (f : frame num_rows num_slots) (is : listn Z num_rows)
+      (_ : Forall (fun i => 0 <= i < num_slots) (`is)),
       PRE
         (ARG [ValBaseStruct
                [("api", P4Bit 8 NOOP);
-                ("index_1", P4Bit 18 (Znth 0 is));
-                ("index_2", P4Bit 18 (Znth 1 is));
-                ("index_3", P4Bit 18 (Znth 2 is));
+                ("index_1", P4Bit 18 (Znth 0 (`is)));
+                ("index_2", P4Bit 18 (Znth 1 (`is)));
+                ("index_3", P4Bit 18 (Znth 2 (`is)));
                 ("rw_1", P4NewBit 8);
                 ("rw_2", P4NewBit 8);
                 ("rw_3", P4NewBit 8)
@@ -50,9 +48,9 @@ Definition Win_noop_spec : func_spec :=
       POST
         (ARG_RET [ValBaseStruct
                [("api", P4Bit 8 NOOP);
-                ("index_1", P4Bit 18 (Znth 0 is));
-                ("index_2", P4Bit 18 (Znth 1 is));
-                ("index_3", P4Bit 18 (Znth 2 is));
+                ("index_1", P4Bit 18 (Znth 0 (`is)));
+                ("index_2", P4Bit 18 (Znth 1 (`is)));
+                ("index_3", P4Bit 18 (Znth 2 (`is)));
                 ("rw_1", P4NewBit 8);
                 ("rw_2", P4NewBit 8);
                 ("rw_3", P4NewBit 8)
@@ -79,24 +77,21 @@ Proof.
   start_function.
   unfold frame_repr.
   normalize_EXT.
-  apply destruct_Zlength_3 in x.
-  destruct x as [r1 [r2 [r3 ?]]]; subst.
-  apply destruct_Zlength_3 in x0.
-  destruct x0 as [i1 [i2 [i3 ?]]]; subst.
-  inv x1. inv H2. inv H4.
-  inv x2. inv H6. inv H8.
+  destruct f as [f ?H]. destruct is as [is ?H]. cbn [proj1_sig] in *.
+  apply destruct_Zlength_3 in H.
+  destruct H as [r1 [r2 [r3 ?]]]; subst.
+  apply destruct_Zlength_3 in H0.
+  destruct H0 as [i1 [i2 [i3 ?]]]; subst.
+  inv x. inv H2. inv H4. inv H5.
   step_call verif_Row11.Row_noop_case_body.
-  3 : { entailer. }
+  2 : { entailer. }
   { auto. }
-  { list_solve. }
   step_call verif_Row12.Row_noop_case_body.
-  3 : { entailer. }
+  2 : { entailer. }
   { auto. }
-  { list_solve. }
   step_call verif_Row13.Row_noop_case_body.
-  3 : { entailer. }
+  2 : { entailer. }
   { auto. }
-  { list_solve. }
   step.
   entailer.
 Qed.
@@ -105,17 +100,14 @@ Definition Win_insert_spec : func_spec :=
   WITH (* p *),
     PATH p
     MOD None [p]
-    WITH (f : frame) (is : list Z)
-      (_ : Zlength f = num_rows)
-      (_ : Zlength is = num_rows)
-      (_ : Forall (fun r => Zlength r = num_slots) f)
-      (_ : Forall (fun i => 0 <= i < num_slots) is),
+    WITH (f : frame num_rows num_slots) (is : listn Z num_rows)
+      (_ : Forall (fun i => 0 <= i < num_slots) (`is)),
       PRE
         (ARG [ValBaseStruct
                [("api", P4Bit 8 INSERT);
-                ("index_1", P4Bit 18 (Znth 0 is));
-                ("index_2", P4Bit 18 (Znth 1 is));
-                ("index_3", P4Bit 18 (Znth 2 is));
+                ("index_1", P4Bit 18 (Znth 0 (`is)));
+                ("index_2", P4Bit 18 (Znth 1 (`is)));
+                ("index_3", P4Bit 18 (Znth 2 (`is)));
                 ("rw_1", P4NewBit 8);
                 ("rw_2", P4NewBit 8);
                 ("rw_3", P4NewBit 8)
@@ -126,9 +118,9 @@ Definition Win_insert_spec : func_spec :=
       POST
         (ARG_RET [ValBaseStruct
                [("api", P4Bit 8 INSERT);
-                ("index_1", P4Bit 18 (Znth 0 is));
-                ("index_2", P4Bit 18 (Znth 1 is));
-                ("index_3", P4Bit 18 (Znth 2 is));
+                ("index_1", P4Bit 18 (Znth 0 (`is)));
+                ("index_2", P4Bit 18 (Znth 1 (`is)));
+                ("index_3", P4Bit 18 (Znth 2 (`is)));
                 ("rw_1", P4Bit 8 1);
                 ("rw_2", P4Bit 8 1);
                 ("rw_3", P4Bit 8 1)
@@ -143,43 +135,44 @@ Proof.
   start_function.
   unfold frame_repr.
   normalize_EXT.
-  apply destruct_Zlength_3 in x.
-  destruct x as [r1 [r2 [r3 ?]]]; subst.
-  apply destruct_Zlength_3 in x0.
-  destruct x0 as [i1 [i2 [i3 ?]]]; subst.
-  inv x1. inv H2. inv H4.
-  inv x2. inv H6. inv H8.
+  destruct f as [f ?H]. destruct is as [is ?H].
+  cbn [proj1_sig frame_insert] in *.
+  apply destruct_Zlength_3 in H.
+  destruct H as [r1 [r2 [r3 ?]]]; subst.
+  apply destruct_Zlength_3 in H0.
+  destruct H0 as [i1 [i2 [i3 ?]]]; subst.
+  inv x. inv H2. inv H4.
   step_call verif_Row11.Row_insert_case_body.
-  3 : { entailer. }
+  2 : { entailer. }
   { auto. }
-  { list_solve. }
   step_call verif_Row12.Row_insert_case_body.
-  3 : { entailer. }
+  2 : { entailer. }
   { auto. }
-  { list_solve. }
   step_call verif_Row13.Row_insert_case_body.
-  3 : { entailer. }
+  2 : { entailer. }
   { auto. }
-  { list_solve. }
   step.
   entailer.
+Qed.
+
+#[local] Instance row_inhabit: Inhabitant (row num_slots).
+Proof.
+  exists (Zrepeat false num_slots).
+  apply Zlength_Zrepeat. unfold num_slots. lia.
 Qed.
 
 Definition Win_query_spec : func_spec :=
   WITH (* p *),
     PATH p
     MOD None [p]
-    WITH (f : frame) (is : list Z)
-      (_ : Zlength f = num_rows)
-      (_ : Zlength is = num_rows)
-      (_ : Forall (fun r => Zlength r = num_slots) f)
-      (_ : Forall (fun i => 0 <= i < num_slots) is),
+    WITH (f : frame num_rows num_slots) (is : listn Z num_rows)
+      (_ : Forall (fun i => 0 <= i < num_slots) (`is)),
       PRE
         (ARG [ValBaseStruct
                [("api", P4Bit 8 QUERY);
-                ("index_1", P4Bit 18 (Znth 0 is));
-                ("index_2", P4Bit 18 (Znth 1 is));
-                ("index_3", P4Bit 18 (Znth 2 is));
+                ("index_1", P4Bit 18 (Znth 0 (`is)));
+                ("index_2", P4Bit 18 (Znth 1 (`is)));
+                ("index_3", P4Bit 18 (Znth 2 (`is)));
                 ("rw_1", P4NewBit 8);
                 ("rw_2", P4NewBit 8);
                 ("rw_3", P4NewBit 8)
@@ -190,12 +183,12 @@ Definition Win_query_spec : func_spec :=
       POST
         (ARG_RET [ValBaseStruct
                [("api", P4Bit 8 QUERY);
-                ("index_1", P4Bit 18 (Znth 0 is));
-                ("index_2", P4Bit 18 (Znth 1 is));
-                ("index_3", P4Bit 18 (Znth 2 is));
-                ("rw_1", P4Bit 8 (Z.b2z (row_query (Znth 0 f) (Znth 0 is))));
-                ("rw_2", P4Bit 8 (Z.b2z (row_query (Znth 1 f) (Znth 1 is))));
-                ("rw_3", P4Bit 8 (Z.b2z (row_query (Znth 2 f) (Znth 2 is))))
+                ("index_1", P4Bit 18 (Znth 0 (`is)));
+                ("index_2", P4Bit 18 (Znth 1 (`is)));
+                ("index_3", P4Bit 18 (Znth 2 (`is)));
+                ("rw_1", P4Bit 8 (Z.b2z (row_query (Znth 0 (`f)) (Znth 0 (`is)))));
+                ("rw_2", P4Bit 8 (Z.b2z (row_query (Znth 1 (`f)) (Znth 1 (`is)))));
+                ("rw_3", P4Bit 8 (Z.b2z (row_query (Znth 2 (`f)) (Znth 2 (`is)))))
                ]
         ] ValBaseNull
         (MEM []
@@ -207,24 +200,22 @@ Proof.
   start_function.
   unfold frame_repr.
   normalize_EXT.
-  apply destruct_Zlength_3 in x.
-  destruct x as [r1 [r2 [r3 ?]]]; subst.
-  apply destruct_Zlength_3 in x0.
-  destruct x0 as [i1 [i2 [i3 ?]]]; subst.
-  inv x1. inv H2. inv H4.
-  inv x2. inv H6. inv H8.
+  destruct f as [f ?H]. destruct is as [is ?H].
+  cbn [proj1_sig] in *.
+  apply destruct_Zlength_3 in H.
+  destruct H as [r1 [r2 [r3 ?]]]; subst.
+  apply destruct_Zlength_3 in H0.
+  destruct H0 as [i1 [i2 [i3 ?]]]; subst.
+  inv x. inv H2. inv H4.
   step_call verif_Row11.Row_query_case_body.
-  3 : { entailer. }
+  2 : { entailer. }
   { auto. }
-  { list_solve. }
   step_call verif_Row12.Row_query_case_body.
-  3 : { entailer. }
+  2 : { entailer. }
   { auto. }
-  { list_solve. }
   step_call verif_Row13.Row_query_case_body.
-  3 : { entailer. }
+  2 : { entailer. }
   { auto. }
-  { list_solve. }
   step.
   entailer.
 Qed.
@@ -233,17 +224,14 @@ Definition Win_query_spec2 : func_spec :=
   WITH (* p *),
     PATH p
     MOD None [p]
-    WITH (f : frame) (is : list Z)
-      (_ : Zlength f = num_rows)
-      (_ : Zlength is = num_rows)
-      (_ : Forall (fun r => Zlength r = num_slots) f)
-      (_ : Forall (fun i => 0 <= i < num_slots) is),
+    WITH (f : frame num_rows num_slots) (is : listn Z num_rows)
+      (_ : Forall (fun i => 0 <= i < num_slots) (`is)),
       PRE
         (ARG [ValBaseStruct
                [("api", P4Bit 8 QUERY);
-                ("index_1", P4Bit 18 (Znth 0 is));
-                ("index_2", P4Bit 18 (Znth 1 is));
-                ("index_3", P4Bit 18 (Znth 2 is));
+                ("index_1", P4Bit 18 (Znth 0 (`is)));
+                ("index_2", P4Bit 18 (Znth 1 (`is)));
+                ("index_3", P4Bit 18 (Znth 2 (`is)));
                 ("rw_1", P4NewBit 8);
                 ("rw_2", P4NewBit 8);
                 ("rw_3", P4NewBit 8)
@@ -252,12 +240,12 @@ Definition Win_query_spec2 : func_spec :=
         (MEM []
         (EXT [frame_repr p rows f])))
       POST (EX r1 r2 r3
-        (_ : r1 && r2 && r3 = frame_query f is),
+        (_ : r1 && r2 && r3 = frame_query f (`is)),
         (ARG_RET [ValBaseStruct
                [("api", P4Bit 8 QUERY);
-                ("index_1", P4Bit 18 (Znth 0 is));
-                ("index_2", P4Bit 18 (Znth 1 is));
-                ("index_3", P4Bit 18 (Znth 2 is));
+                ("index_1", P4Bit 18 (Znth 0 (`is)));
+                ("index_2", P4Bit 18 (Znth 1 (`is)));
+                ("index_3", P4Bit 18 (Znth 2 (`is)));
                 ("rw_1", P4Bit 8 (Z.b2z r1));
                 ("rw_2", P4Bit 8 (Z.b2z r2));
                 ("rw_3", P4Bit 8 (Z.b2z r3))
@@ -271,12 +259,14 @@ Lemma Win_query_body2 :
 Proof.
   refine_function Win_query_body.
   { entailer. }
-  1-4 : auto.
+  1 : auto.
   entailer.
-  apply destruct_Zlength_3 in x.
-  destruct x as [r1 [r2 [r3 ?]]]; subst.
-  apply destruct_Zlength_3 in x0.
-  destruct x0 as [i1 [i2 [i3 ?]]]; subst.
+  destruct f as [f ?H]. destruct is as [is ?H].
+  unfold frame_query. cbn [proj1_sig] in *.
+  apply destruct_Zlength_3 in H.
+  destruct H as [r1 [r2 [r3 ?]]]; subst.
+  apply destruct_Zlength_3 in H0.
+  destruct H0 as [i1 [i2 [i3 ?]]]; subst.
   auto.
 Qed.
 
@@ -284,17 +274,14 @@ Definition Win_clear_spec : func_spec :=
   WITH (* p *),
     PATH p
     MOD None [p]
-    WITH (f : frame) (is : list Z)
-      (_ : Zlength f = num_rows)
-      (_ : Zlength is = num_rows)
-      (_ : Forall (fun r => Zlength r = num_slots) f)
-      (_ : Forall (fun i => 0 <= i < num_slots) is),
+    WITH (f : frame num_rows num_slots) (is : listn Z num_rows)
+      (_ : Forall (fun i => 0 <= i < num_slots) (`is)),
       PRE
         (ARG [ValBaseStruct
                [("api", P4Bit 8 CLEAR);
-                ("index_1", P4Bit 18 (Znth 0 is));
-                ("index_2", P4Bit 18 (Znth 1 is));
-                ("index_3", P4Bit 18 (Znth 2 is));
+                ("index_1", P4Bit 18 (Znth 0 (`is)));
+                ("index_2", P4Bit 18 (Znth 1 (`is)));
+                ("index_3", P4Bit 18 (Znth 2 (`is)));
                 ("rw_1", P4NewBit 8);
                 ("rw_2", P4NewBit 8);
                 ("rw_3", P4NewBit 8)
@@ -305,9 +292,9 @@ Definition Win_clear_spec : func_spec :=
       POST
         (ARG_RET [ValBaseStruct
                [("api", P4Bit 8 CLEAR);
-                ("index_1", P4Bit 18 (Znth 0 is));
-                ("index_2", P4Bit 18 (Znth 1 is));
-                ("index_3", P4Bit 18 (Znth 2 is));
+                ("index_1", P4Bit 18 (Znth 0 (`is)));
+                ("index_2", P4Bit 18 (Znth 1 (`is)));
+                ("index_3", P4Bit 18 (Znth 2 (`is)));
                 ("rw_1", P4Bit 8 0);
                 ("rw_2", P4Bit 8 0);
                 ("rw_3", P4Bit 8 0)
@@ -322,24 +309,22 @@ Proof.
   start_function.
   unfold frame_repr.
   normalize_EXT.
-  apply destruct_Zlength_3 in x.
-  destruct x as [r1 [r2 [r3 ?]]]; subst.
-  apply destruct_Zlength_3 in x0.
-  destruct x0 as [i1 [i2 [i3 ?]]]; subst.
-  inv x1. inv H2. inv H4.
-  inv x2. inv H6. inv H8.
+  destruct f as [f ?H]. destruct is as [is ?H].
+  cbn [proj1_sig frame_clear] in *.
+  apply destruct_Zlength_3 in H.
+  destruct H as [r1 [r2 [r3 ?]]]; subst.
+  apply destruct_Zlength_3 in H0.
+  destruct H0 as [i1 [i2 [i3 ?]]]; subst.
+  inv x. inv H2. inv H4.
   step_call verif_Row11.Row_clear_case_body.
-  3 : { entailer. }
+  2 : { entailer. }
   { auto. }
-  { list_solve. }
   step_call verif_Row12.Row_clear_case_body.
-  3 : { entailer. }
+  2 : { entailer. }
   { auto. }
-  { list_solve. }
   step_call verif_Row13.Row_clear_case_body.
-  3 : { entailer. }
+  2 : { entailer. }
   { auto. }
-  { list_solve. }
   step.
   entailer.
 Qed.

@@ -1,6 +1,6 @@
 Require Import Poulet4.P4light.Syntax.P4defs.
 Require Import Poulet4.P4light.Syntax.P4Notations.
-Require Import Coq.Program.Basics.
+Require Import Coq.Program.Program.
 Open Scope string_scope.
 Import ListNotations.
 
@@ -45,23 +45,25 @@ Opaque dummy_fundef.
 
 Open Scope func_spec.
 
+Definition NUM_ENTRY : Z := 1024.
+
+Definition NUM_ROW : Z := 3.
+
 (* Bloom filter encoding *)
 
-Notation Filter := row.
+Definition Filter := row NUM_ENTRY.
 
-Definition bloomfilter_state : Type := frame.
+Definition bloomfilter_state : Type := frame NUM_ROW NUM_ENTRY.
 
 Definition bool_to_Z (b : bool) :=
   if b then 1 else 0.
 
-Definition list_of_filter (f : Filter) : list Z := map bool_to_Z f.
+Definition list_of_filter (f : Filter) := map_listn bool_to_Z f.
 
-Definition NUM_ENTRY : Z := 1024.
+Definition blooms (bst: bloomfilter_state) := map_listn list_of_filter bst.
 
-Definition blooms (bst: bloomfilter_state) : list (list Z) := map list_of_filter bst.
-
-Definition reg_encode (l : list Z) : extern_object :=
-  ObjRegister (map ValBaseBit (map (P4Arith.to_lbool 1) l)).
+Definition reg_encode {size} (l : listn Z size) : extern_object :=
+  ObjRegister (map ValBaseBit (map (P4Arith.to_lbool 1) (`l))).
 
 (* list_of_filter lemmas *)
 
@@ -87,52 +89,37 @@ Qed.
 
 Hint Rewrite Znth_seq using lia : Znth.
 
-Definition bf_wellformed (bst: bloomfilter_state) :=
-  Zlength bst = 3 /\ Forall (fun r => Zlength r = NUM_ENTRY) bst.
-
-Lemma Zlength_list_of_filter : forall filter,
-  Zlength (list_of_filter filter) = Zlength filter.
-Proof.
-  intros.
-  unfold list_of_filter.
-  list_solve.
-Qed.
-
-Hint Rewrite Zlength_list_of_filter using lia : Zlength.
-
 Lemma Znth_list_of_filter : forall filter i,
-  0 <= i < Zlength filter ->
-  Znth i (list_of_filter filter) = bool_to_Z (Znth i filter).
+  0 <= i < NUM_ENTRY ->
+  Znth i (` (list_of_filter filter)) = bool_to_Z (Znth i (`filter)).
 Proof.
-  intros.
-  unfold list_of_filter.
+  intros. destruct filter as [filter ?H].
+  unfold list_of_filter, map_listn. simpl.
   list_simplify.
 Qed.
 
 Hint Rewrite Znth_list_of_filter using lia : Znth.
 
 Lemma update_bit : forall filter hash,
-  reg_encode (list_of_filter (row_insert filter hash)) =
+    reg_encode (list_of_filter (row_insert filter hash)) =
   ObjRegister
-    (upd_Znth hash (map ValBaseBit (map (to_lbool 1) (list_of_filter filter)))
+    (upd_Znth hash (map ValBaseBit (map (to_lbool 1) (` (list_of_filter filter))))
        (ValBaseBit (to_lbool 1 (BitArith.mod_bound 1 1)))).
 Proof.
   intros.
   unfold reg_encode.
   f_equal.
-  unfold row_insert.
-  list_simplify.
-  - subst.
-    rewrite Znth_list_of_filter; list_solve.
-  - rewrite Znth_list_of_filter; list_solve.
+  unfold row_insert. simpl.
+  destruct filter as [filter ?H]. simpl in *.
+  list_simplify. f_equal. list_solve.
 Qed.
 
 Lemma get_bit : forall (filter : Filter) hash,
-  0 <= hash < Zlength filter ->
-  Znth hash (map ValBaseBit (map (to_lbool 1) (list_of_filter filter)))
-    = ValBaseBit [Znth hash filter].
+  0 <= hash < NUM_ENTRY ->
+  Znth hash (map ValBaseBit (map (to_lbool 1) (` (list_of_filter filter))))
+  = ValBaseBit [Znth hash (`filter)].
 Proof.
-  intros.
+  intros. unfold list_of_filter, map_listn. destruct filter as [filter ?H]. simpl.
   list_simplify.
   destruct (Znth hash filter); reflexivity.
 Qed.
@@ -170,18 +157,23 @@ Definition CRC_pad2 := CRC_pad (to_lbool 7%N 7).
 
 Definition bloomfilter_exts := [["bloom0"]; ["bloom1"]; ["bloom2"]].
 
+#[global] Program Instance z_num_entry_inhabit: Inhabitant (listn Z NUM_ENTRY) :=
+  Zrepeat 0 NUM_ENTRY.
+
 Definition encode_bloomfilter_state bf : ext_pred :=
   ExtPred.and
-    (ExtPred.singleton ["bloom0"] (reg_encode (Znth 0 (blooms bf))))
+    (ExtPred.singleton ["bloom0"] (reg_encode (Znth 0 (` (blooms bf)))))
     (ExtPred.and
-      (ExtPred.singleton ["bloom1"] (reg_encode (Znth 1 (blooms bf))))
-      (ExtPred.singleton ["bloom2"] (reg_encode (Znth 2 (blooms bf))))).
+       (ExtPred.singleton ["bloom1"] (reg_encode (Znth 1 (` (blooms bf)))))
+       (ExtPred.singleton ["bloom2"] (reg_encode (Znth 2 (` (blooms bf)))))).
 
-Definition bloomfilter_add bf data :=
-  general_bf.add [CRC_pad0; CRC_pad1; CRC_pad2] bf data.
+Program Definition CRC_pads : listn HashFunc NUM_ROW := [CRC_pad0; CRC_pad1; CRC_pad2].
 
-Definition bloomfilter_query bf data :=
-  general_bf.query [CRC_pad0; CRC_pad1; CRC_pad2] bf data.
+Definition bloomfilter_add (bf: bloomfilter_state) data :=
+  general_bf.add CRC_pads bf data.
+
+Definition bloomfilter_query (bf: bloomfilter_state) data :=
+  general_bf.query (`CRC_pads) bf data.
 
 Definition havoc_typ (typ : @P4Type Info) : Sval :=
   force ValBaseNull (uninit_sval_of_typ None typ).
@@ -294,7 +286,7 @@ Definition Add_spec : func_spec :=
   WITH p,
     PATH p
     MOD None bloomfilter_exts
-    WITH (data : Z) (bf : bloomfilter_state) (H_bf: bf_wellformed bf),
+    WITH (data : Z) (bf : bloomfilter_state),
       PRE
         (ARG [myHeader_encode data; havoc_typ custom_metadata_t]
         (MEM []
@@ -307,7 +299,8 @@ Definition Add_spec : func_spec :=
 Lemma Add_body : func_sound ge Add_fundef nil Add_spec.
 Proof.
   start_function.
-  destruct H_bf. do 3 (destruct bf; [exfalso; list_solve |]).
+  destruct bf as [bf ?H]. unfold NUM_ROW in *.
+  do 3 (destruct bf; [exfalso; list_solve |]).
   destruct bf; [|exfalso; list_solve].
   step_call hash_body [ValBaseBit (to_lbool 16 data); ValBaseBit (to_lbool 3 3)].
   2 : entailer.
@@ -352,7 +345,7 @@ Definition Query_spec : func_spec :=
   WITH p,
     PATH p
     MOD None []
-    WITH (data : Z) (bf : bloomfilter_state) (H_bf: bf_wellformed bf),
+    WITH (data : Z) (bf : bloomfilter_state),
       PRE
         let hdr := ValBaseStruct
         [("myHeader",
@@ -416,19 +409,16 @@ Proof.
   { apply CRC_range. }
   step.
   step.
-  destruct H_bf. do 3 (destruct bf; [exfalso; list_solve |]).
-  destruct bf; [|exfalso; list_solve]. rewrite Forall_forall in H0.
-  assert (Zlength r = NUM_ENTRY) by (apply H0; now left).
-  assert (Zlength r0 = NUM_ENTRY) by (apply H0; right; now left).
-  assert (Zlength r1 = NUM_ENTRY) by (apply H0; right; right; now left).
-  unfold blooms. cbn [map]. rewrite Znth_0_3, Znth_1_3, Znth_2_3.
-  rewrite !get_bit by (first [rewrite H1 | rewrite H2 | rewrite H3]; apply CRC_range).
+  destruct bf as [bf ?H]. unfold NUM_ROW in *.
+  do 3 (destruct bf; [exfalso; list_solve |]).
+  destruct bf; [|exfalso; list_solve].
+  destruct r as [r ?H]. destruct r0 as [r0 ?H]. destruct r1 as [r1 ?H].
+  unfold blooms, map_listn. cbn [map proj1_sig]. rewrite Znth_0_3, Znth_1_3, Znth_2_3.
+  rewrite !get_bit by apply CRC_range.
   entailer.
   { simpl build_abs_unary_op.
-    replace (query [CRC_pad0; CRC_pad1; CRC_pad2] [r; r0; r1] data) with
-      (Znth (CRC_pad0 data) r && Znth (CRC_pad1 data) r0 && Znth (CRC_pad2 data) r1).
-    2: { unfold query, frame_query, Utils.fold_andb, Utils.map2, row_query.
-         cbn [map combine uncurry fold_left]. auto. }
+    unfold query, frame_query, Utils.fold_andb, Utils.map2, row_query.
+    cbn [map combine uncurry fold_left proj1_sig andb].
     destruct (Znth (CRC_pad0 data) r);
       destruct (Znth (CRC_pad1 data) r0);
       destruct (Znth (CRC_pad2 data) r1);
@@ -442,15 +432,15 @@ Definition MyIngress_fundef := Eval compute in
 
 Definition process (in_port data : Z) (bf : bloomfilter_state) : (bloomfilter_state * Z) :=
   if in_port =? 0 then
-    (general_bf.add [CRC_pad0; CRC_pad1; CRC_pad2] bf data, 1)
+    (general_bf.add CRC_pads bf data, 1)
   else
-    (bf, if general_bf.query [CRC_pad0; CRC_pad1; CRC_pad2] bf data then 0 else 511).
+    (bf, if general_bf.query (`CRC_pads) bf data then 0 else 511).
 
 Definition bloomfilter_spec : func_spec :=
   WITH ,
     PATH ["main"; "ig"]
     MOD None bloomfilter_exts
-    WITH in_port data bf (H : 0 <= in_port < 2) (H_bf: bf_wellformed bf),
+    WITH in_port data bf (H : 0 <= in_port < 2),
       PRE
         (ARG [
           ValBaseStruct [("myHeader",
@@ -532,9 +522,9 @@ Proof.
       entailer.
       - repeat constructor.
       - unfold process.
+        unfold CRC_pads. cbn [proj1_sig].
         rewrite H_query.
-        repeat constructor.
-    }
+        repeat constructor. }
     {
       rewrite get_update_same in H0 by auto.
       destruct (query [CRC_pad0; CRC_pad1; CRC_pad2] bf data) eqn:H_query; inv H0.
@@ -544,8 +534,9 @@ Proof.
       entailer.
       - repeat constructor.
       - unfold process.
+        unfold CRC_pads. cbn [proj1_sig].
         rewrite H_query.
         repeat constructor.
     }
   }
-Qed.
+ Qed.

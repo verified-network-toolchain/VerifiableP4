@@ -39,10 +39,9 @@ Definition Row_spec : func_spec :=
   WITH (* p *),
     PATH p
     MOD None [p]
-    WITH (r : row) (op : Z) (i : Z)
-      (_ : Zlength r = num_cells)
+    WITH (r : row num_cells) (op : Z) (i : Z)
       (_ : In op [NOOP; INSERT; QUERY; CLEAR])
-      (_ : 0 <= i < Zlength r),
+      (_ : 0 <= i < num_cells),
       PRE
         (ARG [eval_val_to_sval (ValBaseBit (P4Arith.to_lbool 8%N op));
               eval_val_to_sval (ValBaseBit (P4Arith.to_lbool 18%N i))]
@@ -135,9 +134,8 @@ Definition Row_insert_spec : func_spec :=
   WITH (* p *),
     PATH p
     MOD (Some [["rw"]]) [p]
-    WITH (r : row) (i : Z)
-      (_ : Zlength r = num_cells)
-      (_ : 0 <= i < Zlength r),
+    WITH (r : row num_cells) (i : Z)
+      (_ : 0 <= i < num_cells),
       PRE
         (ARG []
         (MEM [(["index"], eval_val_to_sval (ValBaseBit (P4Arith.to_lbool 18%N i)))]
@@ -151,7 +149,8 @@ Lemma Row_insert_body :
   func_sound ge Row_insert_fundef nil Row_insert_spec.
 Proof.
   start_function.
-  unfold row_repr, row_reg_repr.
+  destruct r as [r ?H].
+  unfold row_repr, row_reg_repr. cbn [proj1_sig row_insert].
   normalize_EXT.
   step_call Row_regact_insert_execute_body.
   4 : { entailer. }
@@ -163,7 +162,6 @@ Proof.
   step.
   entailer.
   f_equal.
-  unfold row_insert.
   list_solve.
 Qed.
 
@@ -213,9 +211,8 @@ Definition Row_query_spec : func_spec :=
   WITH (* p *),
     PATH p
     MOD (Some [["rw"]]) [p]
-    WITH (r : row) (i : Z)
-      (_ : Zlength r = num_cells)
-      (_ : 0 <= i < Zlength r),
+    WITH (r : row num_cells) (i : Z)
+      (_ : 0 <= i < num_cells),
       PRE
         (ARG []
         (MEM [(["index"], eval_val_to_sval (ValBaseBit (P4Arith.to_lbool 18%N i)))]
@@ -244,7 +241,8 @@ Lemma Row_query_body :
   func_sound ge Row_query_fundef nil Row_query_spec.
 Proof.
   start_function.
-  unfold row_repr, row_reg_repr.
+  destruct r as [r ?H].
+  unfold row_repr, row_reg_repr. cbn [proj1_sig].
   normalize_EXT.
   step_call Row_regact_query_execute_body.
   4 : { entailer. }
@@ -315,9 +313,8 @@ Definition Row_clear_spec : func_spec :=
   WITH (* p *),
     PATH p
     MOD (Some [["rw"]]) [p]
-    WITH (r : row) (i : Z)
-      (_ : Zlength r = num_cells)
-      (_ : 0 <= i < Zlength r),
+    WITH (r : row num_cells) (i : Z)
+      (_ : 0 <= i < num_cells),
       PRE
         (ARG []
         (MEM [(["index"], eval_val_to_sval (ValBaseBit (P4Arith.to_lbool 18%N i)))]
@@ -331,7 +328,8 @@ Lemma Row_clear_body :
   func_sound ge Row_clear_fundef nil Row_clear_spec.
 Proof.
   start_function.
-  unfold row_repr, row_reg_repr.
+  destruct r as [r ?H].
+  unfold row_repr, row_reg_repr. cbn [proj1_sig row_clear].
   normalize_EXT.
   step_call Row_regact_clear_execute_body.
   4 : { entailer. }
@@ -343,7 +341,6 @@ Proof.
   step.
   entailer.
   f_equal.
-  unfold row_clear.
   list_solve.
 Qed.
 
@@ -356,10 +353,9 @@ Definition Row_tbl_bloom_spec : func_spec :=
   WITH (* p *),
     PATH p
     MOD (Some [["rw"]]) [p]
-    WITH (r : row) (op i : Z)
-      (_ : Zlength r = num_cells)
+    WITH (r : row num_cells) (op i : Z)
       (_ : In op [NOOP; INSERT; QUERY; CLEAR])
-      (_ : 0 <= i < Zlength r),
+      (_ : 0 <= i < num_cells),
       PRE
         (ARG []
         (MEM [(["api"], eval_val_to_sval (ValBaseBit (P4Arith.to_lbool 8%N op)));
@@ -397,17 +393,16 @@ Proof.
     { reflexivity. }
     { intros.
       step_call Row_insert_body.
-      3 : { entailer. }
-      { auto. }
+      2 : { entailer. }
       { auto. }
       apply ret_implies_refl.
     }
     { constructor. }
     { intros.
       assert (op = INSERT). {
-        repeat destruct x0 as [? | x0]; subst; try solve [inv H].
+        repeat destruct x as [? | x]; subst; try solve [inv H].
         auto.
-        destruct x0.
+        destruct x.
       }
       subst.
       apply arg_ret_implies_post_ex. eexists.
@@ -420,17 +415,16 @@ Proof.
     { reflexivity. }
     { intros.
       step_call Row_query_body.
-      3 : { entailer. }
-      { auto. }
+      2 : { entailer. }
       { auto. }
       apply ret_implies_refl.
     }
     { constructor. }
     { intros.
       assert (op = QUERY). {
-        repeat destruct x0 as [? | x0]; subst; try solve [inv H0].
+        repeat destruct x as [? | x]; subst; try solve [inv H0].
         auto.
-        destruct x0.
+        destruct x.
       }
       subst.
       apply arg_ret_implies_post_ex. eexists.
@@ -445,17 +439,16 @@ Proof.
     { reflexivity. }
     { intros.
       step_call Row_clear_body.
-      3 : { entailer. }
-      { auto. }
+      2 : { entailer. }
       { auto. }
       apply ret_implies_refl.
     }
     { constructor. }
     { intros.
       assert (op = CLEAR). {
-        repeat destruct x0 as [? | x0]; subst; try solve [inv H1].
+        repeat destruct x as [? | x]; subst; try solve [inv H1].
         auto.
-        destruct x0.
+        destruct x.
       }
       subst.
       apply arg_ret_implies_post_ex. eexists.
@@ -479,8 +472,8 @@ Proof.
   start_function.
   step.
   step_call Row_tbl_bloom_body.
-  4 : entailer.
-  1-3 : auto.
+  3 : entailer.
+  1-2 : auto.
   Intros _.
   step.
   entailer.

@@ -17,6 +17,12 @@ Definition map2 {A B C} (f : A -> B -> C) (al : list A) (bl : list B) : list C :
 Lemma fold_andb_false: forall l, fold_left andb l false = false.
 Proof. induction l; simpl; intros; auto. Qed.
 
+Lemma fold_andb_cons: forall l b, fold_andb (b :: l) = (b && fold_andb l)%bool.
+Proof.
+  intros. unfold fold_andb. simpl. destruct b; simpl; auto.
+  apply fold_andb_false.
+Qed.
+
 Lemma map2_cons {A B C}: forall (f : A -> B -> C) a al b bl,
     map2 f (a :: al) (b :: bl) = f a b :: map2 f al bl.
 Proof. intros. unfold map2. simpl. auto. Qed.
@@ -66,4 +72,12 @@ Proof.
       constructor.
       { specialize (H0 0 ltac:(list_solve)). simpl in H0. list_solve. }
       { apply IHal; list_solve. }
+Qed.
+
+Lemma Zlength_fold_right {A B}: forall (f: B -> list A -> list A) init l,
+    (forall b la, Zlength (f b la) = Zlength la) ->
+    Zlength (fold_right f init l) = Zlength init.
+Proof.
+  intros. revert l init. induction l; intros; simpl; auto.
+  rewrite H. easy.
 Qed.
