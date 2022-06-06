@@ -91,7 +91,7 @@ Hint Rewrite Znth_seq using lia : Znth.
 
 Lemma Znth_list_of_filter : forall filter i,
   0 <= i < NUM_ENTRY ->
-  Znth i (` (list_of_filter filter)) = bool_to_Z (Znth i (` filter)).
+  Znth i (` (list_of_filter filter)) = bool_to_Z (Znth i (`filter)).
 Proof.
   intros. destruct filter as [filter ?H].
   unfold list_of_filter, map_listn. simpl.
@@ -117,7 +117,7 @@ Qed.
 Lemma get_bit : forall (filter : Filter) hash,
   0 <= hash < NUM_ENTRY ->
   Znth hash (map ValBaseBit (map (to_lbool 1) (` (list_of_filter filter))))
-  = ValBaseBit [Znth hash (` filter)].
+  = ValBaseBit [Znth hash (`filter)].
 Proof.
   intros. unfold list_of_filter, map_listn. destruct filter as [filter ?H]. simpl.
   list_simplify.
@@ -173,7 +173,7 @@ Definition bloomfilter_add (bf: bloomfilter_state) data :=
   general_bf.add CRC_pads bf data.
 
 Definition bloomfilter_query (bf: bloomfilter_state) data :=
-  general_bf.query (` CRC_pads) bf data.
+  general_bf.query (`CRC_pads) bf data.
 
 Definition havoc_typ (typ : @P4Type Info) : Sval :=
   force ValBaseNull (uninit_sval_of_typ None typ).
@@ -434,7 +434,7 @@ Definition process (in_port data : Z) (bf : bloomfilter_state) : (bloomfilter_st
   if in_port =? 0 then
     (general_bf.add CRC_pads bf data, 1)
   else
-    (bf, if general_bf.query (` CRC_pads) bf data then 0 else 511).
+    (bf, if general_bf.query (`CRC_pads) bf data then 0 else 511).
 
 Definition bloomfilter_spec : func_spec :=
   WITH ,

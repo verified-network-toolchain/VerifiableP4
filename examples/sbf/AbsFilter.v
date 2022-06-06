@@ -27,10 +27,10 @@ Inductive row : Type :=
 
 Inductive row_sim : row -> ConFilter.row num_cells -> Prop :=
   | rom_sim_clear : forall i cr,
-      (forall j, 0 <= j < i -> Znth j (` cr) = false) ->
+      (forall j, 0 <= j < i -> Znth j (`cr) = false) ->
       row_sim (Clear i) cr
   | rom_sim_normal : forall hs cr,
-      ` cr = fold_left (fun l i => upd_Znth i l true) (map hash hs) (Zrepeat false num_cells) ->
+      `cr = fold_left (fun l i => upd_Znth i l true) (map hash hs) (Zrepeat false num_cells) ->
       row_sim (Normal hs) cr.
 
 Definition row_insert (r : row) (h : header_type) : option row :=
@@ -168,7 +168,7 @@ Hypothesis H_hashes : Forall (fun hash => forall h, 0 <= hash h < num_cells) has
 Definition frame : Type := row.
 
 Definition frame_sim (f : frame) (cf : ConFilter.frame num_rows num_cells) : Prop :=
-  Forall2 (fun hash cr => row_sim hash f cr) hashes (` cf).
+  Forall2 (fun hash cr => row_sim hash f cr) hashes (`cf).
 
 Definition frame_insert : forall (f : frame) (h : header_type), option frame :=
   row_insert.
@@ -206,7 +206,7 @@ Qed.
 Definition frame_clear : forall (f : frame) (i : Z), option frame :=
   row_clear.
 
-Program Definition repeat_listn {T: Type} (i: T): listn T num_rows :=
+Program Definition repeat_num_rows {T: Type} (i: T): listn T num_rows :=
   Zrepeat i num_rows.
 Next Obligation.
   list_solve.
@@ -215,11 +215,11 @@ Qed.
 Lemma frame_clear_sound : forall f cf i f',
   frame_sim f cf ->
   frame_clear f i = Some f' ->
-  frame_sim f' (ConFilter.frame_clear cf (repeat_listn i)).
+  frame_sim f' (ConFilter.frame_clear cf (repeat_num_rows i)).
 Proof.
   intros.
   unfold frame_sim in *.
-  unfold repeat_listn.
+  unfold repeat_num_rows.
   unfold ConFilter.frame_clear in *. simpl.
   rewrite Forall2_forall_range2.
   destruct cf as [cf ?H]. simpl in *.

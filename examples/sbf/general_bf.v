@@ -54,8 +54,8 @@ Section BLOOM_FILTER.
 
   Lemma bf_add_query_true:
     forall {num_rows num_slots} (fs: frame num_rows num_slots) (hashes: listn HashFunc num_rows) z,
-      Forall (hash_in_range num_slots) (` hashes) ->
-      query (` hashes) (add hashes fs z) z = true.
+      Forall (hash_in_range num_slots) (`hashes) ->
+      query (`hashes) (add hashes fs z) z = true.
   Proof.
     intros. destruct fs as [fs ?H]. destruct hashes as [hashes ?H]. simpl in *.
     revert fs hashes num_rows H0 H1 H.
@@ -84,8 +84,8 @@ Section BLOOM_FILTER.
 
   Theorem BFNoFalseNegative: forall {num_rows num_slots} z zs (fs: frame num_rows num_slots)
                                (hashes: listn HashFunc num_rows),
-      Forall (hash_in_range num_slots) (` hashes) ->
-      query (` hashes) (addm hashes (add hashes fs z) zs) z  = true.
+      Forall (hash_in_range num_slots) (`hashes) ->
+      query (`hashes) (addm hashes (add hashes fs z) zs) z  = true.
   Proof.
     intros. rewrite addm_add_comm. now apply bf_add_query_true.
   Qed.

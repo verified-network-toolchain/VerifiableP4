@@ -24,7 +24,7 @@ Definition process' (bf : bloomfilter_state) (p : Z * port) :=
   | port_int =>
       (general_bf.add CRC_pads bf data, (Some (data, port_ext)))
   | port_ext =>
-      if general_bf.query (` CRC_pads) bf data then
+      if general_bf.query (`CRC_pads) bf data then
         (bf, Some (data, port_int))
       else
         (bf, None)
@@ -127,7 +127,7 @@ eapply process_packet_prop in H3;
   [clear Bf; destruct H3 as [bf1 [Proc1 Bf1]] | eassumption].
 inv Proc1. inv H6.
 eapply process_packet_prop in H2; [ clear Bf1; destruct H2 as [bf2 [Proc2 Bf2]] | eassumption]. inv H5. unfold packet2 in Proc2. cbn [process'] in Proc2.
-cut (query (` CRC_pads) (add CRC_pads test_frame 0) 1 = false).
+cut (query (`CRC_pads) (add CRC_pads test_frame 0) 1 = false).
 - intros. rewrite H in Proc2. inv Proc2. split; auto.
 - unfold query, frame_query, add, frame_insert, row_insert, Utils.map2, row_query.
   simpl. rewrite !Znth_upd_Znth_diff; [|vm_compute; lia..].
@@ -152,7 +152,7 @@ inv Proc1. inv H6.
 eapply process_packet_prop in H2;
   [ clear Bf1; destruct H2 as [bf2 [Proc2 Bf2]] | eassumption]. inv H5.
 unfold packet2' in Proc2. cbn [process'] in Proc2.
-cut (query (` CRC_pads) (add CRC_pads test_frame 0) 0 = true).
+cut (query (`CRC_pads) (add CRC_pads test_frame 0) 0 = true).
 - intros. rewrite H in Proc2. inv Proc2. split; auto.
 - apply bf_add_query_true. simpl.
   do 3 (constructor; [intro; apply CRC_range |]). constructor.
@@ -239,7 +239,7 @@ Lemma process_packets_length: forall l es1 es2 output,
 Proof. intros. induction H; simpl. trivial. f_equal; trivial. Qed.
 
 Lemma CRC_pads_in_range:
-  Forall (hash_in_range NUM_ENTRY) (` CRC_pads).
+  Forall (hash_in_range NUM_ENTRY) (`CRC_pads).
 Proof.
   unfold CRC_pads. simpl. do 3 (constructor; [intro; apply CRC_range |]). constructor.
 Qed.
@@ -247,7 +247,7 @@ Qed.
 Lemma multi_process_firewall_aux: forall {l bf z bf1 bf' a out2 out1},
 process' (add CRC_pads bf z) a = (bf1, out1) ->
 multi_process bf1 l = (bf', out2) ->
-query (` CRC_pads) bf' z = true.
+query (`CRC_pads) bf' z = true.
 Proof.
 induction l; simpl; intros.
 - inv H0. destruct a. destruct p; simpl in H.
@@ -270,7 +270,7 @@ multi_process bf ((z, port_int)::l++[(z, port_ext)]) = (bf', out) ->
 exists m, out = (Some (z, port_ext)::m++[Some (z, port_int)]).
 Proof.
   induction l; simpl; intros.
-  - change [CRC_pad0; CRC_pad1; CRC_pad2] with (` CRC_pads) in H.
+  - change [CRC_pad0; CRC_pad1; CRC_pad2] with (`CRC_pads) in H.
     rewrite bf_add_query_true in H by (apply CRC_pads_in_range).
     inv H. exists (@nil(option (Z * port))). reflexivity.
   - remember (process' (add CRC_pads bf z) a) as x; symmetry in Heqx; destruct x as [bf1 out1].
@@ -279,7 +279,7 @@ Proof.
   simpl in MP2.
   remember (query [CRC_pad0; CRC_pad1; CRC_pad2] bf2 z). destruct b.
   + inv MP2. exists (out1::out2). simpl; trivial.
-  + change [CRC_pad0; CRC_pad1; CRC_pad2] with (` CRC_pads) in Heqb.
+  + change [CRC_pad0; CRC_pad1; CRC_pad2] with (`CRC_pads) in Heqb.
     rewrite (multi_process_firewall_aux Heqx MP1) in Heqb. discriminate.
 Qed.
 
