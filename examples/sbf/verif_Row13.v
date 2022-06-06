@@ -15,7 +15,7 @@ Notation path := (list ident).
 Notation Val := (@ValueBase bool).
 Notation Sval := (@ValueBase (option bool)).
 
-Definition p := ["pipe"; "ingress"; "bf2_ds"; "win_1"; "row_3"].
+Definition p := ["pipe"; "ingress"; "bf2_ds"; "win_1"; "row_1"].
 
 Open Scope func_spec.
 
@@ -56,9 +56,8 @@ Definition Row_insert_spec : func_spec :=
   WITH (* p *),
     PATH p
     MOD (Some [["rw"]]) [p]
-    WITH (r : row) (i : Z)
-      (_ : Zlength r = num_slots)
-      (_ : 0 <= i < Zlength r),
+    WITH (r : row num_slots) (i : Z)
+      (_ : 0 <= i < num_slots),
       PRE
         (ARG []
         (MEM [(["index"], P4Bit 18 i)]
@@ -72,7 +71,8 @@ Lemma Row_insert_body :
   func_sound ge Row_insert_fundef nil Row_insert_spec.
 Proof.
   start_function.
-  unfold row_repr, row_reg_repr.
+  destruct r as [r ?H].
+  unfold row_repr, row_reg_repr. cbn [proj1_sig row_insert].
   normalize_EXT.
   step_call Row_regact_insert_execute_body.
   4 : { entailer. }
@@ -84,7 +84,6 @@ Proof.
   step.
   entailer.
   f_equal.
-  unfold row_insert.
   list_solve.
 Qed.
 
@@ -125,9 +124,8 @@ Definition Row_query_spec : func_spec :=
   WITH (* p *),
     PATH p
     MOD (Some [["rw"]]) [p]
-    WITH (r : row) (i : Z)
-      (_ : Zlength r = num_slots)
-      (_ : 0 <= i < Zlength r),
+    WITH (r : row num_slots) (i : Z)
+      (_ : 0 <= i < num_slots),
       PRE
         (ARG []
         (MEM [(["index"], P4Bit 18 i)]
@@ -156,7 +154,8 @@ Lemma Row_query_body :
   func_sound ge Row_query_fundef nil Row_query_spec.
 Proof.
   start_function.
-  unfold row_repr, row_reg_repr.
+  destruct r as [r ?H].
+  unfold row_repr, row_reg_repr. cbn [proj1_sig].
   normalize_EXT.
   step_call Row_regact_query_execute_body.
   4 : { entailer. }
@@ -213,9 +212,8 @@ Definition Row_clear_spec : func_spec :=
   WITH (* p *),
     PATH p
     MOD (Some [["rw"]]) [p]
-    WITH (r : row) (i : Z)
-      (_ : Zlength r = num_slots)
-      (_ : 0 <= i < Zlength r),
+    WITH (r : row num_slots) (i : Z)
+      (_ : 0 <= i < num_slots),
       PRE
         (ARG []
         (MEM [(["index"], P4Bit 18 i)]
@@ -229,7 +227,8 @@ Lemma Row_clear_body :
   func_sound ge Row_clear_fundef nil Row_clear_spec.
 Proof.
   start_function.
-  unfold row_repr, row_reg_repr.
+  destruct r as [r ?H].
+  unfold row_repr, row_reg_repr. cbn [proj1_sig row_clear].
   normalize_EXT.
   step_call Row_regact_clear_execute_body.
   4 : { entailer. }
@@ -241,7 +240,6 @@ Proof.
   step.
   entailer.
   f_equal.
-  unfold row_clear.
   list_solve.
 Qed.
 
@@ -257,9 +255,8 @@ Definition Row_noop_case_spec : func_spec :=
   WITH (* p *),
     PATH p
     MOD None [p]
-    WITH (r : row) (i : Z)
-      (_ : Zlength r = num_slots)
-      (_ : 0 <= i < Zlength r),
+    WITH (r : row num_slots) (i : Z)
+      (_ : 0 <= i < num_slots),
       PRE
         (ARG [P4Bit 8 NOOP;
               P4Bit 18 i]
@@ -274,9 +271,8 @@ Definition Row_tbl_bloom_noop_spec : func_spec :=
   WITH (* p *),
     PATH p
     MOD (Some [["rw"]]) [p]
-    WITH (r : row) (i : Z)
-      (_ : Zlength r = num_slots)
-      (_ : 0 <= i < Zlength r),
+    WITH (r : row num_slots) (i : Z)
+      (_ : 0 <= i < num_slots),
       PRE
         (ARG []
         (MEM [(["api"], P4Bit 8 NOOP);
@@ -317,8 +313,8 @@ Proof.
   start_function.
   step.
   step_call Row_tbl_bloom_noop_body.
-  3 : entailer.
-  1-2 : auto.
+  2 : entailer.
+  1 : auto.
   Intros _.
   step.
   entailer.
@@ -330,9 +326,8 @@ Definition Row_insert_case_spec : func_spec :=
   WITH (* p *),
     PATH p
     MOD None [p]
-    WITH (r : row) (i : Z)
-      (_ : Zlength r = num_slots)
-      (_ : 0 <= i < Zlength r),
+    WITH (r : row num_slots) (i : Z)
+      (_ : 0 <= i < num_slots),
       PRE
         (ARG [P4Bit 8 INSERT;
               P4Bit 18 i]
@@ -347,9 +342,8 @@ Definition Row_tbl_bloom_insert_spec : func_spec :=
   WITH (* p *),
     PATH p
     MOD (Some [["rw"]]) [p]
-    WITH (r : row) (i : Z)
-      (_ : Zlength r = num_slots)
-      (_ : 0 <= i < Zlength r),
+    WITH (r : row num_slots) (i : Z)
+      (_ : 0 <= i < num_slots),
       PRE
         (ARG []
         (MEM [(["api"], P4Bit 8 INSERT);
@@ -371,8 +365,7 @@ Proof.
   { reflexivity. }
   { intros.
     step_call Row_insert_body.
-    3 : { entailer. }
-    { auto. }
+    2 : { entailer. }
     { auto. }
     apply ret_implies_refl.
   }
@@ -388,8 +381,8 @@ Proof.
   start_function.
   step.
   step_call Row_tbl_bloom_insert_body.
-  3 : entailer.
-  1-2 : auto.
+  2 : entailer.
+  1 : auto.
   Intros _.
   step.
   entailer.
@@ -399,9 +392,8 @@ Definition Row_query_case_spec : func_spec :=
   WITH (* p *),
     PATH p
     MOD None [p]
-    WITH (r : row) (i : Z)
-      (_ : Zlength r = num_slots)
-      (_ : 0 <= i < Zlength r),
+    WITH (r : row num_slots) (i : Z)
+      (_ : 0 <= i < num_slots),
       PRE
         (ARG [P4Bit 8 QUERY;
               P4Bit 18 i]
@@ -416,9 +408,8 @@ Definition Row_tbl_bloom_query_spec : func_spec :=
   WITH (* p *),
     PATH p
     MOD (Some [["rw"]]) [p]
-    WITH (r : row) (i : Z)
-      (_ : Zlength r = num_slots)
-      (_ : 0 <= i < Zlength r),
+    WITH (r : row num_slots) (i : Z)
+      (_ : 0 <= i < num_slots),
       PRE
         (ARG []
         (MEM [(["api"], P4Bit 8 QUERY);
@@ -441,8 +432,7 @@ Proof.
   { reflexivity. }
   { intros.
     step_call Row_query_body.
-    3 : { entailer. }
-    { auto. }
+    2 : { entailer. }
     { auto. }
     apply ret_implies_refl.
   }
@@ -458,8 +448,8 @@ Proof.
   start_function.
   step.
   step_call Row_tbl_bloom_query_body.
-  3 : entailer.
-  1-2 : auto.
+  2 : entailer.
+  1 : auto.
   Intros _.
   step.
   entailer.
@@ -469,9 +459,8 @@ Definition Row_clear_case_spec : func_spec :=
   WITH (* p *),
     PATH p
     MOD None [p]
-    WITH (r : row) (i : Z)
-      (_ : Zlength r = num_slots)
-      (_ : 0 <= i < Zlength r),
+    WITH (r : row num_slots) (i : Z)
+      (_ : 0 <= i < num_slots),
       PRE
         (ARG [P4Bit 8 CLEAR;
               P4Bit 18 i]
@@ -486,9 +475,8 @@ Definition Row_tbl_bloom_clear_spec : func_spec :=
   WITH (* p *),
     PATH p
     MOD (Some [["rw"]]) [p]
-    WITH (r : row) (i : Z)
-      (_ : Zlength r = num_slots)
-      (_ : 0 <= i < Zlength r),
+    WITH (r : row num_slots) (i : Z)
+      (_ : 0 <= i < num_slots),
       PRE
         (ARG []
         (MEM [(["api"], P4Bit 8 CLEAR);
@@ -512,8 +500,7 @@ Proof.
   { reflexivity. }
   { intros.
     step_call Row_clear_body.
-    3 : { entailer. }
-    { auto. }
+    2 : { entailer. }
     { auto. }
     apply ret_implies_refl.
   }
@@ -529,8 +516,8 @@ Proof.
   start_function.
   step.
   step_call Row_tbl_bloom_clear_body.
-  3 : entailer.
-  1-2 : auto.
+  2 : entailer.
+  1 : auto.
   Intros _.
   step.
   entailer.

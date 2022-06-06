@@ -29,10 +29,8 @@ Definition Win_noop_spec : func_spec :=
   WITH (* p *),
     PATH p
     MOD None [p]
-    WITH (f : frame) (is : list Z)
-      (_ : Zlength f = num_rows)
+    WITH (f : frame num_rows num_slots) (is : list Z)
       (_ : Zlength is = num_rows)
-      (_ : Forall (fun r => Zlength r = num_slots) f)
       (_ : Forall (fun i => 0 <= i < num_slots) is),
       PRE
         (ARG [ValBaseStruct
@@ -79,16 +77,15 @@ Proof.
   start_function.
   unfold frame_repr.
   normalize_EXT.
+  destruct f as [f ?H]. cbn [proj1_sig].
+  apply destruct_Zlength_3 in H.
+  destruct H as [r1 [r2 [r3 ?]]]; subst.
   apply destruct_Zlength_3 in x.
-  destruct x as [r1 [r2 [r3 ?]]]; subst.
-  apply destruct_Zlength_3 in x0.
-  destruct x0 as [i1 [i2 [i3 ?]]]; subst.
-  inv x1. inv H2. inv H4.
-  inv x2. inv H6. inv H8.
+  destruct x as [i1 [i2 [i3 ?]]]; subst.
+  inv x0. inv H2. inv H4. inv H5.
   step_call verif_Row11.Row_noop_case_body.
-  3 : { entailer. }
+  2 : { entailer. }
   { auto. }
-  { list_solve. }
   step_call verif_Row12.Row_noop_case_body.
   3 : { entailer. }
   { auto. }
