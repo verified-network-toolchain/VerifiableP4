@@ -15,7 +15,7 @@ Notation path := (list ident).
 Notation Val := (@ValueBase bool).
 Notation Sval := (@ValueBase (option bool)).
 
-Definition p := ["pipe"; "ingress"; "bf2_ds"; "win_1"; "row_1"].
+Definition p := ["pipe"; "ingress"; "bf2_ds"; "win_1"; "row_3"].
 
 Open Scope func_spec.
 
