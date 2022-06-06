@@ -362,6 +362,16 @@ Qed.
 
 End TofinoSpec.
 
+(* It is a hack to make extern_match opauqe. But it should be fine. *)
+
+Ltac get_am_ge prog ::=
+  let ge := eval compute -[PathMap.empty PathMap.set extern_match] in (gen_am_ge prog) in
+  exact (ge : (@genv _ ltac:(typeclasses eauto))).
+
+Ltac get_ge am_ge prog ::=
+  let ge := eval compute -[am_ge PathMap.empty PathMap.set extern_match] in (gen_ge' am_ge prog) in
+  exact (ge : (@genv _ ltac:(typeclasses eauto))).
+
 Ltac get_am_fd ge am_ge p :=
   let am_sem := eval compute -[am_ge] in
     (force Tofino.EnvPin (PathMap.get p (ge_ext ge))) in

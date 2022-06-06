@@ -3,6 +3,7 @@ Require Import Poulet4.P4light.Semantics.Semantics.
 Require Import ProD3.examples.sbf.UseTofino.
 Require Import ProD3.examples.sbf.p4ast.
 Require Import ProD3.core.Core.
+Require Import ProD3.core.TofinoSpec.
 Open Scope func_spec.
 
 Notation ident := string.
@@ -11,7 +12,7 @@ Notation Val := (@ValueBase bool).
 Notation Sval := (@ValueBase (option bool)).
 
 Definition am_ge := ltac:(get_am_ge prog).
-(* Finished transaction in 12.13 secs (11.734u,0.39s) (successful) *)
+(* Finished transaction in 1.786 secs (1.734u,0.046s) (successful) *)
 Definition ge : genv := ltac:(get_ge am_ge prog).
 
 (* TODO: put them somewhere in core. *)
