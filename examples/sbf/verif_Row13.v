@@ -292,21 +292,16 @@ Definition Row_tbl_bloom_noop_spec : func_spec :=
 Lemma Row_tbl_bloom_noop_body :
   func_sound ge Row_tbl_bloom_fundef nil Row_tbl_bloom_noop_spec.
 Proof.
-  split. 2 : {
-    solve_modifies.
-  }
-  intros_fsh_bind.
-  red.
-  unfold Row_tbl_bloom_fundef.
-  hoare_func_table.
-  { instantiate (1 := [(true, mk_action_ref "NoAction" [])]).
-    constructor.
-  }
+  start_function.
+  simpl.
+  next_case.
+  next_case.
+  next_case.
+  next_case.
   econstructor.
   (* NOOP case *)
   { reflexivity. }
-  { intros.
-    step_call NoAction_body.
+  { step_call NoAction_body.
     { entailer. }
     apply ret_implies_refl.
   }
@@ -314,7 +309,6 @@ Proof.
   { intros.
     entailer.
   }
-  intros H; inv H.
 Qed.
 
 Lemma Row_noop_case_body :
@@ -370,16 +364,8 @@ Definition Row_tbl_bloom_insert_spec : func_spec :=
 Lemma Row_tbl_bloom_insert_body :
   func_sound ge Row_tbl_bloom_fundef nil Row_tbl_bloom_insert_spec.
 Proof.
-  split. 2 : {
-    solve_modifies.
-  }
-  intros_fsh_bind.
-  red.
-  unfold Row_tbl_bloom_fundef.
-  hoare_func_table.
-  { instantiate (1 := [(true, mk_action_ref "act_insert" [])]).
-    constructor.
-  }
+  start_function.
+  next_case.
   econstructor.
   (* INSERT case *)
   { reflexivity. }
@@ -394,7 +380,6 @@ Proof.
   { intros.
     entailer.
   }
-  intros H; inv H.
 Qed.
 
 Lemma Row_insert_case_body :
@@ -448,16 +433,9 @@ Definition Row_tbl_bloom_query_spec : func_spec :=
 Lemma Row_tbl_bloom_query_body :
   func_sound ge Row_tbl_bloom_fundef nil Row_tbl_bloom_query_spec.
 Proof.
-  split. 2 : {
-    solve_modifies.
-  }
-  intros_fsh_bind.
-  red.
-  unfold Row_tbl_bloom_fundef.
-  hoare_func_table.
-  { instantiate (1 := [(true, mk_action_ref "act_query" [])]).
-    constructor.
-  }
+  start_function.
+  next_case.
+  next_case.
   econstructor.
   (* QUERY case *)
   { reflexivity. }
@@ -472,7 +450,6 @@ Proof.
   { intros.
     entailer.
   }
-  intros H; inv H.
 Qed.
 
 Lemma Row_query_case_body :
@@ -526,16 +503,10 @@ Definition Row_tbl_bloom_clear_spec : func_spec :=
 Lemma Row_tbl_bloom_clear_body :
   func_sound ge Row_tbl_bloom_fundef nil Row_tbl_bloom_clear_spec.
 Proof.
-  split. 2 : {
-    solve_modifies.
-  }
-  intros_fsh_bind.
-  red.
-  unfold Row_tbl_bloom_fundef.
-  hoare_func_table.
-  { instantiate (1 := [(true, mk_action_ref "act_clear" [])]).
-    constructor.
-  }
+  start_function.
+  next_case.
+  next_case.
+  next_case.
   econstructor.
   (* CLEAR case *)
   { reflexivity. }
@@ -550,7 +521,6 @@ Proof.
   { intros.
     entailer.
   }
-  intros H; inv H.
 Qed.
 
 Lemma Row_clear_case_body :

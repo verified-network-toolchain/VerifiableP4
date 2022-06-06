@@ -1019,41 +1019,55 @@ Proof.
     destruct a as [[] ?]; auto.
 Qed.
 
-(* This predicate desribes that the execution of the case list satisfies the post condition. *)
-(* This name may be bad (too long and not accurate). We might find a better name later. *)
-
-Inductive hoare_table_match_cases_valid (p : path) (pre : assertion) (actions : list Expression)
-      (default_action : Expression) (post : arg_ret_assertion) : list (bool * action_ref) -> Prop :=
-  | hoare_table_match_cases_valid_cons : forall (cond : bool) matched_action cases' action retv,
-      get_table_call actions default_action (Some matched_action) = Some (action, retv) ->
-      (cond -> hoare_call p pre action (fun _ st => post [] retv st)) ->
-      (negb cond -> hoare_table_match_cases_valid p pre actions default_action post cases') ->
-      hoare_table_match_cases_valid p pre actions default_action post ((cond, matched_action) :: cases')
-  | hoare_table_match_cases_valid_nil : forall action retv,
-      get_table_call actions default_action None = Some (action, retv) ->
+Inductive hoare_table_action_case (p : path) (pre : assertion) (actions : list Expression)
+      (default_action : Expression) (post : arg_ret_assertion) (matched_action : option action_ref) : Prop :=
+  | hoare_table_action_case_intro : forall action retv,
+      get_table_call actions default_action matched_action = Some (action, retv) ->
       hoare_call p pre action (fun _ st => post [] retv st) ->
-      hoare_table_match_cases_valid p pre actions default_action post nil.
+      hoare_table_action_case p pre actions default_action post matched_action.
+
+(* This predicate desribes that the action execution of the case list satisfies the post condition. *)
+
+Inductive hoare_table_action_cases (p : path) (pre : assertion) (actions : list Expression)
+      (default_action : Expression) (post : arg_ret_assertion) : list (bool * action_ref) -> Prop :=
+  | hoare_table_action_cases_nil :
+      hoare_table_action_case p pre actions default_action post None ->
+      hoare_table_action_cases p pre actions default_action post nil
+  | hoare_table_action_cases_cons : forall (cond : bool) matched_action cases',
+      (cond -> hoare_table_action_case p pre actions default_action post (Some matched_action)) ->
+      (~~cond -> hoare_table_action_cases p pre actions default_action post cases') ->
+      hoare_table_action_cases p pre actions default_action post ((cond, matched_action) :: cases').
+
+(* We say the application of a table contain to phases: table matching phase and table action phase.
+  Table matching phase evaluate the keys and entries, and find the action. The table action phase
+  executes the action and return table's return value. *)
+
+Lemma hoare_func_table_action : forall p pre name keys actions default_action const_entries post matched_action,
+  hoare_table_match p pre name keys const_entries matched_action ->
+  hoare_table_action_case p pre actions default_action post matched_action ->
+  hoare_func p (fun _ => pre) (FTable name keys actions (Some default_action) const_entries)
+      [] post.
+Proof.
+  intros. inv H1.
+  eapply hoare_func_post.
+  + eapply hoare_func_table_case; eauto.
+  + clear.
+    unfold arg_ret_implies; intros.
+    hauto lq: on.
+Qed.
 
 Lemma hoare_func_table : forall p pre name keys actions default_action const_entries post cases,
   hoare_table_match_list p pre name keys const_entries cases ->
-  hoare_table_match_cases_valid p pre actions default_action post cases ->
+  hoare_table_action_cases p pre actions default_action post cases ->
   hoare_func p (fun _ => pre) (FTable name keys actions (Some default_action) const_entries)
       [] post.
 Proof.
   induction 2.
+  - eapply hoare_func_table_action; eauto.
   - simpl in H0.
     destruct cond.
-    + eapply hoare_func_post.
-      * eapply hoare_func_table_case; eauto.
-      * clear.
-        unfold arg_ret_implies; intros.
-        hauto lq: on.
+    + eapply hoare_func_table_action; eauto.
     + auto.
-  - eapply hoare_func_post.
-    + eapply hoare_func_table_case; eauto.
-    + clear.
-      unfold arg_ret_implies; intros.
-      hauto lq: on.
 Qed.
 
 Definition hoare_abstract_method (pre : list Sval -> extern_state -> Prop)

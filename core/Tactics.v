@@ -4,6 +4,7 @@ Require Import Poulet4.P4light.Syntax.Typed.
 Require Import Poulet4.P4light.Syntax.Syntax.
 Require Import Poulet4.P4light.Syntax.Value.
 Require Import Poulet4.P4light.Semantics.Semantics.
+Require Import ProD3.core.Coqlib.
 Require Import ProD3.core.SvalRefine.
 Require Import ProD3.core.Hoare.
 Require Import ProD3.core.Implies.
@@ -218,20 +219,68 @@ Ltac solve_modifies :=
   | idtac "The modifies clause cannot be solved automatically."
   ].
 
+(* Handles table when we have a particular case. *)
+Ltac hoare_func_table_case :=
+  lazymatch goal with
+  | |- hoare_func _ _ _ (FTable _ _ _ _ _) _ _ =>
+      eapply hoare_func_table';
+      [ eapply hoare_table_match_case'; (* hoare_table_match *)
+        [ reflexivity (* eval_exprs *)
+        | reflexivity (* lift_option (.. keysvals) *)
+        | eapply hoare_table_entries_intros; (* hoare_table_entries *)
+          repeat econstructor
+        | reflexivity (* extern_match *)
+        ]
+      | reflexivity (* get_table_call *)
+      | idtac
+      ]
+  | _ => fail "The goal is not in the form of (hoare_func _ _ _ (FTable _ _ _ _ _) _ _)"
+  end.
+
+(* Provided by the target. *)
+Ltac hoare_extern_match_list :=
+  idtac.
+
+(* Handles table with constant entries. *)
+Ltac hoare_func_table :=
+  lazymatch goal with
+  | |- hoare_func _ _ _ (FTable _ _ _ _ _) _ _ =>
+      eapply hoare_func_table';
+      [ eapply hoare_table_match_list_intro'; (* hoare_table_match_list *)
+        [ reflexivity (* eval_exprs *)
+        | reflexivity (* lift_option (.. keysvals) *)
+        | eapply hoare_table_entries_intros; (* hoare_table_entries *)
+          repeat econstructor
+        | hoare_extern_match_list (* hoare_extern_match_list *)
+        ]
+      | idtac (* Forall (hoare_table_match_case_valid' ...) *)
+      ]
+  | _ => fail "The goal is not in the form of (hoare_func _ _ _ (FTable _ _ _ _ _) _ _)"
+  end.
+
 Ltac init_function :=
   intros_fsh_bind;
   unfold fundef_satisfies_hoare;
   (* handle hoare_func *)
   lazymatch goal with
-  | |- hoare_func _ _ _ _ _ ?post =>
-    eapply hoare_func_internal';
-      [ reflexivity (* length (filter_in params) = length pre_arg *)
-      | reflexivity (* is_no_dup *)
-      | reflexivity (* eval_write_vars *)
-      | idtac (* hoare_block *)
-      | inv_func_copy_out (* inv_func_copy_out *)
-      | inv_implicit_return
-      ]
+  | |- hoare_func _ _ _ ?fd _ ?post =>
+    try unfold fd;
+    lazymatch goal with
+    | |- hoare_func _ _ _ ?fd _ ?post =>
+      lazymatch fd with
+      | FInternal _ _ =>
+          eapply hoare_func_internal';
+          [ reflexivity (* length (filter_in params) = length pre_arg *)
+          | reflexivity (* is_no_dup *)
+          | reflexivity (* eval_write_vars *)
+          | idtac (* hoare_block *)
+          | inv_func_copy_out (* inv_func_copy_out *)
+          | inv_implicit_return (* inv_implicit_return *)
+          ]
+      | FTable _ _ _ _ _ =>
+          hoare_func_table
+      end
+    end
   | _ => fail "The goal is not in the form of (hoare_func _ _ (ARG _ (MEM _ (EXT _))) _ _"
            "(EX ... ARG_RET _ (MEM _ (EXT _)))"
   end.
@@ -242,6 +291,17 @@ Ltac start_function :=
       intros_fs_bind;
       split; [init_function | solve_modifies]
   | _ => fail "The goal is not in the form of (func_sound _ _ _)"
+  end.
+
+(* This is very experimental. It gets the next case from hoare_table_action_cases'. *)
+Ltac next_case :=
+  lazymatch goal with
+  | |- hoare_table_action_cases' _ _ _ _ _ _ _ =>
+      constructor;
+      let H := fresh in
+      intro H; try solve [inv H]
+  | _ =>
+      fail "The goal is not in the form of (hoare_table_action_cases' _ _ _ _ _ _ _)"
   end.
 
 Ltac step_call_func func_spec :=
@@ -504,41 +564,6 @@ Ltac refine_function func_spec :=
             solve_modifies)
         ]
   | _ => fail "The goal is not in the form of (func_sound _ _ _)"
-  end.
-
-(* Handles table when we have a particular case. *)
-Ltac hoare_func_table_case :=
-  lazymatch goal with
-  | |- hoare_func _ _ _ (FTable _ _ _ _ _) _ _ =>
-      eapply hoare_func_table';
-      [ eapply hoare_table_match_case'; (* hoare_table_match *)
-        [ reflexivity (* eval_exprs *)
-        | reflexivity (* lift_option (.. keysvals) *)
-        | eapply hoare_table_entries_intros; (* hoare_table_entries *)
-          repeat econstructor
-        | reflexivity (* extern_match *)
-        ]
-      | reflexivity (* get_table_call *)
-      | idtac
-      ]
-  | _ => fail "The goal is not in the form of (hoare_func _ _ _ (FTable _ _ _ _ _) _ _)"
-  end.
-
-(* Handles table with constant entries. *)
-Ltac hoare_func_table :=
-  lazymatch goal with
-  | |- hoare_func _ _ _ (FTable _ _ _ _ _) _ _ =>
-      eapply hoare_func_table';
-      [ eapply hoare_table_match_list_intro'; (* hoare_table_match_list *)
-        [ reflexivity (* eval_exprs *)
-        | reflexivity (* lift_option (.. keysvals) *)
-        | eapply hoare_table_entries_intros; (* hoare_table_entries *)
-          repeat econstructor
-        | idtac (* hoare_extern_match_list *)
-        ]
-      | idtac (* Forall (hoare_table_match_case_valid' ...) *)
-      ]
-  | _ => fail "The goal is not in the form of (hoare_func _ _ _ (FTable _ _ _ _ _) _ _)"
   end.
 
 Ltac Forall2_sval_refine :=
