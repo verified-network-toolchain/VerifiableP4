@@ -394,3 +394,6 @@ Ltac build_execute_body ge index_w body :=
     end
   | _ => fail "body is not a body proof"
   end.
+
+Ltac hoare_extern_match_list ::=
+  apply hoare_extern_match_list_intro.

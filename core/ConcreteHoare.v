@@ -703,38 +703,28 @@ Inductive hoare_table_action_ex_layer : Sval -> Hoare.ret_assertion -> arg_ret_a
       (forall (x : A), hoare_table_action_ex_layer sv (P x) (Q x)) ->
       hoare_table_action_ex_layer sv (ret_exists P) (arg_ret_exists Q).
 
-Inductive hoare_table_match_cases_valid' : path -> assertion -> list Expression -> Expression -> arg_ret_assertion ->
-      list (bool * action_ref) -> Prop :=
-  | hoare_table_match_cases_valid'_cons : forall p pre_mem pre_ext actions default_action mid post' post
-        (cond : bool) matched_action cases' action retv,
-      get_table_call actions default_action (Some matched_action) = Some (action, retv) ->
-      (cond -> hoare_call ge p
-        (MEM pre_mem (EXT pre_ext))
-        action
-        mid) ->
-      hoare_table_action_ex_layer (eval_val_to_sval retv) mid post' ->
-      (cond -> arg_ret_implies post' post) ->
-      (negb cond -> hoare_table_match_cases_valid' p
-        (MEM pre_mem (EXT pre_ext))
-        actions default_action
-        post cases') ->
-      hoare_table_match_cases_valid' p
-        (MEM pre_mem (EXT pre_ext))
-        actions default_action
-        post ((cond, matched_action) :: cases')
-  | hoare_table_match_cases_valid'_nil : forall p pre_mem pre_ext actions default_action (* post_retv *) mid post' post
-        action retv,
-      get_table_call actions default_action None = Some (action, retv) ->
-      hoare_call ge p
-        (MEM pre_mem (EXT pre_ext))
-        action
-        mid ->
+Inductive hoare_table_action_case' : path -> assertion -> list Expression -> Expression -> arg_ret_assertion ->
+      (option action_ref) -> Prop :=
+  | hoare_table_action_case'_intro : forall p pre_mem pre_ext actions default_action mid post' post
+        matched_action action retv,
+      get_table_call actions default_action matched_action = Some (action, retv) ->
+      hoare_call ge p (MEM pre_mem (EXT pre_ext)) action mid ->
       hoare_table_action_ex_layer (eval_val_to_sval retv) mid post' ->
       arg_ret_implies post' post ->
-      hoare_table_match_cases_valid' p
+      hoare_table_action_case' p
         (MEM pre_mem (EXT pre_ext))
         actions default_action
-        post nil.
+        post matched_action.
+
+Inductive hoare_table_action_cases' (p : path) (pre : assertion) (actions : list Expression)
+      (default_action : Expression) (post : arg_ret_assertion) : list (bool * action_ref) -> Prop :=
+  | hoare_table_action_cases'_nil :
+      hoare_table_action_case' p pre actions default_action post None ->
+      hoare_table_action_cases' p pre actions default_action post nil
+  | hoare_table_action_cases'_cons : forall (cond : bool) matched_action cases',
+      (cond -> hoare_table_action_case' p pre actions default_action post (Some matched_action)) ->
+      (~~cond -> hoare_table_action_cases' p pre actions default_action post cases') ->
+      hoare_table_action_cases' p pre actions default_action post ((cond, matched_action) :: cases').
 
 Lemma eval_val_to_sval_ret_denote : forall v sv,
   sv = eval_val_to_sval v ->
@@ -751,7 +741,7 @@ Proof.
   sauto lq: on.
 Qed.
 
-Lemma hoare_table_match_cases_valid'_hoare_table_match_cases_valid_aux : forall retv mid post' post,
+Lemma hoare_table_action_case'_hoare_table_action_case_aux : forall retv mid post' post,
   hoare_table_action_ex_layer (eval_val_to_sval retv) mid post' ->
   arg_ret_implies post' post ->
   ret_implies mid (fun (_ : Val) (st : state) => post [] retv st).
@@ -774,26 +764,32 @@ Proof.
     eapply H1; eauto.
 Qed.
 
-Lemma hoare_table_match_cases_valid'_hoare_table_match_cases_valid : forall p pre actions default_action post cases,
-  hoare_table_match_cases_valid' p pre actions default_action post cases ->
-  hoare_table_match_cases_valid ge p pre actions default_action post cases.
+Lemma hoare_table_action_case'_hoare_table_action_case : forall p pre actions default_action post matched_action,
+  hoare_table_action_case' p pre actions default_action post matched_action ->
+  hoare_table_action_case ge p pre actions default_action post matched_action.
+Proof.
+  intros.
+  inv H0.
+  econstructor; eauto.
+  eapply hoare_call_post. 1 : eauto.
+  eapply hoare_table_action_case'_hoare_table_action_case_aux; eauto.
+Qed.
+
+Lemma hoare_table_action_cases'_hoare_table_action_cases : forall p pre actions default_action post cases,
+  hoare_table_action_cases' p pre actions default_action post cases ->
+  hoare_table_action_cases ge p pre actions default_action post cases.
 Proof.
   induction 1.
-  - econstructor; eauto.
-    intros H_P.
-    specialize (H1 H_P).
-    specialize (H3 H_P).
-    eapply hoare_call_post. 1 : eauto.
-    eapply hoare_table_match_cases_valid'_hoare_table_match_cases_valid_aux; eauto.
-  - econstructor; eauto.
-    eapply hoare_call_post. 1 : eauto.
-    eapply hoare_table_match_cases_valid'_hoare_table_match_cases_valid_aux; eauto.
+  - constructor.
+    eapply hoare_table_action_case'_hoare_table_action_case; eauto.
+  - constructor; auto.
+    intros; eapply hoare_table_action_case'_hoare_table_action_case; eauto.
 Qed.
 
 Lemma hoare_func_table' : forall p pre_mem pre_ext name keys actions default_action const_entries post
       cases,
   hoare_table_match_list ge p (MEM pre_mem (EXT pre_ext)) name keys const_entries cases ->
-  hoare_table_match_cases_valid' p
+  hoare_table_action_cases' p
     (MEM pre_mem (EXT pre_ext))
     actions default_action
     post cases ->
@@ -805,7 +801,7 @@ Proof.
   intros.
   eapply hoare_func_pre.
   2 : { eapply hoare_func_table; eauto.
-    eapply hoare_table_match_cases_valid'_hoare_table_match_cases_valid; eauto.
+    eapply hoare_table_action_cases'_hoare_table_action_cases; eauto.
   }
   sfirstorder.
 Qed.
