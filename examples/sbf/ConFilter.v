@@ -4,17 +4,17 @@ Require Import ProD3.examples.sbf.Utils.
 Import ListNotations.
 Open Scope Z_scope.
 
-Definition items (T: Type) size := { i: list T | Zlength i = size }.
+Definition listn (T: Type) size := { i: list T | Zlength i = size }.
 
-Program Definition map_items {A B: Type} {size}
-  (f: A -> B) (l: items A size): items B size := map f l.
+Program Definition map_listn {A B: Type} {size}
+  (f: A -> B) (l: listn A size): listn B size := map f l.
 Next Obligation.
   destruct l as [l ?H]. list_solve.
 Qed.
 
-Definition row num_slots := items bool num_slots.
+Definition row num_slots := listn bool num_slots.
 
-Definition frame num_rows num_slots := items (row num_slots) num_rows.
+Definition frame num_rows num_slots := listn (row num_slots) num_rows.
 
 Section ConFilter.
 
@@ -34,7 +34,7 @@ Proof.
 Qed.
 
 Program Definition frame_insert (f : frame num_rows num_slots)
-  (is : items Z num_rows) : frame num_rows num_slots := map2 row_insert f is.
+  (is : listn Z num_rows) : frame num_rows num_slots := map2 row_insert f is.
 Next Obligation.
   rewrite Zlength_map2. destruct is, f. simpl. lia.
 Qed.
@@ -52,7 +52,7 @@ Next Obligation.
 Qed.
 
 Program Definition frame_clear (f : frame num_rows num_slots)
-  (is : items Z num_rows) : frame num_rows num_slots:= map2 row_clear f is.
+  (is : listn Z num_rows) : frame num_rows num_slots:= map2 row_clear f is.
 Next Obligation.
   rewrite Zlength_map2. destruct is, f. simpl. lia.
 Qed.

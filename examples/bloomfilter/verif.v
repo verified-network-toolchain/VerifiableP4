@@ -58,11 +58,11 @@ Definition bloomfilter_state : Type := frame NUM_ROW NUM_ENTRY.
 Definition bool_to_Z (b : bool) :=
   if b then 1 else 0.
 
-Definition list_of_filter (f : Filter) := map_items bool_to_Z f.
+Definition list_of_filter (f : Filter) := map_listn bool_to_Z f.
 
-Definition blooms (bst: bloomfilter_state) := map_items list_of_filter bst.
+Definition blooms (bst: bloomfilter_state) := map_listn list_of_filter bst.
 
-Definition reg_encode {size} (l : items Z size) : extern_object :=
+Definition reg_encode {size} (l : listn Z size) : extern_object :=
   ObjRegister (map ValBaseBit (map (P4Arith.to_lbool 1) (`l))).
 
 (* list_of_filter lemmas *)
@@ -94,7 +94,7 @@ Lemma Znth_list_of_filter : forall filter i,
   Znth i (` (list_of_filter filter)) = bool_to_Z (Znth i (` filter)).
 Proof.
   intros. destruct filter as [filter ?H].
-  unfold list_of_filter, map_items. simpl.
+  unfold list_of_filter, map_listn. simpl.
   list_simplify.
 Qed.
 
@@ -119,7 +119,7 @@ Lemma get_bit : forall (filter : Filter) hash,
   Znth hash (map ValBaseBit (map (to_lbool 1) (` (list_of_filter filter))))
   = ValBaseBit [Znth hash (` filter)].
 Proof.
-  intros. unfold list_of_filter, map_items. destruct filter as [filter ?H]. simpl.
+  intros. unfold list_of_filter, map_listn. destruct filter as [filter ?H]. simpl.
   list_simplify.
   destruct (Znth hash filter); reflexivity.
 Qed.
@@ -157,7 +157,7 @@ Definition CRC_pad2 := CRC_pad (to_lbool 7%N 7).
 
 Definition bloomfilter_exts := [["bloom0"]; ["bloom1"]; ["bloom2"]].
 
-#[global] Program Instance z_num_entry_inhabit: Inhabitant (items Z NUM_ENTRY) :=
+#[global] Program Instance z_num_entry_inhabit: Inhabitant (listn Z NUM_ENTRY) :=
   Zrepeat 0 NUM_ENTRY.
 
 Definition encode_bloomfilter_state bf : ext_pred :=
@@ -167,7 +167,7 @@ Definition encode_bloomfilter_state bf : ext_pred :=
        (ExtPred.singleton ["bloom1"] (reg_encode (Znth 1 (` (blooms bf)))))
        (ExtPred.singleton ["bloom2"] (reg_encode (Znth 2 (` (blooms bf)))))).
 
-Program Definition CRC_pads : items HashFunc NUM_ROW := [CRC_pad0; CRC_pad1; CRC_pad2].
+Program Definition CRC_pads : listn HashFunc NUM_ROW := [CRC_pad0; CRC_pad1; CRC_pad2].
 
 Definition bloomfilter_add (bf: bloomfilter_state) data :=
   general_bf.add CRC_pads bf data.
@@ -413,7 +413,7 @@ Proof.
   do 3 (destruct bf; [exfalso; list_solve |]).
   destruct bf; [|exfalso; list_solve].
   destruct r as [r ?H]. destruct r0 as [r0 ?H]. destruct r1 as [r1 ?H].
-  unfold blooms, map_items. cbn [map proj1_sig]. rewrite Znth_0_3, Znth_1_3, Znth_2_3.
+  unfold blooms, map_listn. cbn [map proj1_sig]. rewrite Znth_0_3, Znth_1_3, Znth_2_3.
   rewrite !get_bit by apply CRC_range.
   entailer.
   { simpl build_abs_unary_op.

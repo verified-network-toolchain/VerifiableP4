@@ -16,14 +16,14 @@ Section BLOOM_FILTER.
   Definition add_hash {num_slots} (z: Z) (h: HashFunc) (F: row num_slots) :=
     row_insert F (h z).
 
-  Definition map_hashes {num_rows} z (hashes: items HashFunc num_rows) :=
-    map_items (fun hash => hash z) hashes.
+  Definition map_hashes {num_rows} z (hashes: listn HashFunc num_rows) :=
+    map_listn (fun hash => hash z) hashes.
 
-  Definition add {num_rows num_slots} (hashes: items HashFunc num_rows)
+  Definition add {num_rows num_slots} (hashes: listn HashFunc num_rows)
     (fs: frame num_rows num_slots) (z: Z) : frame num_rows num_slots :=
     frame_insert fs (map_hashes z hashes).
 
-  Definition addm {num_rows num_slots} (hashes: items HashFunc num_rows)
+  Definition addm {num_rows num_slots} (hashes: listn HashFunc num_rows)
     (fs: frame num_rows num_slots) (zs: list Z) :=
     List.fold_left (add hashes) zs fs.
 
@@ -35,7 +35,7 @@ Section BLOOM_FILTER.
     forall x, 0 <= h x < num_slots.
 
   Lemma add_comm {num_rows num_slots} x y (fs: frame num_rows num_slots)
-    (hashes: items HashFunc num_rows):
+    (hashes: listn HashFunc num_rows):
     add hashes (add hashes fs x) y = add hashes (add hashes fs y) x.
   Proof.
     destruct fs as [fs ?H]. destruct hashes as [hashes ?H].
@@ -53,7 +53,7 @@ Section BLOOM_FILTER.
   Qed.
 
   Lemma bf_add_query_true:
-    forall {num_rows num_slots} (fs: frame num_rows num_slots) (hashes: items HashFunc num_rows) z,
+    forall {num_rows num_slots} (fs: frame num_rows num_slots) (hashes: listn HashFunc num_rows) z,
       Forall (hash_in_range num_slots) (` hashes) ->
       query (` hashes) (add hashes fs z) z = true.
   Proof.
@@ -73,7 +73,7 @@ Section BLOOM_FILTER.
   Qed.
 
   Lemma addm_add_comm : forall {num_rows num_slots} x ys (fs: frame num_rows num_slots)
-                          (hashes: items HashFunc num_rows),
+                          (hashes: listn HashFunc num_rows),
       addm hashes (add hashes fs x) ys = add hashes (addm hashes fs ys) x.
   Proof.
     intros. revert ys fs hashes x.
@@ -83,7 +83,7 @@ Section BLOOM_FILTER.
   Qed.
 
   Theorem BFNoFalseNegative: forall {num_rows num_slots} z zs (fs: frame num_rows num_slots)
-                               (hashes: items HashFunc num_rows),
+                               (hashes: listn HashFunc num_rows),
       Forall (hash_in_range num_slots) (` hashes) ->
       query (` hashes) (addm hashes (add hashes fs z) zs) z  = true.
   Proof.

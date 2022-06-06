@@ -30,7 +30,7 @@ Definition Win_noop_spec : func_spec :=
   WITH (* p *),
     PATH p
     MOD None [p]
-    WITH (f : frame num_rows num_slots) (is : items Z num_rows)
+    WITH (f : frame num_rows num_slots) (is : listn Z num_rows)
       (_ : Forall (fun i => 0 <= i < num_slots) (`is)),
       PRE
         (ARG [ValBaseStruct
@@ -100,7 +100,7 @@ Definition Win_insert_spec : func_spec :=
   WITH (* p *),
     PATH p
     MOD None [p]
-    WITH (f : frame num_rows num_slots) (is : items Z num_rows)
+    WITH (f : frame num_rows num_slots) (is : listn Z num_rows)
       (_ : Forall (fun i => 0 <= i < num_slots) (`is)),
       PRE
         (ARG [ValBaseStruct
@@ -165,7 +165,7 @@ Definition Win_query_spec : func_spec :=
   WITH (* p *),
     PATH p
     MOD None [p]
-    WITH (f : frame num_rows num_slots) (is : items Z num_rows)
+    WITH (f : frame num_rows num_slots) (is : listn Z num_rows)
       (_ : Forall (fun i => 0 <= i < num_slots) (`is)),
       PRE
         (ARG [ValBaseStruct
@@ -224,7 +224,7 @@ Definition Win_query_spec2 : func_spec :=
   WITH (* p *),
     PATH p
     MOD None [p]
-    WITH (f : frame num_rows num_slots) (is : items Z num_rows)
+    WITH (f : frame num_rows num_slots) (is : listn Z num_rows)
       (_ : Forall (fun i => 0 <= i < num_slots) (`is)),
       PRE
         (ARG [ValBaseStruct
@@ -274,7 +274,7 @@ Definition Win_clear_spec : func_spec :=
   WITH (* p *),
     PATH p
     MOD None [p]
-    WITH (f : frame num_rows num_slots) (is : items Z num_rows)
+    WITH (f : frame num_rows num_slots) (is : listn Z num_rows)
       (_ : Forall (fun i => 0 <= i < num_slots) (`is)),
       PRE
         (ARG [ValBaseStruct
