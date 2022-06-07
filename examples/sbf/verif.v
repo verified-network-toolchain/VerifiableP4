@@ -2,7 +2,6 @@ Require Import Poulet4.P4light.Syntax.P4defs.
 Require Import Poulet4.P4light.Semantics.Semantics.
 Require Import ProD3.core.Core.
 Require Import ProD3.core.Tofino.
-(* Require Import ProD3.examples.sbf.UseTofino. *)
 Require Import ProD3.examples.sbf.p4ast.
 Require Import ProD3.examples.sbf.ConFilter.
 Require Import ProD3.examples.sbf.FilterRepr.

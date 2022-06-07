@@ -9,7 +9,7 @@ Instance target : @Target Info (@Expression Info) := Tofino.
 (* It is a hack to make extern_match opauqe. But it should be fine. *)
 
 Ltac get_am_ge prog ::=
-  let ge := eval compute -[PathMap.empty PathMap.set extern_match] in (gen_am_ge prog) in
+  let ge := eval compute -[PathMap.empty PathMap.set IdentMap.empty IdentMap.set extern_match] in (gen_am_ge prog) in
   exact (ge : (@genv _ target)).
 
 Ltac get_ge am_ge prog ::=
@@ -18,11 +18,20 @@ Ltac get_ge am_ge prog ::=
 
 Ltac get_am_fd ge am_ge p :=
   let am_sem := eval compute -[am_ge extern_match] in
-    (force Tofino.EnvPin (PathMap.get p (ge_ext ge))) in
+    (force dummy_env_object (PathMap.get p (ge_ext ge))) in
   lazymatch am_sem with
   | Tofino.EnvAbsMet (exec_abstract_method ?ge ?p ?fd) =>
       exact fd
   end.
+
+Ltac get_fd p ge ::=
+  let fd := eval compute -[extern_match] in (force dummy_fundef (PathMap.get p (ge_func ge))) in
+  exact fd.
+
+Ltac get_ext_obj p ge :=
+  let ext_obj := eval compute -[extern_match] in
+    (force dummy_env_object (PathMap.get p (ge_ext ge))) in
+  exact ext_obj.
 
 Ltac build_execute_body ge body :=
   (* get spec from body *)

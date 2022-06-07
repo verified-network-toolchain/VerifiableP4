@@ -12,7 +12,7 @@ Notation Val := (@ValueBase bool).
 Notation Sval := (@ValueBase (option bool)).
 
 Definition am_ge := ltac:(get_am_ge prog).
-(* Finished transaction in 1.786 secs (1.734u,0.046s) (successful) *)
+(* Finished transaction in 4.375 secs (4.218u,0.156s) (successful) *)
 Definition ge := ltac:(get_ge am_ge prog).
 
 (* Constants *)
@@ -28,7 +28,7 @@ Definition num_rows := 3.
 
 (* NoAction *)
 
-Definition NoAction_fundef : @fundef Info := Eval compute in
+Definition NoAction_fundef : @fundef Info :=
   ltac:(get_fd ["NoAction"] ge).
 
 Definition NoAction_spec : func_spec :=
