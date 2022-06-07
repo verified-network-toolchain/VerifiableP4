@@ -2138,6 +2138,24 @@ Proof.
     repeat constructor; eauto.
 Qed.
 
+(* Shorthands for Vals. I can't find a better place to put them. *)
+
+Definition P4Bit (w : N) (v : Z) : Sval :=
+  ValBaseBit (P4Arith.to_loptbool w v).
+
+Definition P4NewBit (w : N) : Sval :=
+  ValBaseBit (Zrepeat None (Z.of_N w)).
+
+Lemma eval_sval_to_val_P4Bit : forall (w : N) (v : Z),
+  eval_sval_to_val (P4Bit w v) = Some (ValBaseBit (P4Arith.to_lbool w v)).
+Proof.
+  intros.
+  cbn.
+  unfold to_loptbool.
+  rewrite lift_option_map_some.
+  reflexivity.
+Qed.
+
 End EvalExpr.
 
 #[export] Hint Resolve eval_expr_sound eval_lexpr_sound eval_write_sound eval_arg_sound eval_args_sound : hoare.

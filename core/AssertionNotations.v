@@ -1,6 +1,7 @@
 Require Import Coq.Strings.String.
 Require Import Coq.Setoids.Setoid.
 Require Import Coq.Relations.Relation_Definitions.
+Require Import Coq.NArith.BinNat.
 Require Import Poulet4.P4light.Syntax.Typed.
 Require Import Poulet4.P4light.Syntax.Syntax.
 Require Import Poulet4.P4light.Semantics.Semantics.

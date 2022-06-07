@@ -358,8 +358,8 @@ Definition Row_tbl_bloom_spec : func_spec :=
       (_ : 0 <= i < num_cells),
       PRE
         (ARG []
-        (MEM [(["api"], eval_val_to_sval (ValBaseBit (P4Arith.to_lbool 8%N op)));
-              (["index"], eval_val_to_sval (ValBaseBit (P4Arith.to_lbool 18%N i)))]
+        (MEM [(["api"], P4Bit 8 op);
+              (["index"], P4Bit 18 i)]
         (EXT [row_repr p r])))
       POST
         (EX retv,
@@ -378,28 +378,20 @@ Definition Row_tbl_bloom_spec : func_spec :=
 Lemma Row_tbl_bloom_body :
   func_sound ge Row_tbl_bloom_fundef nil Row_tbl_bloom_spec.
 Proof.
-  split. 2 : {
-    solve_modifies.
-  }
-  intros_fsh_bind.
-  red.
-  unfold Row_tbl_bloom_fundef.
-
-  hoare_func_table.
-  simpl Tofino.extern_matches.
+  start_function.
+  (* simpl Tofino.extern_matches. *)
   econstructor.
   (* INSERT case *)
-  { econstructor.
+  { intros.
+    econstructor.
     { reflexivity. }
-    { intros.
-      step_call Row_insert_body.
+    { step_call Row_insert_body.
       2 : { entailer. }
       { auto. }
       apply ret_implies_refl.
     }
     { constructor. }
-    { intros.
-      assert (op = INSERT). {
+    { assert (op = INSERT). {
         repeat destruct x as [? | x]; subst; try solve [inv H].
         auto.
         destruct x.
@@ -411,17 +403,16 @@ Proof.
   }
   econstructor.
   (* QUERY case *)
-  { econstructor.
+  { intros.
+    econstructor.
     { reflexivity. }
-    { intros.
-      step_call Row_query_body.
+    { step_call Row_query_body.
       2 : { entailer. }
       { auto. }
       apply ret_implies_refl.
     }
     { constructor. }
-    { intros.
-      assert (op = QUERY). {
+    { assert (op = QUERY). {
         repeat destruct x as [? | x]; subst; try solve [inv H0].
         auto.
         destruct x.
@@ -435,17 +426,16 @@ Proof.
   }
   econstructor.
   (* CLEAR case *)
-  { econstructor.
+  { intros.
+    econstructor.
     { reflexivity. }
-    { intros.
-      step_call Row_clear_body.
+    { step_call Row_clear_body.
       2 : { entailer. }
       { auto. }
       apply ret_implies_refl.
     }
     { constructor. }
-    { intros.
-      assert (op = CLEAR). {
+    { assert (op = CLEAR). {
         repeat destruct x as [? | x]; subst; try solve [inv H1].
         auto.
         destruct x.

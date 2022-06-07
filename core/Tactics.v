@@ -8,6 +8,7 @@ Require Import ProD3.core.Coqlib.
 Require Import ProD3.core.SvalRefine.
 Require Import ProD3.core.Hoare.
 Require Import ProD3.core.Implies.
+Require Import ProD3.core.EvalExpr.
 Require Import ProD3.core.ConcreteHoare.
 Require Import ProD3.core.AssertionNotations.
 Require Import ProD3.core.Modifies.
@@ -219,6 +220,10 @@ Ltac solve_modifies :=
   | idtac "The modifies clause cannot be solved automatically."
   ].
 
+Ltac simplify_lift_option_eval_sval_to_val :=
+  cbn [map];
+  repeat rewrite eval_sval_to_val_P4Bit.
+
 (* Handles table when we have a particular case. *)
 Ltac hoare_func_table_case :=
   lazymatch goal with
@@ -226,7 +231,8 @@ Ltac hoare_func_table_case :=
       eapply hoare_func_table';
       [ eapply hoare_table_match_case'; (* hoare_table_match *)
         [ reflexivity (* eval_exprs *)
-        | reflexivity (* lift_option (.. keysvals) *)
+        | simplify_lift_option_eval_sval_to_val; (* lift_option (.. keysvals) *)
+          reflexivity
         | eapply hoare_table_entries_intros; (* hoare_table_entries *)
           repeat econstructor
         | reflexivity (* extern_match *)
@@ -248,7 +254,8 @@ Ltac hoare_func_table :=
       eapply hoare_func_table';
       [ eapply hoare_table_match_list_intro'; (* hoare_table_match_list *)
         [ reflexivity (* eval_exprs *)
-        | reflexivity (* lift_option (.. keysvals) *)
+        | simplify_lift_option_eval_sval_to_val; (* lift_option (.. keysvals) *)
+          reflexivity
         | eapply hoare_table_entries_intros; (* hoare_table_entries *)
           repeat econstructor
         | hoare_extern_match_list (* hoare_extern_match_list *)
