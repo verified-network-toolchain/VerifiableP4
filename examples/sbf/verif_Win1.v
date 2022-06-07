@@ -77,12 +77,15 @@ Proof.
   start_function.
   unfold frame_repr.
   normalize_EXT.
-  destruct f as [f ?H]. destruct is as [is ?H]. cbn [proj1_sig] in *.
-  apply destruct_Zlength_3 in H.
-  destruct H as [r1 [r2 [r3 ?]]]; subst.
+  destruct f as [f ?H]. destruct is as [is ?H].
+  cbn [proj1_sig] in *.
   apply destruct_Zlength_3 in H0.
-  destruct H0 as [i1 [i2 [i3 ?]]]; subst.
-  inv x. inv H2. inv H4. inv H5.
+  destruct H0 as [r1 [r2 [r3 ?]]]; subst.
+  apply destruct_Zlength_3 in H1.
+  destruct H1 as [i1 [i2 [i3 ?]]]; subst.
+  repeat lazymatch goal with
+  | H : Forall _ _ |- _ => inv H
+  end.
   step_call verif_Row11.Row_noop_case_body.
   2 : { entailer. }
   { auto. }
@@ -137,11 +140,13 @@ Proof.
   normalize_EXT.
   destruct f as [f ?H]. destruct is as [is ?H].
   cbn [proj1_sig frame_insert] in *.
-  apply destruct_Zlength_3 in H.
-  destruct H as [r1 [r2 [r3 ?]]]; subst.
   apply destruct_Zlength_3 in H0.
-  destruct H0 as [i1 [i2 [i3 ?]]]; subst.
-  inv x. inv H2. inv H4.
+  destruct H0 as [r1 [r2 [r3 ?]]]; subst.
+  apply destruct_Zlength_3 in H1.
+  destruct H1 as [i1 [i2 [i3 ?]]]; subst.
+  repeat lazymatch goal with
+  | H : Forall _ _ |- _ => inv H
+  end.
   step_call verif_Row11.Row_insert_case_body.
   2 : { entailer. }
   { auto. }
@@ -202,11 +207,13 @@ Proof.
   normalize_EXT.
   destruct f as [f ?H]. destruct is as [is ?H].
   cbn [proj1_sig] in *.
-  apply destruct_Zlength_3 in H.
-  destruct H as [r1 [r2 [r3 ?]]]; subst.
   apply destruct_Zlength_3 in H0.
-  destruct H0 as [i1 [i2 [i3 ?]]]; subst.
-  inv x. inv H2. inv H4.
+  destruct H0 as [r1 [r2 [r3 ?]]]; subst.
+  apply destruct_Zlength_3 in H1.
+  destruct H1 as [i1 [i2 [i3 ?]]]; subst.
+  repeat lazymatch goal with
+  | H : Forall _ _ |- _ => inv H
+  end.
   step_call verif_Row11.Row_query_case_body.
   2 : { entailer. }
   { auto. }
@@ -263,10 +270,13 @@ Proof.
   entailer.
   destruct f as [f ?H]. destruct is as [is ?H].
   unfold frame_query. cbn [proj1_sig] in *.
-  apply destruct_Zlength_3 in H.
-  destruct H as [r1 [r2 [r3 ?]]]; subst.
   apply destruct_Zlength_3 in H0.
-  destruct H0 as [i1 [i2 [i3 ?]]]; subst.
+  destruct H0 as [r1 [r2 [r3 ?]]]; subst.
+  apply destruct_Zlength_3 in H1.
+  destruct H1 as [i1 [i2 [i3 ?]]]; subst.
+  repeat lazymatch goal with
+  | H : Forall _ _ |- _ => inv H
+  end.
   auto.
 Qed.
 
@@ -311,11 +321,13 @@ Proof.
   normalize_EXT.
   destruct f as [f ?H]. destruct is as [is ?H].
   cbn [proj1_sig frame_clear] in *.
-  apply destruct_Zlength_3 in H.
-  destruct H as [r1 [r2 [r3 ?]]]; subst.
   apply destruct_Zlength_3 in H0.
-  destruct H0 as [i1 [i2 [i3 ?]]]; subst.
-  inv x. inv H2. inv H4.
+  destruct H0 as [r1 [r2 [r3 ?]]]; subst.
+  apply destruct_Zlength_3 in H1.
+  destruct H1 as [i1 [i2 [i3 ?]]]; subst.
+  repeat lazymatch goal with
+  | H : Forall _ _ |- _ => inv H
+  end.
   step_call verif_Row11.Row_clear_case_body.
   2 : { entailer. }
   { auto. }

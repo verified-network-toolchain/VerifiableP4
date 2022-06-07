@@ -200,16 +200,18 @@ Create HintDb func_specs.
 
 Ltac intros_fs_bind :=
   repeat lazymatch goal with
-  | |- func_sound _ _ _ (fs_bind (fun x => _)) =>
-    let x := fresh x in intro x
+  (* Use H for nameless bindings. *)
+  | |- func_sound _ _ _ (fs_bind (fun H => _)) =>
+    let x := fresh H in intro x
   | |- func_sound _ _ _ ?x =>
     unfold x
   end.
 
 Ltac intros_fsh_bind :=
   repeat lazymatch goal with
-  | |- fundef_satisfies_hoare _ _ _ _ (fsh_bind (fun x => _)) =>
-    let x := fresh x in intro x
+  (* Use H for nameless bindings. *)
+  | |- fundef_satisfies_hoare _ _ _ _ (fsh_bind (fun H => _)) =>
+    let x := fresh H in intro x
   | |- fundef_satisfies_hoare _ _ _ _ ?x =>
     unfold x
   end.

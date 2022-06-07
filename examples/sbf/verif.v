@@ -392,12 +392,11 @@ Proof.
     }
     { constructor. }
     { assert (op = INSERT). {
-        repeat destruct x as [? | x]; subst; try solve [inv H].
+        repeat destruct H as [? | H]; subst; try solve [inv H1].
         auto.
-        destruct x.
+        destruct H.
       }
       subst.
-      apply arg_ret_implies_post_ex. eexists.
       entailer.
     }
   }
@@ -413,12 +412,11 @@ Proof.
     }
     { constructor. }
     { assert (op = QUERY). {
-        repeat destruct x as [? | x]; subst; try solve [inv H0].
+        repeat destruct H as [? | H]; subst; try solve [inv H2].
         auto.
-        destruct x.
+        destruct H.
       }
       subst.
-      apply arg_ret_implies_post_ex. eexists.
       entailer.
       destruct (row_query r i);
         apply sval_refine_refl.
@@ -436,12 +434,11 @@ Proof.
     }
     { constructor. }
     { assert (op = CLEAR). {
-        repeat destruct x as [? | x]; subst; try solve [inv H1].
+        repeat destruct H as [? | H]; subst; try solve [inv H3].
         auto.
-        destruct x.
+        destruct H.
       }
       subst.
-      apply arg_ret_implies_post_ex. eexists.
       entailer.
     }
   }
