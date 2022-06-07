@@ -57,11 +57,11 @@ Definition RegisterAction_apply_spec (p : path) (w : N) (f : Z -> Z) (retv : Z -
     MOD None []
     WITH old_value (H_old_value : 0 <= old_value < Z.pow 2 (Z.of_N w)),
       PRE
-        (ARG [ValBaseBit (P4Arith.to_loptbool w old_value)]
+        (ARG [P4Bit w old_value]
         (MEM []
         (EXT [])))
       POST
-        (ARG_RET [ValBaseBit (P4Arith.to_loptbool w (f old_value));
+        (ARG_RET [P4Bit w (f old_value);
                   retv old_value]
            ValBaseNull
         (MEM []
@@ -70,7 +70,7 @@ Definition RegisterAction_apply_spec (p : path) (w : N) (f : Z -> Z) (retv : Z -
 Definition RegisterAction_execute_spec : func_spec :=
   WITH p (* path *) index_w w (* width *) s (* size *) r (* reg *)
       (H_r : PathMap.get p (ge_ext ge) = Some (Tofino.EnvRegAction r))
-      (H_ws : PathMap.get r (ge_ext ge) = Some (Tofino.EnvRegister (w, s)))
+      (H_ws : PathMap.get r (ge_ext ge) = Some (Tofino.EnvRegister (index_w, w, s)))
       (H_s : 0 <= s <= Z.pow 2 (Z.of_N index_w))
       apply_fd apply_f apply_retv
       (H_apply_fd : PathMap.get (p ++ ["apply"]) (ge_ext ge) =
@@ -305,7 +305,7 @@ Proof.
       rewrite H in H6. constructor. 2 : constructor.
       subst old_value.
       replace w with (Z.to_N (Zlength old_v)) by (lia).
-      unfold P4Arith.to_loptbool.
+      unfold P4Bit, P4Arith.to_loptbool.
       rewrite to_lbool_lbool_to_val.
       eapply exec_val_trans with (f := read_ndetbit). 3 : eassumption.
       { red. sauto. }
@@ -380,7 +380,7 @@ Ltac get_am_fd ge am_ge p :=
       exact fd
   end.
 
-Ltac build_execute_body ge index_w body :=
+Ltac build_execute_body ge body :=
   (* get spec from body *)
   lazymatch type of body with
   | func_sound ?am_ge ?fd _ ?spec =>
@@ -397,7 +397,8 @@ Ltac build_execute_body ge index_w body :=
         let r := eval compute in (PathMap.get p (ge_ext ge)) in
         let r := lazymatch r with (Some (Tofino.EnvRegAction ?r)) => r end in
         let s := eval compute in (PathMap.get r (ge_ext ge)) in
-        let s := lazymatch s with (Some (Tofino.EnvRegister (_, ?s))) => s end in
+        let index_w := lazymatch s with (Some (Tofino.EnvRegister (?index_w, _, _))) => index_w end in
+        let s := lazymatch s with (Some (Tofino.EnvRegister (_, _, ?s))) => s end in
         exact (RegisterAction_execute_body ge am_ge p index_w w s r eq_refl eq_refl ltac:(lia)
           fd f retv eq_refl body)
     | _ => fail "body is not a body proof for apply"

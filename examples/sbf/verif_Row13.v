@@ -39,7 +39,7 @@ Qed.
 
 (* I would like to make it opaque, but I don't know how to. *)
 Definition Row_regact_insert_execute_body :=
-  ltac:(build_execute_body ge 18%N Row_regact_insert_apply_body).
+  ltac:(build_execute_body ge Row_regact_insert_apply_body).
 
 #[local] Hint Extern 5 (func_modifies _ _ _ _ _) => (apply Row_regact_insert_execute_body) : func_specs.
 
@@ -107,7 +107,7 @@ Proof.
 Qed.
 
 Definition Row_regact_query_execute_body :=
-  ltac:(build_execute_body ge 18%N Row_regact_query_apply_body).
+  ltac:(build_execute_body ge Row_regact_query_apply_body).
 
 #[local] Hint Extern 5 (func_modifies _ _ _ _ _) => (apply Row_regact_query_execute_body) : func_specs.
 
@@ -195,7 +195,7 @@ Qed.
 
 (* Finished transaction in 0.179 secs (0.14u,0.031s) (successful) *)
 Definition Row_regact_clear_execute_body :=
-  ltac:(build_execute_body ge 18%N Row_regact_clear_apply_body).
+  ltac:(build_execute_body ge Row_regact_clear_apply_body).
 
 #[local] Hint Extern 5 (func_modifies _ _ _ _ _) => (apply Row_regact_clear_execute_body) : func_specs.
 
