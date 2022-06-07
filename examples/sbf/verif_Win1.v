@@ -87,13 +87,13 @@ Proof.
   | H : Forall _ _ |- _ => inv H
   end.
   step_call verif_Row11.Row_noop_case_body.
-  2 : { entailer. }
+  { entailer. }
   { auto. }
   step_call verif_Row12.Row_noop_case_body.
-  2 : { entailer. }
+  { entailer. }
   { auto. }
   step_call verif_Row13.Row_noop_case_body.
-  2 : { entailer. }
+  { entailer. }
   { auto. }
   step.
   entailer.
@@ -148,13 +148,13 @@ Proof.
   | H : Forall _ _ |- _ => inv H
   end.
   step_call verif_Row11.Row_insert_case_body.
-  2 : { entailer. }
+  { entailer. }
   { auto. }
   step_call verif_Row12.Row_insert_case_body.
-  2 : { entailer. }
+  { entailer. }
   { auto. }
   step_call verif_Row13.Row_insert_case_body.
-  2 : { entailer. }
+  { entailer. }
   { auto. }
   step.
   entailer.
@@ -215,13 +215,13 @@ Proof.
   | H : Forall _ _ |- _ => inv H
   end.
   step_call verif_Row11.Row_query_case_body.
-  2 : { entailer. }
+  { entailer. }
   { auto. }
   step_call verif_Row12.Row_query_case_body.
-  2 : { entailer. }
+  { entailer. }
   { auto. }
   step_call verif_Row13.Row_query_case_body.
-  2 : { entailer. }
+  { entailer. }
   { auto. }
   step.
   entailer.
@@ -329,13 +329,13 @@ Proof.
   | H : Forall _ _ |- _ => inv H
   end.
   step_call verif_Row11.Row_clear_case_body.
-  2 : { entailer. }
+  { entailer. }
   { auto. }
   step_call verif_Row12.Row_clear_case_body.
-  2 : { entailer. }
+  { entailer. }
   { auto. }
   step_call verif_Row13.Row_clear_case_body.
-  2 : { entailer. }
+  { entailer. }
   { auto. }
   step.
   entailer.

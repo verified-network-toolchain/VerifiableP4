@@ -75,7 +75,7 @@ Proof.
   unfold row_repr, row_reg_repr. cbn [proj1_sig row_insert].
   normalize_EXT.
   step_call Row_regact_insert_execute_body.
-  4 : { entailer. }
+  { entailer. }
   { list_solve. }
   { unfold num_slots in *; list_solve. }
   { rewrite Znth_map by list_solve.
@@ -158,7 +158,7 @@ Proof.
   unfold row_repr, row_reg_repr. cbn [proj1_sig].
   normalize_EXT.
   step_call Row_regact_query_execute_body.
-  4 : { entailer. }
+  { entailer. }
   { list_solve. }
   { unfold num_slots in *; list_solve. }
   { rewrite Znth_map by list_solve.
@@ -231,7 +231,7 @@ Proof.
   unfold row_repr, row_reg_repr. cbn [proj1_sig row_clear].
   normalize_EXT.
   step_call Row_regact_clear_execute_body.
-  4 : { entailer. }
+  { entailer. }
   { list_solve. }
   { unfold num_slots in *; list_solve. }
   { rewrite Znth_map by list_solve.
@@ -305,8 +305,8 @@ Proof.
   start_function.
   step.
   step_call Row_tbl_bloom_noop_body.
-  2 : entailer.
-  1 : auto.
+  { entailer. }
+  { auto. }
   Intros _.
   step.
   entailer.
@@ -353,7 +353,7 @@ Proof.
   start_function.
   next_case.
   table_action Row_insert_body.
-  2 : { entailer. }
+  { entailer. }
   { auto. }
   { entailer. }
 Qed.
@@ -364,8 +364,8 @@ Proof.
   start_function.
   step.
   step_call Row_tbl_bloom_insert_body.
-  2 : entailer.
-  1 : auto.
+  { entailer. }
+  { auto. }
   Intros _.
   step.
   entailer.
@@ -411,7 +411,7 @@ Proof.
   next_case.
   next_case.
   table_action Row_query_body.
-  2 : { entailer. }
+  { entailer. }
   { auto. }
   { entailer. }
 Qed.
@@ -422,8 +422,8 @@ Proof.
   start_function.
   step.
   step_call Row_tbl_bloom_query_body.
-  2 : entailer.
-  1 : auto.
+  { entailer. }
+  { auto. }
   Intros _.
   step.
   entailer.
@@ -470,7 +470,7 @@ Proof.
   next_case.
   next_case.
   table_action Row_clear_body.
-  2 : { entailer. }
+  { entailer. }
   { auto. }
   { entailer. }
 Qed.
@@ -481,8 +481,8 @@ Proof.
   start_function.
   step.
   step_call Row_tbl_bloom_clear_body.
-  2 : entailer.
-  1 : auto.
+  { entailer. }
+  { auto. }
   Intros _.
   step.
   entailer.

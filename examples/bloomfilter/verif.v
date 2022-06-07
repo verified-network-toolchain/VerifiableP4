@@ -303,31 +303,31 @@ Proof.
   do 3 (destruct bf; [exfalso; list_solve |]).
   destruct bf; [|exfalso; list_solve].
   step_call hash_body [ValBaseBit (to_lbool 16 data); ValBaseBit (to_lbool 3 3)].
-  2 : entailer.
+  { entailer. }
   reflexivity.
   replace (CRC_Z _) with (CRC_pad0 data) by reflexivity.
   step_call hash_body [ValBaseBit (to_lbool 16 data); ValBaseBit (to_lbool 5 5)].
-  2 : entailer.
+  { entailer. }
   reflexivity.
   replace (CRC_Z _) with (CRC_pad1 data) by reflexivity.
   step_call hash_body [ValBaseBit (to_lbool 16 data); ValBaseBit (to_lbool 7 7)].
-  2 : entailer.
+  { entailer. }
   reflexivity.
   replace (CRC_Z _) with (CRC_pad2 data) by reflexivity.
   simpl MEM.
   unfold encode_bloomfilter_state.
   normalize_EXT.
   step_call register_write_body.
+  { entailer. }
   reflexivity. 2: simpl; lia.
-  2 : entailer.
   { apply CRC_range. }
   step_call register_write_body.
+  { entailer. }
   reflexivity. 2: simpl; lia.
-  2 : entailer.
   { apply CRC_range. }
   step_call register_write_body.
+  { entailer. }
   reflexivity. 2: simpl; lia.
-  2 : entailer.
   { apply CRC_range. }
   step.
   entailer.
@@ -381,31 +381,31 @@ Lemma Query_body : func_sound ge Query_fundef nil Query_spec.
 Proof.
   start_function.
   step_call hash_body [ValBaseBit (to_lbool 16 data); ValBaseBit (to_lbool 3 3)].
-  2 : { entailer. }
+  { entailer. }
   reflexivity.
   replace (CRC_Z _) with (CRC_pad0 data) by reflexivity.
   step_call hash_body [ValBaseBit (to_lbool 16 data); ValBaseBit (to_lbool 5 5)].
-  2 : entailer.
+  { entailer. }
   reflexivity.
   replace (CRC_Z _) with (CRC_pad1 data) by reflexivity.
   step_call hash_body [ValBaseBit (to_lbool 16 data); ValBaseBit (to_lbool 7 7)].
-  2 : entailer.
+  { entailer. }
   reflexivity.
   replace (CRC_Z _) with (CRC_pad2 data) by reflexivity.
   simpl MEM.
   unfold encode_bloomfilter_state.
   normalize_EXT.
   step_call register_read_body.
+  { entailer. }
   reflexivity. 2: simpl; lia.
-  2 : entailer.
   { apply CRC_range. }
   step_call register_read_body.
+  { entailer. }
   reflexivity. 2: simpl; lia.
-  2 : entailer.
   { apply CRC_range. }
   step_call register_read_body.
+  { entailer. }
   reflexivity. 2: simpl; lia.
-  2 : entailer.
   { apply CRC_range. }
   step.
   step.

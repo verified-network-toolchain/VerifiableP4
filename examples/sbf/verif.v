@@ -153,7 +153,7 @@ Proof.
   unfold row_repr, row_reg_repr. cbn [proj1_sig row_insert].
   normalize_EXT.
   step_call Row_regact_insert_execute_body.
-  4 : { entailer. }
+  { entailer. }
   { list_solve. }
   { list_solve. }
   { rewrite Znth_map by list_solve.
@@ -245,7 +245,7 @@ Proof.
   unfold row_repr, row_reg_repr. cbn [proj1_sig].
   normalize_EXT.
   step_call Row_regact_query_execute_body.
-  4 : { entailer. }
+  { entailer. }
   { list_solve. }
   { list_solve. }
   { rewrite Znth_map by list_solve.
@@ -332,7 +332,7 @@ Proof.
   unfold row_repr, row_reg_repr. cbn [proj1_sig row_clear].
   normalize_EXT.
   step_call Row_regact_clear_execute_body.
-  4 : { entailer. }
+  { entailer. }
   { list_solve. }
   { list_solve. }
   { rewrite Znth_map by list_solve.
@@ -386,7 +386,7 @@ Proof.
     econstructor.
     { reflexivity. }
     { step_call Row_insert_body.
-      2 : { entailer. }
+      { entailer. }
       { auto. }
       apply ret_implies_refl.
     }
@@ -406,7 +406,7 @@ Proof.
     econstructor.
     { reflexivity. }
     { step_call Row_query_body.
-      2 : { entailer. }
+      { entailer. }
       { auto. }
       apply ret_implies_refl.
     }
@@ -428,7 +428,7 @@ Proof.
     econstructor.
     { reflexivity. }
     { step_call Row_clear_body.
-      2 : { entailer. }
+      { entailer. }
       { auto. }
       apply ret_implies_refl.
     }
@@ -459,7 +459,7 @@ Proof.
   start_function.
   step.
   step_call Row_tbl_bloom_body.
-  3 : entailer.
+  { entailer. }
   1-2 : auto.
   Intros _.
   step.

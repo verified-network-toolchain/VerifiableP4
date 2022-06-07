@@ -428,9 +428,13 @@ Ltac process_func_body func_spec callback1 callback2 :=
       | fundef_satisfies_hoare _ _ _ _ _ /\ func_modifies _ _ _ _ _ =>
           idtac
       end;
-      callback2 func_body
+      callback2 func_body;
+      (* Put the entailment goal last *)
+      cycle 1
     )];
   shelve_unifiable;
+  (* Put the entailment goal first *)
+  cycle -1;
   try clear func_body;
   try clear func_body1;
   try clear func_body2.
