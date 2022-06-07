@@ -15,13 +15,6 @@ Definition am_ge := ltac:(get_am_ge prog).
 (* Finished transaction in 1.786 secs (1.734u,0.046s) (successful) *)
 Definition ge : genv := ltac:(get_ge am_ge prog).
 
-(* TODO: put them somewhere in core. *)
-Definition P4Bit (w : N) (v : Z) : Sval :=
-  ValBaseBit (P4Arith.to_loptbool w v).
-
-Definition P4NewBit (w : N) : Sval :=
-  ValBaseBit (Zrepeat None (Z.of_N w)).
-
 (* Constants *)
 
 Definition NOOP := 0.
