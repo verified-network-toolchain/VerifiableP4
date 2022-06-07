@@ -479,6 +479,21 @@ Tactic Notation "step_call" uconstr(func_spec) :=
       epose proof (func_body := conj func_body1 func_body2))
   || step_call func_spec _.
 
+(* This is very experimental. It reduces hoare_table_action_case'. *)
+Ltac table_action spec :=
+  lazymatch goal with
+  | |- hoare_table_action_case' _ _ _ _ _ _ _ =>
+      econstructor;
+      [ reflexivity (* get_table_call *)
+      | step_call spec; (* hoare_call *)
+        [ .. | apply ret_implies_refl]
+      | repeat constructor (* hoare_table_action_ex_layer *)
+      | (* arg_ret_implies *)
+      ]
+  | _ =>
+      fail "The goal is not in the form of (hoare_table_action_case' _ _ _ _ _ _ _)"
+  end.
+
 (* Tactics for step into a function call, instead of using a function spec.
   They may need some refactoring. *)
 

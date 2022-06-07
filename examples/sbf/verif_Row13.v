@@ -294,17 +294,9 @@ Proof.
   next_case.
   next_case.
   next_case.
-  econstructor.
-  (* NOOP case *)
-  { reflexivity. }
-  { step_call NoAction_body.
-    { entailer. }
-    apply ret_implies_refl.
-  }
-  { constructor. }
-  { intros.
-    entailer.
-  }
+  table_action NoAction_body.
+  { entailer. }
+  { entailer. }
 Qed.
 
 Lemma Row_noop_case_body :
@@ -360,19 +352,10 @@ Lemma Row_tbl_bloom_insert_body :
 Proof.
   start_function.
   next_case.
-  econstructor.
-  (* INSERT case *)
-  { reflexivity. }
-  { intros.
-    step_call Row_insert_body.
-    2 : { entailer. }
-    { auto. }
-    apply ret_implies_refl.
-  }
-  { constructor. }
-  { intros.
-    entailer.
-  }
+  table_action Row_insert_body.
+  2 : { entailer. }
+  { auto. }
+  { entailer. }
 Qed.
 
 Lemma Row_insert_case_body :
@@ -427,19 +410,10 @@ Proof.
   start_function.
   next_case.
   next_case.
-  econstructor.
-  (* QUERY case *)
-  { reflexivity. }
-  { intros.
-    step_call Row_query_body.
-    2 : { entailer. }
-    { auto. }
-    apply ret_implies_refl.
-  }
-  { constructor. }
-  { intros.
-    entailer.
-  }
+  table_action Row_query_body.
+  2 : { entailer. }
+  { auto. }
+  { entailer. }
 Qed.
 
 Lemma Row_query_case_body :
@@ -495,19 +469,10 @@ Proof.
   next_case.
   next_case.
   next_case.
-  econstructor.
-  (* CLEAR case *)
-  { reflexivity. }
-  { intros.
-    step_call Row_clear_body.
-    2 : { entailer. }
-    { auto. }
-    apply ret_implies_refl.
-  }
-  { constructor. }
-  { intros.
-    entailer.
-  }
+  table_action Row_clear_body.
+  2 : { entailer. }
+  { auto. }
+  { entailer. }
 Qed.
 
 Lemma Row_clear_case_body :
