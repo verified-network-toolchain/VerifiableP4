@@ -2,17 +2,19 @@ Require Import Coq.ZArith.BinInt.
 Require Import Coq.Strings.String.
 Require Import Poulet4.P4light.Semantics.Semantics.
 Require Import ProD3.examples.sbf.Utils.
-Require Import ProD3.examples.sbf.UseTofino.
 Require ProD3.examples.sbf.ConFilter.
 Require Import ProD3.examples.sbf.ConFilter.
-Require Import ProD3.core.Coqlib.
-Require Import ProD3.core.ExtPred.
+Require Import ProD3.core.Core.
+Require Import ProD3.core.Tofino.
 Import ListNotations.
 Open Scope Z_scope.
 Open Scope string_scope.
 Open Scope list_scope.
 
 Section FilterRepr.
+
+Notation ident := string.
+Notation path := (list ident).
 
 Context {num_rows num_slots : Z}.
 
