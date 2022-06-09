@@ -39,3 +39,6 @@ Inductive Forall2_fold {A B C} (P : A -> B -> C -> A -> Prop) : A -> list B -> l
       P a b c a' ->
       Forall2_fold P a' bs cs a'' ->
       Forall2_fold P a (b :: bs) (c :: cs) a''.
+
+(* Hinder too eager typeclass resolution. We should eventually put this into zlist. *)
+#[global] Hint Mode Inhabitant + : typeclass_instances.
