@@ -6,9 +6,6 @@ Require Import ProD3.examples.sbf.p4ast.
 Require Import ProD3.examples.sbf.common.
 Require Import ProD3.examples.sbf.ConFilter.
 Require Import ProD3.examples.sbf.FilterRepr.
-Require Import ProD3.examples.sbf.verif_Row11.
-Require Import ProD3.examples.sbf.verif_Row12.
-Require Import ProD3.examples.sbf.verif_Row13.
 Require Import Hammer.Plugin.Hammer.
 Require Export Coq.Program.Program.
 Import ListNotations.
@@ -18,7 +15,7 @@ Notation path := (list ident).
 Notation Val := (@ValueBase bool).
 Notation Sval := (@ValueBase (option bool)).
 
-Definition p := ["pipe"; "ingress"; "bf2_ds"; "win_1"].
+Definition p :=  ["pipe"; "ingress"; "bf2_ds"; "win_4"].
 
 Definition Win_fundef :=
   ltac:(get_fd ["Bf2BloomFilterWin"; "apply"] ge).
@@ -58,45 +55,10 @@ Definition Win_noop_spec : func_spec :=
         (MEM []
         (EXT [frame_repr p rows f]))).
 
-Lemma destruct_Zlength_3 : forall {A} (l : list A),
-  Zlength l = 3 ->
-  exists x1 x2 x3, l = [x1; x2; x3].
-Proof.
-  intros.
-  destruct l as [ | x1 l]; only 1 : list_solve.
-  destruct l as [ | x2 l]; only 1 : list_solve.
-  destruct l as [ | x3 l]; only 1 : list_solve.
-  destruct l as [ | x4 l]; only 2 : list_solve.
-  eauto.
-Qed.
-
 Lemma Win_noop_body :
   func_sound ge Win_fundef nil Win_noop_spec.
 Proof.
-  start_function.
-  unfold frame_repr.
-  normalize_EXT.
-  destruct f as [f ?H]. destruct is as [is ?H].
-  cbn [proj1_sig] in *.
-  apply destruct_Zlength_3 in H0.
-  destruct H0 as [r1 [r2 [r3 ?]]]; subst.
-  apply destruct_Zlength_3 in H1.
-  destruct H1 as [i1 [i2 [i3 ?]]]; subst.
-  repeat lazymatch goal with
-  | H : Forall _ _ |- _ => inv H
-  end.
-  step_call verif_Row11.Row_noop_case_body.
-  { entailer. }
-  { auto. }
-  step_call verif_Row12.Row_noop_case_body.
-  { entailer. }
-  { auto. }
-  step_call verif_Row13.Row_noop_case_body.
-  { entailer. }
-  { auto. }
-  step.
-  entailer.
-Qed.
+Admitted.
 
 Definition Win_insert_spec : func_spec :=
   WITH (* p *),
@@ -134,30 +96,7 @@ Definition Win_insert_spec : func_spec :=
 Lemma Win_insert_body :
   func_sound ge Win_fundef nil Win_insert_spec.
 Proof.
-  start_function.
-  unfold frame_repr.
-  normalize_EXT.
-  destruct f as [f ?H]. destruct is as [is ?H].
-  cbn [proj1_sig frame_insert] in *.
-  apply destruct_Zlength_3 in H0.
-  destruct H0 as [r1 [r2 [r3 ?]]]; subst.
-  apply destruct_Zlength_3 in H1.
-  destruct H1 as [i1 [i2 [i3 ?]]]; subst.
-  repeat lazymatch goal with
-  | H : Forall _ _ |- _ => inv H
-  end.
-  step_call verif_Row11.Row_insert_case_body.
-  { entailer. }
-  { auto. }
-  step_call verif_Row12.Row_insert_case_body.
-  { entailer. }
-  { auto. }
-  step_call verif_Row13.Row_insert_case_body.
-  { entailer. }
-  { auto. }
-  step.
-  entailer.
-Qed.
+Admitted.
 
 #[local] Instance row_inhabit: Inhabitant (row num_slots).
 Proof.
@@ -201,30 +140,7 @@ Definition Win_query_spec : func_spec :=
 Lemma Win_query_body :
   func_sound ge Win_fundef nil Win_query_spec.
 Proof.
-  start_function.
-  unfold frame_repr.
-  normalize_EXT.
-  destruct f as [f ?H]. destruct is as [is ?H].
-  cbn [proj1_sig] in *.
-  apply destruct_Zlength_3 in H0.
-  destruct H0 as [r1 [r2 [r3 ?]]]; subst.
-  apply destruct_Zlength_3 in H1.
-  destruct H1 as [i1 [i2 [i3 ?]]]; subst.
-  repeat lazymatch goal with
-  | H : Forall _ _ |- _ => inv H
-  end.
-  step_call verif_Row11.Row_query_case_body.
-  { entailer. }
-  { auto. }
-  step_call verif_Row12.Row_query_case_body.
-  { entailer. }
-  { auto. }
-  step_call verif_Row13.Row_query_case_body.
-  { entailer. }
-  { auto. }
-  step.
-  entailer.
-Qed.
+Admitted.
 
 Definition Win_query_spec2 : func_spec :=
   WITH (* p *),
@@ -263,21 +179,7 @@ Definition Win_query_spec2 : func_spec :=
 Lemma Win_query_body2 :
   func_sound ge Win_fundef nil Win_query_spec2.
 Proof.
-  refine_function Win_query_body.
-  { entailer. }
-  1 : auto.
-  entailer.
-  destruct f as [f ?H]. destruct is as [is ?H].
-  unfold frame_query. cbn [proj1_sig] in *.
-  apply destruct_Zlength_3 in H0.
-  destruct H0 as [r1 [r2 [r3 ?]]]; subst.
-  apply destruct_Zlength_3 in H1.
-  destruct H1 as [i1 [i2 [i3 ?]]]; subst.
-  repeat lazymatch goal with
-  | H : Forall _ _ |- _ => inv H
-  end.
-  auto.
-Qed.
+Admitted.
 
 Definition Win_clear_spec : func_spec :=
   WITH (* p *),
@@ -315,29 +217,6 @@ Definition Win_clear_spec : func_spec :=
 Lemma Win_clear_body :
   func_sound ge Win_fundef nil Win_clear_spec.
 Proof.
-  start_function.
-  unfold frame_repr.
-  normalize_EXT.
-  destruct f as [f ?H]. destruct is as [is ?H].
-  cbn [proj1_sig frame_clear] in *.
-  apply destruct_Zlength_3 in H0.
-  destruct H0 as [r1 [r2 [r3 ?]]]; subst.
-  apply destruct_Zlength_3 in H1.
-  destruct H1 as [i1 [i2 [i3 ?]]]; subst.
-  repeat lazymatch goal with
-  | H : Forall _ _ |- _ => inv H
-  end.
-  step_call verif_Row11.Row_clear_case_body.
-  { entailer. }
-  { auto. }
-  step_call verif_Row12.Row_clear_case_body.
-  { entailer. }
-  { auto. }
-  step_call verif_Row13.Row_clear_case_body.
-  { entailer. }
-  { auto. }
-  step.
-  entailer.
-Qed.
+Admitted.
 
 #[export] Hint Extern 5 (func_modifies _ _ _ _ _) => (apply Win_noop_body) : func_specs.
