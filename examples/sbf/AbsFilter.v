@@ -13,29 +13,34 @@ Section AbsFilter.
 Context {header_type : Set}.
 Context {Inhabitant_header_type : Inhabitant header_type}.
 
-Context (num_rows : Z) (num_cells : Z).
-Hypothesis H_num_cells : 0 < num_cells.
+Context (num_rows : Z) (num_slots : Z).
+Hypothesis H_num_slots : 0 < num_slots.
 
 Section Row.
 
 Context (hash : header_type -> Z).
-Hypothesis H_hash : forall h, 0 <= hash h < num_cells.
+Hypothesis H_hash : forall h, 0 <= hash h < num_slots.
 
 Inductive row : Type :=
-  | Clear (i : Z)
+  | Clear (cleared : list bool)
   | Normal (hs : list header_type).
 
-Inductive row_sim : row -> ConFilter.row num_cells -> Prop :=
-  | rom_sim_clear : forall i cr,
-      (forall j, 0 <= j < i -> Znth j (`cr) = false) ->
-      row_sim (Clear i) cr
+Inductive row_sim : row -> ConFilter.row num_slots -> Prop :=
+  | rom_sim_clear : forall (cleared : list bool) cr,
+      Zlength cleared = num_slots ->
+      (forall j, 0 <= j < num_slots -> Znth j cleared -> Znth j (`cr) = false) ->
+      row_sim (Clear cleared) cr
   | rom_sim_normal : forall hs cr,
-      `cr = fold_left (fun l i => upd_Znth i l true) (map hash hs) (Zrepeat false num_cells) ->
+      `cr = fold_left (fun l i => upd_Znth i l true) (map hash hs) (Zrepeat false num_slots) ->
       row_sim (Normal hs) cr.
 
 Definition row_insert (r : row) (h : header_type) : option row :=
   match r with
-  | Clear _ => None
+  | Clear cleared =>
+      if fold_andb cleared then
+        Some (Normal [h])
+      else
+        None
   | Normal hs => Some (Normal (hs ++ [h]))
   end.
 
@@ -46,25 +51,23 @@ Lemma row_insert_sound : forall r cr h r',
 Proof.
   intros.
   destruct r as [? | hs]; inv H0.
-  inv H. constructor.
-  simpl. rewrite H1.
-  rewrite map_app.
-  rewrite fold_left_app.
-  reflexivity.
+  - destruct (fold_andb cleared) eqn:? ; inv H2. inv H. constructor. destruct cr as [cr ?H].
+    simpl in *. f_equal. list_simplify. apply H2.
+    + rewrite <- H. auto.
+    + rewrite fold_andb_true in Heqb. apply Heqb. list_solve.
+  - inv H. constructor.
+    simpl. rewrite H1.
+    rewrite map_app.
+    rewrite fold_left_app.
+    reflexivity.
 Qed.
 
 Definition row_clear (r : row) (i : Z) : option row :=
   match r with
-  | Clear j =>
-      if i =? j then
-        if i+1 >=? num_cells then
-          Some (Normal [])
-        else
-          Some (Clear (i+1))
-      else
-        None
+  | Clear cleared =>
+      Some (Clear (upd_Znth i cleared true))
   | Normal _ =>
-      if i =? 0 then Some (Clear 1) else None
+      Some (Clear (upd_Znth i (Zrepeat false num_slots) true))
   end.
 
 Lemma fold_left_pres : forall {A B} (f : A -> B -> A) bl a P,
@@ -95,29 +98,8 @@ Lemma row_clear_sound : forall r cr i r',
   row_sim r' (ConFilter.row_clear cr i).
 Proof.
   intros.
-  destruct r as [j | ?].
-  - unfold row_clear in *.
-    destruct (i =? j) eqn:H_i_j.
-    + destruct (i+1 >=? num_cells) eqn:H_i1_num_cells.
-      * inv H0. inv H. constructor. destruct cr as [cr ?H]. simpl in *.
-        list_simplify. apply H1. lia.
-      * inv H0. inv H.
-        unfold ConFilter.row_clear; constructor.
-        intros. simpl. destruct cr as [cr ?H]. simpl in *. list_simplify.
-        apply H1. lia.
-    + inv H0.
-  - unfold row_clear in *.
-    destruct (i =? 0) eqn:H_i_0.
-    + inv H0. inv H.
-      assert (Zlength (fold_left (fun (l : list bool) (i0 : Z) => upd_Znth i0 l true)
-            (map hash hs) (Zrepeat false num_cells)) = num_cells). {
-        apply fold_left_pres.
-        { list_solve. }
-        { list_solve. }
-      }
-      unfold ConFilter.row_clear; constructor. simpl. rewrite H1.
-      intros. list_solve.
-    + inv H0.
+  destruct r; inv H; unfold row_clear in *; inv H0; constructor; intros;
+    destruct cr as [cr ?H]; simpl in *; list_solve.
 Qed.
 
 Definition row_query (r : row) (h : header_type) : option bool :=
@@ -144,7 +126,7 @@ Proof.
   - specialize (H_hash h). list_solve.
   - unfold compose.
     assert (Zlength (fold_right (fun (y : Z) (x : list bool) => upd_Znth y x true)
-          (Zrepeat false num_cells) (map hash hs)) = num_cells). {
+          (Zrepeat false num_slots) (map hash hs)) = num_slots). {
       apply fold_right_pres.
       { list_solve. }
       { list_solve. }
@@ -163,11 +145,11 @@ Section Frame.
 
 Context (hashes : list (header_type -> Z)).
 Hypothesis H_Zlength_hashes : Zlength hashes = num_rows.
-Hypothesis H_hashes : Forall (fun hash => forall h, 0 <= hash h < num_cells) hashes.
+Hypothesis H_hashes : Forall (fun hash => forall h, 0 <= hash h < num_slots) hashes.
 
 Definition frame : Type := row.
 
-Definition frame_sim (f : frame) (cf : ConFilter.frame num_rows num_cells) : Prop :=
+Definition frame_sim (f : frame) (cf : ConFilter.frame num_rows num_slots) : Prop :=
   Forall2 (fun hash cr => row_sim hash f cr) hashes (`cf).
 
 Definition frame_insert : forall (f : frame) (h : header_type), option frame :=
@@ -179,8 +161,8 @@ Next Obligation.
   list_solve.
 Qed.
 
-#[local] Instance row_inhabitant: Inhabitant (ConFilter.row num_cells) :=
-  empty_row num_cells H_num_cells.
+#[local] Instance row_inhabitant: Inhabitant (ConFilter.row num_slots) :=
+  empty_row num_slots H_num_slots.
 
 Lemma frame_insert_sound : forall f cf h f',
   frame_sim f cf ->
@@ -278,8 +260,10 @@ Qed.
 
 End Frame.
 
+
 #[global] Instance frame_Inhabitant: Inhabitant frame := Normal [].
 
+(*
 Section sliding_mixin.
 
   Context (frames: list frame).
@@ -392,5 +376,7 @@ Section Sliding.
     fold_orb (remove_option (map (fun f => frame_query hashes f h) (frames win))).
 
 End Sliding.
+
+*)
 
 End AbsFilter.

@@ -23,6 +23,20 @@ Proof.
   apply fold_andb_false.
 Qed.
 
+Lemma fold_andb_true: forall l, fold_andb l = true <-> (forall i, 0 <= i < Zlength l -> Znth i l = true).
+Proof.
+  induction l; split; intros; simpl in *; auto.
+  - list_solve.
+  - rewrite fold_andb_cons in H. apply andb_prop in H. destruct H. subst.
+    rewrite IHl in H1. list_simplify. apply H1. lia.
+  - rewrite fold_andb_cons. cut (a = true).
+    + intros. subst. simpl. apply IHl. intros.
+      assert (0 <= i + 1 < Zlength (true :: l)) by list_solve.
+      apply H in H1. rewrite Znth_pos_cons in H1 by lia. rewrite <- H1. f_equal. lia.
+    + assert (0 <= 0 < Zlength (a :: l)) by list_solve. apply H in H0.
+      now rewrite Znth_0_cons in H0.
+Qed.
+
 Lemma map2_cons {A B C}: forall (f : A -> B -> C) a al b bl,
     map2 f (a :: al) (b :: bl) = f a b :: map2 f al bl.
 Proof. intros. unfold map2. simpl. auto. Qed.
