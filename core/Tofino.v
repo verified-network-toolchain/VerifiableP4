@@ -46,13 +46,14 @@ Ltac build_execute_body ge body :=
           eval unfold spec in spec
       end in
     lazymatch spec with
-    | RegisterAction_apply_spec ?p ?w ?f ?retv =>
+    | RegisterAction_apply_spec ?p ?repr ?f ?retv =>
         let r := eval compute in (PathMap.get p (ge_ext ge)) in
         let r := lazymatch r with (Some (Tofino.EnvRegAction ?r)) => r end in
         let s := eval compute in (PathMap.get r (ge_ext ge)) in
         let index_w := lazymatch s with (Some (Tofino.EnvRegister (?index_w, _, _))) => index_w end in
+        let typ := lazymatch s with (Some (Tofino.EnvRegister (_, ?typ, _))) => typ end in
         let s := lazymatch s with (Some (Tofino.EnvRegister (_, _, ?s))) => s end in
-        exact (RegisterAction_execute_body ge am_ge p index_w w s r eq_refl eq_refl ltac:(lia)
+        exact (RegisterAction_execute_body ge am_ge _ p index_w typ s r repr eq_refl eq_refl ltac:(lia)
           fd f retv eq_refl body)
     | _ => fail "body is not a body proof for apply"
     end

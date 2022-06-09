@@ -477,6 +477,9 @@ Fixpoint val_to_liberal_sval (val: Val): Sval :=
 
 End SvalRefine.
 
+(* These four lemmas: Forall2_bit_refine, sval_refine_bit_to_loptbool,
+  sval_to_val_bit_to_loptbool, and val_to_sval_bit_to_lbool are not in use. *)
+
 Lemma Forall2_bit_refine:
   forall (l : list bool) (lb' : list (option bool)),
     Forall2 bit_refine (map Some l) lb' -> lb' = map Some l.
@@ -508,3 +511,26 @@ Lemma val_to_sval_bit_to_lbool: forall width value sv,
     val_to_sval (ValBaseBit (P4Arith.to_lbool width value)) sv ->
     sv = (ValBaseBit (P4Arith.to_loptbool width value)).
 Proof. intros. rewrite val_to_sval_iff in H. simpl in H. auto. Qed.
+
+Lemma sval_refine_sval_to_val_n_trans : forall v1 v2 v3,
+  sval_refine v1 v2 ->
+  sval_to_val read_ndetbit v2 v3 ->
+  sval_to_val read_ndetbit v1 v3.
+Proof.
+  intros. eapply exec_val_trans; only 2, 3 : eassumption.
+  unfold rel_trans. clear; sauto lq: on.
+Qed.
+
+Lemma sval_to_val_n_eval_val_to_sval_eq : forall v1 v2,
+  sval_to_val read_ndetbit (eval_val_to_sval v1) v2 ->
+  v2 = v1.
+Proof.
+  intros.
+  pose proof (proj2 (val_to_sval_iff v1 _) ltac:(eauto)).
+  eapply exec_val_trans with (h := eq) in H; only 3 : eassumption.
+  2 : {
+    clear; unfold rel_trans; sauto lq: on.
+  }
+  eapply exec_val_eq in H.
+  auto.
+Qed.

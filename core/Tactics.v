@@ -262,7 +262,7 @@ Ltac hoare_func_table :=
           repeat econstructor
         | hoare_extern_match_list (* hoare_extern_match_list *)
         ]
-      | idtac (* Forall (hoare_table_match_case_valid' ...) *)
+      | idtac (* hoare_table_action_cases' *)
       ]
   | _ => fail "The goal is not in the form of (hoare_func _ _ _ (FTable _ _ _ _ _) _ _)"
   end.

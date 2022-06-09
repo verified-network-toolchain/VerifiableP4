@@ -51,49 +51,51 @@ Open Scope func_spec.
 (* This is the general form of RegisterAction's apply method's spec that we support.
   We expecct this is general enough for all practical application. We don't support
   other kind of apply methods. *)
-Definition RegisterAction_apply_spec (p : path) (w : N) (f : Z -> Z) (retv : Z -> Sval) : func_spec :=
+(* I don't define f as (Val -> Val) because this function should be partial. *)
+Definition RegisterAction_apply_spec {A} (p : path) (repr : A -> Val) (f : A -> A) (retv : A -> Sval) : func_spec :=
   WITH,
     PATH p
     MOD None []
-    WITH old_value (H_old_value : 0 <= old_value < Z.pow 2 (Z.of_N w)),
+    WITH (old_value : A) (* (H_old_value : 0 <= old_value < Z.pow 2 (Z.of_N w)) *),
       PRE
-        (ARG [P4Bit w old_value]
+        (ARG [eval_val_to_sval (repr old_value)]
         (MEM []
         (EXT [])))
       POST
-        (ARG_RET [P4Bit w (f old_value);
+        (ARG_RET [eval_val_to_sval (repr (f old_value));
                   retv old_value]
            ValBaseNull
         (MEM []
         (EXT []))).
 
+(* Remove the content type constaint of register, right? *)
+
 Definition RegisterAction_execute_spec : func_spec :=
-  WITH p (* path *) index_w w (* width *) s (* size *) r (* reg *)
+  WITH A p (* path *) index_w typ s (* size *) r (* reg *) repr
       (H_r : PathMap.get p (ge_ext ge) = Some (Tofino.EnvRegAction r))
-      (H_ws : PathMap.get r (ge_ext ge) = Some (Tofino.EnvRegister (index_w, w, s)))
+      (H_ws : PathMap.get r (ge_ext ge) = Some (Tofino.EnvRegister (index_w, typ, s)))
       (H_s : 0 <= s <= Z.pow 2 (Z.of_N index_w))
       apply_fd apply_f apply_retv
       (H_apply_fd : PathMap.get (p ++ ["apply"]) (ge_ext ge) =
           Some (Tofino.EnvAbsMet (exec_abstract_method am_ge p apply_fd)))
       (H_apply_body : func_sound am_ge apply_fd nil
-          (RegisterAction_apply_spec p w apply_f apply_retv)),
+          (RegisterAction_apply_spec (A := A) p repr apply_f apply_retv)),
     PATH p
     MOD None [r]
     WITH (c : list Val) (i : Z)
       (H_c : Zlength c = s)
       (H_i : 0 <= i < s)
       old_v
-      (H_old_v : Znth i c = ValBaseBit old_v /\ Zlength old_v = Z.of_N w),
+      (H_old_v : Znth i c = repr old_v),
       PRE
-        (ARG [eval_val_to_sval (ValBaseBit (P4Arith.to_lbool index_w i))]
+        (ARG [P4Bit index_w i]
         (MEM []
         (EXT [ExtPred.singleton r (Tofino.ObjRegister c)])))
       POST
-        (ARG_RET [] (apply_retv (P4Arith.BitArith.lbool_to_val old_v 1 0))
+        (ARG_RET [] (apply_retv old_v)
         (MEM []
         (EXT [ExtPred.singleton r
-            (Tofino.ObjRegister (upd_Znth i c
-                (ValBaseBit (P4Arith.to_lbool w (apply_f (P4Arith.BitArith.lbool_to_val old_v 1 0))))))]))).
+            (Tofino.ObjRegister (upd_Znth i c (repr (apply_f old_v))))]))).
 
 Definition execute_fundef : (@fundef tags_t) := FExternal "RegisterAction" "execute".
 
@@ -203,13 +205,9 @@ Proof.
     eapply modifies_trans.
     { eapply modifies_incl.
       { assert (modifies None [] (m, es) (m, s')). {
-          split.
-          { constructor. }
-          { simpl.
-            inv H7.
-            eapply (proj2 H_apply_body) in H1.
-            apply H1.
-          }
+          inv H7.
+          eapply (proj2 H_apply_body) in H1.
+          solve_modifies.
         }
         eassumption.
       }
@@ -291,56 +289,33 @@ Proof.
   }
   clear H H5.
   subst.
-  destruct H_old_v.
-  set (old_value := P4Arith.BitArith.lbool_to_val old_v 1 0).
-  assert (new_value = ValBaseBit (P4Arith.to_lbool w (apply_f old_value))
-      /\ sval_to_val read_ndetbit (apply_retv old_value) retv). {
-    clear -H_apply_body H H0 H8.
+  rewrite H_old_v in H8.
+  assert (new_value = repr (apply_f old_v)
+      /\ sval_to_val read_ndetbit (apply_retv old_v) retv). {
+    clear -H_apply_body H8.
     inv H8.
-    eapply (proj1 H_apply_body old_value) in H2.
-    3 : {
+    eapply (proj1 H_apply_body old_v) in H0.
+    2 : {
       split.
       2 : { split; constructor. }
-      inv H1. inv H8.
-      rewrite H in H6. constructor. 2 : constructor.
-      subst old_value.
-      replace w with (Z.to_N (Zlength old_v)) by (lia).
-      unfold P4Bit, P4Arith.to_loptbool.
-      rewrite to_lbool_lbool_to_val.
-      eapply exec_val_trans with (f := read_ndetbit). 3 : eassumption.
-      { red. sauto. }
-      constructor.
-      clear; induction old_v.
-      - constructor.
-      - constructor; auto. constructor.
+      inv H. inv H6.
+      apply val_to_sval_iff in H4.
+      subst.
+      constructor; only 2 : constructor.
+      apply sval_refine_refl.
     }
-    2 : {
-      pose proof (P4Arith.BitArith.from_lbool_bound old_v).
-      unfold uncurry, P4Arith.BitArith.bound, P4Arith.BitArith.upper_bound in H4.
-      unfold P4Arith.BitArith.from_lbool in H4.
-      rewrite H0 in H4.
-      rewrite Znat.N2Z.id in H4.
-      subst old_value. simpl. lia.
-    }
-    clear H1.
-    destruct H2.
+    clear H.
+    destruct H0.
+    inv H. inv H6. inv H7.
     inv H1. inv H8. inv H9.
-    assert (sval_refine_sval_to_val_n_trans : forall v1 v2 v3,
-      sval_refine v1 v2 ->
-      sval_to_val read_ndetbit v2 v3 ->
-      sval_to_val read_ndetbit v1 v3). {
-      intros. eapply exec_val_trans; only 2, 3 : eassumption.
-      red; sauto.
-    }
-    inv H3. inv H10. inv H11.
-    eapply sval_refine_sval_to_val_n_trans in H6. 2 : eapply H8. clear H8.
-    eapply sval_refine_sval_to_val_n_trans in H5. 2 : eapply H7. clear H7.
+    eapply sval_refine_sval_to_val_n_trans in H6. 2 : eapply H4. clear H4.
+    eapply sval_refine_sval_to_val_n_trans in H5. 2 : eapply H3. clear H3.
     split.
-    { eapply sval_to_val_bit_to_loptbool; eauto. }
+    { eapply sval_to_val_n_eval_val_to_sval_eq; eauto. }
     { auto. }
   }
   clear H8.
-  destruct H1; subst.
+  destruct H; subst.
   split.
   { inv H12. constructor. }
   clear H12.

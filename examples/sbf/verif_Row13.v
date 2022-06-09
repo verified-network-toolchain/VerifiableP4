@@ -22,8 +22,8 @@ Definition Row_regact_insert_apply_fd :=
   ltac:(get_am_fd ge am_ge (p ++ ["regact_insert"; "apply"])).
 
 Definition Row_regact_insert_apply_spec : func_spec :=
-  RegisterAction_apply_spec (p ++ ["regact_insert"]) 8 (fun _ => 1)
-    (fun _ => P4Bit 8 1).
+  RegisterAction_apply_spec (p ++ ["regact_insert"]) (fun b => bool_to_val b)
+    (fun _ => true) (fun _ => P4Bit 8 1).
 
 Lemma Row_regact_insert_apply_body :
   func_sound am_ge Row_regact_insert_apply_fd nil Row_regact_insert_apply_spec.
@@ -78,7 +78,7 @@ Proof.
   { list_solve. }
   { unfold num_slots in *; list_solve. }
   { rewrite Znth_map by list_solve.
-    split; reflexivity.
+    reflexivity.
   }
   step.
   entailer.
@@ -92,8 +92,8 @@ Definition Row_regact_query_apply_fd :=
   ltac:(get_am_fd ge am_ge (p ++ ["regact_query"; "apply"])).
 
 Definition Row_regact_query_apply_spec : func_spec :=
-  RegisterAction_apply_spec (p ++ ["regact_query"]) 8 (fun b => b)
-    (fun b => P4Bit 8 b).
+  RegisterAction_apply_spec (p ++ ["regact_query"]) (fun b => bool_to_val b)
+    (fun b => b) (fun b => eval_val_to_sval (bool_to_val b)).
 
 Lemma Row_regact_query_apply_body :
   func_sound am_ge Row_regact_query_apply_fd nil Row_regact_query_apply_spec.
@@ -161,14 +161,15 @@ Proof.
   { list_solve. }
   { unfold num_slots in *; list_solve. }
   { rewrite Znth_map by list_solve.
-    split; reflexivity.
+    reflexivity.
   }
   step.
   entailer.
-  { rewrite to_lbool_lbool_to_val' by auto.
-    f_equal.
-    list_simplify. subst.
-    reflexivity.
+  { unfold row_query, proj1_sig.
+    destruct (Znth i r); apply sval_refine_refl.
+  }
+  { f_equal.
+    list_solve.
   }
 Qed.
 
@@ -178,8 +179,8 @@ Definition Row_regact_clear_apply_fd :=
   ltac:(get_am_fd ge am_ge (p ++ ["regact_clear"; "apply"])).
 
 Definition Row_regact_clear_apply_spec : func_spec :=
-  RegisterAction_apply_spec (p ++ ["regact_clear"]) 8 (fun _ => 0)
-    (fun _ => ValBaseBit (P4Arith.to_loptbool 8 0)).
+  RegisterAction_apply_spec (p ++ ["regact_clear"]) (fun b => bool_to_val b)
+    (fun _ => false) (fun _ => P4Bit 8 0).
 
 Lemma Row_regact_clear_apply_body :
   func_sound am_ge Row_regact_clear_apply_fd nil Row_regact_clear_apply_spec.
@@ -234,7 +235,7 @@ Proof.
   { list_solve. }
   { unfold num_slots in *; list_solve. }
   { rewrite Znth_map by list_solve.
-    split; reflexivity.
+    reflexivity.
   }
   step.
   entailer.
