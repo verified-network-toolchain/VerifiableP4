@@ -21,11 +21,26 @@ Qed.
 
 Section ConFilter.
 
-Context {num_rows num_slots : Z}.
+Context {num_frames num_rows num_slots : Z}.
+Hypothesis H_num_frames : 0 < num_frames.
+Hypothesis H_num_rows : 0 < num_rows.
+Hypothesis H_num_slots : 0 < num_slots.
 
 Definition row := listn bool num_slots.
 
+#[local] Program Instance Inhabitant_row : Inhabitant row :=
+  Inhabitant_listn _ _.
+Next Obligation.
+  lia.
+Qed.
+
 Definition frame := listn row num_rows.
+
+#[local] Program Instance Inhabitant_frame : Inhabitant frame :=
+  Inhabitant_listn _ _.
+Next Obligation.
+  lia.
+Qed.
 
 Program Definition row_insert (r : row) (i : Z) : row :=
   upd_Znth i r true.
@@ -72,7 +87,87 @@ Qed.
 Program Definition frame_query (f : frame) (is : list Z) : bool :=
   fold_andb (map2 row_query f is).
 
+Record filter := mk_filter {
+  fil_frames : listn frame num_frames;
+  fil_clear_index : Z;
+  fil_timer : Z * bool
+}.
+
+Definition update_clear_index (i : Z) :=
+  let i := i+1 in
+  if (i =? num_slots) then 0 else i.
+
+Context (frame_time : Z).
+
+Let cycle_time := frame_time * num_frames.
+
+Definition update_timer (t : Z * bool) (tick : bool) : Z * bool :=
+  if tick then
+    if snd t then
+      t
+    else
+      (fst t + 1, false)
+  else
+    if (fst t =? cycle_time) then
+      (0, true)
+    else
+      (fst t, true).
+
+Definition get_clear_frame (t : Z * bool) : Z :=
+  let t := fst t in
+  let t := if (t =? cycle_time) then 0 else t in
+  t / frame_time.
+
+Definition get_insert_frame (cf : Z) : Z :=
+  if (cf =? 0) then num_frames - 1 else cf - 1.
+
+Program Definition filter_insert (f : filter) (tick : bool) (is : listn Z num_rows) : filter :=
+  let '(mk_filter (exist _ frames H) clear_index timer) := f in
+  let clear_index := update_clear_index clear_index in
+  let timer := update_timer timer tick in
+  let cf := get_clear_frame timer in
+  let if' := get_insert_frame cf in
+  let frames := upd_Znth cf frames (frame_clear (Znth cf frames) (Zrepeat clear_index num_rows)) in
+  let frames := upd_Znth if' frames (frame_insert (Znth if' frames) is) in
+  mk_filter frames clear_index timer.
+Next Obligation.
+  list_solve.
+Qed.
+Next Obligation.
+  list_solve.
+Qed.
+
+Program Definition filter_query (f : filter) (tick : bool) (is : listn Z num_rows) : filter * bool :=
+  let '(mk_filter (exist _ frames H) clear_index timer) := f in
+  let clear_index := update_clear_index clear_index in
+  let timer := update_timer timer tick in
+  let cf := get_clear_frame timer in
+  let frames := upd_Znth cf frames (frame_clear (Znth cf frames) (Zrepeat clear_index num_rows)) in
+  (mk_filter frames clear_index timer,
+    fold_orb (upd_Znth cf (map (fun f => frame_query f is) frames) false)).
+Next Obligation.
+  list_solve.
+Qed.
+Next Obligation.
+  list_solve.
+Qed.
+
+Program Definition filter_clear (f : filter) (tick : bool) (is : listn Z num_rows) : filter :=
+  let '(mk_filter (exist _ frames H) clear_index timer) := f in
+  let clear_index := update_clear_index clear_index in
+  let timer := update_timer timer tick in
+  let cf := get_clear_frame timer in
+  let frames := upd_Znth cf frames (frame_clear (Znth cf frames) (Zrepeat clear_index num_rows)) in
+  mk_filter frames clear_index timer.
+Next Obligation.
+  list_solve.
+Qed.
+Next Obligation.
+  list_solve.
+Qed.
+
 End ConFilter.
 
 Arguments row : clear implicits.
 Arguments frame : clear implicits.
+Arguments filter : clear implicits.

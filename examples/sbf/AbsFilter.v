@@ -161,8 +161,8 @@ Next Obligation.
   list_solve.
 Qed.
 
-#[local] Instance Inhabitant_row : Inhabitant (ConFilter.row num_slots) :=
-  Inhabitant_listn num_slots ltac:(lia).
+#[local] Program Instance Inhabitant_row : Inhabitant (ConFilter.row num_slots) :=
+  ConFilter.Inhabitant_row _.
 
 Lemma frame_insert_sound : forall f cf h f',
   frame_sim f cf ->
