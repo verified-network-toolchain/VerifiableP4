@@ -13,66 +13,66 @@ Next Obligation.
   destruct l as [l ?H]. list_solve.
 Qed.
 
-Definition row num_slots := listn bool num_slots.
-
-Definition frame num_rows num_slots := listn (row num_slots) num_rows.
+Program Definition Inhabitant_listn {A : Type} {dA : Inhabitant A} size (H : 0 <= size) : Inhabitant (listn A size) :=
+  Zrepeat (default (Inhabitant := dA)) size.
+Next Obligation.
+  list_solve.
+Qed.
 
 Section ConFilter.
 
 Context {num_rows num_slots : Z}.
 
-Program Definition row_insert (r : row num_slots) (i : Z) : row num_slots :=
+Definition row := listn bool num_slots.
+
+Definition frame := listn row num_rows.
+
+Program Definition row_insert (r : row) (i : Z) : row :=
   upd_Znth i r true.
 Next Obligation.
   destruct r. list_solve.
 Qed.
 
-Lemma row_insert_comm : forall (r : row num_slots) x y,
+Lemma row_insert_comm : forall (r : row) x y,
   row_insert (row_insert r x) y = row_insert (row_insert r y) x.
 Proof.
   intros. destruct r as [r ?H]. unfold row_insert. simpl.
   apply subset_eq_compat. list_solve.
 Qed.
 
-Program Definition frame_insert (f : frame num_rows num_slots)
-    (is : listn Z num_rows) : frame num_rows num_slots :=
+Program Definition frame_insert (f : frame) (is : listn Z num_rows) : frame :=
   map2 row_insert f is.
 Next Obligation.
   destruct is, f; simpl.
   list_solve.
 Qed.
 
-Program Definition row_clear (r : row num_slots) (i : Z) : row num_slots:=
+Program Definition row_clear (r : row) (i : Z) : row:=
   upd_Znth i r false.
 Next Obligation.
   destruct r. list_solve.
 Qed.
 
-Program Definition empty_row num_slots (H: 0 < num_slots) : row num_slots :=
-  Zrepeat false num_slots.
-Next Obligation.
-  list_solve.
-Qed.
-
-Program Definition frame_clear (f : frame num_rows num_slots)
-    (is : listn Z num_rows) : frame num_rows num_slots :=
+Program Definition frame_clear (f : frame) (is : listn Z num_rows) : frame :=
   map2 row_clear f is.
 Next Obligation.
   destruct is, f; simpl.
   list_solve.
 Qed.
 
-Program Definition row_query (r : row num_slots) (i : Z) : bool :=
+Program Definition row_query (r : row) (i : Z) : bool :=
   Znth i r.
 
-Lemma row_query_insert_true : forall (r: row num_slots) z,
+Lemma row_query_insert_true : forall (r: row) z,
   0 <= z < num_slots -> row_query (row_insert r z) z = true.
 Proof.
   intros. destruct r as [r ?H]. unfold row_query, row_insert. simpl. list_solve.
 Qed.
 
-Program Definition frame_query (f : frame num_rows num_slots)
-    (is : list Z) : bool :=
+Program Definition frame_query (f : frame) (is : list Z) : bool :=
   fold_andb (map2 row_query f is).
 
 End ConFilter.
+
+Arguments row : clear implicits.
+Arguments frame : clear implicits.
