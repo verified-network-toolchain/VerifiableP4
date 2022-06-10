@@ -175,6 +175,12 @@ Proof.
     + auto.
 Qed.
 
+Local Program Definition prop (P : Prop) : ext_pred :=
+  mk_ext_pred' (fun _ => P) [] _.
+Next Obligation.
+  unfold ep_wellformed_prop; auto.
+Qed.
+
 Local Program Definition singleton (p : path) (eo : extern_object) : ext_pred :=
   mk_ext_pred' (fun es => PathMap.get p es = Some eo) [p] _.
 Next Obligation.
@@ -211,6 +217,26 @@ Next Obligation.
     simpl.
     eapply ep_wellformed_prop_and; only 2 : auto.
     eapply ep_wellformed_prop_wrap2; eauto using (ep_wellformed a).
+Qed.
+
+Local Program Definition ex [A] (ep : A -> ext_pred) (ps : list path)
+  (H : forall (x : A), forallb (fun p => in_scopes p ps) (ep_paths (ep x))) : ext_pred :=
+  mk_ext_pred' (fun es => exists (x : A), (ep x) es) ps _.
+Next Obligation.
+  unfold ep_wellformed_prop; intros.
+  destruct H1. exists x.
+  specialize (H x).
+  eapply ep_wellformed_prop_wrap2; eauto using (ep_wellformed (ep x)).
+Qed.
+
+Local Program Definition all [A] (ep : A -> ext_pred) (ps : list path)
+  (H : forall (x : A), forallb (fun p => in_scopes p ps) (ep_paths (ep x))) : ext_pred :=
+  mk_ext_pred' (fun es => forall (x : A), (ep x) es) ps _.
+Next Obligation.
+  unfold ep_wellformed_prop; intros.
+  specialize (H1 x).
+  specialize (H x).
+  eapply ep_wellformed_prop_wrap2; eauto using (ep_wellformed (ep x)).
 Qed.
 
 (* Two ext_pred's are equivalent if their content predicates are the same. *)

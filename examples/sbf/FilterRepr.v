@@ -1,14 +1,12 @@
 Require Import Coq.ZArith.BinInt.
+Require Import Coq.NArith.BinNat.
 Require Import Coq.Strings.String.
 Require Import Poulet4.P4light.Semantics.Semantics.
 Require Import ProD3.examples.sbf.Utils.
-Require ProD3.examples.sbf.ConFilter.
 Require Import ProD3.examples.sbf.ConFilter.
 Require Import ProD3.core.Core.
 Require Import ProD3.core.Tofino.
 Import ListNotations.
-Open Scope Z_scope.
-Open Scope string_scope.
 Open Scope list_scope.
 
 Section FilterRepr.
@@ -44,6 +42,19 @@ Next Obligation.
   unfold in_scope.
   rewrite <- (app_nil_r p) at 1.
   rewrite is_prefix_cancel. auto.
+Qed.
+
+Program Definition fil_clear_index_repr (p : path) (w : N) (i : Z) : ext_pred :=
+  ExtPred.ex (fun i' =>
+    ExtPred.and
+      (ExtPred.singleton (p ++ ["reg_clear_index"])
+        (Tofino.ObjRegister [ValBaseBit (P4Arith.to_lbool 32 i')]))
+      (ExtPred.prop (i' mod (2 ^ (Z.of_N w)) = i)))
+    [p ++ ["reg_clear_index"]] _.
+Next Obligation.
+  unfold in_scope.
+  rewrite is_prefix_refl.
+  auto.
 Qed.
 
 End FilterRepr.
