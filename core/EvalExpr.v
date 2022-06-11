@@ -380,6 +380,20 @@ Fixpoint eval_expr (ge : genv) (p : path) (a : mem_assertion) (expr : Expression
               Some (get (P4String.str name) sv)
           | None => None
           end
+      | ExpBitStringAccess bits lo hi =>
+          match eval_expr ge p a bits with
+          | Some bitssv =>
+              match sval_to_bits_width bitssv with
+              | Some (bitsbl, wn) =>
+                  let lonat := BinNat.N.to_nat lo in
+                  let hinat := BinNat.N.to_nat hi in
+                  if (andb (Nat.leb lonat hinat) (Nat.ltb hinat wn)) then
+                    Some (ValBaseBit (Ops.bitstring_slice bitsbl lonat hinat))
+                  else None
+              | None => None
+              end
+          | None => None
+          end
       | _ => None
       end
   end.
@@ -1365,6 +1379,10 @@ Proof.
     + inversion H2; subst. 1: rewrite H3 in H12; inversion H12.
       unfold loc_to_sval_const in H13. rewrite H0 in H13. inversion H13.
       apply sval_refine_refl.
+  - do 2 (destruct_match H0; [|inv H0]). destruct p0 as [bitsbl wn].
+    destruct_match H0; inv H0. inv H2. eapply IHexpr in H14; eauto.
+    constructor. apply Ops.Forall2_bitstring_slice.
+    inv H14; simpl in H4; inv H4; simpl in H15; inv H15; auto.
   - inversion H3. subst. simpl in H1. red.
     destruct (lift_option (map (eval_expr ge p a) vs)) eqn:?H; simpl in H1;
       inversion H1; subst; clear H1. constructor. clear H3.

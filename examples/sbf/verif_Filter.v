@@ -198,5 +198,5 @@ Proof.
     { reflexivity. }
     { reflexivity. }
     { reflexivity. }
-    { Fail reflexivity.
+    { reflexivity. }
 Abort.
