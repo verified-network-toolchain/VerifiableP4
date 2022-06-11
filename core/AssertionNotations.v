@@ -30,22 +30,15 @@ Context `{@Target tags_t (@Expression tags_t)}.
 
 (* EXT is defined as (id) instead of (ext_denote a_ext). Maybe it's because I don't want to have
   a parameter (Hoare.ext_assertion) in MEM *)
-Definition EXT : ext_assertion -> ext_assertion :=
-  id.
+Definition EXT : ext_assertion -> extern_state -> Prop :=
+  ext_denote.
 
 Global Add Parametric Morphism : EXT with
-  signature ext_assertion_equiv ==> ext_assertion_equiv as EXT_mor.
+  signature ext_assertion_equiv ==> eq as EXT_mor.
 Proof. auto. Qed.
 
-Definition MEM (a_mem : mem_assertion) (a_ext : ext_assertion) : Hoare.assertion :=
-  fun '(m, es) => mem_denote a_mem m /\ ext_denote a_ext es.
-
-Global Add Parametric Morphism : MEM with
-  signature eq ==> ext_assertion_equiv ==> eq as MEM_mor.
-Proof.
-  intros a_mem a_ext a_ext'; intros.
-  unfold MEM. rewrite H0. auto.
-Qed.
+Definition MEM (a_mem : mem_assertion) (a_ext : extern_state -> Prop) : Hoare.assertion :=
+  fun '(m, es) => mem_denote a_mem m /\ a_ext es.
 
 Definition ARG (a_arg : list Sval) (a : Hoare.assertion) : Hoare.arg_assertion :=
   fun args st => arg_denote a_arg args /\ a st.
@@ -68,7 +61,7 @@ Notation "'EX' x .. y , P " :=
 Declare Scope ret_assr.
 Delimit Scope ret_assr with ret_assr.
 Notation "'EX' x .. y , P " :=
-  (ret_exists (fun x => .. (ret_exists (fun y => P%assr)) ..)) (at level 65, x binder, y binder, right associativity) : ret_assr.
+  (ret_exists (fun x => .. (ret_exists (fun y => P%ret_assr)) ..)) (at level 65, x binder, y binder, right associativity) : ret_assr.
 
 Declare Scope arg_ret_assr.
 Delimit Scope arg_ret_assr with arg_ret_assr.

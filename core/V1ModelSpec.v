@@ -64,7 +64,7 @@ Proof.
     + inv H14. inv H10. apply Members.Forall2_bit_refine_Some_same' in H3.
       subst. apply Forall2_ndetbit in H1. subst. rewrite bit_from_to_bool in H7.
       constructor. 2: constructor. destruct H2. red in H1. red in H1. simpl in H1.
-      destruct H1. rewrite H6 in H1. inv H1. simpl in H. rewrite H in H5. inv H5.
+      destruct H1. simpl in H1. rewrite H6 in H1. inv H1. simpl in H. rewrite H in H5. inv H5.
       simpl in x1. assert ((-1 <? index) && (index <? size) = true). {
         apply andb_true_intro. pose proof (BitArith.upper_bound_ge_1 32). split.
         - rewrite Z.ltb_lt. cut (0 <= index < BitArith.upper_bound 32).
@@ -117,11 +117,11 @@ Proof.
           1: intros; lia. inv H14. unfold BitArith.mod_bound. apply Zdiv.Z_mod_lt. lia.
         - rewrite Z.ltb_lt. cut (index <= x0). 1: lia. inv H14.
           unfold BitArith.mod_bound. apply Zdiv.Zmod_le; lia. } rewrite H1 in H16.
-      subst. rewrite PathMap.get_set_same. f_equal.
+      subst. simpl. rewrite PathMap.get_set_same. f_equal.
       apply exec_val_eval_val_to_sval_eq in H4. 2: intros s1 s2 Hs; now inv Hs.
       subst. apply sval_to_val_eval_val_to_sval_eq in H6.
       2: intros s1 s2 Hs; now inv Hs. subst x1. do 2 red in H0. simpl in H0.
-      destruct H0 as [? _]. rewrite H9 in H0. inv H0. inv H14.
+      destruct H0 as [? _]. simpl in H0. rewrite H9 in H0. inv H0. inv H14.
       unfold BitArith.mod_bound, BitArith.upper_bound.
       change (2 ^ Z.of_N 32) with (Z.pow_pos 2 32).
       rewrite Zdiv.Zmod_small by lia. auto.
