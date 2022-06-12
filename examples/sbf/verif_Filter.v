@@ -366,3 +366,91 @@ Proof.
       unfold num_slots in *; lia.
   }
 Qed.
+
+Definition act_set_clear_win_1_fd :=
+  ltac:(get_fd ["Bf2BloomFilter"; "act_set_clear_win_1"] ge).
+
+Definition act_set_clear_win_1_spec : func_spec :=
+  WITH (* p *),
+    PATH p
+    MOD (Some [["ds_md"];
+               ["act_set_clear_win_1"; "api_1"];
+               ["act_set_clear_win_1"; "api_2"];
+               ["act_set_clear_win_1"; "api_3"];
+               ["act_set_clear_win_1"; "api_4"]]) []
+    WITH (ds_md : Sval) (api_1 api_2 api_3 api_4 : Sval),
+      PRE
+        (ARG [api_1; api_2; api_3; api_4]
+        (MEM [(["ds_md"], ds_md)]
+        (EXT [])))
+      POST
+        (ARG_RET [] ValBaseNull
+        (MEM [
+          (["ds_md"], update "win_1" (
+            update "index_1" (get "clear_index_1" ds_md)
+            (update "index_2" (get "clear_index_1" ds_md)
+            (update "index_3" (get "clear_index_1" ds_md) (get "win_1" ds_md))))
+            ds_md)]
+        (EXT []))).
+
+Lemma act_set_clear_win_1_body :
+  func_sound ge act_set_clear_win_1_fd nil act_set_clear_win_1_spec.
+Proof.
+  start_function.
+  assert (has_field "win_1" ds_md) by admit.
+  assert (has_field "win_2" ds_md) by admit.
+  assert (has_field "win_3" ds_md) by admit.
+  assert (has_field "win_4" ds_md) by admit.
+  simpl.
+  Time step.
+  simpl.
+  Time step.
+  simpl.
+
+Ltac rewrite_get_update_same :=
+  rewrite get_update_same by (auto using has_field_update).
+
+Ltac rewrite_get_update_diff :=
+  rewrite get_update_diff; [ | auto using has_field_update | discriminate].
+
+Ltac rewrite_update_update_same :=
+  rewrite update_update_same by (auto using has_field_update).
+
+Ltac get_update_simpl :=
+  repeat first [
+    rewrite_get_update_same
+  | rewrite_get_update_diff
+  | rewrite_update_update_same
+  ].
+
+  get_update_simpl.
+  Time step.
+  Time simpl; get_update_simpl.
+  Time step.
+  Time simpl; get_update_simpl.
+  Time step.
+  Time simpl; get_update_simpl.
+  Time step.
+  Time simpl; get_update_simpl.
+  Time step.
+  Time simpl; get_update_simpl.
+  Time step.
+  Time simpl; get_update_simpl.
+  Time step.
+  Time simpl; get_update_simpl.
+  Time step.
+  Time simpl; get_update_simpl.
+  Time step.
+  Time simpl; get_update_simpl.
+  Time step.
+  Time simpl; get_update_simpl.
+  Time step.
+  Time simpl; get_update_simpl.
+  Time step.
+  Time simpl; get_update_simpl.
+  Time step.
+  Time simpl; get_update_simpl.
+  Time step.
+  Time simpl; get_update_simpl.
+  (* Then we need a update_update_diff rule and guide it nicely. *)
+Abort.

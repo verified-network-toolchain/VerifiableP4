@@ -8,6 +8,7 @@ Require Import Poulet4.P4light.Semantics.Semantics.
 Require Import Poulet4.P4light.Syntax.Value.
 Require Import ProD3.core.Coqlib.
 Require Import ProD3.core.SvalRefine.
+Require Import Hammer.Plugin.Hammer.
 Open Scope type_scope.
 
 Section Members.
@@ -153,6 +154,59 @@ Proof.
       rewrite get_set_diff; auto.
     * inv H.
     * inv H.
+Qed.
+
+Lemma get_some_set_set_same : forall {A} (l : AList.StringAList A) k l' v1 v2 v3,
+  AList.get l k = Some v1 ->
+  AList.set (force l' (AList.set l k v2)) k v3 = AList.set l k v3.
+Proof.
+  intros.
+  induction l.
+  - inv H.
+  - destruct a as [k' v'].
+    simpl.
+    destruct (EquivUtil.StringEqDec k k') as [H_k | H_k] eqn:H_k'.
+    + simpl. cbv in H_k; subst.
+      rewrite H_k'; auto.
+    + rewrite AList.get_neq_cons in H by auto.
+      specialize (IHl H).
+      destruct (AList.set l k v2) eqn:?H.
+      * simpl in *.
+        rewrite H_k'.
+        rewrite IHl; auto.
+      * pose proof (AList.get_set_is_some l k v2).
+        destruct (AList.get l k); destruct (AList.set l k v2); discriminate.
+Qed.
+
+Lemma get_some_set_set_same' : forall {A} (l : AList.StringAList A) k l' l'' l''' v1 v2 v3,
+  AList.get l k = Some v1 ->
+  force l'' (AList.set (force l' (AList.set l k v2)) k v3)
+    = force l''' (AList.set l k v3).
+Proof.
+  intros.
+  erewrite get_some_set_set_same; eauto.
+  pose proof (AList.get_set_is_some l k v3).
+  destruct (AList.get l k); destruct (AList.set l k v3); try discriminate.
+  auto.
+Qed.
+
+Lemma update_update_same : forall sv f f_sv1 f_sv2,
+  has_field f sv ->
+  update f f_sv2 (update f f_sv1 sv) = update f f_sv2 sv.
+Proof.
+  intros.
+  destruct sv; try solve [inv H].
+  - unfold update, has_field in *.
+    destruct (AList.get fields f) eqn:?.
+    + erewrite (get_some_set_set_same' fields f); eauto.
+    + inv H.
+  - destruct is_valid as [[] | ].
+    + unfold update, has_field in *.
+      destruct (AList.get fields f) eqn:?.
+      * erewrite (get_some_set_set_same' fields f); eauto.
+      * inv H.
+    + inv H.
+    + inv H.
 Qed.
 
 Lemma get_set_some : forall f1 f2 (fields : AList.StringAList Sval) f_sv,
