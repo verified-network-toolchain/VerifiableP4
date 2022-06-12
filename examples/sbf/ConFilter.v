@@ -123,13 +123,13 @@ Definition get_insert_frame (cf : Z) : Z :=
 
 Program Definition filter_insert (f : filter) (tick : bool) (is : listn Z num_rows) : filter :=
   let '(mk_filter (exist _ frames H) clear_index timer) := f in
-  let clear_index := update_clear_index clear_index in
+  let new_clear_index := update_clear_index clear_index in
   let timer := update_timer timer tick in
   let cf := get_clear_frame timer in
   let if' := get_insert_frame cf in
   let frames := upd_Znth cf frames (frame_clear (Znth cf frames) (Zrepeat clear_index num_rows)) in
   let frames := upd_Znth if' frames (frame_insert (Znth if' frames) is) in
-  mk_filter frames clear_index timer.
+  mk_filter frames new_clear_index timer.
 Next Obligation.
   list_solve.
 Qed.
@@ -139,11 +139,11 @@ Qed.
 
 Program Definition filter_query (f : filter) (tick : bool) (is : listn Z num_rows) : filter * bool :=
   let '(mk_filter (exist _ frames H) clear_index timer) := f in
-  let clear_index := update_clear_index clear_index in
+  let new_clear_index := update_clear_index clear_index in
   let timer := update_timer timer tick in
   let cf := get_clear_frame timer in
   let frames := upd_Znth cf frames (frame_clear (Znth cf frames) (Zrepeat clear_index num_rows)) in
-  (mk_filter frames clear_index timer,
+  (mk_filter frames new_clear_index timer,
     fold_orb (upd_Znth cf (map (fun f => frame_query f is) frames) false)).
 Next Obligation.
   list_solve.
@@ -154,11 +154,11 @@ Qed.
 
 Program Definition filter_clear (f : filter) (tick : bool) (is : listn Z num_rows) : filter :=
   let '(mk_filter (exist _ frames H) clear_index timer) := f in
-  let clear_index := update_clear_index clear_index in
+  let new_clear_index := update_clear_index clear_index in
   let timer := update_timer timer tick in
   let cf := get_clear_frame timer in
   let frames := upd_Znth cf frames (frame_clear (Znth cf frames) (Zrepeat clear_index num_rows)) in
-  mk_filter frames clear_index timer.
+  mk_filter frames new_clear_index timer.
 Next Obligation.
   list_solve.
 Qed.
