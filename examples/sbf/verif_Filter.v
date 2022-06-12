@@ -454,3 +454,110 @@ Ltac get_update_simpl :=
   Time simpl; get_update_simpl.
   (* Then we need a update_update_diff rule and guide it nicely. *)
 Abort.
+
+Definition P4Type_bf2_win_md_t :=
+  TypStruct
+    [({| P4String.tags := NoInfo; str := "api" |}, TypBit 8);
+     ({| P4String.tags := NoInfo; str := "index_1" |}, TypBit 18);
+     ({| P4String.tags := NoInfo; str := "index_2" |}, TypBit 18);
+     ({| P4String.tags := NoInfo; str := "index_3" |}, TypBit 18);
+     ({| P4String.tags := NoInfo; str := "rw_1" |}, TypBit 8);
+     ({| P4String.tags := NoInfo; str := "rw_2" |}, TypBit 8);
+     ({| P4String.tags := NoInfo; str := "rw_3" |}, TypBit 8)].
+
+Definition P4New_bf2_win_md_t := Eval compute in
+  force dummy_val (uninit_sval_of_typ None P4Type_bf2_win_md_t).
+
+Definition P4_bf2_win_md_t (op : Sval) (is : list Sval) :=
+  ValBaseStruct
+    [("api", op);
+     ("index_1", Znth 0 is);
+     ("index_2", Znth 1 is);
+     ("index_3", Znth 2 is);
+     ("rw_1", P4NewBit 8);
+     ("rw_2", P4NewBit 8);
+     ("rw_3", P4NewBit 8)].
+
+Definition act_set_clear_win_1_spec2 : func_spec :=
+  WITH (* p *),
+    PATH p
+    MOD (Some [["ds_md"];
+               ["act_set_clear_win_1"; "api_1"];
+               ["act_set_clear_win_1"; "api_2"];
+               ["act_set_clear_win_1"; "api_3"];
+               ["act_set_clear_win_1"; "api_4"]]) []
+    WITH (clear_window clear_index_1 hash_index_1 hash_index_2 hash_index_3: Sval) (api_1 api_2 api_3 api_4 : Sval),
+      PRE
+        (ARG [api_1; api_2; api_3; api_4]
+        (MEM [(["ds_md"], ValBaseStruct
+                 [("clear_window", clear_window);
+                  ("clear_index_1", clear_index_1);
+                  ("hash_index_1", hash_index_1);
+                  ("hash_index_2", hash_index_2);
+                  ("hash_index_3", hash_index_3);
+                  ("win_1", P4New_bf2_win_md_t);
+                  ("win_2", P4New_bf2_win_md_t);
+                  ("win_3", P4New_bf2_win_md_t);
+                  ("win_4", P4New_bf2_win_md_t)])]
+        (EXT [])))
+      POST
+        (ARG_RET [] ValBaseNull
+        (MEM [(["ds_md"], ValBaseStruct
+                 [("clear_window", clear_window);
+                  ("clear_index_1", clear_index_1);
+                  ("hash_index_1", hash_index_1);
+                  ("hash_index_2", hash_index_2);
+                  ("hash_index_3", hash_index_3);
+                  ("win_1", P4_bf2_win_md_t api_1 [clear_index_1; clear_index_1; clear_index_1]);
+                  ("win_2", P4_bf2_win_md_t api_2 [hash_index_1; hash_index_2; hash_index_3]);
+                  ("win_3", P4_bf2_win_md_t api_3 [hash_index_1; hash_index_2; hash_index_3]);
+                  ("win_4", P4_bf2_win_md_t api_4 [hash_index_1; hash_index_2; hash_index_3])])]
+        (EXT []))).
+
+Lemma act_set_clear_win_1_body2 :
+  func_sound ge act_set_clear_win_1_fd nil act_set_clear_win_1_spec2.
+Proof.
+  start_function.
+  simpl.
+  Time step.
+  simpl.
+  Time step.
+  simpl.
+  Time step.
+  simpl.
+  Time step.
+  simpl.
+  Time step.
+  simpl.
+  Time step.
+  simpl.
+  Time step.
+  simpl.
+  Time step.
+  simpl.
+  Time step.
+  simpl.
+  Time step.
+  simpl.
+  Time step.
+  simpl.
+  Time step.
+  simpl.
+  Time step.
+  simpl.
+  Time step.
+  simpl.
+  Time step.
+  simpl.
+  Time step.
+  simpl.
+  Time step.
+  simpl.
+  entailer.
+Qed.
+
+
+
+
+
+
