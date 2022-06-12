@@ -9,7 +9,7 @@ Instance target : @Target Info (@Expression Info) := Tofino.
 (* It is a hack to make extern_match opauqe. But it should be fine. *)
 
 Ltac get_am_ge prog ::=
-  let ge := eval compute -[PathMap.empty PathMap.set IdentMap.empty IdentMap.set extern_match] in (gen_am_ge prog) in
+  let ge := eval compute -[PathMap.empty PathMap.set extern_match] in (gen_am_ge prog) in
   exact (ge : (@genv _ target)).
 
 Ltac get_ge am_ge prog ::=
