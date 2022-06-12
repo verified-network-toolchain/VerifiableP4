@@ -514,50 +514,66 @@ Definition act_set_clear_win_1_spec2 : func_spec :=
                   ("win_4", P4_bf2_win_md_t api_4 [hash_index_1; hash_index_2; hash_index_3])])]
         (EXT []))).
 
+Ltac simpl_assertion :=
+  cbn [
+    (* First, most basic definitions for comparison. *)
+    bool_rect bool_rec Bool.bool_dec Ascii.ascii_rect Ascii.ascii_rec Ascii.ascii_dec sumbool_rect
+    sumbool_rec string_rect string_rec string_dec EquivUtil.StringEqDec EquivDec.equiv_dec EquivDec.list_eqdec
+
+    str
+
+    app find find
+
+    fst snd force map lift_option
+
+    lift_option_kv kv_map
+
+    AList.set AList.set_some AList.get
+
+    filter_in Semantics.is_in flat_map
+
+    eval_write_vars fold_left eval_write_var AList.set_some combine
+
+    update get].
+
 Lemma act_set_clear_win_1_body2 :
   func_sound ge act_set_clear_win_1_fd nil act_set_clear_win_1_spec2.
 Proof.
   start_function.
-  simpl.
-  Time step.
-  simpl.
-  Time step.
-  simpl.
-  Time step.
-  simpl.
-  Time step.
-  simpl.
-  Time step.
-  simpl.
-  Time step.
-  simpl.
-  Time step.
-  simpl.
-  Time step.
-  simpl.
-  Time step.
-  simpl.
-  Time step.
-  simpl.
-  Time step.
-  simpl.
-  Time step.
-  simpl.
-  Time step.
-  simpl.
-  Time step.
-  simpl.
-  Time step.
-  simpl.
-  Time step.
-  simpl.
-  Time step.
-  simpl.
+  unfold P4New_bf2_win_md_t.
+  simpl_assertion.
+  step.
+  simpl_assertion.
+  step.
+  simpl_assertion.
+  step.
+  simpl_assertion.
+  step.
+  simpl_assertion.
+  step.
+  simpl_assertion.
+  step.
+  simpl_assertion.
+  step.
+  simpl_assertion.
+  step.
+  simpl_assertion.
+  step.
+  simpl_assertion.
+  step.
+  simpl_assertion.
+  step.
+  simpl_assertion.
+  step.
+  simpl_assertion.
+  step.
+  simpl_assertion.
+  step.
+  simpl_assertion.
+  step.
+  simpl_assertion.
+  step.
+  simpl_assertion.
+  step.
   entailer.
 Qed.
-
-
-
-
-
-
