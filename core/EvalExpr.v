@@ -341,6 +341,21 @@ Fixpoint eval_expr (ge : genv) (p : path) (a : mem_assertion) (expr : Expression
             end
           else
             option_map eval_val_to_sval (loc_to_val_const ge p loc)
+      | ExpBitStringAccess bits lo hi =>
+          match eval_expr ge p a bits with
+          | Some bitssv =>
+              Some
+                match sval_to_bits_width bitssv with
+                | Some (bitsbl, wn) =>
+                    let lonat := BinNat.N.to_nat lo in
+                    let hinat := BinNat.N.to_nat hi in
+                    (* if (andb (Nat.leb lonat hinat) (Nat.ltb hinat wn)) then *)
+                      ValBaseBit (Ops.bitstring_slice bitsbl lonat hinat)
+                    (* else ValBaseNull *)
+                | None => ValBaseNull
+                end
+          | None => None
+          end
       | ExpUnaryOp op arg =>
           match eval_expr ge p a arg with
           | Some argv => Some (build_abs_unary_op (Ops.eval_unary_op op) argv)
@@ -378,20 +393,6 @@ Fixpoint eval_expr (ge : genv) (p : path) (a : mem_assertion) (expr : Expression
           match eval_expr ge p a expr with
           | Some sv =>
               Some (get (P4String.str name) sv)
-          | None => None
-          end
-      | ExpBitStringAccess bits lo hi =>
-          match eval_expr ge p a bits with
-          | Some bitssv =>
-              match sval_to_bits_width bitssv with
-              | Some (bitsbl, wn) =>
-                  let lonat := BinNat.N.to_nat lo in
-                  let hinat := BinNat.N.to_nat hi in
-                  if (andb (Nat.leb lonat hinat) (Nat.ltb hinat wn)) then
-                    Some (ValBaseBit (Ops.bitstring_slice bitsbl lonat hinat))
-                  else None
-              | None => None
-              end
           | None => None
           end
       | _ => None
@@ -1379,10 +1380,17 @@ Proof.
     + inversion H2; subst. 1: rewrite H3 in H12; inversion H12.
       unfold loc_to_sval_const in H13. rewrite H0 in H13. inversion H13.
       apply sval_refine_refl.
-  - do 2 (destruct_match H0; [|inv H0]). destruct p0 as [bitsbl wn].
-    destruct_match H0; inv H0. inv H2. eapply IHexpr in H14; eauto.
+  - destruct_match H0; [|inv H0].
+    inv H2.
+    specialize (IHexpr _ _ _ _ ltac:(eassumption) _ ltac:(eassumption) _ ltac:(eassumption)).
+    destruct_match H0; [|inv H0].
+    2 : {
+      inv IHexpr; inv H2; inv H14.
+    }
+    destruct p0 as [bitsbl' wn'].
+    inv H0.
     constructor. apply Ops.Forall2_bitstring_slice.
-    inv H14; simpl in H4; inv H4; simpl in H15; inv H15; auto.
+    inv IHexpr; simpl in H2; inv H2; simpl in H14; inv H14; auto.
   - inversion H3. subst. simpl in H1. red.
     destruct (lift_option (map (eval_expr ge p a) vs)) eqn:?H; simpl in H1;
       inversion H1; subst; clear H1. constructor. clear H3.

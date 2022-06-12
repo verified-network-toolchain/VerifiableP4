@@ -117,48 +117,69 @@ Fixpoint replace_nth {A} (n : nat) (al : list A) (x : A) {struct n} : list A :=
   | _, nil => nil
   end.
 
-Lemma extract_nth_ext_ex : forall n a_mem a_ext {A} (S : A -> ext_pred) ep H,
+Lemma extract_nth_ext_ex : forall n a_ext {A} (S : A -> ext_pred) ep H,
+  nth n a_ext (ExtPred.prop True) = (ExtPred.ex S ep H) ->
+  EXT a_ext =
+    (fun es => exists x, EXT (replace_nth n a_ext (S x)) es).
+Proof.
+  intros.
+  f_equal.
+  clear -H0.
+  generalize dependent n; induction a_ext; intros.
+  + extensionality es.
+    apply prop_ext.
+    split; only 2 : hauto lq: on.
+    intros _.
+    replace (nth n [] (ExtPred.prop True)) with (ExtPred.prop True) in H0. 2 : {
+      destruct n; auto.
+    }
+    assert (exists x, S x es). {
+      change (ExtPred.ex S ep H es).
+      rewrite <- H0.
+      exact I.
+    }
+    destruct H1 as [x ?].
+    exists x. unfold replace_nth; destruct n; sauto q: on.
+  + destruct n.
+    * simpl in H0. rewrite H0.
+      clear.
+      extensionality es.
+      apply prop_ext.
+      simpl.
+      sauto.
+    * specialize (IHa_ext _ H0).
+      change (EXT (a :: a_ext)) with (fun es => a es /\ EXT a_ext es).
+      rewrite IHa_ext.
+      clear.
+      extensionality es.
+      apply prop_ext.
+      simpl. fcrush.
+Qed.
+
+Lemma extract_nth_ext_ex' : forall n a_mem a_ext {A} (S : A -> ext_pred) ep H,
   nth n a_ext (ExtPred.prop True) = (ExtPred.ex S ep H) ->
   MEM a_mem (EXT a_ext) =
     (EX (x : A), MEM a_mem (EXT (replace_nth n a_ext (S x))))%assr.
 Proof.
   intros.
-  transitivity (MEM a_mem (fun es => exists x, EXT (replace_nth n a_ext (S x)) es)).
-  - f_equal.
-    clear -H0.
-    generalize dependent n; induction a_ext; intros.
-    + extensionality es.
-      apply prop_ext.
-      split; only 2 : hauto lq: on.
-      intros _.
-      replace (nth n [] (ExtPred.prop True)) with (ExtPred.prop True) in H0. 2 : {
-        destruct n; auto.
-      }
-      assert (exists x, S x es). {
-        change (ExtPred.ex S ep H es).
-        rewrite <- H0.
-        exact I.
-      }
-      destruct H1 as [x ?].
-      exists x. unfold replace_nth; destruct n; sauto q: on.
-    + destruct n.
-      * simpl in H0. rewrite H0.
-        clear.
-        extensionality es.
-        apply prop_ext.
-        simpl.
-        sauto.
-      * specialize (IHa_ext _ H0).
-        change (EXT (a :: a_ext)) with (fun es => a es /\ EXT a_ext es).
-        rewrite IHa_ext.
-        clear.
-        extensionality es.
-        apply prop_ext.
-        simpl. fcrush.
-  - clear.
-    extensionality s.
-    apply prop_ext.
-    sauto.
+  erewrite extract_nth_ext_ex; eauto.
+  clear.
+  extensionality st.
+  apply prop_ext.
+  sauto.
+Qed.
+
+Lemma extract_nth_ext_ex'' : forall n pre a_ext {A} (S : A -> ext_pred) ep H,
+  nth n a_ext (ExtPred.prop True) = (ExtPred.ex S ep H) ->
+  (exists x, ext_implies pre (replace_nth n a_ext (S x))) ->
+  ext_implies pre a_ext.
+Proof.
+  intros.
+  destruct H1.
+  unfold ext_implies in *.
+  change ext_denote with EXT in *.
+  erewrite extract_nth_ext_ex with (a_ext := a_ext) by eauto.
+  eauto.
 Qed.
 
 Ltac extract_ex_in_EXT a :=
@@ -167,7 +188,7 @@ Ltac extract_ex_in_EXT a :=
     lazymatch a_ext with context [(ExtPred.ex (A := ?A) ?S _ _) :: ?a_ext'] =>
       let n := constr:((length a_ext - Datatypes.S (length a_ext'))%nat) in
       let n' := eval lazy beta zeta iota delta in n in
-      rewrite (@extract_nth_ext_ex n' _ a_ext A S _ _ eq_refl);
+      rewrite (@extract_nth_ext_ex' n' _ a_ext A S _ _ eq_refl);
       unfold replace_nth at 1
     end
   end.
@@ -180,6 +201,129 @@ Ltac Intros' x :=
       intro x
   end.
 
+Ltac extract_ex_in_EXT' a :=
+  lazymatch a with
+  | ?a_ext =>
+    lazymatch a_ext with context [(ExtPred.ex (A := ?A) ?S _ _) :: ?a_ext'] =>
+      let n := constr:((length a_ext - Datatypes.S (length a_ext'))%nat) in
+      let n' := eval lazy beta zeta iota delta in n in
+      apply (@extract_nth_ext_ex'' n' _ a_ext A S _ _ eq_refl);
+      unfold replace_nth at 1
+    end
+  end.
+
+Ltac Exists' x:=
+  lazymatch goal with
+  | |- ext_implies ?pre ?post =>
+      extract_ex_in_EXT' post;
+      exists x
+  end.
+
+Fixpoint remove_nth {A} (n : nat) (al : list A) {struct n} : list A :=
+  match n, al with
+  | O, a :: al => al
+  | S n', a :: al' => a :: remove_nth n' al'
+  | _, nil => nil
+  end.
+
+Lemma extract_nth_ext_prop : forall n a_mem a_ext (S : Prop),
+  nth n a_ext (ExtPred.prop True) = (ExtPred.prop S) ->
+  MEM a_mem (EXT a_ext) =
+    (fun st => S /\ MEM a_mem (EXT (remove_nth n a_ext)) st).
+Proof.
+  intros.
+  transitivity (MEM a_mem (fun es => S /\ EXT (remove_nth n a_ext) es)).
+  - f_equal.
+    generalize dependent n; induction a_ext; intros.
+    + extensionality es.
+      apply prop_ext.
+      split; only 2 : hauto lq: on.
+      intros _.
+      replace (nth n [] (ExtPred.prop True)) with (ExtPred.prop True) in H. 2 : {
+        destruct n; auto.
+      }
+      split; only 2 : sauto.
+      assert (ExtPred.prop S es). {
+        rewrite <- H.
+        simpl. auto.
+      }
+      apply H0.
+    + destruct n.
+      * simpl in H. rewrite H.
+        clear.
+        reflexivity.
+      * specialize (IHa_ext _ H).
+        change (EXT (a :: a_ext)) with (fun es => a es /\ EXT a_ext es).
+        rewrite IHa_ext.
+        clear.
+        extensionality es.
+        apply prop_ext.
+        simpl. fcrush.
+  - clear.
+    extensionality st.
+    apply prop_ext.
+    destruct st.
+    sauto.
+Qed.
+
+Ltac extract_prop_in_EXT a :=
+  lazymatch a with
+  | MEM _ (EXT ?a_ext) =>
+    lazymatch a_ext with context [(ExtPred.prop ?S) :: ?a_ext'] =>
+      let n := constr:((length a_ext - Datatypes.S (length a_ext'))%nat) in
+      let n' := eval lazy beta zeta iota delta in n in
+      rewrite (@extract_nth_ext_prop n' _ a_ext S eq_refl);
+      unfold remove_nth at 1
+    end
+  end.
+
+Lemma hoare_block_pre_prop : forall p (P : Prop) pre block post,
+  (P -> hoare_block ge p pre block post) ->
+  hoare_block ge p (fun st : state => P /\ pre st) block post.
+Proof.
+  unfold hoare_block.
+  intros.
+  hauto lq: on.
+Qed.
+
+Ltac Intros_prop :=
+  lazymatch goal with
+  | |- hoare_block _ _ ?pre _ _ =>
+      extract_prop_in_EXT pre;
+      eapply hoare_block_pre_prop;
+      intros ?H
+  end.
+
+Lemma sval_refine_refl' : forall sv sv',
+  sv = sv' ->
+  sval_refine sv sv'.
+Proof.
+  intros; subst; apply sval_refine_refl.
+Qed.
+
+(* Need a better name. *)
+Lemma bit_bitstring_slice : forall (w w' : N) v,
+  (w' > 0)%N ->
+  ValBaseBit (Ops.bitstring_slice (P4Arith.to_loptbool w v) (N.to_nat 0) (N.to_nat (w' - 1)))
+    = P4Bit w' v.
+Proof.
+  intros.
+Admitted.
+
+Lemma P4Bit_trunc : forall w v v',
+  v mod 2 ^ Z.of_N w = v' mod 2 ^ Z.of_N w ->
+  P4Bit w v = P4Bit w v'.
+Proof.
+Admitted.
+
+Lemma ext_implies_prop_intro : forall pre (P : Prop),
+  P ->
+  ext_implies pre [ExtPred.prop P].
+Proof.
+  intros.
+  sauto.
+Qed.
+
 Lemma act_clear_index_body :
   func_sound ge act_clear_index_fd nil act_clear_index_spec.
 Proof.
@@ -187,16 +331,38 @@ Proof.
   unfold fil_clear_index_repr.
   Intros' i'.
   normalize_EXT.
+  Intros_prop.
   step_call regact_clear_index_execute_body.
   { entailer. }
   { reflexivity. }
   { simpl; lia. }
   { simpl. list_solve. }
-  cbn.
-  eapply hoare_block_cons.
-  { eapply hoare_stmt_assign'.
-    { reflexivity. }
-    { reflexivity. }
-    { reflexivity. }
-    { reflexivity. }
-Abort.
+  step.
+  step.
+  entailer.
+  { apply sval_refine_refl'.
+    f_equal.
+    cbn [sval_to_bits_width P4Bit].
+    rewrite bit_bitstring_slice with (w' := 18%N). 2 : { lia. }
+    apply P4Bit_trunc.
+    pose proof (Z.mod_pos_bound i' (2 ^ Z.of_N 18) ltac:(lia)).
+    replace (i mod 2 ^ Z.of_N 18) with i. 2 : {
+      symmetry; apply Z.mod_small; lia.
+    }
+    auto.
+  }
+  { simpl.
+    Exists' (i' + 1).
+    normalize_EXT.
+    entailer.
+    apply ext_implies_prop_intro.
+    unfold update_clear_index.
+    change (Z.pow_pos 2 18) with (2 ^ Z.of_N 18).
+    rewrite Zplus_mod, H0. clear H0.
+    destruct (i + 1 =? num_slots) eqn:?H.
+    - assert (i = num_slots - 1) by lia.
+      subst; auto.
+    - rewrite Z.mod_small with (a := i + 1); auto.
+      unfold num_slots in *; lia.
+  }
+Qed.
