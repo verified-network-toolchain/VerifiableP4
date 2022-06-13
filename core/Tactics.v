@@ -222,7 +222,9 @@ Ltac solve_modifies :=
   | idtac "The modifies clause cannot be solved automatically."
   ].
 
+(* This is quite special case handling. *)
 Ltac simplify_lift_option_eval_sval_to_val :=
+  simpl Members.get;
   cbn [map];
   repeat rewrite eval_sval_to_val_P4Bit.
 
@@ -442,10 +444,29 @@ Ltac process_func_body func_spec callback1 callback2 :=
 Ltac step_call_wrapper func_spec callback1 :=
   process_func_body func_spec callback1 step_call_tac.
 
+Tactic Notation "step_call" uconstr(func_spec) uconstr(x1) uconstr(x2) uconstr(x3) uconstr(x4) uconstr(x5) uconstr(x6) uconstr(x7) uconstr(x8) uconstr(x9) :=
+  step_call_wrapper func_spec
+    ltac:(fun func_body func_body1 func_body2 =>
+      epose proof (func_body := conj (func_body1 x1 x2 x3 x4 x5 x6 x7 x8 x9) func_body2))
+  || (* step_call func_spec x1 x2 x3 x4 x5 x6 x7 x8 x9 _. *) fail "Too many arguments".
+
+Tactic Notation "step_call" uconstr(func_spec) uconstr(x1) uconstr(x2) uconstr(x3) uconstr(x4) uconstr(x5) uconstr(x6) uconstr(x7) uconstr(x8) :=
+  step_call_wrapper func_spec
+    ltac:(fun func_body func_body1 func_body2 =>
+      epose proof (func_body := conj (func_body1 x1 x2 x3 x4 x5 x6 x7 x8) func_body2))
+  || step_call func_spec x1 x2 x3 x4 x5 x6 x7 x8 _.
+
+Tactic Notation "step_call" uconstr(func_spec) uconstr(x1) uconstr(x2) uconstr(x3) uconstr(x4) uconstr(x5) uconstr(x6) uconstr(x7) :=
+  step_call_wrapper func_spec
+    ltac:(fun func_body func_body1 func_body2 =>
+      epose proof (func_body := conj (func_body1 x1 x2 x3 x4 x5 x6 x7) func_body2))
+  || step_call func_spec x1 x2 x3 x4 x5 x6 x7 _.
+
 Tactic Notation "step_call" uconstr(func_spec) uconstr(x1) uconstr(x2) uconstr(x3) uconstr(x4) uconstr(x5) uconstr(x6) :=
   step_call_wrapper func_spec
     ltac:(fun func_body func_body1 func_body2 =>
-      epose proof (func_body := conj (func_body1 x1 x2 x3 x4 x5 x6) func_body2)).
+      epose proof (func_body := conj (func_body1 x1 x2 x3 x4 x5 x6) func_body2))
+  || step_call func_spec x1 x2 x3 x4 x5 x6 _.
 
 Tactic Notation "step_call" uconstr(func_spec) uconstr(x1) uconstr(x2) uconstr(x3) uconstr(x4) uconstr(x5) :=
   step_call_wrapper func_spec

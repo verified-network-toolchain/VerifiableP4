@@ -370,7 +370,7 @@ Qed.
 Definition act_set_clear_win_1_fd :=
   ltac:(get_fd ["Bf2BloomFilter"; "act_set_clear_win_1"] ge).
 
-Definition act_set_clear_win_1_spec : func_spec :=
+(* Definition act_set_clear_win_1_spec : func_spec :=
   WITH (* p *),
     PATH p
     MOD (Some [["ds_md"];
@@ -453,20 +453,17 @@ Ltac get_update_simpl :=
   Time step.
   Time simpl; get_update_simpl.
   (* Then we need a update_update_diff rule and guide it nicely. *)
-Abort.
+Abort. *)
 
-Definition P4Type_bf2_win_md_t :=
-  TypStruct
-    [({| P4String.tags := NoInfo; str := "api" |}, TypBit 8);
-     ({| P4String.tags := NoInfo; str := "index_1" |}, TypBit 18);
-     ({| P4String.tags := NoInfo; str := "index_2" |}, TypBit 18);
-     ({| P4String.tags := NoInfo; str := "index_3" |}, TypBit 18);
-     ({| P4String.tags := NoInfo; str := "rw_1" |}, TypBit 8);
-     ({| P4String.tags := NoInfo; str := "rw_2" |}, TypBit 8);
-     ({| P4String.tags := NoInfo; str := "rw_3" |}, TypBit 8)].
-
-Definition P4New_bf2_win_md_t := Eval compute in
-  force dummy_val (uninit_sval_of_typ None P4Type_bf2_win_md_t).
+Definition P4New_bf2_win_md_t :=
+  ValBaseStruct
+    [("api", P4NewBit 8);
+     ("index_1", P4NewBit 18);
+     ("index_2", P4NewBit 18);
+     ("index_3", P4NewBit 18);
+     ("rw_1", P4NewBit 8);
+     ("rw_2", P4NewBit 8);
+     ("rw_3", P4NewBit 8)].
 
 Definition P4_bf2_win_md_t (op : Sval) (is : list Sval) :=
   ValBaseStruct
@@ -478,7 +475,7 @@ Definition P4_bf2_win_md_t (op : Sval) (is : list Sval) :=
      ("rw_2", P4NewBit 8);
      ("rw_3", P4NewBit 8)].
 
-Definition act_set_clear_win_1_spec2 : func_spec :=
+Definition act_set_clear_win_1_spec : func_spec :=
   WITH (* p *),
     PATH p
     MOD (Some [["ds_md"];
@@ -536,44 +533,402 @@ Ltac simpl_assertion :=
 
     update get].
 
-Lemma act_set_clear_win_1_body2 :
-  func_sound ge act_set_clear_win_1_fd nil act_set_clear_win_1_spec2.
+Ltac step' := step; simpl_assertion.
+
+Lemma act_set_clear_win_1_body :
+  func_sound ge act_set_clear_win_1_fd nil act_set_clear_win_1_spec.
 Proof.
   start_function.
   unfold P4New_bf2_win_md_t.
-  simpl_assertion.
-  step.
-  simpl_assertion.
-  step.
-  simpl_assertion.
-  step.
-  simpl_assertion.
-  step.
-  simpl_assertion.
-  step.
-  simpl_assertion.
-  step.
-  simpl_assertion.
-  step.
-  simpl_assertion.
-  step.
-  simpl_assertion.
-  step.
-  simpl_assertion.
-  step.
-  simpl_assertion.
-  step.
-  simpl_assertion.
-  step.
-  simpl_assertion.
-  step.
-  simpl_assertion.
-  step.
-  simpl_assertion.
-  step.
-  simpl_assertion.
-  step.
-  simpl_assertion.
-  step.
+  step'.
+  step'.
+  step'.
+  step'.
+  step'.
+  step'.
+  step'.
+  step'.
+  step'.
+  step'.
+  step'.
+  step'.
+  step'.
+  step'.
+  step'.
+  step'.
+  step'.
   entailer.
 Qed.
+
+Definition act_set_clear_win_2_fd :=
+  ltac:(get_fd ["Bf2BloomFilter"; "act_set_clear_win_2"] ge).
+
+Definition act_set_clear_win_2_spec : func_spec :=
+  WITH (* p *),
+    PATH p
+    MOD (Some [["ds_md"];
+               ["act_set_clear_win_2"; "api_1"];
+               ["act_set_clear_win_2"; "api_2"];
+               ["act_set_clear_win_2"; "api_3"];
+               ["act_set_clear_win_2"; "api_4"]]) []
+    WITH (clear_window clear_index_1 hash_index_1 hash_index_2 hash_index_3: Sval) (api_1 api_2 api_3 api_4 : Sval),
+      PRE
+        (ARG [api_1; api_2; api_3; api_4]
+        (MEM [(["ds_md"], ValBaseStruct
+                 [("clear_window", clear_window);
+                  ("clear_index_1", clear_index_1);
+                  ("hash_index_1", hash_index_1);
+                  ("hash_index_2", hash_index_2);
+                  ("hash_index_3", hash_index_3);
+                  ("win_1", P4New_bf2_win_md_t);
+                  ("win_2", P4New_bf2_win_md_t);
+                  ("win_3", P4New_bf2_win_md_t);
+                  ("win_4", P4New_bf2_win_md_t)])]
+        (EXT [])))
+      POST
+        (ARG_RET [] ValBaseNull
+        (MEM [(["ds_md"], ValBaseStruct
+                 [("clear_window", clear_window);
+                  ("clear_index_1", clear_index_1);
+                  ("hash_index_1", hash_index_1);
+                  ("hash_index_2", hash_index_2);
+                  ("hash_index_3", hash_index_3);
+                  ("win_1", P4_bf2_win_md_t api_1 [hash_index_1; hash_index_2; hash_index_3]);
+                  ("win_2", P4_bf2_win_md_t api_2 [clear_index_1; clear_index_1; clear_index_1]);
+                  ("win_3", P4_bf2_win_md_t api_3 [hash_index_1; hash_index_2; hash_index_3]);
+                  ("win_4", P4_bf2_win_md_t api_4 [hash_index_1; hash_index_2; hash_index_3])])]
+        (EXT []))).
+
+Lemma act_set_clear_win_2_body :
+  func_sound ge act_set_clear_win_2_fd nil act_set_clear_win_2_spec.
+Proof.
+  start_function.
+  unfold P4New_bf2_win_md_t.
+  step'.
+  step'.
+  step'.
+  step'.
+  step'.
+  step'.
+  step'.
+  step'.
+  step'.
+  step'.
+  step'.
+  step'.
+  step'.
+  step'.
+  step'.
+  step'.
+  step'.
+  entailer.
+Qed.
+
+Definition act_set_clear_win_3_fd :=
+  ltac:(get_fd ["Bf2BloomFilter"; "act_set_clear_win_3"] ge).
+
+Definition act_set_clear_win_3_spec : func_spec :=
+  WITH (* p *),
+    PATH p
+    MOD (Some [["ds_md"];
+               ["act_set_clear_win_3"; "api_1"];
+               ["act_set_clear_win_3"; "api_2"];
+               ["act_set_clear_win_3"; "api_3"];
+               ["act_set_clear_win_3"; "api_4"]]) []
+    WITH (clear_window clear_index_1 hash_index_1 hash_index_2 hash_index_3: Sval) (api_1 api_2 api_3 api_4 : Sval),
+      PRE
+        (ARG [api_1; api_2; api_3; api_4]
+        (MEM [(["ds_md"], ValBaseStruct
+                 [("clear_window", clear_window);
+                  ("clear_index_1", clear_index_1);
+                  ("hash_index_1", hash_index_1);
+                  ("hash_index_2", hash_index_2);
+                  ("hash_index_3", hash_index_3);
+                  ("win_1", P4New_bf2_win_md_t);
+                  ("win_2", P4New_bf2_win_md_t);
+                  ("win_3", P4New_bf2_win_md_t);
+                  ("win_4", P4New_bf2_win_md_t)])]
+        (EXT [])))
+      POST
+        (ARG_RET [] ValBaseNull
+        (MEM [(["ds_md"], ValBaseStruct
+                 [("clear_window", clear_window);
+                  ("clear_index_1", clear_index_1);
+                  ("hash_index_1", hash_index_1);
+                  ("hash_index_2", hash_index_2);
+                  ("hash_index_3", hash_index_3);
+                  ("win_1", P4_bf2_win_md_t api_1 [hash_index_1; hash_index_2; hash_index_3]);
+                  ("win_2", P4_bf2_win_md_t api_2 [hash_index_1; hash_index_2; hash_index_3]);
+                  ("win_3", P4_bf2_win_md_t api_3 [clear_index_1; clear_index_1; clear_index_1]);
+                  ("win_4", P4_bf2_win_md_t api_4 [hash_index_1; hash_index_2; hash_index_3])])]
+        (EXT []))).
+
+Lemma act_set_clear_win_3_body :
+  func_sound ge act_set_clear_win_3_fd nil act_set_clear_win_3_spec.
+Proof.
+  start_function.
+  unfold P4New_bf2_win_md_t.
+  step'.
+  step'.
+  step'.
+  step'.
+  step'.
+  step'.
+  step'.
+  step'.
+  step'.
+  step'.
+  step'.
+  step'.
+  step'.
+  step'.
+  step'.
+  step'.
+  step'.
+  entailer.
+Qed.
+
+Definition act_set_clear_win_4_fd :=
+  ltac:(get_fd ["Bf2BloomFilter"; "act_set_clear_win_4"] ge).
+
+Definition act_set_clear_win_4_spec : func_spec :=
+  WITH (* p *),
+    PATH p
+    MOD (Some [["ds_md"];
+               ["act_set_clear_win_4"; "api_1"];
+               ["act_set_clear_win_4"; "api_2"];
+               ["act_set_clear_win_4"; "api_3"];
+               ["act_set_clear_win_4"; "api_4"]]) []
+    WITH (clear_window clear_index_1 hash_index_1 hash_index_2 hash_index_3: Sval) (api_1 api_2 api_3 api_4 : Sval),
+      PRE
+        (ARG [api_1; api_2; api_3; api_4]
+        (MEM [(["ds_md"], ValBaseStruct
+                 [("clear_window", clear_window);
+                  ("clear_index_1", clear_index_1);
+                  ("hash_index_1", hash_index_1);
+                  ("hash_index_2", hash_index_2);
+                  ("hash_index_3", hash_index_3);
+                  ("win_1", P4New_bf2_win_md_t);
+                  ("win_2", P4New_bf2_win_md_t);
+                  ("win_3", P4New_bf2_win_md_t);
+                  ("win_4", P4New_bf2_win_md_t)])]
+        (EXT [])))
+      POST
+        (ARG_RET [] ValBaseNull
+        (MEM [(["ds_md"], ValBaseStruct
+                 [("clear_window", clear_window);
+                  ("clear_index_1", clear_index_1);
+                  ("hash_index_1", hash_index_1);
+                  ("hash_index_2", hash_index_2);
+                  ("hash_index_3", hash_index_3);
+                  ("win_1", P4_bf2_win_md_t api_1 [hash_index_1; hash_index_2; hash_index_3]);
+                  ("win_2", P4_bf2_win_md_t api_2 [hash_index_1; hash_index_2; hash_index_3]);
+                  ("win_3", P4_bf2_win_md_t api_3 [hash_index_1; hash_index_2; hash_index_3]);
+                  ("win_4", P4_bf2_win_md_t api_4 [clear_index_1; clear_index_1; clear_index_1])])]
+        (EXT []))).
+
+Lemma act_set_clear_win_4_body :
+  func_sound ge act_set_clear_win_4_fd nil act_set_clear_win_4_spec.
+Proof.
+  start_function.
+  unfold P4New_bf2_win_md_t.
+  step'.
+  step'.
+  step'.
+  step'.
+  step'.
+  step'.
+  step'.
+  step'.
+  step'.
+  step'.
+  step'.
+  step'.
+  step'.
+  step'.
+  step'.
+  step'.
+  step'.
+  entailer.
+Qed.
+
+#[local] Hint Extern 5 (func_modifies _ _ _ _ _) => (apply act_set_clear_win_1_body) : func_specs.
+#[local] Hint Extern 5 (func_modifies _ _ _ _ _) => (apply act_set_clear_win_2_body) : func_specs.
+#[local] Hint Extern 5 (func_modifies _ _ _ _ _) => (apply act_set_clear_win_3_body) : func_specs.
+#[local] Hint Extern 5 (func_modifies _ _ _ _ _) => (apply act_set_clear_win_4_body) : func_specs.
+
+Definition tbl_set_win_fd :=
+  ltac:(get_fd ["Bf2BloomFilter"; "tbl_set_win"; "apply"] ge).
+
+Definition P4_bf2_win_md_t_insert (f cf if' : Z) (new_clear_index : Sval) (is : list Sval) :=
+  if f=? cf then
+    P4_bf2_win_md_t (P4Bit 8 CLEAR) [new_clear_index; new_clear_index; new_clear_index]
+  else if f=? if' then
+    P4_bf2_win_md_t (P4Bit 8 INSERT) is
+  else
+    P4_bf2_win_md_t (P4Bit 8 NOOP) is.
+
+Definition num_frames := 4.
+Definition frame_time := 7034.
+
+Notation get_clear_frame := (get_clear_frame (num_frames := num_frames) frame_time).
+Notation get_insert_frame := (get_insert_frame (num_frames := num_frames)).
+
+Definition tbl_set_win_insert_spec : func_spec :=
+  WITH (* p *),
+    PATH p
+    MOD (Some [["ds_md"];
+               ["act_set_clear_win_1"; "api_1"];
+               ["act_set_clear_win_1"; "api_2"];
+               ["act_set_clear_win_1"; "api_3"];
+               ["act_set_clear_win_1"; "api_4"];
+               ["act_set_clear_win_2"; "api_1"];
+               ["act_set_clear_win_2"; "api_2"];
+               ["act_set_clear_win_2"; "api_3"];
+               ["act_set_clear_win_2"; "api_4"];
+               ["act_set_clear_win_3"; "api_1"];
+               ["act_set_clear_win_3"; "api_2"];
+               ["act_set_clear_win_3"; "api_3"];
+               ["act_set_clear_win_3"; "api_4"];
+               ["act_set_clear_win_2"; "api_1"];
+               ["act_set_clear_win_4"; "api_1"];
+               ["act_set_clear_win_4"; "api_2"];
+               ["act_set_clear_win_4"; "api_3"];
+               ["act_set_clear_win_4"; "api_4"]]) []
+    WITH (timer : Z * bool) (clear_index_1 hash_index_1 hash_index_2 hash_index_3: Sval)
+      (H_timer : 0 <= fst timer <= frame_time * num_frames),
+      PRE
+        (ARG []
+        (MEM [(["api"], P4Bit 8 INSERT);
+              (["ds_md"], ValBaseStruct
+                 [("clear_window", P4Bit 16 (fst timer));
+                  ("clear_index_1", clear_index_1);
+                  ("hash_index_1", hash_index_1);
+                  ("hash_index_2", hash_index_2);
+                  ("hash_index_3", hash_index_3);
+                  ("win_1", P4New_bf2_win_md_t);
+                  ("win_2", P4New_bf2_win_md_t);
+                  ("win_3", P4New_bf2_win_md_t);
+                  ("win_4", P4New_bf2_win_md_t)])]
+        (EXT [])))
+      POST
+        (EX retv,
+        (ARG_RET [] retv
+        (let cf := get_clear_frame timer in
+        let if' := get_insert_frame cf in
+        (MEM [(["ds_md"], ValBaseStruct
+                 [("clear_window", P4Bit 16 (fst timer));
+                  ("clear_index_1", clear_index_1);
+                  ("hash_index_1", hash_index_1);
+                  ("hash_index_2", hash_index_2);
+                  ("hash_index_3", hash_index_3);
+                  ("win_1", P4_bf2_win_md_t_insert 0 cf if' clear_index_1
+                        [hash_index_1; hash_index_2; hash_index_3]);
+                  ("win_2", P4_bf2_win_md_t_insert 1 cf if' clear_index_1
+                        [hash_index_1; hash_index_2; hash_index_3]);
+                  ("win_3", P4_bf2_win_md_t_insert 2 cf if' clear_index_1
+                        [hash_index_1; hash_index_2; hash_index_3]);
+                  ("win_4", P4_bf2_win_md_t_insert 3 cf if' clear_index_1
+                        [hash_index_1; hash_index_2; hash_index_3])])]
+        (EXT [])))))%arg_ret_assr.
+
+(* We need to turn set a larger searching steps, because the number of modified local variables
+  is too big. *)
+Ltac solve_modifies ::=
+  first
+  [ solve
+  [ eauto  300 with nocore modifies ]
+  | idtac
+  "The modifies clause cannot be solved automatically." ].
+
+Ltac next_case' :=
+  constructor; (let H := fresh in intro H).
+
+(* Ltac hoare_func_table ::=
+  lazymatch goal with
+  | |- hoare_func _ _ _ (FTable _ _ _ _ _) _ _ =>
+      eapply hoare_func_table';
+      [ eapply hoare_table_match_list_intro'; (* hoare_table_match_list *)
+        [ reflexivity (* eval_exprs *)
+        | (* simplify_lift_option_eval_sval_to_val; (* lift_option (.. keysvals) *)
+          reflexivity *)
+        | (* eapply hoare_table_entries_intros; (* hoare_table_entries *)
+          repeat econstructor *)
+        | (* hoare_extern_match_list *) (* hoare_extern_match_list *)
+        ]
+      | idtac (* hoare_table_action_cases' *)
+      ]
+  | _ => fail "The goal is not in the form of (hoare_func _ _ _ (FTable _ _ _ _ _) _ _)"
+  end. *)
+
+Lemma Z_div_squeeze_pos : forall a b lo hi res,
+  0 < b ->
+  lo <= a <= hi ->
+  lo / b = res ->
+  hi / b = res ->
+  a / b = res.
+Proof.
+  intros.
+  pose proof (Z.div_le_mono lo a b ltac:(auto) ltac:(lia)).
+  pose proof (Z.div_le_mono a hi b ltac:(auto) ltac:(lia)).
+  lia.
+Qed.
+
+Lemma Z_div_squeeze : forall a b lo hi res,
+  lo <= a <= hi ->
+  lo / b = res ->
+  hi / b = res ->
+  a / b = res.
+Proof.
+  intros.
+  destruct b.
+  - rewrite Zdiv_0_r in *. auto.
+  - eapply Z_div_squeeze_pos; eauto; lia.
+  - rewrite <- Zdiv_opp_opp in *.
+    eapply Z_div_squeeze_pos with (-hi) (-lo); lia.
+Qed.
+
+Ltac rep_lia := unfold frame_time, num_frames in *; lia.
+
+Lemma tbl_set_win_insert_body :
+  func_sound ge tbl_set_win_fd nil tbl_set_win_insert_spec.
+Proof.
+  start_function.
+  repeat match goal with
+  | |- context [ValSetProd ?l] =>
+      let l' := eval compute in l in
+      progress change l with l'
+  end.
+  next_case'.
+  { simpl Tofino.valset_to_valsett in H.
+    simpl in H.
+    destruct (Tofino.values_match_singleton (ValBaseBit (P4Arith.to_lbool 8 INSERT))
+             (ValBaseBit [false; true; false; false; false; false; false; false])) eqn:?H.
+    2 : { inv H. }
+    destruct (Tofino.values_match_range (ValBaseBit (P4Arith.to_lbool 16 (fst timer)))
+            (ValBaseBit
+               [false; false; false; false; false; false; false; false; false;
+               false; false; false; false; false; false; false])
+            (ValBaseBit
+               [true; false; false; true; true; true; true; false; true; true;
+               false; true; true; false; false; false])) eqn:?H.
+    2 : { inv H. }
+    clear H.
+    unfold Tofino.values_match_range, Tofino.assert_int in H1.
+    rewrite P4Arith.bit_from_to_bool in H1.
+    simpl in H1.
+    unfold P4Arith.BitArith.mod_bound in H1.
+    rewrite Z.mod_small in H1. 2 : {
+      unfold P4Arith.BitArith.upper_bound. rep_lia.
+    }
+    table_action act_set_clear_win_1_body.
+    { entailer. }
+    { replace (get_clear_frame timer) with 0. 2 : {
+        unfold get_clear_frame.
+        destruct (fst timer =? frame_time * num_frames) eqn:?. 1 : rep_lia.
+        symmetry.
+        eapply Z_div_squeeze with 0 7033; auto; rep_lia.
+      }
+      entailer.
+    }
+Abort.
