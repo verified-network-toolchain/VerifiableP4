@@ -285,7 +285,7 @@ Inductive filter : Type :=
   is a tick and flipping from 1 to 0 is a tock. tick_time is the time interval of a tick
   (and the time interval of a tock as well). *)
 Context (tick_time : Z).
-
+Hypothesis (H_tick_time_gt_0: 0 < tick_time).
 (* round_time can be defined. But it is annoying to have tick_time in abstract operations. *)
 Context (round_time : Z -> Z).
 (* Definition round_time (t : Z) :=
@@ -293,15 +293,16 @@ Context (round_time : Z -> Z).
 
 Hypothesis (H_frame_time : 0 < frame_time).
 (* Maybe there is a "divides" predicate? *)
-Hypothesis (H_tick_time : exists frame_tick_tocks, tick_time * 2 * frame_tick_tocks = frame_time).
+Hypothesis (H_tick_time : (tick_time * 2 | frame_time)).
 
 Definition frame_tick_tocks := frame_time / (tick_time * 2).
 
 Lemma H_frame_tick_tocks : tick_time * 2 * frame_tick_tocks = frame_time.
-  (* Cannot find anything to prove it... *)
-  (* Search (Z.mul _ _ = _) (Z.div _ _ = _). *)
-  clear -H_tick_time. unfold frame_tick_tocks. (* nia. *)
-Admitted.
+Proof.
+  unfold frame_tick_tocks.
+  destruct H_tick_time. subst frame_time.
+  rewrite Z.div_mul by lia. lia.
+Qed.
 
 #[global] Program Instance con_frame_Inhabitant : Inhabitant (ConFilter.frame num_rows num_slots) :=
   ConFilter.Inhabitant_frame _ _.
@@ -309,7 +310,8 @@ Admitted.
 (* Is this correct? *)
 Definition timer_sim (window_hi last_timestamp : Z) (con_t : Z * bool) : Prop :=
   (* Maybe there is a "divides" predicate? *)
-  (exists x, tick_time * 2 * x = window_hi) /\
+  (* Yes, there is a Z.divide and notation (x | y) *)
+  (tick_time * 2 | window_hi) /\
   Z.odd (last_timestamp / tick_time) = snd con_t /\
   (last_timestamp - (window_hi - frame_time)) / (tick_time * 2) = fst con_t mod frame_tick_tocks.
 

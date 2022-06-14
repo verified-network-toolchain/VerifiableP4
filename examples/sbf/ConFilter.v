@@ -97,9 +97,9 @@ Definition update_clear_index (i : Z) :=
   let i := i+1 in
   if (i =? num_slots) then 0 else i.
 
-Context (frame_time : Z).
+Context (frame_tick_tocks : Z).
 
-Let cycle_time := frame_time * num_frames.
+Let cycle_time := frame_tick_tocks * num_frames.
 
 Definition update_timer (t : Z * bool) (tick : bool) : Z * bool :=
   if tick then
@@ -116,7 +116,7 @@ Definition update_timer (t : Z * bool) (tick : bool) : Z * bool :=
 Definition get_clear_frame (t : Z * bool) : Z :=
   let t := fst t in
   let t := if (t =? cycle_time) then 0 else t in
-  t / frame_time.
+  t / frame_tick_tocks.
 
 Definition get_insert_frame (cf : Z) : Z :=
   if (cf =? 0) then num_frames - 1 else cf - 1.
