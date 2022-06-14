@@ -4,6 +4,7 @@ Require Poulet4.Utils.Utils.
 Require Import ProD3.examples.sbf.Utils.
 Require Import ProD3.examples.sbf.ConFilter.
 Require Import ProD3.core.Coqlib.
+Require Import Hammer.Plugin.Hammer.
 Import ListNotations.
 Open Scope Z_scope.
 Open Scope program_scope.
@@ -15,6 +16,7 @@ Context {Inhabitant_header_type : Inhabitant header_type}.
 
 Context (num_frames num_rows num_slots frame_time : Z).
 Hypothesis H_num_slots : 0 < num_slots.
+Hypothesis H_num_rows : 0 < num_rows.
 
 Section Row.
 
@@ -273,8 +275,61 @@ Inductive filter : Type :=
   | FNormal (window_hi : Z) (last_timestamp : Z) (num_clears : Z)
         (normal_frames : list (list header_type)).
 
-Axiom minimal_time : Z.
-Axiom round_time : Z -> Z.
+Context (tick_time : Z).
+
+(* round_time can be defined. But it is annoying to have tick_time in abstract operations. *)
+Context (round_time : Z -> Z).
+(* Definition round_time (t : Z) :=
+  t mod (tick_time * 2) * (tick_time * 2). *)
+
+Hypothesis (H_frame_time : 0 < frame_time).
+(* Maybe there is a "divides" predicate? *)
+Hypothesis (H_tick_time : exists frame_tick_tocks, tick_time * 2 * frame_tick_tocks = frame_time).
+
+Definition frame_tick_tocks := frame_time / (tick_time * 2).
+
+Lemma H_frame_tick_tocks : tick_time * 2 * frame_tick_tocks = frame_time.
+  (* Cannot find anything to prove it... *)
+  (* Search (Z.mul _ _ = _) (Z.div _ _ = _). *)
+  clear -H_tick_time. unfold frame_tick_tocks. (* nia. *)
+Admitted.
+
+#[global] Program Instance con_frame_Inhabitant : Inhabitant (ConFilter.frame num_rows num_slots) :=
+  ConFilter.Inhabitant_frame _ _.
+
+(* Is this correct? *)
+Definition timer_sim (window_hi last_timestamp : Z) (con_t : Z * bool) : Prop :=
+  (* Maybe there is a "divides" predicate? *)
+  (exists x, tick_time * 2 * x = window_hi) /\
+  Z.odd (last_timestamp / tick_time) = snd con_t /\
+  (last_timestamp - (window_hi - frame_time)) / (tick_time * 2) = fst con_t mod frame_tick_tocks.
+
+Inductive filter_sim : filter -> ConFilter.filter num_frames num_rows num_slots -> Prop :=
+  | filter_sim_new : forall (cf : ConFilter.filter num_frames num_rows num_slots),
+      (* There are many equivalent definitions. *)
+      Forall2 frame_sim (Zrepeat (Normal []) num_frames) (` (fil_frames cf)) ->
+      fil_clear_index cf = 0 ->
+      fil_timer cf = (0, false) ->
+      filter_sim FNew cf
+  | filter_sim_normal : forall window_hi last_timestamp num_clears normal_frames cf ic,
+      (* Normal frames are good. *)
+      Forall2 frame_sim (map Normal normal_frames)
+          (sublist (ic + 1) (ic + num_frames) (` (fil_frames cf) ++ ` (fil_frames cf))) ->
+      (* The clear frame is good. *)
+      (* I'm not sure if this form is easy to handle. I do it in this way to avoid
+        (1) talking about the cyclic behavior;
+        (2) destructing the frame into rows.
+      *)
+      (exists cl, frame_sim (Clear cl) (Znth ic (` (fil_frames cf))) /\
+          (Forall (fun b => (is_true b))
+            (sublist
+              (fil_clear_index cf + num_slots - (Z.min num_slots num_clears))
+              (fil_clear_index cf + num_slots)
+              (cl ++ cl)))) ->
+      (* timer is good *)
+      timer_sim window_hi last_timestamp (fil_timer cf) ->
+      get_clear_frame (num_frames := num_frames) frame_tick_tocks (fil_timer cf) = ic ->
+      filter_sim (FNormal window_hi last_timestamp num_clears normal_frames) cf.
 
 Definition filter_init (time : Z) : filter :=
   FNormal (round_time time + frame_time) time num_slots (Zrepeat [] (num_frames - 1)).
@@ -287,7 +342,7 @@ Definition filter_refresh (f : filter) (timestamp : Z) : option filter :=
     end in
   match f with
   | FNormal window_hi last_timestamp num_clears normal_frames =>
-      if (last_timestamp <=? timestamp) && (timestamp <=? last_timestamp + minimal_time) then
+      if (last_timestamp <=? timestamp) && (timestamp <=? last_timestamp + tick_time) then
         if (timestamp >=? window_hi) then
           if (num_clears >=? num_slots) then
             let frames := sublist 1 (num_frames - 1) normal_frames ++ [[]] in
