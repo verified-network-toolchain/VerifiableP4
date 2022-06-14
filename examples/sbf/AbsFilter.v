@@ -13,7 +13,7 @@ Section AbsFilter.
 Context {header_type : Set}.
 Context {Inhabitant_header_type : Inhabitant header_type}.
 
-Context (num_rows : Z) (num_slots : Z).
+Context (num_frames num_rows num_slots frame_time : Z).
 Hypothesis H_num_slots : 0 < num_slots.
 
 Section Row.
@@ -258,11 +258,69 @@ Proof.
   - list_solve.
 Qed.
 
-End Frame.
-
-
 #[global] Instance frame_Inhabitant: Inhabitant frame := Normal [].
 
+(* We might need it to be at least 2. *)
+Hypothesis H_num_frames : 2 <= num_frames.
+
+(* I would like to define it like this, but it looks hard to prove. *)
+(* Inductive filter : Type :=
+  | FNew
+  | FNormal (window_lo : Z) (num_clears : Z) (hs : list (Z * header_type)). *)
+
+Inductive filter : Type :=
+  | FNew
+  | FNormal (window_hi : Z) (last_timestamp : Z) (num_clears : Z)
+        (normal_frames : list (list header_type)).
+
+Axiom minimal_time : Z.
+Axiom round_time : Z -> Z.
+
+Definition filter_init (time : Z) : filter :=
+  FNormal (round_time time + frame_time) time num_slots (Zrepeat [] (num_frames - 1)).
+
+Definition filter_refresh (f : filter) (timestamp : Z) : option filter :=
+  let f :=
+    match f with
+    | FNew => filter_init timestamp
+    | _ => f
+    end in
+  match f with
+  | FNormal window_hi last_timestamp num_clears normal_frames =>
+      if (last_timestamp <=? timestamp) && (timestamp <=? last_timestamp + minimal_time) then
+        if (timestamp >=? window_hi) then
+          if (num_clears >=? num_slots) then
+            let frames := sublist 1 (num_frames - 1) normal_frames ++ [[]] in
+            Some (FNormal (window_hi + frame_time) timestamp 0 frames)
+          else
+            None
+        else
+          Some f
+      else
+        None
+  | _ => None
+  end.
+
+Definition filter_insert (f : filter) '(timestamp, h) : option filter :=
+  match filter_refresh f timestamp with
+  | Some (FNormal window_hi last_timestamp num_clears normal_frames) =>
+      let frames := upd_Znth (num_frames - 2) normal_frames (Znth (num_frames - 2) normal_frames ++ [h]) in
+      Some (FNormal window_hi timestamp (num_clears + 1) frames)
+  | _ => None
+  end.
+
+Definition filter_query (f : filter) '((timestamp, h) : Z * header_type) : option (filter * bool) :=
+  match filter_refresh f timestamp with
+  | Some (FNormal window_hi last_timestamp num_clears normal_frames) =>
+      let res := forallb (fun hs => existsb (fun hash => fold_orb (map (Z.eqb (hash h) ∘ hash) hs)) hashes) normal_frames in
+      Some (FNormal window_hi last_timestamp num_clears normal_frames, res)
+  | _ => None
+  end.
+
+Definition filter_clear (f : filter) '((timestamp, h) : Z * header_type) : option filter :=
+  filter_refresh f timestamp.
+
+End Frame.
 (*
 Section sliding_mixin.
 
