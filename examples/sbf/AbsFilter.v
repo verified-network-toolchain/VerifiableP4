@@ -271,10 +271,19 @@ Hypothesis H_num_frames : 2 <= num_frames.
   | FNormal (window_lo : Z) (num_clears : Z) (hs : list (Z * header_type)). *)
 
 Inductive filter : Type :=
+  (* A fresh filter *)
   | FNew
+  (* window_hi describes that the current range of query is [window_lo, window_hi), where
+    window_lo = window_hi - (num_frames - 1) * frame_time.
+    last_timestamp is the timestamp of last packet.
+    num_clears is number of clear operations we have done to the frame that is being cleared.
+    normal_frames is the list of contents of the (num_frames - 1) normal frames. *)
   | FNormal (window_hi : Z) (last_timestamp : Z) (num_clears : Z)
         (normal_frames : list (list header_type)).
 
+(* The concrete filter's timer uses a bit to detect time. We say the bit flipping from 0 to 1
+  is a tick and flipping from 1 to 0 is a tock. tick_time is the time interval of a tick
+  (and the time interval of a tock as well). *)
 Context (tick_time : Z).
 
 (* round_time can be defined. But it is annoying to have tick_time in abstract operations. *)
@@ -346,7 +355,7 @@ Definition filter_refresh (f : filter) (timestamp : Z) : option filter :=
         if (timestamp >=? window_hi) then
           if (num_clears >=? num_slots) then
             let frames := sublist 1 (num_frames - 1) normal_frames ++ [[]] in
-            Some (FNormal (window_hi + frame_time) timestamp 0 frames)
+            Some (FNormal (window_hi + frame_time) last_timestamp 0 frames)
           else
             None
         else
@@ -368,12 +377,16 @@ Definition filter_query (f : filter) '((timestamp, h) : Z * header_type) : optio
   match filter_refresh f timestamp with
   | Some (FNormal window_hi last_timestamp num_clears normal_frames) =>
       let res := forallb (fun hs => existsb (fun hash => fold_orb (map (Z.eqb (hash h) ∘ hash) hs)) hashes) normal_frames in
-      Some (FNormal window_hi last_timestamp num_clears normal_frames, res)
+      Some (FNormal window_hi timestamp (num_clears + 1) normal_frames, res)
   | _ => None
   end.
 
 Definition filter_clear (f : filter) '((timestamp, h) : Z * header_type) : option filter :=
-  filter_refresh f timestamp.
+  match filter_refresh f timestamp with
+  | Some (FNormal window_hi last_timestamp num_clears normal_frames) =>
+      Some (FNormal window_hi timestamp (num_clears + 1) normal_frames)
+  | _ => None
+  end.
 
 End Frame.
 (*
