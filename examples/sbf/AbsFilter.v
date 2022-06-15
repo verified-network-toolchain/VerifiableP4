@@ -306,11 +306,28 @@ Qed.
 #[global] Program Instance con_frame_Inhabitant : Inhabitant (ConFilter.frame num_rows num_slots) :=
   ConFilter.Inhabitant_frame _ _.
 
+(* timer_sim relates an abstract timer with a concrete timer. The state of the abstract timer is
+  described by window_hi and last_timestamp. The state of the concrete timer is described by ct.
+  In the abstract timer, the range of the last pane is
+  [window_hi - frame_time, window_hi). last_timestamp should be inside this range, although
+  we do not need to reinforce it in this relation. The value of concrete timer is counted from
+  its start time. We don't know when the concrete timer started, but we can compare it with the
+  abstract timer as follows. In order to make the range [window_hi - frame_time, window_hi) maintainable
+  in the concrete timer, we need to have (tick_time * 2 | window_hi), which is the same as
+  (tick_time * 2 | window_hi - frame_time). Considering the position of last_timestamp in
+  [window_hi - frame_time, window_hi), the current tick is the
+  ((last_timestamp - (window_hi - frame_time)) / tick_time)-th tick in the range. (snd ct) is
+  corresponding to (Z.odd ((last_timestamp - (window_hi - frame_time)) / tick_time)), i.e.
+  (Z.odd (last_timestamp / tick_time)). The range of the last pane is decribed as
+  [(fst ct) / frame_tick_tocks * frame_tick_tocks, ((fst ct) / frame_tick_tocks + 1) * frame_tick_tocks).
+  So the correspondence between last_timestamp and (fst ct) is
+  ((last_timestamp - (window_hi - frame_time)) / (tick_time * 2) = (fst ct) mod frame_tick_tocks).
+*)
 (* Is this correct? *)
-Definition timer_sim (window_hi last_timestamp : Z) (con_t : Z * bool) : Prop :=
+Definition timer_sim (window_hi last_timestamp : Z) (ct : Z * bool) : Prop :=
   (tick_time * 2 | window_hi) /\
-  Z.odd (last_timestamp / tick_time) = snd con_t /\
-  (last_timestamp - (window_hi - frame_time)) / (tick_time * 2) = fst con_t mod frame_tick_tocks.
+  Z.odd (last_timestamp / tick_time) = snd ct /\
+  (last_timestamp - (window_hi - frame_time)) / (tick_time * 2) = (fst ct) mod frame_tick_tocks.
 
 Inductive filter_sim : filter -> ConFilter.filter num_frames num_rows num_slots -> Prop :=
   | filter_sim_new : forall (cf : ConFilter.filter num_frames num_rows num_slots),
