@@ -267,19 +267,19 @@ Hypothesis H_num_frames : 2 <= num_frames.
 
 (* I would like to define it like this, but it looks hard to prove. *)
 (* Inductive filter : Type :=
-  | FNew
-  | FNormal (window_lo : Z) (num_clears : Z) (hs : list (Z * header_type)). *)
+  | mk_filter (window_lo : Z) (num_clears : Z) (hs : list (Z * header_type)). *)
 
-Inductive filter : Type :=
-  (* A fresh filter *)
-  | FNew
+Record filter : Type := mk_filter {
   (* window_hi describes that the current range of query is [window_lo, window_hi), where
     window_lo = window_hi - (num_frames - 1) * frame_time.
     last_timestamp is the timestamp of last packet.
     num_clears is number of clear operations we have done to the frame that is being cleared.
     normal_frames is the list of contents of the (num_frames - 1) normal frames. *)
-  | FNormal (window_hi : Z) (last_timestamp : Z) (num_clears : Z)
-        (normal_frames : list (list header_type)).
+  window_hi : Z;
+  last_timestamp : Z;
+  num_clears : Z;
+  normal_frames : list (list header_type)
+}.
 
 (* The concrete filter's timer uses a bit to detect time. We say the bit flipping from 0 to 1
   is a tick and flipping from 1 to 0 is a tock. tick_time is the time interval of a tick
@@ -330,13 +330,7 @@ Definition timer_sim (window_hi last_timestamp : Z) (ct : Z * bool) : Prop :=
   (last_timestamp - (window_hi - frame_time)) / (tick_time * 2) = (fst ct) mod frame_tick_tocks.
 
 Inductive filter_sim : filter -> ConFilter.filter num_frames num_rows num_slots -> Prop :=
-  | filter_sim_new : forall (cf : ConFilter.filter num_frames num_rows num_slots),
-      (* There are many equivalent definitions. *)
-      Forall2 frame_sim (Zrepeat (Normal []) num_frames) (` (fil_frames cf)) ->
-      fil_clear_index cf = 0 ->
-      fil_timer cf = (0, false) ->
-      filter_sim FNew cf
-  | filter_sim_normal : forall window_hi last_timestamp num_clears normal_frames cf ic,
+  | filter_sim_intro : forall window_hi last_timestamp num_clears normal_frames cf ic,
       (* Normal frames are good. *)
       Forall2 frame_sim (map Normal normal_frames)
           (sublist (ic + 1) (ic + num_frames) (` (fil_frames cf) ++ ` (fil_frames cf))) ->
@@ -354,53 +348,48 @@ Inductive filter_sim : filter -> ConFilter.filter num_frames num_rows num_slots 
       (* timer is good *)
       timer_sim window_hi last_timestamp (fil_timer cf) ->
       get_clear_frame (num_frames := num_frames) frame_tick_tocks (fil_timer cf) = ic ->
-      filter_sim (FNormal window_hi last_timestamp num_clears normal_frames) cf.
+      filter_sim (mk_filter window_hi last_timestamp num_clears normal_frames) cf.
 
 Definition filter_init (time : Z) : filter :=
-  FNormal (round_time time + frame_time) time num_slots (Zrepeat [] (num_frames - 1)).
+  mk_filter (round_time time + frame_time) time num_slots (Zrepeat [] (num_frames - 1)).
+
+Definition Is_filter_init (f : filter) : Prop :=
+  exists time, f = filter_init time.
 
 Definition filter_refresh (f : filter) (timestamp : Z) : option filter :=
-  let f :=
-    match f with
-    | FNew => filter_init timestamp
-    | _ => f
-    end in
-  match f with
-  | FNormal window_hi last_timestamp num_clears normal_frames =>
-      if (last_timestamp <=? timestamp) && (timestamp <=? last_timestamp + tick_time) then
-        if (timestamp >=? window_hi) then
-          if (num_clears >=? num_slots) then
-            let frames := sublist 1 (num_frames - 1) normal_frames ++ [[]] in
-            Some (FNormal (window_hi + frame_time) last_timestamp 0 frames)
-          else
-            None
-        else
-          Some f
+  let '(mk_filter window_hi last_timestamp num_clears normal_frames) := f in
+  if (last_timestamp <=? timestamp) && (timestamp <=? last_timestamp + tick_time) then
+    if (timestamp >=? window_hi) then
+      if (num_clears >=? num_slots) then
+        let frames := sublist 1 (num_frames - 1) normal_frames ++ [[]] in
+        Some (mk_filter (window_hi + frame_time) last_timestamp 0 frames)
       else
         None
-  | _ => None
-  end.
+    else
+      Some f
+  else
+    None.
 
 Definition filter_insert (f : filter) '(timestamp, h) : option filter :=
   match filter_refresh f timestamp with
-  | Some (FNormal window_hi last_timestamp num_clears normal_frames) =>
+  | Some (mk_filter window_hi last_timestamp num_clears normal_frames) =>
       let frames := upd_Znth (num_frames - 2) normal_frames (Znth (num_frames - 2) normal_frames ++ [h]) in
-      Some (FNormal window_hi timestamp (num_clears + 1) frames)
+      Some (mk_filter window_hi timestamp (num_clears + 1) frames)
   | _ => None
   end.
 
 Definition filter_query (f : filter) '((timestamp, h) : Z * header_type) : option (filter * bool) :=
   match filter_refresh f timestamp with
-  | Some (FNormal window_hi last_timestamp num_clears normal_frames) =>
+  | Some (mk_filter window_hi last_timestamp num_clears normal_frames) =>
       let res := forallb (fun hs => existsb (fun hash => fold_orb (map (Z.eqb (hash h) ∘ hash) hs)) hashes) normal_frames in
-      Some (FNormal window_hi timestamp (num_clears + 1) normal_frames, res)
+      Some (mk_filter window_hi timestamp (num_clears + 1) normal_frames, res)
   | _ => None
   end.
 
 Definition filter_clear (f : filter) '((timestamp, h) : Z * header_type) : option filter :=
   match filter_refresh f timestamp with
-  | Some (FNormal window_hi last_timestamp num_clears normal_frames) =>
-      Some (FNormal window_hi timestamp (num_clears + 1) normal_frames)
+  | Some (mk_filter window_hi last_timestamp num_clears normal_frames) =>
+      Some (mk_filter window_hi timestamp (num_clears + 1) normal_frames)
   | _ => None
   end.
 
