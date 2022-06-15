@@ -103,15 +103,15 @@ Let cycle_tick_tocks := frame_tick_tocks * num_frames.
 
 Definition update_timer (t : Z * bool) (tick : bool) : Z * bool :=
   if tick then
-    if snd t then
-      t
-    else
-      (fst t + 1, false)
-  else
     if (fst t =? cycle_tick_tocks) then
       (0, true)
     else
-      (fst t, true).
+      (fst t, true)
+  else
+    if snd t then
+      (fst t + 1, false)
+    else
+      t.
 
 Definition get_clear_frame (t : Z * bool) : Z :=
   let t := fst t in
