@@ -90,16 +90,30 @@ Program Definition frame_query (f : frame) (is : list Z) : bool :=
 Record filter := mk_filter {
   fil_frames : listn frame num_frames;
   fil_clear_index : Z;
-  fil_timer : Z * bool
-}.
+  fil_timer : Z * bool;
+  }.
+
+Definition clear_index_wf (i: Z) := 0 <= i < num_slots.
+
+Context (frame_tick_tocks : Z).
+
+Hypothesis H_frame_tick_tocks: 0 < frame_tick_tocks.
+
+Let cycle_tick_tocks := frame_tick_tocks * num_frames.
+
+Definition timer_wf (timer: Z * bool) := if (snd timer)
+                                      then 0 <= fst timer < cycle_tick_tocks
+                                      else 0 <= fst timer <= cycle_tick_tocks.
 
 Definition update_clear_index (i : Z) :=
   let i := i+1 in
   if (i =? num_slots) then 0 else i.
 
-Context (frame_tick_tocks : Z).
-
-Let cycle_tick_tocks := frame_tick_tocks * num_frames.
+Lemma update_clear_index_wf: forall i, clear_index_wf i -> clear_index_wf (update_clear_index i).
+Proof.
+  intros. red in H |- *. unfold update_clear_index.
+  destruct (i + 1 =? num_slots) eqn: ?H; lia.
+Qed.
 
 Definition update_timer (t : Z * bool) (tick : bool) : Z * bool :=
   if tick then
@@ -113,13 +127,41 @@ Definition update_timer (t : Z * bool) (tick : bool) : Z * bool :=
     else
       t.
 
+Lemma update_timer_wf: forall t tick, timer_wf t -> timer_wf (update_timer t tick).
+Proof.
+  intros. red in H |- *. unfold update_timer. destruct t as [timer b]. simpl in *.
+  destruct tick, b; simpl in *; try lia; destruct (timer =? cycle_tick_tocks) eqn: ?H;
+    simpl; lia.
+Qed.
+
 Definition get_clear_frame (t : Z * bool) : Z :=
   let t := fst t in
   let t := if (t =? cycle_tick_tocks) then 0 else t in
   t / frame_tick_tocks.
 
+Lemma get_clear_frame_nonneg: forall timer, 0 <= fst timer -> 0 <= get_clear_frame timer.
+Proof.
+  intros. destruct timer. unfold get_clear_frame. simpl in *.
+  destruct (z =? cycle_tick_tocks); apply Z.div_pos; lia.
+Qed.
+
+Lemma get_clear_frame_range: forall timer, timer_wf timer ->
+                                      0 <= get_clear_frame timer < num_frames.
+Proof.
+  intros. red in H. unfold get_clear_frame. destruct timer as [t b]. simpl in *.
+  destruct b, (t =? cycle_tick_tocks) eqn: ?H; try (rewrite Z.div_0_l; lia);
+    subst cycle_tick_tocks; split.
+  - apply Z.div_pos; lia.
+  - apply Z.div_lt_upper_bound; lia.
+  - apply Z.div_pos; lia.
+  - apply Z.div_lt_upper_bound; lia.
+Qed.
+
 Definition get_insert_frame (cf : Z) : Z :=
   if (cf =? 0) then num_frames - 1 else cf - 1.
+
+Lemma get_insert_frame_range: forall cf, 0 <= cf < num_frames -> 0 <= get_insert_frame cf < num_frames.
+Proof. intros. unfold get_insert_frame. destruct (cf =? 0) eqn: ?H; lia. Qed.
 
 Program Definition filter_insert (f : filter) (tick : bool) (is : listn Z num_rows) : filter :=
   let '(mk_filter (exist _ frames H) clear_index timer) := f in
@@ -171,3 +213,7 @@ End ConFilter.
 Arguments row : clear implicits.
 Arguments frame : clear implicits.
 Arguments filter : clear implicits.
+Arguments timer_wf : clear implicits.
+Arguments clear_index_wf : clear implicits.
+Arguments get_clear_frame : clear implicits.
+Arguments get_insert_frame : clear implicits.

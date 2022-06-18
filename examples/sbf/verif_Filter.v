@@ -771,8 +771,8 @@ Definition P4_bf2_win_md_t_insert (f cf if' : Z) (new_clear_index : Sval) (is : 
 Definition num_frames := 4.
 Definition frame_time := 7034.
 
-Notation get_clear_frame := (get_clear_frame (num_frames := num_frames) frame_time).
-Notation get_insert_frame := (get_insert_frame (num_frames := num_frames)).
+Notation get_clear_frame := (get_clear_frame num_frames frame_time).
+Notation get_insert_frame := (get_insert_frame num_frames).
 
 Definition tbl_set_win_insert_spec : func_spec :=
   WITH (* p *),

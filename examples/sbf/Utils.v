@@ -95,3 +95,12 @@ Proof.
   intros. revert l init. induction l; intros; simpl; auto.
   rewrite H. easy.
 Qed.
+
+Lemma Forall_wrap {A: Type}: forall (P: A -> Prop) (l: list A) i len,
+    len = Zlength l -> 0 <= i < len -> Forall P l <-> Forall P (sublist i (i + len) (l ++ l)).
+Proof.
+  intros. rewrite <- (sublist_rejoin i len) by list_solve. rewrite Forall_app.
+  rewrite (sublist_app1 A i len) by lia. rewrite (sublist_app2 len (i + len)) by lia.
+  replace (len - Zlength l) with 0 by lia. replace (i + len - Zlength l) with i by lia.
+  now rewrite and_comm, <- Forall_app, sublist_rejoin, sublist_same by lia.
+Qed.
