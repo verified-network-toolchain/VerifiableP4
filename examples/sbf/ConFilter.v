@@ -157,6 +157,19 @@ Proof.
   - apply Z.div_lt_upper_bound; lia.
 Qed.
 
+Lemma get_clear_frame_update:
+  forall timer b, timer_wf timer ->
+             get_clear_frame timer = get_clear_frame (update_timer timer b).
+Proof.
+  intros. unfold get_clear_frame, update_timer. destruct timer as [timer tb].
+  red in H. simpl in *. destruct tb, b.
+  - destruct (timer =? cycle_tick_tocks) eqn:?H. simpl fst.
+    + destruct (0 =? cycle_tick_tocks); auto.
+    + simpl. rewrite H0. auto.
+  - admit.
+  -
+Abort.
+
 Definition get_insert_frame (cf : Z) : Z :=
   if (cf =? 0) then num_frames - 1 else cf - 1.
 

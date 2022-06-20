@@ -537,10 +537,38 @@ Lemma filter_refresh'_sound : forall f cf t f',
     |}.
 Proof.
   intros.
-  (* pose proof (filter_refresh_sound f cf t f' ltac:(eauto) ltac:(eauto)).
-  destruct (t >=? window_hi f) eqn:?H.
-  - admit.
-  - admit. *)
+  destruct f as [win_hi last_stamp num_clrs normal_frs].
+  unfold filter_refresh', filter_refresh in H0.
+  destruct ((last_stamp <=? t) && (t <=? last_stamp + tick_time)) eqn:?H. 2 : inv H0.
+  simpl. inv H.
+  remember (update_timer frame_tick_tocks (fil_timer cf) (Z.odd (t / tick_time)))
+    as new_timer.
+  assert (timer_wf num_frames frame_tick_tocks new_timer). {
+    subst new_timer. apply update_timer_wf; auto. lia. apply H_frame_tick_tocks0. }
+  destruct (t >=? win_hi) eqn:?H.
+  - destruct (num_clrs >=? num_slots) eqn:?H; inversion H0; subst f'; clear H0.
+    econstructor; simpl; eauto; try lia.
+    + remember (get_clear_frame num_frames frame_tick_tocks new_timer) as new_ci.
+      destruct cf as [cfil_frms cfil_clear_idx cfil_timr]. simpl in *.
+      assert (0 <= new_ci < num_frames). {
+        subst new_ci. apply get_clear_frame_range; auto. lia. apply H_frame_tick_tocks0. }
+      remember (get_clear_frame num_frames frame_tick_tocks cfil_timr) as ci.
+      assert (0 <= ci < num_frames). {
+        subst ci. apply get_clear_frame_range; auto. lia. apply H_frame_tick_tocks0. }
+      apply  Forall2_forall_Znth. destruct cfil_frms as [cfil_frms ?H]. simpl in *.
+      rewrite Forall2_forall_Znth in H6. destruct H6. rewrite Zlength_map in H6.
+      assert (Zlength normal_frs = num_frames - 1) by list_solve. clear H6.
+      rewrite Zlength_map in *. split. 1: list_solve. intros. list_simplify.
+      * specialize (H10 (i + 1) ltac:(list_solve)).
+        assert (ci + 1 = num_frames /\ new_ci = 0 \/ ci + 1 < num_frames /\ new_ci = ci +1). {
+          admit. }
+        admit.
+      * admit.
+      * admit.
+      * admit.
+    + admit.
+    + admit.
+  - inv H0.
 Admitted.
 
 Lemma filter_insert_sound: forall f cf th f',
@@ -606,6 +634,7 @@ Proof.
       destruct (cf =? 0) eqn:?H; lia.
     }
     rewrite Zlength_map in H4.
+    pose proof frame_insert_sound as frame_insert_sound.
     list_simplify.
     { assert (cf = 0) by lia.
       eapply frame_insert_sound with (f := Normal (Znth (num_frames - 2) normal_frs)).
