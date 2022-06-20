@@ -336,6 +336,86 @@ Definition timer_sim (window_hi last_timestamp : Z) (ct : Z * bool) : Prop :=
   Z.odd (last_timestamp / tick_time) = snd ct /\
   (last_timestamp - (window_hi - frame_time)) / (tick_time * 2) = (fst ct) mod frame_tick_tocks.
 
+Definition timer_sim' (window_hi last_timestamp : Z) (ct : Z * bool) : Prop :=
+  (tick_time * 2 | window_hi) /\
+  let n := (fst ct) mod frame_tick_tocks * 2 + Z.b2z (snd ct) in
+  window_hi - frame_time + n * tick_time <= last_timestamp < window_hi - frame_time + (n + 1) * tick_time.
+
+(* I don't prove this lemma. Maybe we want to just remove timer_sim. *)
+Lemma timer_sim_timer_sim' : forall window_hi last_timestamp ct,
+  timer_sim window_hi last_timestamp ct <-> timer_sim' window_hi last_timestamp ct.
+Admitted.
+
+Definition get_timer_bone (ct : Z * bool) : Z * bool :=
+  (fst ct mod frame_tick_tocks, snd ct).
+
+Definition update_timer_bone (tb : Z * bool) (tick : bool) : Z * bool :=
+  if tick then
+    (fst tb, true)
+  else
+    if (snd tb) then
+      (if fst tb + 1 =? frame_tick_tocks then 0 else fst tb + 1, false)
+    else
+      (fst tb, false).
+
+Lemma update_timer_bone_sound : forall ct tick,
+  get_timer_bone (update_timer (num_frames := num_frames) frame_tick_tocks ct tick)
+    = update_timer_bone (get_timer_bone ct) tick.
+Proof.
+  (* This lemma is admitted because update_timer might change. *)
+Admitted.
+
+Lemma timer_sim'_range : forall window_hi last_timestamp ct,
+  timer_sim' window_hi last_timestamp ct ->
+  window_hi - frame_time <= last_timestamp < window_hi.
+Proof.
+  intros.
+  unfold timer_sim' in H. destruct H.
+  assert (0 <= (fst ct mod frame_tick_tocks * 2 + Z.b2z (snd ct)) < frame_tick_tocks * 2). {
+    assert (0 <= fst ct mod frame_tick_tocks < frame_tick_tocks). {
+      admit.
+    }
+    assert (0 <= Z.b2z (snd ct) < 2). {
+      destruct (snd ct); simpl; lia.
+    }
+    lia.
+  }
+  assert (0 <= (fst ct mod frame_tick_tocks * 2 + Z.b2z (snd ct)) * tick_time). {
+    admit.
+  }
+  assert ((fst ct mod frame_tick_tocks * 2 + Z.b2z (snd ct) + 1) * tick_time <= frame_time). {
+    admit.
+  }
+  lia.
+Admitted.
+
+Lemma timer_sim'_unique : forall window_hi last_timestamp ct ct',
+  timer_sim' window_hi last_timestamp ct ->
+  timer_sim' window_hi last_timestamp ct' ->
+  get_timer_bone ct = get_timer_bone ct'.
+  (* (fst ct) mod frame_tick_tocks = (fst ct') mod frame_tick_tocks
+    /\ (snd ct) = (snd ct'). *)
+Proof.
+  intros.
+  destruct H. destruct H0.
+  set (n := fst ct mod frame_tick_tocks * 2 + Z.b2z (snd ct)) in H1.
+  set (n' := fst ct' mod frame_tick_tocks * 2 + Z.b2z (snd ct')) in H2.
+  simpl in H1, H2.
+  destruct (n =? n') eqn:?H.
+  2 : {
+    destruct (n <? n') eqn:?H.
+    - assert (n * tick_time + tick_time <= n' * tick_time). {
+        admit.
+      }
+      lia.
+    - assert (n > n') by lia.
+      assert (n' * tick_time + tick_time <= n * tick_time). {
+        admit.
+      }
+      lia.
+  }
+Admitted.
+
 Inductive filter_sim : filter -> ConFilter.filter num_frames num_rows num_slots -> Prop :=
   | filter_sim_intro : forall window_hi last_timestamp num_clears normal_frames cf ic,
       (* Normal frames are good. *)
@@ -354,7 +434,7 @@ Inductive filter_sim : filter -> ConFilter.filter num_frames num_rows num_slots 
               (fil_clear_index cf + num_slots)
               (cl ++ cl)))) ->
       (* timer is good *)
-      timer_sim window_hi last_timestamp (fil_timer cf) ->
+      timer_sim' window_hi last_timestamp (fil_timer cf) ->
       get_clear_frame num_frames frame_tick_tocks (fil_timer cf) = ic ->
       (* concrete time is well formed *)
       timer_wf num_frames frame_tick_tocks (fil_timer cf) ->
@@ -415,7 +495,7 @@ Ltac destruct_match H :=
   end.
 
 (* This is basically the same as filter_sim but we replace ci with (ci + 1). *)
-Inductive filter_sim_1 : filter -> ConFilter.filter num_frames num_rows num_slots -> Prop :=
+(* Inductive filter_sim_1 : filter -> ConFilter.filter num_frames num_rows num_slots -> Prop :=
   | filter_sim_1_intro : forall window_hi last_timestamp num_clears normal_frames cf ic,
       (* Normal frames are good. *)
       Forall2 frame_sim (map Normal normal_frames)
@@ -433,15 +513,15 @@ Inductive filter_sim_1 : filter -> ConFilter.filter num_frames num_rows num_slot
               (fil_clear_index cf + num_slots)
               (cl ++ cl)))) ->
       (* timer is good *)
-      timer_sim window_hi last_timestamp (fil_timer cf) ->
+      timer_sim' window_hi last_timestamp (fil_timer cf) ->
       get_clear_frame num_frames frame_tick_tocks (fil_timer cf) = ic ->
       (* concrete time is well formed *)
       timer_wf num_frames frame_tick_tocks (fil_timer cf) ->
       (* clear index is well formed *)
       clear_index_wf num_slots (fil_clear_index cf) ->
-      filter_sim_1 (mk_filter window_hi last_timestamp num_clears normal_frames) cf.
+      filter_sim_1 (mk_filter window_hi last_timestamp num_clears normal_frames) cf. *)
 
-Lemma filter_refresh_sound : forall f cf t f',
+(* Lemma filter_refresh_sound : forall f cf t f',
     filter_sim f cf ->
     filter_refresh f t = Some f' ->
     (if (t >=? window_hi f) then filter_sim_1 f' cf else filter_sim f' cf).
@@ -518,7 +598,7 @@ Proof.
     }
   }
   { admit. (* all about timer arith *) }
-Admitted.
+Admitted. *)
 
 Definition filter_refresh' (f : filter) (timestamp : Z) : option filter :=
   match filter_refresh f timestamp with
@@ -547,7 +627,51 @@ Proof.
     subst new_timer. apply update_timer_wf; auto. lia. apply H_frame_tick_tocks0. }
   destruct (t >=? win_hi) eqn:?H.
   - destruct (num_clrs >=? num_slots) eqn:?H; inversion H0; subst f'; clear H0.
-    econstructor; simpl; eauto; try lia.
+    pose proof (timer_sim'_range _ _ _ ltac:(eauto)).
+    assert (win_hi - tick_time <= last_stamp /\ t < win_hi + tick_time) by lia.
+    assert (get_timer_bone (fil_timer cf) = (frame_tick_tocks - 1, true)). {
+      assert (timer_sim' win_hi last_stamp (frame_tick_tocks - 1, true)). {
+        destruct H9. split; only 1 : auto.
+        simpl fst. rewrite Z.mod_small. 2 : { pose proof H_frame_tick_tocks0; lia. }
+        simpl.
+        assert (((frame_tick_tocks - 1) * 2 + 1 + 1) * tick_time = frame_time) by admit.
+        lia.
+      }
+      eapply timer_sim'_unique in H5; only 2 : apply H9.
+      unfold get_timer_bone at 2 in H5.
+      rewrite (Z.mod_small (frame_tick_tocks - 1)) in H5. 2 : { pose proof H_frame_tick_tocks0; lia. }
+      apply H5.
+    }
+    (* Put this outside this bullet? *)
+    (* pose proof (update_timer_bone_sound (fil_timer cf) (Z.odd (t / tick_time))). *)
+    replace (Z.odd (t / tick_time)) with false in *. 2 : {
+      (* because win_hi <= t < win_hi + tick_time. *)
+      admit.
+    }
+    pose proof Heqnew_timer.
+    unfold update_timer in H10.
+    replace (snd (fil_timer cf)) with true in *. 2 : {
+      inv H5. (* get_timer_bone *) auto.
+    }
+    remember (get_clear_frame num_frames frame_tick_tocks (fil_timer cf)) as ci.
+    remember (get_clear_frame num_frames frame_tick_tocks new_timer) as new_ci.
+    assert ((fst (fil_timer cf) + 1) / frame_tick_tocks = fst (fil_timer cf) / frame_tick_tocks + 1). {
+      inv H5.
+      admit.
+    }
+    assert (ci + 1 = num_frames /\ new_ci = 0 \/ ci + 1 < num_frames /\ new_ci = ci +1). {
+      unfold get_clear_frame in *.
+      destruct (fst new_timer =? frame_tick_tocks * num_frames) eqn:?H.
+      { admit. } (* Just ignore this case for now. *)
+      destruct (fst (fil_timer cf) =? frame_tick_tocks * num_frames) eqn:?H.
+      { admit. } (* Just ignore this case for now. *)
+      replace (fst new_timer) with (fst (fil_timer cf) + 1) in Heqnew_ci. 2 : {
+        inv H10; auto.
+      }
+      assert (new_ci = ci + 1) by lia.
+      admit.
+    }
+    (* econstructor; simpl; eauto; try lia.
     + remember (get_clear_frame num_frames frame_tick_tocks new_timer) as new_ci.
       destruct cf as [cfil_frms cfil_clear_idx cfil_timr]. simpl in *.
       assert (0 <= new_ci < num_frames). {
@@ -568,7 +692,7 @@ Proof.
       * admit.
     + admit.
     + admit.
-  - inv H0.
+  - inv H0. *)
 Admitted.
 
 Lemma filter_insert_sound: forall f cf th f',
