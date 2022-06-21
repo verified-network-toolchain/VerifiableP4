@@ -157,18 +157,50 @@ Proof.
   - apply Z.div_lt_upper_bound; lia.
 Qed.
 
-Lemma get_clear_frame_update:
-  forall timer b, timer_wf timer ->
-             get_clear_frame timer = get_clear_frame (update_timer timer b).
+Lemma get_clear_frame_update_neq:
+  forall timer b, timer_wf timer -> 2 <= num_frames ->
+             (b = false /\ snd timer = true /\ (frame_tick_tocks | fst timer + 1)) <->
+             (get_clear_frame timer + 1 = num_frames /\ get_clear_frame (update_timer timer b) = 0 \/
+                get_clear_frame timer + 1 < num_frames /\ get_clear_frame (update_timer timer b) = get_clear_frame timer + 1).
 Proof.
   intros. unfold get_clear_frame, update_timer. destruct timer as [timer tb].
-  red in H. simpl in *. destruct tb, b.
-  - destruct (timer =? cycle_tick_tocks) eqn:?H. simpl fst.
-    + destruct (0 =? cycle_tick_tocks); auto.
-    + simpl. rewrite H0. auto.
-  - admit.
-  -
-Abort.
+  red in H. simpl in *. split; intros.
+  - destruct tb eqn:?B, b eqn:?B.
+    1, 3, 4: exfalso; intuition. destruct H1 as [_ [_ ?]].
+    assert (timer =? cycle_tick_tocks = false) by lia. rewrite H2. simpl. clear H2.
+    destruct (timer + 1 =? cycle_tick_tocks) eqn:?H; [left | right].
+    + split.
+      * rewrite Z.eqb_eq in H2.
+        assert (timer = (num_frames - 1) * frame_tick_tocks + (frame_tick_tocks - 1)) by lia.
+        rewrite H3. rewrite Z.div_add_l by lia. rewrite Zdiv.Zdiv_small; lia.
+      * rewrite Zdiv.Zdiv_small; lia.
+    + destruct H1 as [frs ?H]. assert (frs < num_frames) by nia. rewrite H1.
+      rewrite Z.div_mul by lia.
+      assert (timer = (frs - 1) * frame_tick_tocks + (frame_tick_tocks - 1)) by lia.
+      rewrite H4. rewrite Z.div_add_l by lia. rewrite Zdiv.Zdiv_small; lia.
+  - destruct tb eqn:?B, b eqn:?B.
+    + assert (timer =? cycle_tick_tocks = false) by lia. rewrite H2 in H1. simpl in *.
+      rewrite H2 in H1. destruct H1; exfalso; lia.
+    + do 2 (split; auto). assert (timer =? cycle_tick_tocks = false) by lia. rewrite H2 in H1. simpl in *.
+      destruct (timer + 1 =? cycle_tick_tocks) eqn:?H.
+      * rewrite Z.eqb_eq in H3. rewrite H3. subst cycle_tick_tocks. exists num_frames. lia.
+      * destruct H1 as [[? ?] | [? ?]].
+        -- exfalso. rewrite Z.div_small_iff in H4 by lia. destruct H4; try lia.
+           rewrite Z.div_small in H1; lia.
+        -- pose proof (Z.div_mod (timer + 1) frame_tick_tocks ltac:(lia)).
+           destruct (Znumtheory.Zdivide_dec frame_tick_tocks (timer + 1)); auto.
+           exfalso. rewrite <- Z.mod_divide in n by lia.
+           pose proof (Z.mod_pos_bound (timer + 1) frame_tick_tocks ltac:(lia)).
+           assert (exists r, timer = ((timer + 1) / frame_tick_tocks) * frame_tick_tocks + r /\ 0 <= r < frame_tick_tocks). {
+             exists ((timer + 1) mod frame_tick_tocks - 1). do 2 (split; try lia). }
+           destruct H7 as [r [? ?]]. rewrite H7 in H4 at 2.
+           rewrite Z.div_add_l in H4 by lia. rewrite (Z.div_small _ _ H8) in H4. lia.
+    + exfalso. destruct (timer =? cycle_tick_tocks) eqn:?H.
+      * simpl fst in *. assert (0 =? cycle_tick_tocks = false) by lia. rewrite H3 in H1.
+        rewrite Z.div_small in H1 by lia. destruct H1; lia.
+      * simpl fst in *. rewrite H2 in H1. destruct H1; lia.
+    + exfalso. simpl fst in *. destruct (timer =? cycle_tick_tocks) eqn:?H; destruct H1; lia.
+Qed.
 
 Definition get_insert_frame (cf : Z) : Z :=
   if (cf =? 0) then num_frames - 1 else cf - 1.
