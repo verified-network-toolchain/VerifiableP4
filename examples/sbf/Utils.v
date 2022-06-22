@@ -3,13 +3,8 @@ Require Export Coq.ZArith.BinInt.
 Require Export Coq.ZArith.Zcomplements.
 Require Export Coq.micromega.Lia.
 Require Export VST.zlist.Zlist.
+Require Export Poulet4.Utils.Utils.
 Open Scope Z_scope.
-
-Definition fold_andb (l : list bool) :=
-  fold_left andb l true.
-
-Definition fold_orb (l : list bool) :=
-  fold_left orb l false.
 
 Definition map2 {A B C} (f : A -> B -> C) (al : list A) (bl : list B) : list C :=
   map (uncurry f) (combine al bl).
