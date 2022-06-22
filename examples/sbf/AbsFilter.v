@@ -331,64 +331,24 @@ Lemma H_frame_tick_tocks0: 0 < frame_tick_tocks. Proof. pose proof H_frame_tick_
   [(fst ct) / frame_tick_tocks * frame_tick_tocks, ((fst ct) / frame_tick_tocks + 1) * frame_tick_tocks).
   So the correspondence between last_timestamp and (fst ct) is
   ((last_timestamp - (window_hi - frame_time)) / (tick_time * 2) = (fst ct) mod frame_tick_tocks).
-*)
-(* Is this correct? *)
+  So we have the following definition of timer_sim:
+
 Definition timer_sim (window_hi last_timestamp : Z) (ct : Z * bool) : Prop :=
   (tick_time * 2 | window_hi) /\
   Z.odd (last_timestamp / tick_time) = snd ct /\
   (last_timestamp - (window_hi - frame_time)) / (tick_time * 2) = (fst ct) mod frame_tick_tocks.
 
-Definition timer_sim' (window_hi last_timestamp : Z) (ct : Z * bool) : Prop :=
+  The following definition is equivalent and easier to handle:
+*)
+Definition timer_sim (window_hi last_timestamp : Z) (ct : Z * bool) : Prop :=
   (tick_time * 2 | window_hi) /\
   let n := (fst ct) mod frame_tick_tocks * 2 + Z.b2z (snd ct) in
   window_hi - frame_time + n * tick_time <= last_timestamp < window_hi - frame_time + (n + 1) * tick_time.
 
-Lemma div_twice_mod: forall a b,
-    b > 0 ->
-    let n := Z.b2z (Z.odd (a / b)) in
-    n * b <= a mod (b * 2) < (n + 1) * b.
-Proof.
-  intros. subst n. pose proof (Z.div_mod a b ltac:(lia)).
-  pose proof (Zeven.Zdiv2_odd_eqn (a/b)). remember (Z.div2 (a / b)).
-  rewrite H1 in H0. clear H1.
-  destruct (Z.odd (a / b)); simpl Z.b2z.
-  - assert (a = (b + a mod b) + z * (b * 2)) by lia.
-    rewrite H1. rewrite Z.mod_add by lia.
-    pose proof (Zdiv.Z_mod_lt a b ltac:(lia)).
-    rewrite Z.mod_small; lia.
-  - assert (a = (a mod b) + z * (b * 2)) by lia.
-    rewrite H1. rewrite Z.mod_add by lia.
-    pose proof (Zdiv.Z_mod_lt a b ltac:(lia)).
-    rewrite Z.mod_small; lia.
-Qed.
-
-(* I don't prove this lemma. Maybe we want to just remove timer_sim. *)
-Lemma timer_sim_timer_sim' : forall window_hi last_timestamp ct,
-    timer_sim window_hi last_timestamp ct <-> timer_sim' window_hi last_timestamp ct.
-Proof.
-  intros. split; intros; inv H; constructor; auto.
-  - destruct H1. remember (fst ct mod frame_tick_tocks).
-    pose proof (Z.div_mod (last_timestamp0 - (window_hi0 - frame_time)) (tick_time * 2) ltac:(lia)).
-    rewrite H1 in H2. assert (0 <= z < frame_tick_tocks). {
-      subst z. apply Zdiv.Z_mod_lt. pose proof H_frame_tick_tocks0. lia. }
-    replace ((last_timestamp0 - (window_hi0 - frame_time)) mod (tick_time * 2)) with (last_timestamp0 mod (tick_time * 2)) in H2.
-    2: { rewrite Zdiv.Zminus_mod. rewrite <- Z.mod_divide in * by lia.
-         rewrite (Zdiv.Zminus_mod window_hi0). rewrite H_tick_time_div, H0. simpl. rewrite Zdiv.Zmod_0_l.
-         rewrite Z.sub_0_r. rewrite Zdiv.Zmod_mod. auto. }
-    rewrite <- H. pose proof (div_twice_mod last_timestamp0 tick_time ltac:(lia)). cbv zeta in *. lia.
-  - cbv zeta in H1. remember (fst ct mod frame_tick_tocks).
-    assert (exists r, last_timestamp0 = window_hi0 - frame_time + (z * 2 + Z.b2z (snd ct)) * tick_time + r /\ 0 <= r < tick_time). {
-      exists (last_timestamp0 - (window_hi0 - frame_time + (z * 2 + Z.b2z (snd ct)) * tick_time)). lia. } clear H1.
-    destruct H as [r [? ?]]. replace (last_timestamp0 - (window_hi0 - frame_time)) with (Z.b2z (snd ct) * tick_time + r + z * (tick_time * 2)) by lia.
-    rewrite Z.div_add by lia. rewrite (Z.div_small (Z.b2z (snd ct) * tick_time + r)). 2: destruct (snd ct); simpl Z.b2z; lia. split; try lia.
-    destruct H0 as [x0 ?H]. destruct H_tick_time_div as [x1 ?H].
-    assert (last_timestamp0 = r + (Z.b2z (snd ct) + 2 * (x0 - x1 + z)) * tick_time) by lia. rewrite H3.
-    rewrite Z.div_add by lia. rewrite Z.div_small by lia. rewrite Z.add_0_l, Z.odd_add_mul_2. destruct (snd ct); now simpl.
-Qed.
-
 Definition get_timer_bone (ct : Z * bool) : Z * bool :=
   (fst ct mod frame_tick_tocks, snd ct).
 
+(* This is currently not used. *)
 Definition update_timer_bone (tb : Z * bool) (tick : bool) : Z * bool :=
   if tick then
     (fst tb, true)
@@ -398,6 +358,7 @@ Definition update_timer_bone (tb : Z * bool) (tick : bool) : Z * bool :=
     else
       (fst tb, false).
 
+(* This is currently not used. *)
 Lemma update_timer_bone_sound : forall ct tick,
   get_timer_bone (update_timer (num_frames := num_frames) frame_tick_tocks ct tick)
     = update_timer_bone (get_timer_bone ct) tick.
@@ -414,12 +375,12 @@ Proof.
       rewrite H2. rewrite Z.mod_add by lia. rewrite Z.mod_small; lia.
 Qed.
 
-Lemma timer_sim'_range : forall window_hi last_timestamp ct,
-  timer_sim' window_hi last_timestamp ct ->
+Lemma timer_sim_range : forall window_hi last_timestamp ct,
+  timer_sim window_hi last_timestamp ct ->
   window_hi - frame_time <= last_timestamp < window_hi.
 Proof.
   intros.
-  unfold timer_sim' in H. destruct H. pose proof (H_frame_tick_tocks).
+  unfold timer_sim in H. destruct H. pose proof (H_frame_tick_tocks).
   pose proof (H_frame_tick_tocks0).
   assert (0 <= (fst ct mod frame_tick_tocks * 2 + Z.b2z (snd ct)) < frame_tick_tocks * 2). {
     pose proof (Zdiv.Z_mod_lt (fst ct) frame_tick_tocks ltac:(lia)).
@@ -433,9 +394,9 @@ Proof.
   lia.
 Qed.
 
-Lemma timer_sim'_unique : forall window_hi last_timestamp ct ct',
-  timer_sim' window_hi last_timestamp ct ->
-  timer_sim' window_hi last_timestamp ct' ->
+Lemma timer_sim_unique : forall window_hi last_timestamp ct ct',
+  timer_sim window_hi last_timestamp ct ->
+  timer_sim window_hi last_timestamp ct' ->
   get_timer_bone ct = get_timer_bone ct'.
 Proof.
   intros.
@@ -476,7 +437,7 @@ Inductive filter_sim : filter -> ConFilter.filter num_frames num_rows num_slots 
               (fil_clear_index cf + num_slots)
               (cl ++ cl)))) ->
       (* timer is good *)
-      timer_sim' window_hi last_timestamp (fil_timer cf) ->
+      timer_sim window_hi last_timestamp (fil_timer cf) ->
       get_clear_frame num_frames frame_tick_tocks (fil_timer cf) = ic ->
       (* concrete time is well formed *)
       timer_wf num_frames frame_tick_tocks (fil_timer cf) ->
@@ -553,7 +514,7 @@ Ltac destruct_match H :=
               (fil_clear_index cf + num_slots)
               (cl ++ cl)))) ->
       (* timer is good *)
-      timer_sim' window_hi last_timestamp (fil_timer cf) ->
+      timer_sim window_hi last_timestamp (fil_timer cf) ->
       get_clear_frame num_frames frame_tick_tocks (fil_timer cf) = ic ->
       (* concrete time is well formed *)
       timer_wf num_frames frame_tick_tocks (fil_timer cf) ->
@@ -668,14 +629,14 @@ Proof.
     subst new_timer. apply update_timer_wf; auto; lia. }
   destruct (t >=? win_hi) eqn:?H.
   - destruct (num_clrs >=? num_slots) eqn:?H; inversion H0; subst f'; clear H0.
-    pose proof (timer_sim'_range _ _ _ ltac:(eauto)).
+    pose proof (timer_sim_range _ _ _ ltac:(eauto)).
     assert (win_hi - tick_time <= last_stamp /\ t < win_hi + tick_time) by lia.
     assert (get_timer_bone (fil_timer cf) = (frame_tick_tocks - 1, true)). {
-      assert (timer_sim' win_hi last_stamp (frame_tick_tocks - 1, true)). {
+      assert (timer_sim win_hi last_stamp (frame_tick_tocks - 1, true)). {
         destruct H9. split; only 1 : auto.
         simpl fst. rewrite Z.mod_small by lia.
         simpl. pose proof H_frame_tick_tocks. lia. }
-      eapply timer_sim'_unique in H5; only 2 : apply H9.
+      eapply timer_sim_unique in H5; only 2 : apply H9.
       unfold get_timer_bone at 2 in H5.
       rewrite (Z.mod_small (frame_tick_tocks - 1)) in H5 by lia.
       apply H5.
