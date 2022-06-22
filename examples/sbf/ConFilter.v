@@ -139,14 +139,15 @@ Definition get_clear_frame (t : Z * bool) : Z :=
   let t := if (t =? cycle_tick_tocks) then 0 else t in
   t / frame_tick_tocks.
 
-Lemma get_clear_frame_nonneg: forall timer, 0 <= fst timer -> 0 <= get_clear_frame timer.
+Lemma get_clear_frame_nonneg : forall timer, 0 <= fst timer -> 0 <= get_clear_frame timer.
 Proof.
   intros. destruct timer. unfold get_clear_frame. simpl in *.
   destruct (z =? cycle_tick_tocks); apply Z.div_pos; lia.
 Qed.
 
-Lemma get_clear_frame_range: forall timer, timer_wf timer ->
-                                      0 <= get_clear_frame timer < num_frames.
+Lemma get_clear_frame_range : forall timer,
+  timer_wf timer ->
+  0 <= get_clear_frame timer < num_frames.
 Proof.
   intros. red in H. unfold get_clear_frame. destruct timer as [t b]. simpl in *.
   destruct b, (t =? cycle_tick_tocks) eqn: ?H; try (rewrite Z.div_0_l; lia);
@@ -157,16 +158,15 @@ Proof.
   - apply Z.div_lt_upper_bound; lia.
 Qed.
 
-Lemma get_clear_frame_update_neq:
-  forall timer b, timer_wf timer -> 2 <= num_frames ->
+Lemma get_clear_frame_update_neq : forall timer b, timer_wf timer -> 2 <= num_frames ->
              (b = false /\ snd timer = true /\ (frame_tick_tocks | fst timer + 1)) <->
              (get_clear_frame timer + 1 = num_frames /\ get_clear_frame (update_timer timer b) = 0 \/
                 get_clear_frame timer + 1 < num_frames /\ get_clear_frame (update_timer timer b) = get_clear_frame timer + 1).
 Proof.
   intros. unfold get_clear_frame, update_timer. destruct timer as [timer tb].
   red in H. simpl in *. split; intros.
-  - destruct tb eqn:?B, b eqn:?B.
-    1, 3, 4: exfalso; intuition. destruct H1 as [_ [_ ?]].
+  - destruct H1 as [? [? H1]].
+    subst.
     assert (timer =? cycle_tick_tocks = false) by lia. rewrite H2. simpl. clear H2.
     destruct (timer + 1 =? cycle_tick_tocks) eqn:?H; [left | right].
     + split.
