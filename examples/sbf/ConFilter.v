@@ -158,10 +158,11 @@ Proof.
   - apply Z.div_lt_upper_bound; lia.
 Qed.
 
-Lemma get_clear_frame_update_neq : forall timer b, timer_wf timer -> 2 <= num_frames ->
-             (b = false /\ snd timer = true /\ (frame_tick_tocks | fst timer + 1)) <->
-             (get_clear_frame timer + 1 = num_frames /\ get_clear_frame (update_timer timer b) = 0 \/
-                get_clear_frame timer + 1 < num_frames /\ get_clear_frame (update_timer timer b) = get_clear_frame timer + 1).
+Lemma get_clear_frame_update_neq : forall timer b,
+    timer_wf timer -> 2 <= num_frames ->
+    (b = false /\ snd timer = true /\ (frame_tick_tocks | fst timer + 1)) <->
+      (get_clear_frame timer + 1 = num_frames /\ get_clear_frame (update_timer timer b) = 0 \/
+         get_clear_frame timer + 1 < num_frames /\ get_clear_frame (update_timer timer b) = get_clear_frame timer + 1).
 Proof.
   intros. unfold get_clear_frame, update_timer. destruct timer as [timer tb].
   red in H. simpl in *. split; intros.
@@ -200,6 +201,43 @@ Proof.
         rewrite Z.div_small in H1 by lia. destruct H1; lia.
       * simpl fst in *. rewrite H2 in H1. destruct H1; lia.
     + exfalso. simpl fst in *. destruct (timer =? cycle_tick_tocks) eqn:?H; destruct H1; lia.
+Qed.
+
+Lemma get_clear_frame_update_eq : forall timer b,
+    timer_wf timer -> 2 <= num_frames ->
+    (b = true \/ snd timer = false \/ ~ (frame_tick_tocks | fst timer + 1)) <->
+      get_clear_frame (update_timer timer b) = get_clear_frame timer.
+Proof.
+  intros. split; intros.
+  - assert (b = true -> get_clear_frame (update_timer timer b) = get_clear_frame timer). {
+      intros. unfold get_clear_frame, update_timer. destruct timer as [timer tb].
+      red in H. simpl in *. subst. destruct (timer =? cycle_tick_tocks) eqn:?H; simpl fst;
+        [destruct (0 =? cycle_tick_tocks) | rewrite H2]; auto. }
+    assert (snd timer = false -> get_clear_frame (update_timer timer b) = get_clear_frame timer). {
+      intros. destruct b. 1: apply H2; auto. unfold get_clear_frame, update_timer.
+      destruct timer as [timer tb]. red in H. simpl in *. subst. simpl; auto. }
+    destruct H1; [apply H2; auto |]. destruct H1; [apply H3; auto |].
+    destruct b; [apply H2; auto|]. destruct (snd timer) eqn:?H; [| apply H3; auto].
+    unfold get_clear_frame, update_timer. destruct timer as [timer tb].
+    red in H. simpl in *. subst. simpl. assert (timer =? cycle_tick_tocks = false) by lia.
+    rewrite H4. destruct (timer + 1 =? cycle_tick_tocks) eqn:?H.
+    + exfalso. apply H1. exists num_frames. lia.
+    + pose proof (Z.div_mod timer frame_tick_tocks ltac:(lia)).
+      assert (timer mod frame_tick_tocks <> frame_tick_tocks - 1). {
+        intro. apply H1. rewrite H7 in H6. rewrite H6.
+        exists (timer / frame_tick_tocks + 1). lia. }
+      assert (exists r, timer = timer / frame_tick_tocks * frame_tick_tocks + r /\
+                     0 <= r < frame_tick_tocks - 1). {
+        exists (timer mod frame_tick_tocks). split. 1: lia.
+        pose proof (Z.mod_pos_bound timer frame_tick_tocks ltac:(lia)). lia. }
+      clear H6. destruct H8 as [r []]. rewrite H6.
+      rewrite <- Z.add_assoc. rewrite !Z.div_add_l by lia. f_equal. rewrite !Z.div_small; lia.
+  - cut (~ (b = false /\ snd timer = true /\ (frame_tick_tocks | fst timer + 1))).
+    + intros. apply Decidable.not_and in H2; [| red; destruct b; intuition].
+      destruct H2; [left; destruct b; auto | right].
+      apply Decidable.not_and in H2; [| red; destruct (snd timer); intuition].
+      destruct H2; [left; destruct (snd timer) | right]; intuition.
+    + rewrite get_clear_frame_update_neq; auto. lia.
 Qed.
 
 Definition get_insert_frame (cf : Z) : Z :=
