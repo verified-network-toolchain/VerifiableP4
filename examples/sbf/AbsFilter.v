@@ -36,6 +36,12 @@ Inductive row_sim : row -> ConFilter.row num_slots -> Prop :=
       `cr = fold_left (fun l i => upd_Znth i l true) (map hash hs) (Zrepeat false num_slots) ->
       row_sim (Normal hs) cr.
 
+Lemma row_sim_clear_normal: forall cl cr, fold_andb cl = true -> row_sim (Clear cl) cr -> row_sim (Normal []) cr.
+Proof.
+  intros. constructor. inv H0. destruct cr as [cr ?H]. simpl in *. apply Znth_eq_ext. 1: list_solve.
+  intros. rewrite fold_andb_true in H. rewrite Znth_Zrepeat by lia. apply H3. lia. apply H. lia.
+Qed.
+
 Definition row_insert (r : row) (h : header_type) : option row :=
   match r with
   | Clear cleared =>
@@ -608,6 +614,19 @@ Definition filter_refresh' (f : filter) (timestamp : Z) : option filter :=
   | _ => None
   end.
 
+Lemma frame_sim_clear_normal: forall cl cf, fold_andb cl = true -> frame_sim (Clear cl) cf -> frame_sim (Normal []) cf.
+Proof.
+  intros. red in H0 |- *. rewrite Forall2_forall_Znth in *. destruct H0. split; auto. intros.
+  specialize (H1 _ H2). destruct cf as [cf ?H]. simpl in *.
+  eapply row_sim_clear_normal; eauto.
+Qed.
+
+Lemma frame_sim_all_false: forall cf, frame_sim (Clear (Zrepeat false num_slots)) cf.
+Proof.
+  intros. red. destruct cf as [cf ?H]. simpl in *. rewrite Forall2_forall_Znth. split. 1: lia.
+  intros. constructor; list_solve.
+Qed.
+
 Lemma filter_refresh'_sound : forall f cf t f',
     filter_sim f cf ->
     filter_refresh' f t = Some f' ->
@@ -622,51 +641,68 @@ Proof.
   unfold filter_refresh', filter_refresh in H0.
   destruct ((last_stamp <=? t) && (t <=? last_stamp + tick_time)) eqn:?H. 2 : inv H0.
   simpl. inv H.
-  remember (update_timer frame_tick_tocks (fil_timer cf) (Z.odd (t / tick_time)))
-    as new_timer.
+  remember (update_timer frame_tick_tocks (fil_timer cf) (Z.odd (t / tick_time))) as new_timer.
+  remember (get_clear_frame num_frames frame_tick_tocks (fil_timer cf)) as ci.
+  remember (get_clear_frame num_frames frame_tick_tocks new_timer) as new_ci.
   pose proof H_frame_tick_tocks0 as ?F.
   assert (timer_wf num_frames frame_tick_tocks new_timer). {
     subst new_timer. apply update_timer_wf; auto; lia. }
+  pose proof (timer_sim_range _ _ _ ltac:(eauto)).
+  assert (0 <= ci < num_frames). {
+    subst ci. apply get_clear_frame_range; auto; lia. }
+  assert (0 <= new_ci < num_frames). {
+    subst new_ci. apply get_clear_frame_range; auto. lia. }
   destruct (t >=? win_hi) eqn:?H.
   - destruct (num_clrs >=? num_slots) eqn:?H; inversion H0; subst f'; clear H0.
-    pose proof (timer_sim_range _ _ _ ltac:(eauto)).
     assert (win_hi - tick_time <= last_stamp /\ t < win_hi + tick_time) by lia.
     assert (get_timer_bone (fil_timer cf) = (frame_tick_tocks - 1, true)). {
       assert (timer_sim win_hi last_stamp (frame_tick_tocks - 1, true)). {
         destruct H9. split; only 1 : auto.
         simpl fst. rewrite Z.mod_small by lia.
         simpl. pose proof H_frame_tick_tocks. lia. }
-      eapply timer_sim_unique in H5; only 2 : apply H9.
-      unfold get_timer_bone at 2 in H5.
-      rewrite (Z.mod_small (frame_tick_tocks - 1)) in H5 by lia.
-      apply H5.
-    }
-    (* Put this outside this bullet? *)
-    (* pose proof (update_timer_bone_sound (fil_timer cf) (Z.odd (t / tick_time))). *)
+      eapply timer_sim_unique in H11; only 2 : apply H9.
+      unfold get_timer_bone at 2 in H11.
+      rewrite (Z.mod_small (frame_tick_tocks - 1)) in H11 by lia.
+      apply H11. }
     replace (Z.odd (t / tick_time)) with false in *.
-    2: { destruct H4 as [_ ?]. destruct H9 as [? _].
+    2: { destruct H0 as [_ ?]. destruct H9 as [? _].
          assert (exists r, 0 <= r < tick_time /\ t = win_hi + r) by (exists (t - win_hi); lia).
-         destruct H10 as [r [? ?]]. destruct H9 as [x ?].
+         destruct H14 as [r [? ?]]. destruct H9 as [x ?].
          replace t with (r + 2 * x * tick_time) by lia.
          rewrite Z.div_add, Z.odd_add_mul_2, Z.div_small by lia. now simpl. }
-    (* pose proof Heqnew_timer. *)
-    (* unfold update_timer in H10. *)
-    (* replace (snd (fil_timer cf)) with true in *. 2 : { *)
-    (*   inv H5. (* get_timer_bone *) auto. *)
-    (* } *)
-    remember (get_clear_frame num_frames frame_tick_tocks (fil_timer cf)) as ci.
-    remember (get_clear_frame num_frames frame_tick_tocks new_timer) as new_ci.
-    (* assert ((fst (fil_timer cf) + 1) / frame_tick_tocks = fst (fil_timer cf) / frame_tick_tocks + 1). { *)
-    (*   inv H5. *)
-    (*   admit. *)
-    (* } *)
     assert (ci + 1 = num_frames /\ new_ci = 0 \/ ci + 1 < num_frames /\ new_ci = ci + 1). {
       subst ci. subst new_ci. subst new_timer.
-      rewrite <- get_clear_frame_update_neq; auto; try lia. split; auto. split.
-      - inv H5; auto.
-      - inv H5. apply Znumtheory.Zmod_divide_minus in H11; auto.
-        replace (fst (fil_timer cf) + 1) with (fst (fil_timer cf) - (frame_tick_tocks - 1) + frame_tick_tocks) by lia.
-        apply Z.divide_add_r; auto. reflexivity. }
+      rewrite <- get_clear_frame_update_neq; auto; try lia. split; auto.
+      split; inv H11; auto. apply Znumtheory.Zmod_divide_minus in H15; auto.
+      replace (fst (fil_timer cf) + 1) with (fst (fil_timer cf) - (frame_tick_tocks - 1) + frame_tick_tocks) by lia.
+      apply Z.divide_add_r; auto. reflexivity. }
+    destruct H8 as [cl [? ?]]. rewrite Z.min_l in H15 by lia.
+    replace (fil_clear_index cf + num_slots - num_slots) with (fil_clear_index cf) in H15 by lia.
+    pose proof (frame_sim_clear_Zlength _ _ H8). red in H13. rewrite <- Forall_wrap in H15 by lia.
+    rewrite Forall_forall_Znth, <- fold_andb_true in H15.
+    destruct cf as [cfil_frms cfil_clear_idx cfil_timr]. simpl in *.
+    destruct cfil_frms as [cfil_frms ?H]. simpl in *.
+    econstructor; simpl; eauto. 2: lia.
+    + rewrite <- Heqnew_ci.
+      rewrite Forall2_forall_Znth in *.
+      destruct H6. rewrite Zlength_map in *. split. 1: list_solve.
+      intros. assert (0 <= i < num_frames - 1) by list_solve. clear H19.
+      rewrite Zlength_sublist in H6 by list_solve.
+      replace (ci + num_frames - (ci + 1)) with (num_frames - 1) in H6 by lia. list_simplify.
+      * specialize (H18 (i + 1) ltac:(lia)); list_solve.
+      * eapply frame_sim_clear_normal; eauto. list_solve.
+      * specialize (H18 (i + 1) ltac:(lia)); list_solve.
+      * eapply frame_sim_clear_normal; eauto. list_solve.
+    + rewrite <- Heqnew_ci. exists (Zrepeat false num_slots). split.
+      * apply frame_sim_all_false.
+      * list_solve.
+    + inversion H11. rewrite H20 in Heqnew_timer. rewrite Heqnew_timer. destruct H9. constructor.
+      * apply Z.divide_add_r; assumption.
+      * cbn [fst snd]. replace ((fst cfil_timr + 1) mod frame_tick_tocks) with 0. 1: simpl Z.b2z; lia.
+        pose proof (Z.div_mod (fst cfil_timr) frame_tick_tocks ltac:(lia)).
+        assert (fst cfil_timr + 1 = (fst cfil_timr / frame_tick_tocks + 1) * frame_tick_tocks) by lia.
+        rewrite H22. rewrite Zdiv.Z_mod_mult. easy.
+  - inversion H0; subst f'; clear H0. econstructor; simpl; eauto.
     (* econstructor; simpl; eauto; try lia.
     + remember (get_clear_frame num_frames frame_tick_tocks new_timer) as new_ci.
       destruct cf as [cfil_frms cfil_clear_idx cfil_timr]. simpl in *.
