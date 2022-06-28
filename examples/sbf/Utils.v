@@ -1,6 +1,7 @@
 Require Export Coq.Lists.List.
 Require Export Coq.ZArith.BinInt.
 Require Export Coq.ZArith.Zcomplements.
+Require Export Coq.Sorting.Permutation.
 Require Export Coq.micromega.Lia.
 Require Export VST.zlist.Zlist.
 Require Export Poulet4.Utils.Utils.
@@ -30,6 +31,33 @@ Proof.
       apply H in H1. rewrite Znth_pos_cons in H1 by lia. rewrite <- H1. f_equal. lia.
     + assert (0 <= 0 < Zlength (a :: l)) by list_solve. apply H in H0.
       now rewrite Znth_0_cons in H0.
+Qed.
+
+Lemma forallb_fold_andb {A : Type}: forall (f: A -> bool) l, forallb f l = fold_andb (map f l).
+Proof.
+  intros. induction l; simpl; auto. rewrite IHl, fold_andb_cons. auto.
+Qed.
+
+Lemma fold_orb_cons: forall l b, fold_orb (b :: l) = (b || fold_orb l)%bool.
+Proof.
+  intros. unfold fold_orb. simpl. destruct b; simpl; auto.
+  induction l; simpl; intros; auto.
+Qed.
+
+Lemma existsb_fold_orb {A: Type}: forall (f: A -> bool) l, existsb f l = fold_orb (map f l).
+Proof.
+  intros. induction l; simpl; auto. rewrite IHl, fold_orb_cons. auto.
+Qed.
+
+Lemma fold_orb_false: forall l, fold_orb (false :: l) = fold_orb l.
+Proof. intros. rewrite fold_orb_cons. now simpl. Qed.
+
+Lemma fold_orb_perm: forall l1 l2, Permutation l1 l2 -> fold_orb l1 = fold_orb l2.
+Proof.
+  intros. induction H; simpl; auto; try rewrite !fold_orb_cons.
+  - now f_equal.
+  - rewrite !Bool.orb_assoc, (Bool.orb_comm x y). auto.
+  - rewrite IHPermutation1. auto.
 Qed.
 
 Lemma map2_cons {A B C}: forall (f : A -> B -> C) a al b bl,

@@ -482,7 +482,7 @@ Definition filter_insert (f : filter) '(timestamp, h) : option filter :=
 Definition filter_query (f : filter) '((timestamp, h) : Z * header_type) : option (filter * bool) :=
   match filter_refresh f timestamp with
   | Some (mk_filter window_hi last_timestamp num_clears normal_frames) =>
-      let res := forallb (fun hs => existsb (fun hash => fold_orb (map (Z.eqb (hash h) ∘ hash) hs)) hashes) normal_frames in
+      let res := existsb (fun hs => forallb (fun hash => fold_orb (map (Z.eqb (hash h) ∘ hash) hs)) hashes) normal_frames in
       Some (mk_filter window_hi timestamp (num_clears + 1) normal_frames, res)
   | _ => None
   end.
@@ -495,11 +495,6 @@ Definition filter_clear (f : filter) '((timestamp, h) : Z * header_type) : optio
   end.
 
 Lemma H_num_frames0 : 0 < num_frames. Proof. lia. Qed.
-
-Ltac destruct_match H :=
-  match goal with
-  | H: context [match ?A with | _ => _ end] |- _ => destruct A eqn:?H
-  end.
 
 Definition filter_refresh' (f : filter) (timestamp : Z) : option filter :=
   match filter_refresh f timestamp with
@@ -712,7 +707,7 @@ Lemma filter_insert_sound: forall f cf th f',
 Proof.
   intros.
   unfold filter_insert in H0. destruct th as [timestamp h].
-  destruct_match H0. 2: inv H0.
+  destruct (filter_refresh f timestamp) eqn:?H. 2: inv H0.
   destruct f0 as [win_hi last_stamp num_clrs normal_frs].
   epose proof (filter_refresh'_sound _ _ timestamp _ ltac:(eauto)).
   unfold filter_refresh' in H2. rewrite H1 in H2. specialize (H2 ltac:(eauto)).
@@ -816,7 +811,96 @@ Proof.
   }
 Qed.
 
+Lemma frame_query_normal_unfold:
+  forall f h, frame_query (Normal f) h =
+           Some (forallb (fun hash : header_type -> Z => fold_orb (map (Z.eqb (hash h) ∘ hash) f)) hashes).
+Proof.
+  intros. unfold frame_query. simpl.
+  generalize hashes. intros l.
+  replace (map (fun hash : header_type -> Z => Some (fold_orb (map (Z.eqb (hash h) ∘ hash) f))) l)
+    with (map Some (map (fun hash : header_type -> Z => fold_orb (map (Z.eqb (hash h) ∘ hash) f)) l)) by
+    (rewrite map_map; auto). rewrite lift_option_map_some. simpl. f_equal. rewrite forallb_fold_andb. auto.
+Qed.
+
+Lemma filter_query_sound: forall f cf th f' res,
+    filter_sim f cf ->
+    filter_query f th = Some (f', res) ->
+    let '(cf', cres) := (ConFilter.filter_query H_num_frames0 H_num_rows H_num_slots frame_tick_tocks H_frame_tick_tocks0
+                         cf (Z.odd (fst th / tick_time)) (map_hashes (snd th))) in
+    filter_sim f' cf' /\ res = cres.
+Proof.
+  intros.
+  unfold filter_query in H0. destruct th as [timestamp h].
+  destruct (filter_refresh f timestamp) eqn:?H. 2: inv H0.
+  destruct f0 as [win_hi last_stamp num_clrs normal_frs].
+  epose proof (filter_refresh'_sound _ _ timestamp _ ltac:(eauto)).
+  unfold filter_refresh' in H2. rewrite H1 in H2. specialize (H2 ltac:(eauto)).
+  clear f H H1.
+  destruct cf as [cfil_frs cfil_clear_idx cfil_timr].
+  inv H0. inv H2.
+  simpl in * |-.
+  unfold ConFilter.filter_query.
+  destruct cfil_frs as [cframes ?H]. simpl.
+  set (new_clear_index := update_clear_index cfil_clear_idx) in *.
+  set (new_timer := update_timer (num_frames := num_frames) frame_tick_tocks cfil_timr (Z.odd (timestamp / tick_time))) in *.
+  set (cf := get_clear_frame num_frames frame_tick_tocks new_timer) in *. simpl in *.
+  assert (0 <= cf < num_frames). {
+    eapply get_clear_frame_range; eauto. lia. apply H_frame_tick_tocks0. }
+  set (cleared_cf := (ConFilter.frame_clear (Znth cf cframes)
+                        (exist (fun i : list Z => Zlength i = num_rows) (Zrepeat cfil_clear_idx num_rows)
+                           (ConFilter.filter_query_obligation_1 H_num_frames0 H_num_rows frame_tick_tocks
+                              H_frame_tick_tocks0
+                              {|
+                                fil_frames :=
+                                  exist
+                                    (fun i : list (ConFilter.frame num_rows num_slots) => Zlength i = num_frames)
+                                    cframes H;
+                                fil_clear_index := cfil_clear_idx;
+                                fil_timer := cfil_timr
+                              |} cframes H cfil_clear_idx cfil_timr eq_refl)))).
+  split; [econstructor; eauto |]. 2: lia. 3: eapply update_clear_index_wf; eauto.
+  - simpl. fold cf.
+    rewrite Forall2_forall_Znth in *. destruct H4.
+    rewrite Zlength_map in *. split. 1: list_solve.
+    intros. list_simplify.
+    + fapply (H2 i ltac:(list_solve)). list_solve.
+    + fapply (H2 i ltac:(list_solve)). list_solve.
+  - simpl. fold cf. destruct H6 as [cl []].
+    eexists. split.
+    + rewrite Znth_upd_Znth_same by list_solve.
+      eapply frame_clear_sound; eauto. reflexivity.
+    + assert (Zlength cl = num_slots). {
+        eapply frame_sim_clear_Zlength; apply H1. }
+      red in H11.
+      assert (cfil_clear_idx + 1 = num_slots /\ new_clear_index = 0 \/
+                cfil_clear_idx + 1 < num_slots /\ new_clear_index = cfil_clear_idx + 1). {
+        unfold new_clear_index, update_clear_index.
+        destruct (cfil_clear_idx + 1 =? num_slots) eqn:?H; lia. }
+      clear -H5 H2 H11 H3 H6.
+      destruct (cfil_clear_idx + num_slots - Z.min num_slots num_clrs <? num_slots) eqn:?H;
+        list_solve.
+  - rewrite <- upd_Znth_map, upd_Znth_twice by list_solve.
+    rewrite existsb_fold_orb. simpl.
+    rewrite Forall2_forall_Znth in H4. destruct H4.
+    remember (map
+                (fun f : ConFilter.frame num_rows num_slots =>
+                   ConFilter.frame_query f (map (fun hash : header_type -> Z => hash h) hashes))
+                cframes).
+    rewrite upd_Znth_unfold by list_solve.
+    rewrite <- (fold_orb_perm (false :: sublist (cf + 1) (Zlength l) l ++ sublist 0 cf l)
+                 (sublist 0 cf l ++ [false] ++ sublist (cf + 1) (Zlength l) l)).
+    2 : { transitivity (false :: sublist 0 cf l ++ sublist (cf + 1) (Zlength l) l).
+          2: apply Permutation_middle. constructor. apply Permutation_app_comm. }
+    rewrite fold_orb_false. f_equal. apply Znth_eq_ext.
+    1: rewrite Zlength_map in *; list_solve. intros. rewrite Zlength_map in *.
+    rewrite Znth_map; auto. specialize (H2 i H3). rewrite Znth_sublist in H2 by list_solve.
+    pose proof (frame_query_normal_unfold (Znth i normal_frs) h).
+    rewrite Znth_map in H2 by list_solve. eapply frame_query_sound in H4; eauto. rewrite <- H4, Heql.
+    clear -H H0 H1 H3. list_solve.
+Qed.
+
 End Frame.
+
 (*
 Section sliding_mixin.
 
