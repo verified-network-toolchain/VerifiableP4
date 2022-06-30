@@ -858,14 +858,14 @@ Proof.
                                 fil_clear_index := cfil_clear_idx;
                                 fil_timer := cfil_timr
                               |} cframes H cfil_clear_idx cfil_timr eq_refl)))).
-  split; [econstructor; eauto |]. 2: lia. 3: eapply update_clear_index_wf; eauto.
-  - simpl. fold cf.
+  split; [econstructor; eauto; simpl |]. 2: lia. 3: eapply update_clear_index_wf; eauto.
+  - fold cf.
     rewrite Forall2_forall_Znth in *. destruct H4.
     rewrite Zlength_map in *. split. 1: list_solve.
     intros. list_simplify.
     + fapply (H2 i ltac:(list_solve)). list_solve.
     + fapply (H2 i ltac:(list_solve)). list_solve.
-  - simpl. fold cf. destruct H6 as [cl []].
+  - fold cf. destruct H6 as [cl []].
     eexists. split.
     + rewrite Znth_upd_Znth_same by list_solve.
       eapply frame_clear_sound; eauto. reflexivity.
@@ -899,122 +899,64 @@ Proof.
     clear -H H0 H1 H3. list_solve.
 Qed.
 
+Lemma filter_clear_sound: forall f cf th f',
+    filter_sim f cf ->
+    filter_clear f th = Some f' ->
+    filter_sim f' (ConFilter.filter_clear H_num_frames0 H_num_rows H_num_slots frame_tick_tocks H_frame_tick_tocks0
+                     cf (Z.odd (fst th / tick_time)) (map_hashes (snd th))).
+Proof.
+  intros.
+  unfold filter_clear in H0. destruct th as [timestamp h].
+  destruct (filter_refresh f timestamp) eqn:?H. 2: inv H0.
+  destruct f0 as [win_hi last_stamp num_clrs normal_frs].
+  epose proof (filter_refresh'_sound _ _ timestamp _ ltac:(eauto)).
+  unfold filter_refresh' in H2. rewrite H1 in H2. specialize (H2 ltac:(eauto)).
+  clear f H H1.
+  destruct cf as [cfil_frs cfil_clear_idx cfil_timr].
+  inv H0. inv H2.
+  simpl in * |-.
+  unfold ConFilter.filter_clear.
+  destruct cfil_frs as [cframes ?H]. simpl.
+  set (new_clear_index := update_clear_index cfil_clear_idx) in *.
+  set (new_timer := update_timer (num_frames := num_frames) frame_tick_tocks cfil_timr (Z.odd (timestamp / tick_time))) in *.
+  set (cf := get_clear_frame num_frames frame_tick_tocks new_timer) in *. simpl in *.
+  assert (0 <= cf < num_frames). {
+    eapply get_clear_frame_range; eauto. lia. apply H_frame_tick_tocks0. }
+  set (cleared_cf := ConFilter.frame_clear (Znth cf cframes)
+                       (exist (fun i : list Z => Zlength i = num_rows) (Zrepeat cfil_clear_idx num_rows)
+                          (ConFilter.filter_clear_obligation_1 H_num_frames0 H_num_rows frame_tick_tocks
+                             H_frame_tick_tocks0
+                             {|
+                               fil_frames :=
+                                 exist
+                                   (fun i : list (ConFilter.frame num_rows num_slots) => Zlength i = num_frames)
+                                   cframes H;
+                               fil_clear_index := cfil_clear_idx;
+                               fil_timer := cfil_timr
+                             |} cframes H cfil_clear_idx cfil_timr eq_refl))).
+  econstructor; eauto; simpl. 2: lia. 3: eapply update_clear_index_wf; eauto.
+  - fold cf.
+    rewrite Forall2_forall_Znth in *. destruct H4.
+    rewrite Zlength_map in *. split. 1: list_solve.
+    intros. list_simplify.
+    + fapply (H2 i ltac:(list_solve)). list_solve.
+    + fapply (H2 i ltac:(list_solve)). list_solve.
+  - simpl. fold cf. destruct H6 as [cl []].
+    eexists. split.
+    + rewrite Znth_upd_Znth_same by list_solve.
+      eapply frame_clear_sound; eauto. reflexivity.
+    + assert (Zlength cl = num_slots). {
+        eapply frame_sim_clear_Zlength; apply H1. }
+      red in H11.
+      assert (cfil_clear_idx + 1 = num_slots /\ new_clear_index = 0 \/
+                cfil_clear_idx + 1 < num_slots /\ new_clear_index = cfil_clear_idx + 1). {
+        unfold new_clear_index, update_clear_index.
+        destruct (cfil_clear_idx + 1 =? num_slots) eqn:?H; lia. }
+      clear -H5 H2 H11 H3 H6.
+      destruct (cfil_clear_idx + num_slots - Z.min num_slots num_clrs <? num_slots) eqn:?H;
+        list_solve.
+Qed.
+
 End Frame.
-
-(*
-Section sliding_mixin.
-
-  Context (frames: list frame).
-  Context (num_frames: Z).
-  Context (clear_index insert_index: Z).
-
-  Record SlidingMixin := {
-      clear_index_range: 0 <= clear_index < num_frames;
-      insert_index_range: 0 <= insert_index < num_frames;
-      insert_clear_diff: insert_index <> clear_index;
-      frame_size: Zlength frames = num_frames;
-      clear_row_status: forall l, Znth clear_index frames <> Normal l;
-      other_row_status: forall i, 0 <= i < num_frames -> i <> clear_index ->
-                             forall j, Znth i frames <> Clear j;
-  }.
-
-End sliding_mixin.
-
-Section Sliding.
-
-  Lemma frame_insert_None_impsbl:
-    forall (frames : list frame) (v : header_type)
-      (num_frames clear_index insert_index : Z),
-      SlidingMixin frames num_frames clear_index insert_index ->
-      frame_insert (Znth insert_index frames) v = None -> False.
-  Proof.
-    intros frames v num_frames clear_index insert_index Hs H.
-    pose proof (other_row_status _ _ _ _ Hs _
-                  (insert_index_range _ _ _ _ Hs)
-                  (insert_clear_diff _ _ _ _ Hs)).
-    unfold frame_insert, row_insert in H. destruct (Znth insert_index frames) eqn:?H.
-    - exfalso. apply (H0 i). auto.
-    - inversion H.
-  Qed.
-
-  Lemma frame_insert_Some_f_not_Clear:
-    forall (frames : list frame) (v : header_type) (num_frames clear_index insert_index : Z),
-      SlidingMixin frames num_frames clear_index insert_index ->
-      forall f : frame,
-        frame_insert (Znth insert_index frames) v = Some f -> forall j : Z, f <> Clear j.
-  Proof.
-    intros ????? Hs f H ?. destruct (Znth insert_index frames) eqn:?H.
-    - exfalso. eapply (other_row_status _ _ _ _ Hs insert_index); eauto.
-      + eapply insert_index_range; eauto.
-      + eapply insert_clear_diff; eauto.
-    - simpl in H. inversion H. intro. inversion H1.
-  Qed.
-
-  Definition window_insert'
-    (frames: list frame) (v: header_type) (num_frames clear_index insert_index: Z)
-    (Hs: SlidingMixin frames num_frames clear_index insert_index):
-    { frame | forall j, frame <> Clear j}.
-  Proof.
-    destruct (frame_insert (Znth insert_index frames) v) eqn:?H .
-    - exists f. eapply frame_insert_Some_f_not_Clear; eauto.
-    - exfalso. eapply frame_insert_None_impsbl; eauto.
-  Defined.
-
-  Lemma window_insert'_preserve:
-    forall (frames: list frame) (v: header_type) (num_frames clear_index insert_index: Z)
-      (Hs: SlidingMixin frames num_frames clear_index insert_index),
-      SlidingMixin (upd_Znth insert_index frames
-                      (proj1_sig
-                         (window_insert' frames v num_frames clear_index insert_index Hs)))
-        num_frames clear_index insert_index.
-  Proof.
-    intros. split.
-    - eapply clear_index_range; eauto.
-    - eapply insert_index_range; eauto.
-    - eapply insert_clear_diff; eauto.
-    - rewrite Zlength_upd_Znth. eapply frame_size; eauto.
-    - intros. rewrite Znth_upd_Znth_diff.
-      + eapply clear_row_status; eauto.
-      + intro. symmetry in H. revert H. eapply insert_clear_diff; eauto.
-    - intros. destruct (Z.eq_dec i insert_index).
-      + subst. rewrite Znth_upd_Znth_same; auto.
-        * remember (window_insert' frames v num_frames clear_index insert_index Hs).
-          destruct s. simpl. apply n.
-        * erewrite frame_size; eauto.
-      + rewrite Znth_upd_Znth_diff; auto. eapply other_row_status; eauto.
-  Qed.
-
-  Record SlidingWindow := {
-      frames: list frame;
-      num_frames: Z;
-      clear_index: Z;
-      insert_index: Z;
-      sliding_mixin: SlidingMixin frames num_frames clear_index insert_index;
-    }.
-
-  Definition window_insert (win: SlidingWindow) (v: header_type): SlidingWindow :=
-    Build_SlidingWindow
-      (upd_Znth (insert_index win) (frames win)
-         (proj1_sig
-            (window_insert' (frames win) v
-               (num_frames win) (clear_index win) (insert_index win) (sliding_mixin win))))
-      (num_frames win) (clear_index win) (insert_index win)
-      (window_insert'_preserve (frames win) v
-         (num_frames win) (clear_index win) (insert_index win) (sliding_mixin win)).
-
-  Fixpoint remove_option {A: Type} (l: list (option A)) : list A :=
-    match l with
-    | nil => nil
-    | None :: l' => remove_option l'
-    | Some a :: l' => a :: remove_option l'
-    end.
-
-  Definition window_query (win: SlidingWindow)
-    (hashes: list (header_type -> Z)) (h: header_type) :=
-    fold_orb (remove_option (map (fun f => frame_query hashes f h) (frames win))).
-
-End Sliding.
-
-*)
 
 End AbsFilter.
