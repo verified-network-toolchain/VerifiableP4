@@ -52,7 +52,19 @@ Lemma row_insert_comm : forall (r : row) x y,
   row_insert (row_insert r x) y = row_insert (row_insert r y) x.
 Proof.
   intros. destruct r as [r ?H]. unfold row_insert. simpl.
-  apply subset_eq_compat. list_solve.
+  remember (row_insert_obligation_1
+       (exist (fun i : list bool => Zlength i = num_slots) (upd_Znth x r true)
+          (row_insert_obligation_1 (exist (fun i : list bool => Zlength i = num_slots) r H)
+             x)) y) as p1.
+  remember (row_insert_obligation_1
+       (exist (fun i : list bool => Zlength i = num_slots) (upd_Znth y r true)
+          (row_insert_obligation_1 (exist (fun i : list bool => Zlength i = num_slots) r H)
+             y)) x) as p2.
+  simpl in *. clear Heqp1 Heqp2.
+  remember (upd_Znth y (upd_Znth x r true) true) as l1.
+  remember (upd_Znth x (upd_Znth y r true) true) as l2.
+  assert (l1 = l2) by list_solve. clear Heql1 Heql2. subst l2.
+  pose proof (Eqdep_dec.UIP_dec Z.eq_dec p1 p2). rewrite H0. auto.
 Qed.
 
 Program Definition frame_insert (f : frame) (is : listn Z num_rows) : frame :=
