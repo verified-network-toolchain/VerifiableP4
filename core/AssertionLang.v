@@ -104,8 +104,6 @@ Proof.
   auto.
 Qed.
 
-(* This is avoidable. But let's use it for now for simplicity. *)
-Axiom prop_ext : ClassicalFacts.prop_extensionality.
 
 Lemma ext_pred_and_cons : forall ep1 ep2 eps,
   ext_assertion_equiv

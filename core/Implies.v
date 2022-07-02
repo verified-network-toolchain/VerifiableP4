@@ -99,6 +99,14 @@ Proof.
     unfold ext_satisfies in *. simpl in *. destruct H. split; auto.
 Qed.
 
+Lemma ext_implies_prop_intro : forall pre (P : Prop),
+  P ->
+  ext_implies pre [ExtPred.prop P].
+Proof.
+  intros.
+  sauto.
+Qed.
+
 Lemma ext_cons_implies : forall a (b c : ext_assertion),
   (ext_implies [a] c \/ ext_implies b c) -> ext_implies (a :: b) c.
 Proof.

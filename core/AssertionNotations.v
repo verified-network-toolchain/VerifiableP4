@@ -26,10 +26,8 @@ Notation P4String := (P4String.t tags_t).
 Notation P4Type := (@P4Type tags_t).
 Notation mem := Semantics.mem.
 
-Context `{@Target tags_t (@Expression tags_t)}.
+Context {target : @Target tags_t (@Expression tags_t)}.
 
-(* EXT is defined as (id) instead of (ext_denote a_ext). Maybe it's because I don't want to have
-  a parameter (Hoare.ext_assertion) in MEM *)
 Definition EXT : ext_assertion -> extern_state -> Prop :=
   ext_denote.
 

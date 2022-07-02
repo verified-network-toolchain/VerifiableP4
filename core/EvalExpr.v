@@ -1769,7 +1769,7 @@ Lemma all_values_set_some_rel' : forall {A} rel (kvl kvl' : AList.StringAList A)
 Proof.
   intros.
   destruct (AList.set kvl f v) eqn:H_set. 2 : {
-    eapply all_values_set_some_is_some' with (v0 := v) in H1. 2 : apply H0.
+    eapply all_values_set_some_is_some' with (v := v) in H1. 2 : apply H0.
     rewrite H_set in H1. inv H1.
   }
   eapply all_values_set_some_rel; eauto.

@@ -4,7 +4,7 @@ Require Import Poulet4.P4light.Architecture.Tofino.
 Require Import ProD3.core.Core.
 Require Export ProD3.core.TofinoSpec.
 
-Instance target : @Target Info (@Expression Info) := Tofino.
+#[export] Instance target : @Target Info (@Expression Info) := Tofino.
 
 (* It is a hack to make extern_match opauqe. But it should be fine. *)
 

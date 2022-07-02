@@ -325,6 +325,15 @@ Proof.
   sfirstorder.
 Qed.
 
+Lemma hoare_block_pre_prop : forall p (P : Prop) pre block post,
+  (P -> hoare_block p pre block post) ->
+  hoare_block p (fun st : state => P /\ pre st) block post.
+Proof.
+  unfold hoare_block.
+  intros.
+  hauto lq: on.
+Qed.
+
 Lemma hoare_block_post : forall p pre block post' post,
   hoare_block p pre block post' ->
   post_implies post' post ->

@@ -2,15 +2,14 @@ Require Import Coq.Lists.List.
 Require Import Coq.Strings.String.
 Require Import Coq.Setoids.Setoid.
 Require Import Coq.Relations.Relation_Definitions.
-
+Require Import Coq.ZArith.BinInt.
 Require Import Poulet4.Utils.Maps.
-
 Require Import Poulet4.P4light.Syntax.Syntax.
-
 Require Import Poulet4.P4light.Architecture.Target.
 Require Import ProD3.core.Coqlib.
 Require Import Hammer.Plugin.Hammer.
 Import ListNotations.
+Open Scope Z_scope.
 Open Scope list_scope.
 
 Definition lift {A B C D : Type} (f : B -> C -> D) (g : A -> B) (h : A -> C) : A -> D :=
@@ -26,15 +25,7 @@ Notation path := (list string).
 Context {tags_t : Type}.
 Context {target : @Target tags_t (@Expression tags_t)}.
 
-(* We define a kind of ext_pred for extern state, that contains two parts
-  ep_pred and ep_paths, with a well-formed condition. If ep_paths = [p1,
-  p2, ...], then ep_pred is only relevent with objects in directories of
-  p1, p2, ... *)
-
-Record ext_pred_body := mk_ext_pred_body {
-  ep_pred :> extern_state -> Prop;
-  ep_paths : list path
-}.
+(* First define some path arithmetic. *)
 
 Fixpoint is_prefix (p1 : path) (p2 : path) : bool :=
   match p1 with
@@ -106,11 +97,21 @@ Proof.
   destruct H0 as [x [? ?]]. exists x. split; auto.
 Qed.
 
-Lemma in_scopes_In: forall ps p, In p ps -> is_true (in_scopes p ps).
+Lemma in_scopes_In: forall ps p, In p ps -> in_scopes p ps.
 Proof.
   intros. red. unfold in_scopes. rewrite existsb_exists.
   exists p. split; auto. apply is_prefix_refl.
 Qed.
+
+(* We define a kind of ext_pred for extern state, that contains two parts
+  ep_pred and ep_paths, with a well-formed condition. If ep_paths = [p1,
+  p2, ...], then ep_pred is only relevent with objects in directories of
+  p1, p2, ... *)
+
+Record ext_pred_body := mk_ext_pred_body {
+  ep_pred :> extern_state -> Prop;
+  ep_paths : list path
+}.
 
 Definition ep_wellformed_prop (ps : list path) (P : extern_state -> Prop) :=
   forall es es' : extern_state,
@@ -253,5 +254,93 @@ Global Add Parametric Relation : ext_pred equiv
 Add Parametric Morphism : ep_pred with
   signature equiv ==> eq as ep_pred_mor.
 Proof. auto. Qed.
+
+Lemma forallb_Forall {A} : forall f (l : list A),
+  forallb f l -> Forall (fun x => f x) l.
+Proof.
+  induction l; intros.
+  - constructor.
+  - simpl in H.
+    destruct (f a) eqn:?H.
+    2 : inversion H.
+    destruct (forallb f l) eqn:?H.
+    2 : inversion H.
+    constructor; auto.
+Qed.
+
+Lemma forallb_Forall' {A} {d : Inhabitant A} : forall f (l : list A),
+  ~~forallb f l -> exists i, 0 <= i < Zlength l /\ ~~f (Znth i l).
+Proof.
+  induction l; intros.
+  - inv H.
+  - simpl in H.
+    destruct (f a) eqn:?H.
+    2 : {
+      assert (~~f a) by hauto.
+      exists 0. list_solve.
+    }
+    destruct (forallb f l) eqn:?H.
+    1 : inv H.
+    destruct (IHl ltac:(intuition)) as [i []].
+    exists (i + 1); list_solve.
+Qed.
+
+(* TODO give a name for forallb (fun p : path => in_scopes p ps1) ps2 *)
+
+Lemma in_scopes_split : forall ps1 ps2 ps3 ps4,
+  forallb (fun p : path => in_scopes p ps1) ps3 ->
+  forallb (fun p : path => in_scopes p ps2) ps4 ->
+  forallb (fun p : path => in_scopes p (ps1 ++ ps2)) (ps3 ++ ps4).
+Proof.
+  intros.
+  apply forallb_Forall in H.
+  apply forallb_Forall in H0.
+  rewrite forallb_app, Reflect.andE; split.
+  - replace (forallb (fun p : path => in_scopes p (ps1 ++ ps2)) ps3) with true. 2 : {
+      symmetry. apply <- forallb_forall.
+      intros. rewrite in_scopes_app.
+      replace (in_scopes x ps1) with true by list_solve.
+      auto.
+    }
+    auto.
+  - replace (forallb (fun p : path => in_scopes p (ps1 ++ ps2)) ps4) with true. 2 : {
+      symmetry. apply <- forallb_forall.
+      intros. rewrite in_scopes_app.
+      replace (in_scopes x ps2) with true by list_solve.
+      hauto b:on.
+    }
+    auto.
+Qed.
+
+Lemma in_scopes_refl : forall ps,
+  forallb (fun p : path => in_scopes p ps) ps.
+Proof.
+  induction ps; intros; auto.
+  change (a :: ps) with ([a] ++ ps).
+  apply in_scopes_split; auto.
+  cbn. unfold in_scope. rewrite is_prefix_refl. auto.
+Qed.
+
+Lemma ex_and_l : forall {A} (ep1 : A -> ext_pred) ps H ep2,
+  ExtPred.equiv
+    (ExtPred.and (ExtPred.ex ep1 ps H) ep2)
+    (ExtPred.ex (fun x => ExtPred.and (ep1 x) ep2) (ps ++ ep_paths ep2) (fun x => in_scopes_split _ _ _ _ (H x) (in_scopes_refl _))).
+Proof.
+  intros. red. simpl. clear H.
+  apply functional_extensionality; intros.
+  apply prop_ext.
+  sauto.
+Qed.
+
+Lemma ex_and_r : forall {A} ep1 (ep2 : A -> ext_pred) ps H,
+  ExtPred.equiv
+    (ExtPred.and ep1 (ExtPred.ex ep2 ps H))
+    (ExtPred.ex (fun x => ExtPred.and ep1 (ep2 x)) (ep_paths ep1 ++ ps) (fun x => in_scopes_split _ _ _ _ (in_scopes_refl _) (H x))).
+Proof.
+  intros. red. simpl. clear H.
+  apply functional_extensionality; intros.
+  apply prop_ext.
+  sauto.
+Qed.
 
 End ExtPred.

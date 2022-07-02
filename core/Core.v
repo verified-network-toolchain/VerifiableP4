@@ -12,3 +12,4 @@ Require Export ProD3.core.Modifies.
 Require Export ProD3.core.Tactics.
 Require Export ProD3.core.ExtPred.
 Require Export ProD3.core.DisjointTest.
+Require Export ProD3.core.ExtExtract.

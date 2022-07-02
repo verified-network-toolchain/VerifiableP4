@@ -14,6 +14,7 @@ Require Import ProD3.core.AssertionNotations.
 Require Import ProD3.core.Modifies.
 Require Import ProD3.core.FuncSpec.
 Require Import ProD3.core.DisjointTest.
+Require Import ProD3.core.ExtExtract.
 Import ListNotations.
 
 (* solves hoare_call for built-in functions *)
@@ -700,6 +701,8 @@ Ltac entailer :=
   | _ => fail "The goal is not an entailment"
   end.
 
+(* Assertion manipulation *)
+
 Tactic Notation "Intros" simple_intropattern(x) :=
   lazymatch goal with
   | |- hoare_block _ _ (assr_exists _) _ _ =>
@@ -712,6 +715,62 @@ Tactic Notation "Intros" simple_intropattern(x) :=
 Ltac normalize_EXT :=
   repeat rewrite AssertionLang.ext_pred_and_cons;
   repeat rewrite AssertionLang.ext_pred_wrap_cons.
+
+Ltac extract_ex_in_EXT a :=
+  lazymatch a with
+  | MEM _ (EXT ?a_ext) =>
+    lazymatch a_ext with context [(ExtPred.ex (A := ?A) ?S _ _) :: ?a_ext'] =>
+      let n := constr:((length a_ext - Datatypes.S (length a_ext'))%nat) in
+      let n' := eval lazy beta zeta iota delta in n in
+      rewrite (extract_nth_ext_ex' n' _ a_ext A S _ _ eq_refl);
+      unfold replace_nth at 1
+    end
+  end.
+
+Ltac Intros' x :=
+  lazymatch goal with
+  | |- hoare_block _ _ ?pre _ _ =>
+      extract_ex_in_EXT pre;
+      eapply hoare_block_pre_ex;
+      intro x
+  end.
+
+Ltac extract_ex_in_EXT' a :=
+  lazymatch a with
+  | ?a_ext =>
+    lazymatch a_ext with context [(ExtPred.ex (A := ?A) ?S _ _) :: ?a_ext'] =>
+      let n := constr:((length a_ext - Datatypes.S (length a_ext'))%nat) in
+      let n' := eval lazy beta zeta iota delta in n in
+      apply (extract_nth_ext_ex'' n' _ a_ext A S _ _ eq_refl);
+      unfold replace_nth at 1
+    end
+  end.
+
+Ltac Exists' x:=
+  lazymatch goal with
+  | |- ext_implies ?pre ?post =>
+      extract_ex_in_EXT' post;
+      exists x
+  end.
+
+Ltac extract_prop_in_EXT a :=
+  lazymatch a with
+  | MEM _ (EXT ?a_ext) =>
+    lazymatch a_ext with context [(ExtPred.prop ?S) :: ?a_ext'] =>
+      let n := constr:((length a_ext - Datatypes.S (length a_ext'))%nat) in
+      let n' := eval lazy beta zeta iota delta in n in
+      rewrite (extract_nth_ext_prop n' _ a_ext S eq_refl);
+      unfold remove_nth at 1
+    end
+  end.
+
+Ltac Intros_prop :=
+  lazymatch goal with
+  | |- hoare_block _ _ ?pre _ _ =>
+      extract_prop_in_EXT pre;
+      eapply hoare_block_pre_prop;
+      intros ?H
+  end.
 
 (* Term-generating tactics *)
 

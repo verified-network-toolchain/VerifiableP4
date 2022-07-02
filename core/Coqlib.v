@@ -42,3 +42,6 @@ Inductive Forall2_fold {A B C} (P : A -> B -> C -> A -> Prop) : A -> list B -> l
 
 (* Hinder too eager typeclass resolution. We should eventually put this into zlist. *)
 #[global] Hint Mode Inhabitant + : typeclass_instances.
+
+(* We accept this axiom. Maybe it's avoidable but it makes things simpler by accepting it. *)
+Axiom prop_ext : ClassicalFacts.prop_extensionality.
