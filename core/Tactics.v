@@ -17,6 +17,42 @@ Require Import ProD3.core.DisjointTest.
 Require Import ProD3.core.ExtExtract.
 Import ListNotations.
 
+Ltac simpl_eval_p4int_sval1 :=
+  lazymatch goal with
+  | |- context [eval_p4int_sval ?i] =>
+      (* We want to make sure i does not contain (opaque) variables. *)
+      let v := eval compute in (P4Int.value i) in
+      let ws := eval compute in (P4Int.width_signed i) in
+      lazymatch ws with
+      | Some (?w, true) =>
+          change (eval_p4int_sval i) with (P4Int w v)
+      | Some (?w, false) =>
+          change (eval_p4int_sval i) with (P4Bit w v)
+      | None =>
+          change (eval_p4int_sval i) with (ValBaseInteger v)
+      end
+  | H : context [eval_p4int_sval ?i] |- _ =>
+      revert H;
+      simpl_eval_p4int_sval1;
+      intro H
+  end.
+
+Ltac simpl_eval_p4int_sval :=
+  repeat simpl_eval_p4int_sval1.
+
+Ltac simpl_eval_expr := simpl_eval_p4int_sval.
+
+Ltac eval_expr :=
+  lazymatch goal with
+  | |- eval_expr _ _ _ _ = Some _ => idtac
+  | |- eval_args _ _ _ _ _ = Some _ => idtac
+  | _ => fail "eval_expr: unexpected goal"
+  end;
+  eapply eq_trans with (y := Some _);
+  only 1 : (reflexivity || fail "Failed to evaluate an expression. It could be because a variable is missing in the assertion");
+  simpl_eval_expr;
+  reflexivity.
+
 (* solves hoare_call for built-in functions *)
 Ltac step_builtin :=
   lazymatch goal with
@@ -24,7 +60,7 @@ Ltac step_builtin :=
       (eapply hoare_call_builtin';
         [ reflexivity (* is_no_dup *)
         | reflexivity (* eval_lexpr *)
-        | reflexivity (* eval_args *)
+        | eval_expr (* eval_args *)
         | reflexivity (* eval_builtin *)
         ])
       || fail "Not a built-in function. Use step_call instead"
@@ -57,7 +93,7 @@ Ltac step_stmt :=
             [ reflexivity (* is_call_expression *)
             | reflexivity (* is_no_dup *)
             | reflexivity (* eval_lexpr *)
-            | reflexivity (* eval_expr *)
+            | eval_expr (* eval_expr *)
             | reflexivity (* eval_write *)
             ]
       (* hoare_stmt_method_call' *)
@@ -90,7 +126,7 @@ Ltac step_stmt :=
           eapply hoare_stmt_var';
             [ reflexivity (* is_call_expression *)
             | reflexivity (* is_no_dup *)
-            | reflexivity (* eval_expr *)
+            | eval_expr (* eval_expr *)
             | reflexivity (* eval_write *)
             ]
       (* hoare_stmt_var_none' *)
@@ -139,7 +175,7 @@ Ltac step_stmt_if :=
       lazymatch stmt with
         | MkStatement _ (StatConditional _ _ _) _ =>
             eapply hoare_stmt_if';
-              [ reflexivity (* eval_expr *)
+              [ eval_expr (* eval_expr *)
               | intro (* true branch *)
               | intro; simpl (force empty_statement _) (* false branch *)
               ]
@@ -325,7 +361,7 @@ Ltac step_call_func func_spec :=
   | |- hoare_call _ _ _ _ _ =>
       eapply hoare_call_func'_ex;
         [ reflexivity (* is_builtin_func *)
-        | reflexivity (* eval_args *)
+        | eval_expr (* eval_args *)
         | reflexivity (* lookup_func *)
         | (* func_spec *)
           eapply func_spec_combine';
@@ -532,7 +568,7 @@ Ltac step_into_call_func :=
   | |- hoare_call _ _ _ _ _ =>
       eapply hoare_call_func';
         [ reflexivity (* is_builtin_func *)
-        | reflexivity (* eval_args *)
+        | eval_expr (* eval_args *)
         | reflexivity (* lookup_func *)
         | (* step into function body *)
         | (* reflexivity *) (* is_no_dup *)

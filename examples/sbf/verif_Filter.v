@@ -41,14 +41,8 @@ Proof.
   step.
   entailer.
   { red.
-    unfold eval_p4int_sval.
-    cbn [width_signed].
     change (eval_val_to_sval (ValBaseBit (P4Arith.to_lbool 32 old_value)))
       with (P4Bit 32 old_value).
-    change (ValBaseBit
-        (P4Arith.to_loptbool 32
-           (value {| tags := NoInfo; value := 1; width_signed := Some (32%N, false) |})))
-      with (P4Bit 32 1).
     rewrite abs_plus_bit.
     apply sval_refine_refl.
   }
@@ -174,26 +168,6 @@ Definition regact_clear_window_signal_0_apply_spec : func_spec :=
     };
 *)
 
-Ltac simpl_eval_p4int_sval :=
-  lazymatch goal with
-  | |- context [eval_p4int_sval ?i] =>
-      (* We want to make sure i does not contain (opaque) variables. *)
-      let v := eval compute in (value i) in
-      let ws := eval compute in (width_signed i) in
-      match ws with
-      | Some (?w, true) =>
-          change (eval_p4int_sval i) with (P4Int w v)
-      | Some (?w, false) =>
-          change (eval_p4int_sval i) with (P4Bit w v)
-      | None =>
-          change (eval_p4int_sval i) with (ValBaseInteger v)
-      end
-  | H : context [eval_p4int_sval ?i] |- _ =>
-      revert H;
-      simpl_eval_p4int_sval;
-      intro H
-  end.
-
 Lemma regact_clear_window_signal_0_apply_body :
   func_sound am_ge regact_clear_window_signal_0_apply_fd nil regact_clear_window_signal_0_apply_spec.
 Proof.
@@ -215,14 +189,11 @@ Proof.
     cbn.
     (* manipulate H *)
       simpl get in H.
-      simpl_eval_p4int_sval.
       rewrite abs_neq_bit in H.
       destruct (snd t) eqn:?H. 2 : inv H.
       clear H.
     entailer.
     red.
-    change (ValBaseBit (map Some (rev (P4Arith.to_lbool' (Pos.to_nat 16) 1 []))))
-      with (P4Bit 16 1).
     rewrite abs_plus_bit.
     apply sval_refine_refl.
   }
@@ -232,7 +203,6 @@ Proof.
     (* manipulate H *)
       unfold timer_repr_sval in H.
       simpl get in H.
-      simpl_eval_p4int_sval.
       rewrite abs_neq_bit in H.
       destruct (snd t) eqn:?H. 1 : inv H.
       clear H.
