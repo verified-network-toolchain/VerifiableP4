@@ -53,12 +53,29 @@ Notation Lval := ValueLvalue.
 
 Notation ident := (string).
 Notation path := (list ident).
-Notation P4Int := (P4Int.t tags_t).
 Notation P4String := (P4String.t tags_t).
 Notation P4Type := (@P4Type tags_t).
 Notation Expression := (@Expression tags_t).
 
 Context `{@Target tags_t Expression}.
+
+(* Shorthands for Svals. *)
+
+Definition P4Bit (w : N) (v : Z) : Sval :=
+  ValBaseBit (to_loptbool w v).
+
+(* Deprecated *)
+Definition P4NewBit (w : N) : Sval :=
+  ValBaseBit (Zrepeat None (Z.of_N w)).
+
+Definition P4Bit_ (w : N) : Sval :=
+  ValBaseBit (Zrepeat None (Z.of_N w)).
+
+Definition P4Int (w : N) (v : Z) : Sval :=
+  ValBaseInt (to_loptbool w v).
+
+Definition P4Int_ (w : N) : Sval :=
+  ValBaseInt (Zrepeat None (Z.of_N w)).
 
 Definition build_abs_unary_op (actual_unary_op : Val -> option Val) : Sval -> Sval :=
   fun sv =>
@@ -107,14 +124,14 @@ Definition abs_neq: Sval -> Sval -> Sval :=
 Lemma abs_bin_op_bit: forall op w i1 i2,
     ~ In op [Shl; Shr; Eq; NotEq; PlusPlus] ->
     build_abs_binary_op (Ops.eval_binary_op op)
-                        (ValBaseBit (to_loptbool w i1))
-                        (ValBaseBit (to_loptbool w i2))
+                        (P4Bit w i1)
+                        (P4Bit w i2)
     = eval_val_to_sval
         (force ValBaseNull
                (Ops.eval_binary_op_bit op w (BitArith.mod_bound w i1)
                                        (BitArith.mod_bound w i2))).
 Proof.
-  intros. unfold to_loptbool.
+  intros. unfold P4Bit, to_loptbool.
   unfold build_abs_binary_op. unfold eval_sval_to_val.
   rewrite !lift_option_map_some.
   unfold Ops.eval_binary_op.
@@ -129,8 +146,8 @@ Qed.
 
 Lemma abs_plus_bit : forall w i1 i2,
   abs_plus
-    (ValBaseBit (to_loptbool w i1))
-    (ValBaseBit (to_loptbool w i2))
+    (P4Bit w i1)
+    (P4Bit w i2)
   = ValBaseBit (to_loptbool w (i1 + i2)).
 Proof.
   intros. unfold abs_plus. rewrite abs_bin_op_bit.
@@ -142,9 +159,9 @@ Qed.
 
 Lemma abs_minus_bit : forall w i1 i2,
   abs_minus
-    (ValBaseBit (to_loptbool w i1))
-    (ValBaseBit (to_loptbool w i2))
-  = (ValBaseBit (to_loptbool w (i1 - i2))).
+    (P4Bit w i1)
+    (P4Bit w i2)
+  = (P4Bit w (i1 - i2)).
 Proof.
   intros. unfold abs_minus. rewrite abs_bin_op_bit.
   - simpl. rewrite BitArith.minus_mod_mod.
@@ -155,9 +172,9 @@ Qed.
 
 Lemma abs_mul_bit : forall w i1 i2,
   abs_mul
-    (ValBaseBit (to_loptbool w i1))
-    (ValBaseBit (to_loptbool w i2))
-  = (ValBaseBit (to_loptbool w (i1 * i2))).
+    (P4Bit w i1)
+    (P4Bit w i2)
+  = (P4Bit w (i1 * i2)).
 Proof.
   intros. unfold abs_mul. rewrite abs_bin_op_bit.
   - simpl. rewrite BitArith.mult_mod_mod.
@@ -168,12 +185,12 @@ Qed.
 
 Lemma abs_eq_bit : forall w i1 i2,
   abs_eq
-    (ValBaseBit (to_loptbool w i1)) (ValBaseBit (to_loptbool w i2))
+    (P4Bit w i1) (P4Bit w i2)
   = ValBaseBool
       (Some (BitArith.mod_bound w i1 =? BitArith.mod_bound w i2)%Z).
 Proof.
   intros. unfold abs_eq. unfold build_abs_binary_op.
-  unfold eval_sval_to_val, to_loptbool.
+  unfold eval_sval_to_val, P4Bit, to_loptbool.
   rewrite !lift_option_map_some. unfold Ops.eval_binary_op. simpl.
   rewrite !Zlength_to_lbool. rewrite BinNat.N.eqb_refl. simpl.
   now rewrite !bit_to_lbool_back.
@@ -181,12 +198,12 @@ Qed.
 
 Lemma abs_neq_bit : forall w i1 i2,
   abs_neq
-    (ValBaseBit (to_loptbool w i1)) (ValBaseBit (to_loptbool w i2))
+    (P4Bit w i1) (P4Bit w i2)
   = ValBaseBool
       (Some (~~ (BitArith.mod_bound w i1 =? BitArith.mod_bound w i2)%Z)).
 Proof.
   intros. unfold abs_neq. unfold build_abs_binary_op.
-  unfold eval_sval_to_val, to_loptbool.
+  unfold eval_sval_to_val, P4Bit, to_loptbool.
   rewrite !lift_option_map_some. unfold Ops.eval_binary_op. simpl.
   rewrite !Zlength_to_lbool. rewrite BinNat.N.eqb_refl. simpl.
   now rewrite !bit_to_lbool_back.
@@ -358,16 +375,39 @@ Fixpoint eval_expr (ge : genv) (p : path) (a : mem_assertion) (expr : Expression
           end
       | ExpUnaryOp op arg =>
           match eval_expr ge p a arg with
-          | Some argv => Some (build_abs_unary_op (Ops.eval_unary_op op) argv)
+          | Some argv =>
+              match op with
+              | Not =>
+                  Some (abs_not argv)
+              | _ =>
+                  Some (build_abs_unary_op (Ops.eval_unary_op op) argv)
+              end
           | None => None
           end
       | ExpBinaryOp op larg rarg =>
-          if (in_dec opbin_eq_dec op [Shl; Shr]) then None
-              else
-                match eval_expr ge p a larg, eval_expr ge p a rarg with
-                | Some largv, Some rargv => Some (build_abs_binary_op (Ops.eval_binary_op op) largv rargv)
-                | _, _ => None
+          if (in_dec opbin_eq_dec op [Shl; Shr]) then
+            None
+          else
+            match eval_expr ge p a larg, eval_expr ge p a rarg with
+            | Some largv, Some rargv =>
+                match op with
+                | Plus =>
+                    Some (abs_plus largv rargv)
+                | Minus =>
+                    Some (abs_minus largv rargv)
+                | Mul =>
+                    Some (abs_mul largv rargv)
+                | Eq =>
+                    Some (abs_eq largv rargv)
+                | NotEq =>
+                    Some (abs_neq largv rargv)
+                | BitAnd =>
+                    Some (abs_bitand largv rargv)
+                | _ =>
+                    Some (build_abs_binary_op (Ops.eval_binary_op op) largv rargv)
                 end
+            | _, _ => None
+            end
       | ExpCast newtyp arg =>
           match eval_expr ge p a arg, get_real_type ge newtyp with
           | Some argv, Some real_typ => Some (build_abs_unary_op (Ops.eval_cast real_typ) argv)
@@ -1402,7 +1442,12 @@ Proof.
       * simpl in H4. destruct_match H4. 2: inversion H4.
         destruct_match H4; inversion H4. subst. clear H4. inv H0. inv H11.
         constructor. 2: now apply IHvs. eapply H6; eauto.
-  - destruct_match H0; inv H0. inv H2. eapply IHexpr in H11; eauto.
+  - destruct_match H0; inv H0.
+    assert (Some (build_abs_unary_op (Ops.eval_unary_op op) v) = Some sv). {
+      destruct op; auto.
+    }
+    clear H5; inv H0.
+    inv H2. eapply IHexpr in H11; eauto.
     assert (sval_to_val read_ndetbit v argv). {
       eapply exec_val_trans; eauto. clear. repeat intro. inv H; auto. constructor. }
     clear H11 H12. rewrite val_to_sval_iff in H14. subst sv'.
@@ -1417,7 +1462,12 @@ Proof.
       eapply val_sim_trans; eauto. apply eval_val_to_sval_val_sim.
   - destruct (in_dec opbin_eq_dec op [Shl; Shr]).
     1: inv H0. destruct_match H0. 2: inv H0.
-    destruct_match H0; inv H0. inv H2. simpl in *. eapply IHexpr1 in H12; eauto.
+    destruct_match H0; inv H0.
+    assert (Some (build_abs_binary_op (Ops.eval_binary_op op) v v0) = Some sv). {
+      destruct op; auto.
+    }
+    clear H6; inv H0.
+    inv H2. simpl in *. eapply IHexpr1 in H12; eauto.
     eapply IHexpr2 in H14; eauto.
     assert (sval_to_val read_ndetbit v largv). {
       eapply exec_val_trans; eauto. clear. repeat intro. inv H; auto. constructor. }
@@ -2163,14 +2213,6 @@ Proof.
     inv H4.
     repeat constructor; eauto.
 Qed.
-
-(* Shorthands for Vals. I can't find a better place to put them. *)
-
-Definition P4Bit (w : N) (v : Z) : Sval :=
-  ValBaseBit (P4Arith.to_loptbool w v).
-
-Definition P4NewBit (w : N) : Sval :=
-  ValBaseBit (Zrepeat None (Z.of_N w)).
 
 Lemma eval_sval_to_val_P4Bit : forall (w : N) (v : Z),
   eval_sval_to_val (P4Bit w v) = Some (ValBaseBit (P4Arith.to_lbool w v)).

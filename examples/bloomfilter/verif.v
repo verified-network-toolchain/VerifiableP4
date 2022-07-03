@@ -483,7 +483,8 @@ Proof.
     rewrite get_update_same in H0 by auto.
     change ((eval_val_to_sval
             (ValBaseBit [false; false; false; false; false; false; false; false; false])))
-      with (ValBaseBit (to_loptbool 9 0)) in H0.
+      with (P4Bit 9 0) in H0.
+    change (ValBaseBit (to_loptbool 9 in_port)) with (P4Bit 9 in_port) in H0.
     rewrite abs_eq_bit in H0.
     rewrite !mod_bound_eq in H0 by lia.
     destruct (in_port =? 0) eqn:H_in_port; inv H0.
@@ -502,7 +503,8 @@ Proof.
     rewrite get_update_same in H0 by auto.
     change ((eval_val_to_sval
             (ValBaseBit [false; false; false; false; false; false; false; false; false])))
-      with (ValBaseBit (to_loptbool 9 0)) in H0.
+      with (P4Bit 9 0) in H0.
+    change (ValBaseBit (to_loptbool 9 in_port)) with (P4Bit 9 in_port) in H0.
     rewrite abs_eq_bit in H0.
     rewrite !mod_bound_eq in H0 by lia.
     destruct (in_port =? 0) eqn:H_in_port; inv H0.

@@ -6,10 +6,10 @@ Require Import ProD3.examples.sbf.p4ast.
 Require Import ProD3.examples.sbf.common.
 Require Import ProD3.examples.sbf.ConFilter.
 Require Import ProD3.examples.sbf.FilterRepr.
-Require Import ProD3.examples.sbf.verif_Win1.
+(* Require Import ProD3.examples.sbf.verif_Win1.
 Require Import ProD3.examples.sbf.verif_Win2.
 Require Import ProD3.examples.sbf.verif_Win3.
-Require Import ProD3.examples.sbf.verif_Win4.
+Require Import ProD3.examples.sbf.verif_Win4. *)
 Require Import Hammer.Plugin.Hammer.
 Require Export Coq.Program.Program.
 Import ListNotations.
@@ -41,11 +41,14 @@ Proof.
   step.
   entailer.
   { red.
-    fold abs_plus.
     unfold eval_p4int_sval.
     cbn [width_signed].
     change (eval_val_to_sval (ValBaseBit (P4Arith.to_lbool 32 old_value)))
-      with (ValBaseBit (P4Arith.to_loptbool 32 old_value)).
+      with (P4Bit 32 old_value).
+    change (ValBaseBit
+        (P4Arith.to_loptbool 32
+           (value {| tags := NoInfo; value := 1; width_signed := Some (32%N, false) |})))
+      with (P4Bit 32 1).
     rewrite abs_plus_bit.
     apply sval_refine_refl.
   }
@@ -155,13 +158,6 @@ Definition regact_clear_window_signal_0_apply_spec : func_spec :=
   RegisterAction_apply_spec (p ++ ["regact_clear_window_signal_0"]) timer_repr
     (fun t => update_timer t false) (fun t => P4Bit 16 (fst (update_timer t false))).
 
-Lemma abs_neq_bit : forall w i1 i2,
-  abs_neq (P4Bit w i1) (P4Bit w i2)
-  = ValBaseBool (Some (~~(P4Arith.BitArith.mod_bound w i1 =? P4Arith.BitArith.mod_bound w i2)%Z)).
-Proof.
-  apply abs_neq_bit.
-Qed.
-
 (*  RegisterAction<window_pair_t, bit<1>, window_t>(reg_clear_window) regact_clear_window_signal_0 = {
         void apply(inout window_pair_t val, out window_t rv) {
             if ((val.lo != 16w0))
@@ -198,7 +194,6 @@ Proof.
         with (P4Bit 16 (Z.b2z (snd t))) in H.
       change ((eval_p4int_sval {| tags := NoInfo; value := 0; width_signed := Some (16%N, false) |}))
         with (P4Bit 16 0) in H.
-      change (build_abs_binary_op (Ops.eval_binary_op NotEq)) with abs_neq in H.
       rewrite abs_neq_bit in H. simpl in H.
       destruct (snd t) eqn:?H. 2 : inv H.
       clear H.
@@ -208,9 +203,7 @@ Proof.
       with (P4Bit 16 (fst t)).
     change (ValBaseBit (map Some (rev (P4Arith.to_lbool' (Pos.to_nat 16) 1 []))))
       with (P4Bit 16 1).
-    replace (build_abs_binary_op (Ops.eval_binary_op Plus) (P4Bit 16 (fst t)) (P4Bit 16 1))
-      with (P4Bit 16 (fst t + 1)).
-    2 : { symmetry. eapply abs_plus_bit. }
+    rewrite abs_plus_bit.
     red. apply sval_refine_refl.
   }
   { step.
@@ -225,7 +218,6 @@ Proof.
         with (P4Bit 16 (Z.b2z (snd t))) in H.
       change ((eval_p4int_sval {| tags := NoInfo; value := 0; width_signed := Some (16%N, false) |}))
         with (P4Bit 16 0) in H.
-      change (build_abs_binary_op (Ops.eval_binary_op NotEq)) with abs_neq in H.
       rewrite abs_neq_bit in H. simpl in H.
       destruct (snd t) eqn:?H. 1 : inv H.
       clear H.
