@@ -174,6 +174,7 @@ Proof.
   start_function.
   rename old_value into t.
   change (eval_val_to_sval (timer_repr_val t)) with (timer_repr_sval t).
+  unfold timer_repr_sval in *.
   step.
   (* TODO fix this bug in semantics:
     why we have ["rv"] here?
@@ -181,38 +182,257 @@ Proof.
   *)
   step_if (MEM [(["apply"; "val"], timer_repr_sval (update_timer t false))]
            (EXT [])).
-  { step.
+  { unfold timer_repr_sval in *.
     step.
     step.
     step.
-    unfold timer_repr_sval in *.
-    cbn.
-    (* manipulate H *)
-      simpl get in H.
-      rewrite abs_neq_bit in H.
-      destruct (snd t) eqn:?H. 2 : inv H.
-      clear H.
+    step.
+    destruct t as [? []]; inv H.
     entailer.
-    red.
-    rewrite abs_plus_bit.
-    apply sval_refine_refl.
   }
-  { step.
-    unfold timer_repr_sval in *.
-    cbn.
-    (* manipulate H *)
-      unfold timer_repr_sval in H.
-      simpl get in H.
-      rewrite abs_neq_bit in H.
-      destruct (snd t) eqn:?H. 1 : inv H.
-      clear H.
-      rewrite H0.
+  { unfold timer_repr_sval in *.
+    step.
+    destruct t as [? []]; inv H.
     entailer.
   }
   step.
   step.
   entailer.
 Qed.
+
+Definition regact_clear_window_signal_0_execute_body :=
+  ltac:(build_execute_body ge regact_clear_window_signal_0_apply_body).
+
+Definition regact_clear_window_signal_1_apply_fd :=
+  ltac:(get_am_fd ge am_ge (p ++ ["regact_clear_window_signal_1"; "apply"]) ge).
+
+Definition update_timer'_true (t : Z * bool) :=
+  if P4Arith.BitArith.mod_bound 16 (fst t) =? 28136 then (0, true) else (fst t, true).
+
+Definition regact_clear_window_signal_1_apply_spec : func_spec :=
+  RegisterAction_apply_spec (p ++ ["regact_clear_window_signal_1"]) timer_repr_val
+    (fun t => update_timer'_true t) (fun t => P4Bit 16 (fst (update_timer'_true t))).
+
+(*  RegisterAction<window_pair_t, bit<1>, window_t>(reg_clear_window) regact_clear_window_signal_1 = {
+        void apply(inout window_pair_t val, out window_t rv) {
+            if ((val.hi == 16w28136))
+            {
+                val.hi = 16w0;
+            }
+            if ((val.lo != 16w1))
+            {
+                val.lo = 16w1;
+            }
+            rv = val.hi;
+        }
+    };
+*)
+
+Lemma regact_clear_window_signal_1_apply_body :
+  func_sound am_ge regact_clear_window_signal_1_apply_fd nil regact_clear_window_signal_1_apply_spec.
+Proof.
+  start_function.
+  rename old_value into t.
+  change (eval_val_to_sval (timer_repr_val t)) with (timer_repr_sval t).
+  unfold timer_repr_sval in *.
+  step.
+  step_if (MEM [(["apply"; "val"], ValBaseStruct [("hi", P4Bit 16 (if (P4Arith.BitArith.mod_bound 16 (fst t) =? 28136) then 0 else fst t));
+                                                  ("lo", P4Bit 16 (Z.b2z (snd t)))])]
+           (EXT [])).
+  { step.
+    step.
+    step.
+    change (P4Arith.BitArith.mod_bound 16 28136) with 28136 in H.
+    destruct (P4Arith.BitArith.mod_bound 16 (fst t) =? 28136); inv H.
+    entailer.
+  }
+  { step.
+    change (P4Arith.BitArith.mod_bound 16 28136) with 28136 in H.
+    destruct (P4Arith.BitArith.mod_bound 16 (fst t) =? 28136); inv H.
+    entailer.
+  }
+  step_if (MEM [(["apply"; "val"], (timer_repr_sval (update_timer'_true t)))]
+           (EXT [])).
+  { unfold timer_repr_sval in *.
+    step.
+    step.
+    step.
+    destruct t as [? []]; inv H.
+    unfold update_timer'_true.
+    destruct (P4Arith.BitArith.mod_bound 16 (fst (z, _)) =? 28136);
+      entailer.
+  }
+  { unfold timer_repr_sval in *.
+    step.
+    destruct t as [? []]; inv H.
+    unfold update_timer'_true.
+    destruct (P4Arith.BitArith.mod_bound 16 (fst (z, _)) =? 28136);
+      entailer.
+  }
+  step.
+  step.
+  entailer.
+Qed.
+
+Definition regact_clear_window_signal_1_execute_body :=
+  ltac:(build_execute_body ge regact_clear_window_signal_1_apply_body).
+
+#[local] Hint Extern 5 (func_modifies _ _ _ _ _) => (apply regact_clear_window_signal_0_execute_body) : func_specs.
+#[local] Hint Extern 5 (func_modifies _ _ _ _ _) => (apply regact_clear_window_signal_1_execute_body) : func_specs.
+
+Definition act_clear_window_signal_0_fd :=
+  ltac:(get_fd ["Bf2BloomFilter"; "act_clear_window_signal_0"] ge).
+
+Definition timer_repr (p : path) (t : Z * bool) : ext_pred :=
+  (ExtPred.singleton (p ++ ["reg_clear_window"])
+        (Tofino.ObjRegister [force_sval_to_val
+            (ValBaseStruct [("hi", P4Bit 16 (fst t));
+                            ("lo", P4Bit 16 (Z.b2z (snd t)))])])).
+
+Definition act_clear_window_signal_0_spec : func_spec :=
+  WITH (* p *),
+    PATH p
+    MOD (Some [["ds_md"]]) [p ++ ["reg_clear_window"]]
+    WITH (t : Z * bool) (ds_md : Sval)
+      (_ : 0 <= fst t <= 28136),
+      PRE
+        (ARG []
+        (MEM [(["ds_md"], ds_md)]
+        (EXT [timer_repr p t])))
+      POST
+        (ARG_RET [] ValBaseNull
+        (MEM [(["ds_md"], update "clear_window" (P4Bit 16 (fst (update_timer t false))) ds_md)]
+        (EXT [timer_repr p (update_timer t false)]))).
+
+(*  action act_clear_window_signal_0() {
+        ds_md.clear_window = regact_clear_window_signal_0.execute(1w0);
+    }
+*)
+
+Lemma act_clear_window_signal_0_body :
+  func_sound ge act_clear_window_signal_0_fd nil act_clear_window_signal_0_spec.
+Proof.
+  start_function.
+  step_call regact_clear_window_signal_0_execute_body.
+  { entailer. }
+  { auto. }
+  { lia. }
+  { reflexivity. }
+  step.
+  entailer.
+Qed.
+
+Definition act_clear_window_signal_1_fd :=
+  ltac:(get_fd ["Bf2BloomFilter"; "act_clear_window_signal_1"] ge).
+
+Definition act_clear_window_signal_1_spec : func_spec :=
+  WITH (* p *),
+    PATH p
+    MOD (Some [["ds_md"]]) [p ++ ["reg_clear_window"]]
+    WITH (t : Z * bool) (ds_md : Sval)
+      (_ : 0 <= fst t <= 28136),
+      PRE
+        (ARG []
+        (MEM [(["ds_md"], ds_md)]
+        (EXT [timer_repr p t])))
+      POST
+        (ARG_RET [] ValBaseNull
+        (MEM [(["ds_md"], update "clear_window" (P4Bit 16 (fst (update_timer t true))) ds_md)]
+        (EXT [timer_repr p (update_timer t true)]))).
+
+(*  action act_clear_window_signal_1() {
+        ds_md.clear_window = regact_clear_window_signal_1.execute(1w0);
+    }
+*)
+
+Lemma act_clear_window_signal_1_body :
+  func_sound ge act_clear_window_signal_1_fd nil act_clear_window_signal_1_spec.
+Proof.
+  start_function.
+  step_call regact_clear_window_signal_1_execute_body.
+  { entailer. }
+  { auto. }
+  { lia. }
+  { reflexivity. }
+  step.
+  replace (update_timer'_true t) with (update_timer t true). 2 : {
+    unfold update_timer'_true, update_timer.
+    replace (P4Arith.BitArith.mod_bound 16 (fst t)) with (fst t). 2 : {
+      unfold P4Arith.BitArith.mod_bound.
+      rewrite Z.mod_small; auto.
+      change (P4Arith.BitArith.upper_bound 16) with 65536.
+      lia.
+    }
+    reflexivity.
+  }
+  entailer.
+Qed.
+
+#[local] Hint Extern 5 (func_modifies _ _ _ _ _) => (apply act_clear_window_signal_0_body) : func_specs.
+#[local] Hint Extern 5 (func_modifies _ _ _ _ _) => (apply act_clear_window_signal_1_body) : func_specs.
+
+Definition tbl_clear_window_fd :=
+  ltac:(get_fd ["Bf2BloomFilter"; "tbl_clear_window"; "apply"] ge).
+
+Definition tbl_clear_window_spec : func_spec :=
+  WITH (* p *),
+    PATH p
+    MOD (Some [["ds_md"]]) [p ++ ["reg_clear_window"]]
+    WITH (t : Z * bool) (ds_md : Sval) (tstamp : Z)
+      (_ : 0 <= fst t <= 28136),
+      PRE
+        (ARG []
+        (MEM [(["ds_md"], ds_md); (["ingress_mac_tstamp"], P4Bit 48 tstamp)]
+        (EXT [timer_repr p t])))
+      POST
+        (EX retv,
+        (ARG_RET [] retv
+        (MEM [(["ds_md"], update "clear_window" (P4Bit 16 (fst (update_timer t (Z.odd (tstamp / 2097152))))) ds_md)]
+        (EXT [timer_repr p (update_timer t (Z.odd (tstamp / 2097152)))]))))%arg_ret_assr.
+
+(*  table tbl_clear_window {
+        key = {
+            ingress_mac_tstamp : ternary;
+        }
+        actions = {
+            act_clear_window_signal_0();
+            act_clear_window_signal_1();
+        }
+        const entries = {
+            48w0 &&& 48w2097152 : act_clear_window_signal_0();
+            _ : act_clear_window_signal_1();
+        }
+        default_action = act_clear_window_signal_1();
+        size = 2;
+    }
+*)
+
+Ltac next_case' :=
+  constructor; (let H := fresh in intro H).
+
+Lemma tbl_clear_window_body :
+  func_sound ge tbl_clear_window_fd nil tbl_clear_window_spec.
+Proof.
+  start_function.
+  next_case'.
+  { simpl in H0.
+    replace (Z.odd (tstamp / 2097152)) with false by admit.
+    table_action act_clear_window_signal_0_body.
+    { entailer. }
+    { auto. }
+    { entailer. }
+  }
+  next_case'.
+  { simpl in H1.
+    replace (Z.odd (tstamp / 2097152)) with true by admit.
+    table_action act_clear_window_signal_1_body.
+    { entailer. }
+    { auto. }
+    { entailer. }
+  }
+  (* This case should be impossible. *)
+  admit.
+Admitted.
 
 Definition act_set_clear_win_1_fd :=
   ltac:(get_fd ["Bf2BloomFilter"; "act_set_clear_win_1"] ge).
@@ -358,52 +578,28 @@ Definition act_set_clear_win_1_spec : func_spec :=
                   ("win_4", P4_bf2_win_md_t api_4 [hash_index_1; hash_index_2; hash_index_3])])]
         (EXT []))).
 
-Ltac simpl_assertion :=
-  cbn [
-    (* First, most basic definitions for comparison. *)
-    bool_rect bool_rec Bool.bool_dec Ascii.ascii_rect Ascii.ascii_rec Ascii.ascii_dec sumbool_rect
-    sumbool_rec string_rect string_rec string_dec EquivUtil.StringEqDec EquivDec.equiv_dec EquivDec.list_eqdec
-
-    str
-
-    app find find
-
-    fst snd force map lift_option
-
-    lift_option_kv kv_map
-
-    AList.set AList.set_some AList.get
-
-    filter_in Semantics.is_in flat_map
-
-    eval_write_vars fold_left eval_write_var AList.set_some combine
-
-    update get].
-
-Ltac step' := step; simpl_assertion.
-
 Lemma act_set_clear_win_1_body :
   func_sound ge act_set_clear_win_1_fd nil act_set_clear_win_1_spec.
 Proof.
   start_function.
   unfold P4New_bf2_win_md_t.
-  step'.
-  step'.
-  step'.
-  step'.
-  step'.
-  step'.
-  step'.
-  step'.
-  step'.
-  step'.
-  step'.
-  step'.
-  step'.
-  step'.
-  step'.
-  step'.
-  step'.
+  step.
+  step.
+  step.
+  step.
+  step.
+  step.
+  step.
+  step.
+  step.
+  step.
+  step.
+  step.
+  step.
+  step.
+  step.
+  step.
+  step.
   entailer.
 Qed.
 
@@ -451,23 +647,23 @@ Lemma act_set_clear_win_2_body :
 Proof.
   start_function.
   unfold P4New_bf2_win_md_t.
-  step'.
-  step'.
-  step'.
-  step'.
-  step'.
-  step'.
-  step'.
-  step'.
-  step'.
-  step'.
-  step'.
-  step'.
-  step'.
-  step'.
-  step'.
-  step'.
-  step'.
+  step.
+  step.
+  step.
+  step.
+  step.
+  step.
+  step.
+  step.
+  step.
+  step.
+  step.
+  step.
+  step.
+  step.
+  step.
+  step.
+  step.
   entailer.
 Qed.
 
@@ -515,23 +711,23 @@ Lemma act_set_clear_win_3_body :
 Proof.
   start_function.
   unfold P4New_bf2_win_md_t.
-  step'.
-  step'.
-  step'.
-  step'.
-  step'.
-  step'.
-  step'.
-  step'.
-  step'.
-  step'.
-  step'.
-  step'.
-  step'.
-  step'.
-  step'.
-  step'.
-  step'.
+  step.
+  step.
+  step.
+  step.
+  step.
+  step.
+  step.
+  step.
+  step.
+  step.
+  step.
+  step.
+  step.
+  step.
+  step.
+  step.
+  step.
   entailer.
 Qed.
 
@@ -579,23 +775,23 @@ Lemma act_set_clear_win_4_body :
 Proof.
   start_function.
   unfold P4New_bf2_win_md_t.
-  step'.
-  step'.
-  step'.
-  step'.
-  step'.
-  step'.
-  step'.
-  step'.
-  step'.
-  step'.
-  step'.
-  step'.
-  step'.
-  step'.
-  step'.
-  step'.
-  step'.
+  step.
+  step.
+  step.
+  step.
+  step.
+  step.
+  step.
+  step.
+  step.
+  step.
+  step.
+  step.
+  step.
+  step.
+  step.
+  step.
+  step.
   entailer.
 Qed.
 
@@ -686,9 +882,6 @@ Ltac solve_modifies ::=
   [ eauto  300 with nocore modifies ]
   | idtac
   "The modifies clause cannot be solved automatically." ].
-
-Ltac next_case' :=
-  constructor; (let H := fresh in intro H).
 
 (* Ltac hoare_func_table ::=
   lazymatch goal with

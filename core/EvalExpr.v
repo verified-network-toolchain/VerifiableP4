@@ -2227,3 +2227,5 @@ Qed.
 End EvalExpr.
 
 #[export] Hint Resolve eval_expr_sound eval_lexpr_sound eval_write_sound eval_arg_sound eval_args_sound : hoare.
+#[export] Hint Rewrite abs_plus_bit abs_minus_bit abs_mul_bit abs_eq_bit abs_neq_bit
+                       abs_plus_int abs_minus_int abs_mul_int abs_eq_int abs_neq_int : abs_ops.

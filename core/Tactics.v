@@ -40,7 +40,33 @@ Ltac simpl_eval_p4int_sval1 :=
 Ltac simpl_eval_p4int_sval :=
   repeat simpl_eval_p4int_sval1.
 
-Ltac simpl_eval_expr := simpl_eval_p4int_sval.
+(* Experimental: use cbn to simplify update, get, eval_write_vars, etc. *)
+Ltac simpl_assertion :=
+  cbn [
+    (* First, most basic definitions for comparison. *)
+    bool_rect bool_rec Bool.bool_dec Ascii.ascii_rect Ascii.ascii_rec Ascii.ascii_dec sumbool_rect
+    sumbool_rec string_rect string_rec string_dec EquivUtil.StringEqDec EquivDec.equiv_dec EquivDec.list_eqdec
+
+    P4String.str
+
+    app find find
+
+    fst snd force map lift_option
+
+    lift_option_kv kv_map
+
+    AList.set AList.set_some AList.get
+
+    filter_in Semantics.is_in flat_map
+
+    eval_write_vars fold_left eval_write_var AList.set_some combine
+
+    Members.update Members.get].
+
+Ltac simpl_abs_ops :=
+  autorewrite with abs_ops.
+
+Ltac simpl_eval_expr := simpl_eval_p4int_sval; simpl_assertion; simpl_abs_ops.
 
 Ltac eval_expr :=
   lazymatch goal with
@@ -50,6 +76,18 @@ Ltac eval_expr :=
   end;
   eapply eq_trans with (y := Some _);
   only 1 : (reflexivity || fail "Failed to evaluate an expression. It could be because a variable is missing in the assertion");
+  simpl_eval_expr;
+  reflexivity.
+
+Ltac simpl_eval_write := simpl_assertion.
+
+Ltac eval_write :=
+  lazymatch goal with
+  | |- eval_write _ _ _ = Some _ => idtac
+  | _ => fail "eval_write: unexpected goal"
+  end;
+  eapply eq_trans with (y := Some _);
+  only 1 : (reflexivity || fail "Failed to evaluate a writing. It could be because a variable is missing in the assertion");
   simpl_eval_expr;
   reflexivity.
 
@@ -85,7 +123,7 @@ Ltac step_stmt :=
             | reflexivity (* eval_lexpr *)
             | step_builtin (* hoare_call *)
             | reflexivity (* is_no_dup *)
-            | reflexivity (* eval_write *)
+            | eval_write (* eval_write *)
             ]
       (* hoare_stmt_assign' *)
       | MkStatement _ (StatAssignment _ _) _ =>
@@ -94,7 +132,7 @@ Ltac step_stmt :=
             | reflexivity (* is_no_dup *)
             | reflexivity (* eval_lexpr *)
             | eval_expr (* eval_expr *)
-            | reflexivity (* eval_write *)
+            | eval_write (* eval_write *)
             ]
       (* hoare_stmt_method_call' *)
       | MkStatement _ (StatMethodCall ?func _ _) _ =>
@@ -114,7 +152,7 @@ Ltac step_stmt :=
             [ reflexivity (* is_call_expression *)
             | step_builtin (* hoare_call *)
             | reflexivity (* is_no_dup *)
-            | reflexivity (* eval_write *)
+            | eval_write (* eval_write *)
             ]
       (* hoare_stmt_var' *)
       | MkStatement _ (StatVariable _ _ (Some _) ?loc) _ =>
@@ -127,7 +165,7 @@ Ltac step_stmt :=
             [ reflexivity (* is_call_expression *)
             | reflexivity (* is_no_dup *)
             | eval_expr (* eval_expr *)
-            | reflexivity (* eval_write *)
+            | eval_write (* eval_write *)
             ]
       (* hoare_stmt_var_none' *)
       | MkStatement _ (StatVariable _ _ None ?loc) _ =>
@@ -140,7 +178,7 @@ Ltac step_stmt :=
             [ reflexivity (* is_no_dup *)
             | reflexivity (* get_real_type *)
             | reflexivity (* uninit_sval_of_typ *)
-            | reflexivity (* eval_write *)
+            | eval_write (* eval_write *)
             ]
       (* hoare_stmt_direct_application' *)
       | MkStatement _ (StatDirectApplication _ _ _) _ =>
@@ -389,7 +427,7 @@ Ltac step_stmt_call func_spec :=
             | reflexivity (* eval_lexpr *)
             | step_call_func func_spec (* hoare_call *)
             | reflexivity (* is_no_dup *)
-            | reflexivity (* eval_write *)
+            | eval_write (* eval_write *)
             ]
       (* hoare_stmt_method_call' *)
       | MkStatement _ (StatMethodCall ?func _ _) _ =>
@@ -411,7 +449,7 @@ Ltac step_stmt_call func_spec :=
             [ reflexivity (* is_call_expression *)
             | step_call_func func_spec (* hoare_call *)
             | reflexivity (* is_no_dup *)
-            | reflexivity (* eval_write *)
+            | eval_write (* eval_write *)
             ]
       (* hoare_stmt_direct_application' *)
       | MkStatement _ (StatDirectApplication _ _ _) _ =>
@@ -588,7 +626,7 @@ Ltac step_stmt_into_call :=
             | reflexivity (* eval_lexpr *)
             | step_into_call_func (* hoare_call *)
             | reflexivity (* is_no_dup *)
-            | reflexivity (* eval_write *)
+            | eval_write (* eval_write *)
             ]
       (* hoare_stmt_method_call' *)
       | MkStatement _ (StatMethodCall ?func _ _) _ =>
@@ -608,7 +646,7 @@ Ltac step_stmt_into_call :=
             [ reflexivity (* is_call_expression *)
             | step_into_call_func (* hoare_call *)
             | reflexivity (* is_no_dup *)
-            | reflexivity (* eval_write *)
+            | eval_write (* eval_write *)
             ]
       (* hoare_stmt_direct_application' *)
       | MkStatement _ (StatDirectApplication _ _ _) _ =>
