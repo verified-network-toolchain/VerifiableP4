@@ -37,6 +37,10 @@ Ltac step_stmt :=
   lazymatch goal with
   | |- hoare_stmt _ _ (MEM _ (EXT _)) ?stmt _ =>
       lazymatch stmt with
+      | MkStatement _ StatEmpty _ =>
+          apply hoare_stmt_empty
+      | empty_statement =>
+          apply hoare_stmt_empty
       (* Note that call expressions must be matched first. *)
       (* hoare_stmt_assign_call' *)
       | MkStatement _ (StatAssignment _ (MkExpression _ (ExpFunctionCall ?func _ _) _ _)) _ =>
@@ -137,7 +141,7 @@ Ltac step_stmt_if :=
             eapply hoare_stmt_if';
               [ reflexivity (* eval_expr *)
               | intro (* true branch *)
-              | intro (* false branch *)
+              | intro; simpl (force empty_statement _) (* false branch *)
               ]
         | _ => fail "The next statement is not an if-statement"
         end

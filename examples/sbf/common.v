@@ -25,6 +25,7 @@ Definition INSQUERY := 4.
 
 Definition num_slots := 262144.
 Definition num_rows := 3.
+Definition num_frames := 4.
 
 (* NoAction *)
 

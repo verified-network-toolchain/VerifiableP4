@@ -139,6 +139,106 @@ Proof.
   }
 Qed.
 
+Definition regact_clear_window_signal_0_apply_fd :=
+  ltac:(get_am_fd ge am_ge (p ++ ["regact_clear_window_signal_0"; "apply"]) ge).
+
+Definition num_frames : Z := 4.
+Definition frame_tick_tocks : Z := 7034.
+
+Notation update_timer := (@update_timer num_frames frame_tick_tocks).
+
+Definition timer_repr (t : Z * bool) :=
+  ValBaseStruct [("hi", ValBaseBit (P4Arith.to_lbool 16 (fst t)));
+                 ("lo", ValBaseBit (P4Arith.to_lbool 16 (Z.b2z (snd t))))].
+
+Definition regact_clear_window_signal_0_apply_spec : func_spec :=
+  RegisterAction_apply_spec (p ++ ["regact_clear_window_signal_0"]) timer_repr
+    (fun t => update_timer t false) (fun t => P4Bit 16 (fst (update_timer t false))).
+
+Lemma abs_neq_bit : forall w i1 i2,
+  abs_neq (P4Bit w i1) (P4Bit w i2)
+  = ValBaseBool (Some (~~(P4Arith.BitArith.mod_bound w i1 =? P4Arith.BitArith.mod_bound w i2)%Z)).
+Proof.
+  apply abs_neq_bit.
+Qed.
+
+(*  RegisterAction<window_pair_t, bit<1>, window_t>(reg_clear_window) regact_clear_window_signal_0 = {
+        void apply(inout window_pair_t val, out window_t rv) {
+            if ((val.lo != 16w0))
+            {
+                val.hi = (val.hi + 16w1);
+                val.lo = 16w0;
+            }
+            rv = val.hi;
+        }
+    };
+*)
+
+Lemma regact_clear_window_signal_0_apply_body :
+  func_sound am_ge regact_clear_window_signal_0_apply_fd nil regact_clear_window_signal_0_apply_spec.
+Proof.
+  start_function.
+  rename old_value into t.
+  step.
+  step_if (MEM [(["apply"; "val"], eval_val_to_sval (timer_repr (update_timer t false)));
+                (["rv"], ValBaseBit (repeat None (N.to_nat 16)))]
+           (EXT [])).
+  { step.
+    step.
+    step.
+    step.
+    cbn -[eval_val_to_sval].
+    (* manipulate H *)
+      unfold timer_repr in H.
+      change (get (str {| P4String.tags := NoInfo; str := "lo" |})
+              (eval_val_to_sval
+                 (ValBaseStruct
+                    [("hi", ValBaseBit (P4Arith.to_lbool 16 (fst t)));
+                    ("lo", ValBaseBit (P4Arith.to_lbool 16 (Z.b2z (snd t))))])))
+        with (P4Bit 16 (Z.b2z (snd t))) in H.
+      change ((eval_p4int_sval {| tags := NoInfo; value := 0; width_signed := Some (16%N, false) |}))
+        with (P4Bit 16 0) in H.
+      change (build_abs_binary_op (Ops.eval_binary_op NotEq)) with abs_neq in H.
+      rewrite abs_neq_bit in H. simpl in H.
+      destruct (snd t) eqn:?H. 2 : inv H.
+      clear H.
+    entailer.
+    cbn -[eval_val_to_sval].
+    change (get "hi" (eval_val_to_sval (timer_repr t)))
+      with (P4Bit 16 (fst t)).
+    change (ValBaseBit (map Some (rev (P4Arith.to_lbool' (Pos.to_nat 16) 1 []))))
+      with (P4Bit 16 1).
+    replace (build_abs_binary_op (Ops.eval_binary_op Plus) (P4Bit 16 (fst t)) (P4Bit 16 1))
+      with (P4Bit 16 (fst t + 1)).
+    2 : { symmetry. eapply abs_plus_bit. }
+    red. apply sval_refine_refl.
+  }
+  { step.
+    cbn -[eval_val_to_sval].
+    (* manipulate H *)
+      unfold timer_repr in H.
+      change (get (str {| P4String.tags := NoInfo; str := "lo" |})
+              (eval_val_to_sval
+                 (ValBaseStruct
+                    [("hi", ValBaseBit (P4Arith.to_lbool 16 (fst t)));
+                    ("lo", ValBaseBit (P4Arith.to_lbool 16 (Z.b2z (snd t))))])))
+        with (P4Bit 16 (Z.b2z (snd t))) in H.
+      change ((eval_p4int_sval {| tags := NoInfo; value := 0; width_signed := Some (16%N, false) |}))
+        with (P4Bit 16 0) in H.
+      change (build_abs_binary_op (Ops.eval_binary_op NotEq)) with abs_neq in H.
+      rewrite abs_neq_bit in H. simpl in H.
+      destruct (snd t) eqn:?H. 1 : inv H.
+      clear H.
+    entailer.
+  }
+  step.
+  step.
+  entailer.
+Abort.
+(* Qed. *)
+
+
+
 Definition act_set_clear_win_1_fd :=
   ltac:(get_fd ["Bf2BloomFilter"; "act_set_clear_win_1"] ge).
 
@@ -540,7 +640,6 @@ Definition P4_bf2_win_md_t_insert (f cf if' : Z) (new_clear_index : Sval) (is : 
   else
     P4_bf2_win_md_t (P4Bit 8 NOOP) is.
 
-Definition num_frames := 4.
 Definition frame_time := 7034.
 
 Notation get_clear_frame := (get_clear_frame num_frames frame_time).
@@ -665,7 +764,126 @@ Ltac rep_lia := unfold frame_time, num_frames in *; lia.
 Lemma tbl_set_win_insert_body :
   func_sound ge tbl_set_win_fd nil tbl_set_win_insert_spec.
 Proof.
+
+(* Ltac foo := let x := constr:(1 + 2) in idtac x.
+
+Ltac foo' := let x := eval compute in [...] in idtac x.
+  foo'.
+
+
+  Search P4Arith.BitArith.mod_bound.
+  Z.mod_small *)
+(* Ltac hoare_func_table ::=
+  lazymatch goal with
+  | |- hoare_func _ _ _ (FTable _ _ _ _ _) _ _ =>
+      eapply hoare_func_table';
+      [ eapply hoare_table_match_list_intro'; (* hoare_table_match_list *)
+        [ reflexivity (* eval_exprs *)
+        | simplify_lift_option_eval_sval_to_val; (* lift_option (.. keysvals) *)
+          reflexivity
+        | eapply hoare_table_entries_intros; (* hoare_table_entries *)
+          (* repeat econstructor *)
+          idtac
+        | hoare_extern_match_list (* hoare_extern_match_list *)
+        ]
+      | idtac (* hoare_table_action_cases' *)
+      ]
+  | _ => fail "The goal is not in the form of (hoare_func _ _ _ (FTable _ _ _ _ _) _ _)"
+  end. *)
+
   start_function.
+  Time repeat match goal with
+  | |- context [ValSetProd ?l] =>
+      let l' := eval compute in l in
+      progress (change l with l')
+  end.
+  Time simpl Tofino.extern_matches.
+  
+  
+  (* econstructor.
+  { econstructor.
+    { econstructor.
+      { repeat econstructor. }
+      { repeat econstructor. }
+    }
+    econstructor.
+  }
+  { econstructor.
+  econstructor.
+  econstructor.
+  econstructor.
+  econstructor.
+  econstructor.
+  econstructor.
+  econstructor.
+  econstructor.
+  econstructor.
+  econstructor.
+  econstructor.
+  econstructor.
+  econstructor.
+  repeat econstructor.
+  repeat econstructor.
+  repeat econstructor.
+
+eval_sval_to_val_P4Bit
+
+  
+exec_table_entries
+
+
+Inductive
+exec_match (tags_t : Type) (target : Target) (ge : genv)
+(read_one_bit : option bool -> bool -> Prop) : path -> Match -> ValueSet -> Prop :=
+    exec_match_dont_care : forall (this : path) (tag : tags_t) (typ : P4Type),
+                           exec_match ge read_one_bit this (MkMatch tag MatchDontCare typ)
+                             ValSetUniversal
+  | exec_match_mask : forall (expr : Syntax.Expression) (exprv : Val) 
+                        (mask : Syntax.Expression) (maskv : Val) (this : path) 
+                        (tag : tags_t) (typ : P4Type),
+                      exec_expr_det ge read_one_bit this empty_state expr exprv ->
+                      exec_expr_det ge read_one_bit this empty_state mask maskv ->
+                      exec_match ge read_one_bit this (MkMatch tag (MatchMask expr mask) typ)
+                        (ValSetMask exprv maskv)
+  | exec_match_range : forall (lo : Syntax.Expression) (lov : Val) (hi : Syntax.Expression)
+                         (hiv : Val) (this : path) (tag : tags_t) (typ : P4Type),
+                       exec_expr_det ge read_one_bit this empty_state lo lov ->
+                       exec_expr_det ge read_one_bit this empty_state hi hiv ->
+                       exec_match ge read_one_bit this (MkMatch tag (MatchRange lo hi) typ)
+                         (ValSetRange lov hiv)
+  | exec_match_cast : forall (newtyp : P4Type) (expr : Syntax.Expression) 
+                        (oldv : Val) (newv : ValueSet) (this : path) 
+                        (tag : tags_t) (typ real_typ : P4Type),
+                      exec_expr_det ge read_one_bit this empty_state expr oldv ->
+                      get_real_type ge newtyp = Some real_typ ->
+                      Ops.eval_cast_set real_typ oldv = Some newv ->
+                      exec_match ge read_one_bit this (MkMatch tag (MatchCast newtyp expr) typ)
+                        newv
+
+Arguments exec_match {tags_t}%type_scope {target} _ _%function_scope _%list_scope _ _
+Arguments exec_match_dont_care {tags_t}%type_scope {target} _ _%function_scope _%list_scope _ _
+Arguments exec_match_mask {tags_t}%type_scope {target} _ _%function_scope _ _ _ _ _%list_scope _
+  _ _ _
+Arguments exec_match_range {tags_t}%type_scope {target} _ _%function_scope _ _ _ _ _%list_scope
+  _ _ _ _
+Arguments exec_match_cast {tags_t}%type_scope {target} _ _%function_scope _ _ _ _ _%list_scope _
+  _ _ _ _ _ *)
+
+
+
+
+
+
+  
+  
+  (* Print Ltac init_function. *)
+  
+  
+  (* cbn [combine map hd].
+  simpl Tofino.extern_matches.
+  unfold Tofino.extern_matches. simpl.
+  replace (Tofino.is_true) with (id (A := bool)). unfold id. *)
+  
   repeat match goal with
   | |- context [ValSetProd ?l] =>
       let l' := eval compute in l in
@@ -697,10 +915,13 @@ Proof.
     { entailer. }
     { replace (get_clear_frame timer) with 0. 2 : {
         unfold get_clear_frame.
-        destruct (fst timer =? frame_time * num_frames) eqn:?. 1 : rep_lia.
+        destruct (fst timer =? frame_time * num_frames) eqn:?.
+        unfold frame_time, num_frames in *. lia.
+        unfold frame_time in *.
         symmetry.
         eapply Z_div_squeeze with 0 7033; auto; rep_lia.
       }
       entailer.
     }
 Abort.
+ 

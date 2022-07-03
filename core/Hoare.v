@@ -689,11 +689,12 @@ Proof.
   inv H3. right; eapply H1; eauto.
 Qed.
 
-Lemma hoare_stmt_empty : forall p post tags typ,
-  hoare_stmt p (post_continue post) (MkStatement tags StatEmpty typ) post.
+Lemma hoare_stmt_empty : forall p pre post tags typ,
+  implies pre (post_continue post) ->
+  hoare_stmt p pre (MkStatement tags StatEmpty typ) post.
 Proof.
   unfold hoare_stmt; intros.
-  inv H1; auto.
+  inv H2; auto.
 Qed.
 
 Lemma hoare_block_nil : forall p pre post tags,
