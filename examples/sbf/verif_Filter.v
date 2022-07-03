@@ -234,10 +234,7 @@ Proof.
   step.
   step.
   entailer.
-Abort.
-(* Qed. *)
-
-
+Qed.
 
 Definition act_set_clear_win_1_fd :=
   ltac:(get_fd ["Bf2BloomFilter"; "act_set_clear_win_1"] ge).

@@ -335,10 +335,10 @@ Qed.
 
 Lemma stmt_modifies_if_none : forall p tags cond tru typ vars exts,
   stmt_modifies p tru vars exts ->
-  stmt_modifies p empty_statement vars exts ->
   stmt_modifies p (MkStatement tags (StatConditional cond tru None) typ) vars exts.
 Proof.
   intros; eapply stmt_modifies_if; eauto.
+  inversion 1; auto.
 Qed.
 
 Lemma stmt_modifies_if_some : forall p tags cond tru fls typ vars exts,
