@@ -150,12 +150,16 @@ Definition frame_tick_tocks : Z := 7034.
 
 Notation update_timer := (@update_timer num_frames frame_tick_tocks).
 
-Definition timer_repr (t : Z * bool) :=
+Definition timer_repr_val (t : Z * bool) :=
   ValBaseStruct [("hi", ValBaseBit (P4Arith.to_lbool 16 (fst t)));
                  ("lo", ValBaseBit (P4Arith.to_lbool 16 (Z.b2z (snd t))))].
 
+Definition timer_repr_sval (t : Z * bool) :=
+  ValBaseStruct [("hi", P4Bit 16 (fst t));
+                 ("lo", P4Bit 16 (Z.b2z (snd t)))].
+
 Definition regact_clear_window_signal_0_apply_spec : func_spec :=
-  RegisterAction_apply_spec (p ++ ["regact_clear_window_signal_0"]) timer_repr
+  RegisterAction_apply_spec (p ++ ["regact_clear_window_signal_0"]) timer_repr_val
     (fun t => update_timer t false) (fun t => P4Bit 16 (fst (update_timer t false))).
 
 (*  RegisterAction<window_pair_t, bit<1>, window_t>(reg_clear_window) regact_clear_window_signal_0 = {
@@ -170,57 +174,69 @@ Definition regact_clear_window_signal_0_apply_spec : func_spec :=
     };
 *)
 
+Ltac simpl_eval_p4int_sval :=
+  lazymatch goal with
+  | |- context [eval_p4int_sval ?i] =>
+      (* We want to make sure i does not contain (opaque) variables. *)
+      let v := eval compute in (value i) in
+      let ws := eval compute in (width_signed i) in
+      match ws with
+      | Some (?w, true) =>
+          change (eval_p4int_sval i) with (P4Int w v)
+      | Some (?w, false) =>
+          change (eval_p4int_sval i) with (P4Bit w v)
+      | None =>
+          change (eval_p4int_sval i) with (ValBaseInteger v)
+      end
+  | H : context [eval_p4int_sval ?i] |- _ =>
+      revert H;
+      simpl_eval_p4int_sval;
+      intro H
+  end.
+
 Lemma regact_clear_window_signal_0_apply_body :
   func_sound am_ge regact_clear_window_signal_0_apply_fd nil regact_clear_window_signal_0_apply_spec.
 Proof.
   start_function.
   rename old_value into t.
+  change (eval_val_to_sval (timer_repr_val t)) with (timer_repr_sval t).
   step.
-  step_if (MEM [(["apply"; "val"], eval_val_to_sval (timer_repr (update_timer t false)));
-                (["rv"], ValBaseBit (repeat None (N.to_nat 16)))]
+  (* TODO fix this bug in semantics:
+    why we have ["rv"] here?
+    when generating uninitialized value for out parameters, the locators in these are not properly set.
+  *)
+  step_if (MEM [(["apply"; "val"], timer_repr_sval (update_timer t false))]
            (EXT [])).
   { step.
     step.
     step.
     step.
-    cbn -[eval_val_to_sval].
+    unfold timer_repr_sval in *.
+    cbn.
     (* manipulate H *)
-      unfold timer_repr in H.
-      change (get (str {| P4String.tags := NoInfo; str := "lo" |})
-              (eval_val_to_sval
-                 (ValBaseStruct
-                    [("hi", ValBaseBit (P4Arith.to_lbool 16 (fst t)));
-                    ("lo", ValBaseBit (P4Arith.to_lbool 16 (Z.b2z (snd t))))])))
-        with (P4Bit 16 (Z.b2z (snd t))) in H.
-      change ((eval_p4int_sval {| tags := NoInfo; value := 0; width_signed := Some (16%N, false) |}))
-        with (P4Bit 16 0) in H.
-      rewrite abs_neq_bit in H. simpl in H.
+      simpl get in H.
+      simpl_eval_p4int_sval.
+      rewrite abs_neq_bit in H.
       destruct (snd t) eqn:?H. 2 : inv H.
       clear H.
     entailer.
-    cbn -[eval_val_to_sval].
-    change (get "hi" (eval_val_to_sval (timer_repr t)))
-      with (P4Bit 16 (fst t)).
+    red.
     change (ValBaseBit (map Some (rev (P4Arith.to_lbool' (Pos.to_nat 16) 1 []))))
       with (P4Bit 16 1).
     rewrite abs_plus_bit.
-    red. apply sval_refine_refl.
+    apply sval_refine_refl.
   }
   { step.
-    cbn -[eval_val_to_sval].
+    unfold timer_repr_sval in *.
+    cbn.
     (* manipulate H *)
-      unfold timer_repr in H.
-      change (get (str {| P4String.tags := NoInfo; str := "lo" |})
-              (eval_val_to_sval
-                 (ValBaseStruct
-                    [("hi", ValBaseBit (P4Arith.to_lbool 16 (fst t)));
-                    ("lo", ValBaseBit (P4Arith.to_lbool 16 (Z.b2z (snd t))))])))
-        with (P4Bit 16 (Z.b2z (snd t))) in H.
-      change ((eval_p4int_sval {| tags := NoInfo; value := 0; width_signed := Some (16%N, false) |}))
-        with (P4Bit 16 0) in H.
-      rewrite abs_neq_bit in H. simpl in H.
+      unfold timer_repr_sval in H.
+      simpl get in H.
+      simpl_eval_p4int_sval.
+      rewrite abs_neq_bit in H.
       destruct (snd t) eqn:?H. 1 : inv H.
       clear H.
+      rewrite H0.
     entailer.
   }
   step.
