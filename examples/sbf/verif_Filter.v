@@ -144,14 +144,6 @@ Definition frame_tick_tocks : Z := 7034.
 
 Notation update_timer := (@update_timer num_frames frame_tick_tocks).
 
-Definition timer_repr_val (t : Z * bool) :=
-  ValBaseStruct [("hi", ValBaseBit (P4Arith.to_lbool 16 (fst t)));
-                 ("lo", ValBaseBit (P4Arith.to_lbool 16 (Z.b2z (snd t))))].
-
-Definition timer_repr_sval (t : Z * bool) :=
-  ValBaseStruct [("hi", P4Bit 16 (fst t));
-                 ("lo", P4Bit 16 (Z.b2z (snd t)))].
-
 Definition regact_clear_window_signal_0_apply_spec : func_spec :=
   RegisterAction_apply_spec (p ++ ["regact_clear_window_signal_0"]) timer_repr_val
     (fun t => update_timer t false) (fun t => P4Bit 16 (fst (update_timer t false))).
@@ -206,12 +198,9 @@ Definition regact_clear_window_signal_0_execute_body :=
 Definition regact_clear_window_signal_1_apply_fd :=
   ltac:(get_am_fd ge am_ge (p ++ ["regact_clear_window_signal_1"; "apply"]) ge).
 
-Definition update_timer'_true (t : Z * bool) :=
-  if P4Arith.BitArith.mod_bound 16 (fst t) =? 28136 then (0, true) else (fst t, true).
-
 Definition regact_clear_window_signal_1_apply_spec : func_spec :=
-  RegisterAction_apply_spec (p ++ ["regact_clear_window_signal_1"]) timer_repr_val
-    (fun t => update_timer'_true t) (fun t => P4Bit 16 (fst (update_timer'_true t))).
+  RegisterAction_apply_spec' (p ++ ["regact_clear_window_signal_1"]) (fun t => 0 <= fst t <= 28136) timer_repr_val
+    (fun t => update_timer t true) (fun t => P4Bit 16 (fst (update_timer t true))).
 
 (*  RegisterAction<window_pair_t, bit<1>, window_t>(reg_clear_window) regact_clear_window_signal_1 = {
         void apply(inout window_pair_t val, out window_t rv) {
@@ -236,37 +225,49 @@ Proof.
   change (eval_val_to_sval (timer_repr_val t)) with (timer_repr_sval t).
   unfold timer_repr_sval in *.
   step.
-  step_if (MEM [(["apply"; "val"], ValBaseStruct [("hi", P4Bit 16 (if (P4Arith.BitArith.mod_bound 16 (fst t) =? 28136) then 0 else fst t));
+  step_if (MEM [(["apply"; "val"], ValBaseStruct [("hi", P4Bit 16 (if (fst t =? 28136) then 0 else fst t));
                                                   ("lo", P4Bit 16 (Z.b2z (snd t)))])]
            (EXT [])).
   { step.
     step.
     step.
     change (P4Arith.BitArith.mod_bound 16 28136) with 28136 in H.
-    destruct (P4Arith.BitArith.mod_bound 16 (fst t) =? 28136); inv H.
+    replace (P4Arith.BitArith.mod_bound 16 (fst t)) with (fst t) in H. 2 : {
+      unfold P4Arith.BitArith.mod_bound.
+      rewrite Z.mod_small; auto.
+      change (P4Arith.BitArith.upper_bound 16) with 65536.
+      lia.
+    }
+    destruct (fst t =? 28136); inv H.
     entailer.
   }
   { step.
     change (P4Arith.BitArith.mod_bound 16 28136) with 28136 in H.
-    destruct (P4Arith.BitArith.mod_bound 16 (fst t) =? 28136); inv H.
+    replace (P4Arith.BitArith.mod_bound 16 (fst t)) with (fst t) in H. 2 : {
+      unfold P4Arith.BitArith.mod_bound.
+      rewrite Z.mod_small; auto.
+      change (P4Arith.BitArith.upper_bound 16) with 65536.
+      lia.
+    }
+    destruct (fst t =? 28136); inv H.
     entailer.
   }
-  step_if (MEM [(["apply"; "val"], (timer_repr_sval (update_timer'_true t)))]
+  step_if (MEM [(["apply"; "val"], (timer_repr_sval (update_timer t true)))]
            (EXT [])).
   { unfold timer_repr_sval in *.
     step.
     step.
     step.
     destruct t as [? []]; inv H.
-    unfold update_timer'_true.
-    destruct (P4Arith.BitArith.mod_bound 16 (fst (z, _)) =? 28136);
+    simpl.
+    destruct (z =? 28136);
       entailer.
   }
   { unfold timer_repr_sval in *.
     step.
     destruct t as [? []]; inv H.
-    unfold update_timer'_true.
-    destruct (P4Arith.BitArith.mod_bound 16 (fst (z, _)) =? 28136);
+    simpl.
+    destruct (z =? 28136);
       entailer.
   }
   step.
@@ -282,12 +283,6 @@ Definition regact_clear_window_signal_1_execute_body :=
 
 Definition act_clear_window_signal_0_fd :=
   ltac:(get_fd ["Bf2BloomFilter"; "act_clear_window_signal_0"] ge).
-
-Definition timer_repr (p : path) (t : Z * bool) : ext_pred :=
-  (ExtPred.singleton (p ++ ["reg_clear_window"])
-        (Tofino.ObjRegister [force_sval_to_val
-            (ValBaseStruct [("hi", P4Bit 16 (fst t));
-                            ("lo", P4Bit 16 (Z.b2z (snd t)))])])).
 
 Definition act_clear_window_signal_0_spec : func_spec :=
   WITH (* p *),
@@ -354,17 +349,8 @@ Proof.
   { auto. }
   { lia. }
   { reflexivity. }
+  { auto. }
   step.
-  replace (update_timer'_true t) with (update_timer t true). 2 : {
-    unfold update_timer'_true, update_timer.
-    replace (P4Arith.BitArith.mod_bound 16 (fst t)) with (fst t). 2 : {
-      unfold P4Arith.BitArith.mod_bound.
-      rewrite Z.mod_small; auto.
-      change (P4Arith.BitArith.upper_bound 16) with 65536.
-      lia.
-    }
-    reflexivity.
-  }
   entailer.
 Qed.
 

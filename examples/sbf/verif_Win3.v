@@ -15,7 +15,7 @@ Notation path := (list ident).
 Notation Val := (@ValueBase bool).
 Notation Sval := (@ValueBase (option bool)).
 
-Definition p :=  ["pipe"; "ingress"; "bf2_ds"; "win_3"].
+Definition p := ["pipe"; "ingress"; "bf2_ds"; "win_3"].
 
 Definition Win_fundef :=
   ltac:(get_fd ["Bf2BloomFilterWin"; "apply"] ge).

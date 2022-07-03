@@ -56,7 +56,23 @@ Definition RegisterAction_apply_spec {A} (p : path) (repr : A -> Val) (f : A -> 
   WITH,
     PATH p
     MOD None []
-    WITH (old_value : A) (* (H_old_value : 0 <= old_value < Z.pow 2 (Z.of_N w)) *),
+    WITH (old_value : A),
+      PRE
+        (ARG [eval_val_to_sval (repr old_value)]
+        (MEM []
+        (EXT [])))
+      POST
+        (ARG_RET [eval_val_to_sval (repr (f old_value));
+                  retv old_value]
+           ValBaseNull
+        (MEM []
+        (EXT []))).
+
+Definition RegisterAction_apply_spec' {A} (p : path) (valid : A -> Prop) (repr : A -> Val) (f : A -> A) (retv : A -> Sval) : func_spec :=
+  WITH,
+    PATH p
+    MOD None []
+    WITH (old_value : A) (H_old_value : valid old_value),
       PRE
         (ARG [eval_val_to_sval (repr old_value)]
         (MEM []
@@ -71,11 +87,11 @@ Definition RegisterAction_apply_spec {A} (p : path) (repr : A -> Val) (f : A -> 
 (* Remove the content type constaint of register, right? *)
 
 Definition RegisterAction_execute_spec : func_spec :=
-  WITH A p (* path *) index_w typ s (* size *) r (* reg *) repr
+  WITH A p (* path *) index_w typ s (* size *) r (* reg *)
       (H_r : PathMap.get p (ge_ext ge) = Some (Tofino.EnvRegAction r))
       (H_ws : PathMap.get r (ge_ext ge) = Some (Tofino.EnvRegister (index_w, typ, s)))
       (H_s : 0 <= s <= Z.pow 2 (Z.of_N index_w))
-      apply_fd apply_f apply_retv
+      apply_fd repr apply_f apply_retv
       (H_apply_fd : PathMap.get (p ++ ["apply"]) (ge_ext ge) =
           Some (Tofino.EnvAbsMet (exec_abstract_method am_ge p apply_fd)))
       (H_apply_body : func_sound am_ge apply_fd nil
@@ -87,6 +103,34 @@ Definition RegisterAction_execute_spec : func_spec :=
       (H_i : 0 <= i < s)
       old_v
       (H_old_v : Znth i c = repr old_v),
+      PRE
+        (ARG [P4Bit index_w i]
+        (MEM []
+        (EXT [ExtPred.singleton r (Tofino.ObjRegister c)])))
+      POST
+        (ARG_RET [] (apply_retv old_v)
+        (MEM []
+        (EXT [ExtPred.singleton r
+            (Tofino.ObjRegister (upd_Znth i c (repr (apply_f old_v))))]))).
+
+Definition RegisterAction_execute_spec' : func_spec :=
+  WITH A p (* path *) index_w typ s (* size *) r (* reg *)
+      (H_r : PathMap.get p (ge_ext ge) = Some (Tofino.EnvRegAction r))
+      (H_ws : PathMap.get r (ge_ext ge) = Some (Tofino.EnvRegister (index_w, typ, s)))
+      (H_s : 0 <= s <= Z.pow 2 (Z.of_N index_w))
+      apply_fd apply_valid repr apply_f apply_retv
+      (H_apply_fd : PathMap.get (p ++ ["apply"]) (ge_ext ge) =
+          Some (Tofino.EnvAbsMet (exec_abstract_method am_ge p apply_fd)))
+      (H_apply_body : func_sound am_ge apply_fd nil
+          (RegisterAction_apply_spec' (A := A) p apply_valid repr apply_f apply_retv)),
+    PATH p
+    MOD None [r]
+    WITH (c : list Val) (i : Z)
+      (H_c : Zlength c = s)
+      (H_i : 0 <= i < s)
+      old_v
+      (H_old_v : Znth i c = repr old_v)
+      (H_valid : apply_valid old_v),
       PRE
         (ARG [P4Bit index_w i]
         (MEM []
@@ -176,8 +220,8 @@ Proof.
   apply to_lbool_lbool_to_val.
 Qed.
 
-Lemma RegisterAction_execute_body :
-  func_sound ge execute_fundef nil RegisterAction_execute_spec.
+Lemma RegisterAction_execute_body' :
+  func_sound ge execute_fundef nil RegisterAction_execute_spec'.
 Proof.
   intros_fs_bind.
   split.
@@ -292,9 +336,10 @@ Proof.
   rewrite H_old_v in H8.
   assert (new_value = repr (apply_f old_v)
       /\ sval_to_val read_ndetbit (apply_retv old_v) retv). {
-    clear -H_apply_body H8.
+    clear -H_apply_body H_valid H8.
     inv H8.
     eapply (proj1 H_apply_body old_v) in H0.
+    2 : { auto. }
     2 : {
       split.
       2 : { split; constructor. }
@@ -333,6 +378,33 @@ Proof.
     rewrite PathMap.get_set_same.
     auto.
   }
+Qed.
+
+Lemma RegisterAction_execute_body :
+  func_sound ge execute_fundef nil RegisterAction_execute_spec.
+Proof.
+  intros_fs_bind.
+  assert (H_apply_body' : func_sound am_ge apply_fd []
+      (RegisterAction_apply_spec' p (fun _ => True) repr apply_f apply_retv)). {
+    refine_function H_apply_body.
+    entailer.
+    entailer.
+  }
+  split.
+  2 : {
+    unshelve eapply (proj2 (RegisterAction_execute_body' _ _ _ _ _ _ _ _ _ _ (fun _ => True) _ _ _ _ _));
+      eauto.
+  }
+  intros_fsh_bind.
+  eapply hoare_func_post.
+  { eapply hoare_func_pre.
+    2 : {
+      unshelve eapply (proj1 (RegisterAction_execute_body' _ _ _ _ s _ _ _ _ _ (fun _ => True) _ _ _ _ _));
+        eauto.
+    }
+    entailer.
+  }
+  entailer.
 Qed.
 
 End TofinoSpec.

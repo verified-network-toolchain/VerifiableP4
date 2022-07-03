@@ -57,4 +57,15 @@ Next Obligation.
   auto.
 Qed.
 
+Definition timer_repr_sval (t : Z * bool) :=
+  ValBaseStruct [("hi", P4Bit 16 (fst t));
+                 ("lo", P4Bit 16 (Z.b2z (snd t)))].
+
+Definition timer_repr_val (t : Z * bool) :=
+  force_sval_to_val (timer_repr_sval t).
+
+Definition timer_repr (p : path) (t : Z * bool) : ext_pred :=
+  (ExtPred.singleton (p ++ ["reg_clear_window"])
+        (Tofino.ObjRegister [timer_repr_val t])).
+
 End FilterRepr.
