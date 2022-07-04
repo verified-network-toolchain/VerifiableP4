@@ -21,9 +21,6 @@ Notation Sval := (@ValueBase (option bool)).
 
 Definition p := ["pipe"; "ingress"; "bf2_ds"].
 
-Definition Filter_fundef :=
-  ltac:(get_fd ["Bf2BloomFilter"; "apply"] ge).
-
 Definition act_hash_index_1_fd :=
   ltac:(get_fd ["Bf2BloomFilter"; "act_hash_index_1"] ge).
 
@@ -1020,9 +1017,7 @@ Definition P4_bf2_win_md_t_insert (f cf if' : Z) (new_clear_index : Sval) (is : 
   else
     P4_bf2_win_md_t (P4Bit 8 NOOP) is.
 
-Definition frame_time := 7034.
-
-Notation get_clear_frame := (get_clear_frame num_frames frame_time).
+Notation get_clear_frame := (get_clear_frame num_frames frame_tick_tocks).
 Notation get_insert_frame := (get_insert_frame num_frames).
 
 Definition tbl_set_win_insert_spec : func_spec :=
@@ -1047,7 +1042,7 @@ Definition tbl_set_win_insert_spec : func_spec :=
                ["act_set_clear_win_4"; "api_3"];
                ["act_set_clear_win_4"; "api_4"]]) []
     WITH (timer : Z * bool) (clear_index_1 hash_index_1 hash_index_2 hash_index_3: Sval)
-      (H_timer : 0 <= fst timer <= frame_time * num_frames),
+      (H_timer : 0 <= fst timer <= frame_tick_tocks * num_frames),
       PRE
         (ARG []
         (MEM [(["api"], P4Bit 8 INSERT);
@@ -1136,7 +1131,7 @@ Proof.
     eapply Z_div_squeeze_pos with (-hi) (-lo); lia.
 Qed.
 
-Ltac rep_lia := unfold frame_time, num_frames in *; lia.
+Ltac rep_lia := unfold frame_tick_tocks, num_frames in *; lia.
 
 Lemma tbl_set_win_insert_body :
   func_sound ge tbl_set_win_fd nil tbl_set_win_insert_spec.
@@ -1292,9 +1287,9 @@ Arguments exec_match_cast {tags_t}%type_scope {target} _ _%function_scope _ _ _ 
     { entailer. }
     { replace (get_clear_frame timer) with 0. 2 : {
         unfold get_clear_frame.
-        destruct (fst timer =? frame_time * num_frames) eqn:?.
-        unfold frame_time, num_frames in *. lia.
-        unfold frame_time in *.
+        destruct (fst timer =? frame_tick_tocks * num_frames) eqn:?.
+        unfold frame_tick_tocks, num_frames in *. lia.
+        unfold frame_tick_tocks in *.
         symmetry.
         eapply Z_div_squeeze with 0 7033; auto; rep_lia.
       }
@@ -1303,3 +1298,39 @@ Arguments exec_match_cast {tags_t}%type_scope {target} _ _%function_scope _ _ _ 
 Admitted.
 
 #[local] Hint Extern 5 (func_modifies _ _ _ _ _) => (apply tbl_set_win_insert_body) : func_specs.
+
+Definition Filter_fd :=
+  ltac:(get_fd ["Bf2BloomFilter"; "apply"] ge).
+
+Definition filter_insert := @filter_insert num_frames num_rows num_slots ltac:(rep_lia) ltac:(unfold num_rows; rep_lia) ltac:(unfold num_slots; rep_lia)
+  frame_tick_tocks.
+
+Program Definition hashes (key : Val) : listn Z num_rows := (exist _ [hash1 key; hash2 key; hash3 key] _).
+
+Definition Filter_insert_spec : func_spec :=
+  WITH (* p *),
+    PATH p
+    MOD None [p]
+    WITH (key : Val) (tstamp : Z) (cf : filter num_frames num_rows num_slots),
+      PRE
+        (ARG [eval_val_to_sval key; P4Bit 8 INSERT; P4Bit 48 tstamp; P4Bit_ 8]
+        (MEM []
+        (EXT [filter_repr p 18 panes rows cf])))
+      POST
+        (ARG_RET [P4Bit_ 8] ValBaseNull
+        (MEM []
+        (EXT [filter_repr p 18 panes rows (filter_insert cf (Z.odd (tstamp/2097152)) (hashes key))]))).
+
+Lemma Filter_insert_body :
+  func_sound ge Filter_fd nil Filter_insert_spec.
+Proof.
+  intros_fs_bind; split. 2 : admit.
+  init_function.
+  step.
+  step_call tbl_hash_index_1_body.
+  { entailer. }
+  step_call tbl_hash_index_2_body.
+  { entailer. }
+  step_call tbl_hash_index_3_body.
+  { entailer. }
+Abort.

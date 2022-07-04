@@ -23,8 +23,6 @@ Definition p := ["pipe"; "ingress"; "bf2_ds"; "win_1"].
 Definition Win_fundef :=
   ltac:(get_fd ["Bf2BloomFilterWin"; "apply"] ge).
 
-Definition rows := ["row_1"; "row_2"; "row_3"].
-
 Definition Win_noop_spec : func_spec :=
   WITH (* p *),
     PATH p

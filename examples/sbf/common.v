@@ -27,6 +27,9 @@ Definition num_slots := 262144.
 Definition num_rows := 3.
 Definition num_frames := 4.
 
+Definition rows := ["row_1"; "row_2"; "row_3"].
+Definition panes := ["win_1"; "win_2"; "win_3"; "win_4"].
+
 (* NoAction *)
 
 Definition NoAction_fundef : @fundef Info :=
