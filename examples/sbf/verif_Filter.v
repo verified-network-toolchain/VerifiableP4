@@ -1131,171 +1131,118 @@ Proof.
     eapply Z_div_squeeze_pos with (-hi) (-lo); lia.
 Qed.
 
-Ltac rep_lia := unfold frame_tick_tocks, num_frames in *; lia.
+Ltac rep_lia := unfold is_true, frame_time, num_frames in *; lia.
+
+
+Lemma sval_to_val_eval_p4int_sval : forall t: P4Int.t Info,sval_to_val read_ndetbit  (eval_p4int_sval t)  (eval_p4int_val t).
+Admitted.
+
+Lemma reduce_match_range: forall w x lo hi x' lo' hi',
+  Tofino.assert_int lo = Some (w, lo') ->
+  Tofino.assert_int hi = Some (w, hi') ->
+  Tofino.assert_int x = Some (w, x') ->
+  Tofino.values_match_range x lo hi =
+  (lo' <=? x') && (x' <=? hi').
+Proof.
+  intros.
+  unfold Tofino.values_match_range.
+  rewrite H, H0, H1. rewrite N.eqb_refl. simpl.
+  reflexivity.
+Qed.
+
+(*
+  rewrite <- !Z.leb_le.
+  rewrite Reflect.andE.
+  tauto.
+*)
 
 Lemma tbl_set_win_insert_body :
   func_sound ge tbl_set_win_fd nil tbl_set_win_insert_spec.
 Proof.
-
-(* Ltac foo := let x := constr:(1 + 2) in idtac x.
-
-Ltac foo' := let x := eval compute in [...] in idtac x.
-  foo'.
-
-
-  Search P4Arith.BitArith.mod_bound.
-  Z.mod_small *)
-(* Ltac hoare_func_table ::=
+Ltac Tactics.hoare_func_table ::= 
   lazymatch goal with
   | |- hoare_func _ _ _ (FTable _ _ _ _ _) _ _ =>
-      eapply hoare_func_table';
-      [ eapply hoare_table_match_list_intro'; (* hoare_table_match_list *)
-        [ reflexivity (* eval_exprs *)
-        | simplify_lift_option_eval_sval_to_val; (* lift_option (.. keysvals) *)
-          reflexivity
-        | eapply hoare_table_entries_intros; (* hoare_table_entries *)
-          (* repeat econstructor *)
-          idtac
-        | hoare_extern_match_list (* hoare_extern_match_list *)
-        ]
-      | idtac (* hoare_table_action_cases' *)
-      ]
-  | _ => fail "The goal is not in the form of (hoare_func _ _ _ (FTable _ _ _ _ _) _ _)"
-  end. *)
+        eapply hoare_func_table';
+         [ eapply hoare_table_match_list_intro';
+            [ reflexivity
+            | simplify_lift_option_eval_sval_to_val; reflexivity
+            | eapply hoare_table_entries_intros;
+               repeat first [                simple apply sval_to_val_eval_p4int_sval              | econstructor              ] 
+            | hoare_extern_match_list ]
+         |  ]
+  | _ =>
+      fail
+       "The goal is not in the form of (hoare_func _ _ _ (FTable _ _ _ _ _) _ _)"
+  end.
 
   start_function.
-  Time repeat match goal with
-  | |- context [ValSetProd ?l] =>
-      let l' := eval compute in l in
-      progress (change l with l')
-  end.
-  Time simpl Tofino.extern_matches.
-  
-  
-  (* econstructor.
-  { econstructor.
-    { econstructor.
-      { repeat econstructor. }
-      { repeat econstructor. }
-    }
-    econstructor.
-  }
-  { econstructor.
-  econstructor.
-  econstructor.
-  econstructor.
-  econstructor.
-  econstructor.
-  econstructor.
-  econstructor.
-  econstructor.
-  econstructor.
-  econstructor.
-  econstructor.
-  econstructor.
-  econstructor.
-  repeat econstructor.
-  repeat econstructor.
-  repeat econstructor.
 
-eval_sval_to_val_P4Bit
+(*   econstructor. econstructor. econstructor. econstructor. econstructor. econstructor. econstructor. 
+  apply sval_to_val_eval_p4int_sval. econstructor. econstructor. econstructor. econstructor. 
+  econstructor. econstructor. 
+ *)
+(* Ltac foo := lazymatch goal with  | |- ?x = ?y =>      unify x y  end. *)
 
-  
-exec_table_entries
-
-
-Inductive
-exec_match (tags_t : Type) (target : Target) (ge : genv)
-(read_one_bit : option bool -> bool -> Prop) : path -> Match -> ValueSet -> Prop :=
-    exec_match_dont_care : forall (this : path) (tag : tags_t) (typ : P4Type),
-                           exec_match ge read_one_bit this (MkMatch tag MatchDontCare typ)
-                             ValSetUniversal
-  | exec_match_mask : forall (expr : Syntax.Expression) (exprv : Val) 
-                        (mask : Syntax.Expression) (maskv : Val) (this : path) 
-                        (tag : tags_t) (typ : P4Type),
-                      exec_expr_det ge read_one_bit this empty_state expr exprv ->
-                      exec_expr_det ge read_one_bit this empty_state mask maskv ->
-                      exec_match ge read_one_bit this (MkMatch tag (MatchMask expr mask) typ)
-                        (ValSetMask exprv maskv)
-  | exec_match_range : forall (lo : Syntax.Expression) (lov : Val) (hi : Syntax.Expression)
-                         (hiv : Val) (this : path) (tag : tags_t) (typ : P4Type),
-                       exec_expr_det ge read_one_bit this empty_state lo lov ->
-                       exec_expr_det ge read_one_bit this empty_state hi hiv ->
-                       exec_match ge read_one_bit this (MkMatch tag (MatchRange lo hi) typ)
-                         (ValSetRange lov hiv)
-  | exec_match_cast : forall (newtyp : P4Type) (expr : Syntax.Expression) 
-                        (oldv : Val) (newv : ValueSet) (this : path) 
-                        (tag : tags_t) (typ real_typ : P4Type),
-                      exec_expr_det ge read_one_bit this empty_state expr oldv ->
-                      get_real_type ge newtyp = Some real_typ ->
-                      Ops.eval_cast_set real_typ oldv = Some newv ->
-                      exec_match ge read_one_bit this (MkMatch tag (MatchCast newtyp expr) typ)
-                        newv
-
-Arguments exec_match {tags_t}%type_scope {target} _ _%function_scope _%list_scope _ _
-Arguments exec_match_dont_care {tags_t}%type_scope {target} _ _%function_scope _%list_scope _ _
-Arguments exec_match_mask {tags_t}%type_scope {target} _ _%function_scope _ _ _ _ _%list_scope _
-  _ _ _
-Arguments exec_match_range {tags_t}%type_scope {target} _ _%function_scope _ _ _ _ _%list_scope
-  _ _ _ _
-Arguments exec_match_cast {tags_t}%type_scope {target} _ _%function_scope _ _ _ _ _%list_scope _
-  _ _ _ _ _ *)
-
-
-
-
-
-
-  
-  
-  (* Print Ltac init_function. *)
-  
-  
-  (* cbn [combine map hd].
-  simpl Tofino.extern_matches.
-  unfold Tofino.extern_matches. simpl.
-  replace (Tofino.is_true) with (id (A := bool)). unfold id. *)
-  
-  repeat match goal with
+(*   repeat match goal with
   | |- context [ValSetProd ?l] =>
       let l' := eval compute in l in
       progress change l with l'
-  end.
-  next_case'.
-  { simpl Tofino.valset_to_valsett in H.
-    simpl in H.
-    destruct (Tofino.values_match_singleton (ValBaseBit (P4Arith.to_lbool 8 INSERT))
-             (ValBaseBit [false; true; false; false; false; false; false; false])) eqn:?H.
-    2 : { inv H. }
-    destruct (Tofino.values_match_range (ValBaseBit (P4Arith.to_lbool 16 (fst timer)))
-            (ValBaseBit
-               [false; false; false; false; false; false; false; false; false;
-               false; false; false; false; false; false; false])
-            (ValBaseBit
-               [true; false; false; true; true; true; true; false; true; true;
-               false; true; true; false; false; false])) eqn:?H.
-    2 : { inv H. }
-    clear H.
-    unfold Tofino.values_match_range, Tofino.assert_int in H1.
-    rewrite P4Arith.bit_from_to_bool in H1.
-    simpl in H1.
-    unfold P4Arith.BitArith.mod_bound in H1.
-    rewrite Z.mod_small in H1. 2 : {
-      unfold P4Arith.BitArith.upper_bound. rep_lia.
+  end. *)
+  simpl Tofino.extern_matches.
+  (* quadratic time Time (tactic ; tactic) *)
+
+
+Ltac hoare_table_action_cases' :=
+  first [
+    apply hoare_table_action_cases'_nil (* solver: contradiction*)
+  | apply hoare_table_action_cases'_cons;
+    [ let H := fresh in intro H; simpl in H
+    | let H := fresh in intro H; simpl in H; 
+      hoare_table_action_cases'
+    ]
+  ].
+
+
+[&& entry, entry, entry, entry ]
+
+
+  hoare_table_action_cases'.
+  unfold frame_time, num_frames in *.
+  unfold fold_andb, fold_left in H. simpl in H. 
+  erewrite reduce_match_range in H.
+  2 : { compute. reflexivity. }
+  2 : { compute. reflexivity. }
+  2 : { 
+    simpl. rewrite P4Arith.bit_from_to_bool.
+    unfold P4Arith.BitArith.mod_bound.
+    rewrite Z.mod_small.
+    { reflexivity. }
+    { unfold P4Arith.BitArith.upper_bound. lia. }
+  }
+
+
+
+
+Ltac solve_modifies :=  first [    solve [eauto 100 with nocore modifies]  | idtac "The modifies clause cannot be solved automatically."  ]
+.
+
+
+  table_action act_set_clear_win_1_body.
+  { entailer. }
+  { replace (get_clear_frame timer) with 0. 
+    2 : {
+      unfold get_clear_frame.
+      destruct (fst timer =? frame_time * num_frames) eqn:?. 
+      unfold is_true in *; rep_lia.
+      symmetry.
+      eapply Z_div_squeeze with 0 7033; auto; rep_lia.
     }
-    table_action act_set_clear_win_1_body.
-    { entailer. }
-    { replace (get_clear_frame timer) with 0. 2 : {
-        unfold get_clear_frame.
-        destruct (fst timer =? frame_tick_tocks * num_frames) eqn:?.
-        unfold frame_tick_tocks, num_frames in *. lia.
-        unfold frame_tick_tocks in *.
-        symmetry.
-        eapply Z_div_squeeze with 0 7033; auto; rep_lia.
-      }
-      entailer.
-    }
-Admitted.
+    entailer.
+  }
+
+
+Abort.
+
 
 #[local] Hint Extern 5 (func_modifies _ _ _ _ _) => (apply tbl_set_win_insert_body) : func_specs.
 
