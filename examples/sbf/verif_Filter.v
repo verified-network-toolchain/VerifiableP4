@@ -96,6 +96,32 @@ Proof.
   entailer.
 Qed.
 
+#[local] Hint Extern 5 (func_modifies _ _ _ _ _) => (apply act_hash_index_1_body) : func_specs.
+
+Definition tbl_hash_index_1_fd :=
+  ltac:(get_fd ["Bf2BloomFilter"; "tbl_hash_index_1"; "apply"] ge).
+
+Definition tbl_hash_index_1_spec : func_spec :=
+  WITH (* p *),
+    PATH p
+    MOD (Some [["ds_md"]; ["act_hash_index_1"; "t'0"]]) []
+    WITH (key : Val) (ds_md : Sval),
+      PRE
+        (ARG []
+        (MEM [(["ds_key"], eval_val_to_sval key); (["ds_md"], ds_md)]
+        (EXT [])))
+      POST
+        (ARG_RET [] ValBaseNull
+        (MEM [(["ds_md"], update "hash_index_1" (P4Bit 18 (hash1 key)) ds_md)]
+        (EXT []))).
+
+Lemma tbl_hash_index_1_body :
+  func_sound ge tbl_hash_index_1_fd nil tbl_hash_index_1_spec.
+Proof.
+Admitted.
+
+#[local] Hint Extern 5 (func_modifies _ _ _ _ _) => (apply tbl_hash_index_1_body) : func_specs.
+
 Definition act_hash_index_2_fd :=
   ltac:(get_fd ["Bf2BloomFilter"; "act_hash_index_2"] ge).
 
@@ -146,6 +172,30 @@ Proof.
   entailer.
 Qed.
 
+Definition tbl_hash_index_2_fd :=
+  ltac:(get_fd ["Bf2BloomFilter"; "tbl_hash_index_2"; "apply"] ge).
+
+Definition tbl_hash_index_2_spec : func_spec :=
+  WITH (* p *),
+    PATH p
+    MOD (Some [["ds_md"]; ["act_hash_index_2"; "t'1"]]) []
+    WITH (key : Val) (ds_md : Sval),
+      PRE
+        (ARG []
+        (MEM [(["ds_key"], eval_val_to_sval key); (["ds_md"], ds_md)]
+        (EXT [])))
+      POST
+        (ARG_RET [] ValBaseNull
+        (MEM [(["ds_md"], update "hash_index_2" (P4Bit 18 (hash1 key)) ds_md)]
+        (EXT []))).
+
+Lemma tbl_hash_index_2_body :
+  func_sound ge tbl_hash_index_2_fd nil tbl_hash_index_2_spec.
+Proof.
+Admitted.
+
+#[local] Hint Extern 5 (func_modifies _ _ _ _ _) => (apply tbl_hash_index_2_body) : func_specs.
+
 Definition act_hash_index_3_fd :=
   ltac:(get_fd ["Bf2BloomFilter"; "act_hash_index_3"] ge).
 
@@ -195,6 +245,30 @@ Proof.
   rewrite bit_bitstring_slice with (w' := 18%N) by lia.
   entailer.
 Qed.
+
+Definition tbl_hash_index_3_fd :=
+  ltac:(get_fd ["Bf2BloomFilter"; "tbl_hash_index_3"; "apply"] ge).
+
+Definition tbl_hash_index_3_spec : func_spec :=
+  WITH (* p *),
+    PATH p
+    MOD (Some [["ds_md"]; ["act_hash_index_3"; "t'2"]]) []
+    WITH (key : Val) (ds_md : Sval),
+      PRE
+        (ARG []
+        (MEM [(["ds_key"], eval_val_to_sval key); (["ds_md"], ds_md)]
+        (EXT [])))
+      POST
+        (ARG_RET [] ValBaseNull
+        (MEM [(["ds_md"], update "hash_index_3" (P4Bit 18 (hash1 key)) ds_md)]
+        (EXT []))).
+
+Lemma tbl_hash_index_3_body :
+  func_sound ge tbl_hash_index_3_fd nil tbl_hash_index_3_spec.
+Proof.
+Admitted.
+
+#[local] Hint Extern 5 (func_modifies _ _ _ _ _) => (apply tbl_hash_index_3_body) : func_specs.
 
 Definition regact_clear_index_apply_fd :=
   ltac:(get_am_fd ge am_ge (p ++ ["regact_clear_index"; "apply"]) ge).
@@ -289,7 +363,6 @@ Qed.
 Definition regact_clear_window_signal_0_apply_fd :=
   ltac:(get_am_fd ge am_ge (p ++ ["regact_clear_window_signal_0"; "apply"]) ge).
 
-Definition num_frames : Z := 4.
 Definition frame_tick_tocks : Z := 7034.
 
 Notation update_timer := (@update_timer num_frames frame_tick_tocks).
@@ -1227,5 +1300,6 @@ Arguments exec_match_cast {tags_t}%type_scope {target} _ _%function_scope _ _ _ 
       }
       entailer.
     }
-Abort.
- 
+Admitted.
+
+#[local] Hint Extern 5 (func_modifies _ _ _ _ _) => (apply tbl_set_win_insert_body) : func_specs.
