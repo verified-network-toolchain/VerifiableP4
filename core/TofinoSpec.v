@@ -407,4 +407,96 @@ Proof.
   entailer.
 Qed.
 
+Definition extend_hash_output_Z (hash_w : N) (output : list bool) : Z :=
+  let output_w := N.of_nat (List.length output) in
+  let num_copies := N.div hash_w output_w in
+  let num_remainder := Z.of_N (N.modulo hash_w output_w) in
+  let lsbs := repeat_concat_list (N.to_nat num_copies) output in
+  let msbs := sublist (Z.of_N output_w - num_remainder) (Z.of_N output_w) output in
+  BitArith.lbool_to_val (app msbs lsbs) 1 0.
+
+Definition dummy_Z : Z.
+Proof. exact 0. Qed.
+
+Definition hash_Z (hash_w : N) (poly : CRC_polynomial) (v : Val) : Z :=
+  match convert_to_bits v with
+  | Some input =>
+      extend_hash_output_Z hash_w (Hash.compute_crc (N.to_nat (CRCP_width poly)) (lbool_to_hex (CRCP_coeff poly)) 
+          (lbool_to_hex (CRCP_init poly)) (lbool_to_hex (CRCP_xor poly))
+          (CRCP_reversed poly) (CRCP_reversed poly) input)
+  | None =>
+      dummy_Z
+  end.
+
+Definition Hash_get_fundef : (@fundef tags_t) := FExternal "Hash" "get".
+
+Definition Hash_get_spec : func_spec :=
+  WITH p (* path *) hash_w poly
+      (H_p : PathMap.get p (ge_ext ge) = Some (EnvHash (hash_w, poly))),
+    PATH p
+    MOD None []
+    WITH (v : Val),
+      PRE
+        (ARG [eval_val_to_sval v]
+        (MEM []
+        (EXT [])))
+      POST
+        (ARG_RET [] (P4Bit hash_w (hash_Z hash_w poly v))
+        (MEM []
+        (EXT []))).
+
+Lemma Hash_get_body targs :
+  func_sound ge Hash_get_fundef targs Hash_get_spec.
+Proof.
+  intros_fs_bind.
+  split.
+  2 : {
+    red. intros.
+    inv H.
+    inv H5. inv H.
+    apply modifies_refl.
+  }
+  intros_fsh_bind.
+  hnf; intros.
+  inv H0. inv H6.
+  inv H0.
+  eapply eq_trans in H1; only 2 : (symmetry; apply H_p).
+  symmetry in H1; inv H1.
+  unfold hash_Z.
+  destruct H as [? []].
+  hnf in H. inv H. inv H8.
+  assert (y = eval_val_to_sval v) by (clear; admit).
+  subst y.
+  inv H3. clear H9.
+  apply sval_to_val_eval_val_to_sval_iff in H7. 2 : {
+    clear; sauto lq: on.
+  }
+  subst.
+  rewrite H2. clear H2.
+  split.
+  { inv H12. constructor. }
+  split.
+  { apply eval_val_to_sval_ret_denote.
+    unfold extend_hash_output_Z.
+    unfold P4Bit.
+    unfold to_loptbool.
+    rewrite to_lbool_lbool_to_val'. 2 : {
+      clear.
+      generalize (Hash.compute_crc (N.to_nat (CRCP_width poly)) (lbool_to_hex (CRCP_coeff poly))
+                    (lbool_to_hex (CRCP_init poly)) (lbool_to_hex (CRCP_xor poly))
+                    (CRCP_reversed poly) (CRCP_reversed poly) input).
+      intros.
+      replace (N.of_nat (Datatypes.length b)) with (Z.to_N (Zlength b)). 2 : {
+        rewrite Zlength_correct. lia.
+      }
+      clear; admit.
+    }
+    reflexivity.
+  }
+  repeat constructor.
+Admitted.
+
 End TofinoSpec.
+
+#[export] Hint Extern 5 (func_modifies _ _ _ _ _) =>
+  (refine (proj2 (Hash_get_body _ _ _ _ _ _)); try exact (@nil _); compute; reflexivity) : func_specs.

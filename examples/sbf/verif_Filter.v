@@ -24,6 +24,178 @@ Definition p := ["pipe"; "ingress"; "bf2_ds"].
 Definition Filter_fundef :=
   ltac:(get_fd ["Bf2BloomFilter"; "apply"] ge).
 
+Definition act_hash_index_1_fd :=
+  ltac:(get_fd ["Bf2BloomFilter"; "act_hash_index_1"] ge).
+
+Definition hash1 (v : Val) :=
+  hash_Z 32
+    {|
+      Tofino.CRCP_width := 32;
+      Tofino.CRCP_coeff := P4Arith.to_lbool 32 79764919;
+      Tofino.CRCP_reversed := true;
+      Tofino.CRCP_msb := false;
+      Tofino.CRCP_extended := false;
+      Tofino.CRCP_init := P4Arith.to_lbool 32 0;
+      Tofino.CRCP_xor := P4Arith.to_lbool 32 4294967295
+    |}
+    v.
+
+Definition act_hash_index_1_spec : func_spec :=
+  WITH (* p *),
+    PATH p
+    MOD (Some [["ds_md"]; ["act_hash_index_1"; "t'0"]]) []
+    WITH (key : Val) (ds_md : Sval),
+      PRE
+        (ARG []
+        (MEM [(["ds_key"], eval_val_to_sval key); (["ds_md"], ds_md)]
+        (EXT [])))
+      POST
+        (ARG_RET [] ValBaseNull
+        (MEM [(["ds_md"], update "hash_index_1" (P4Bit 18 (hash1 key)) ds_md)]
+        (EXT []))).
+
+(*  action act_hash_index_1() {
+        ds_md.hash_index_1 = hash_idx_1.get(ds_key)[17:0];
+    }
+*)
+
+Lemma sval_refine_refl' : forall sv sv',
+  sv = sv' ->
+  sval_refine sv sv'.
+Proof.
+  intros; subst; apply sval_refine_refl.
+Qed.
+
+(* Need a better name. *)
+Lemma bit_bitstring_slice : forall (w w' : N) v,
+  (w' > 0)%N ->
+  ValBaseBit (Ops.bitstring_slice (P4Arith.to_loptbool w v) (N.to_nat 0) (N.to_nat (w' - 1)))
+    = P4Bit w' v.
+Proof.
+  intros.
+Admitted.
+
+Lemma P4Bit_trunc : forall w v v',
+  v mod 2 ^ Z.of_N w = v' mod 2 ^ Z.of_N w ->
+  P4Bit w v = P4Bit w v'.
+Proof.
+Admitted.
+
+Lemma act_hash_index_1_body :
+  func_sound ge act_hash_index_1_fd nil act_hash_index_1_spec.
+Proof.
+  start_function.
+  step_call @Hash_get_body.
+  { entailer. }
+  { compute. reflexivity. }
+  step.
+  step.
+  simpl sval_to_bits_width.
+  cbv match.
+  rewrite bit_bitstring_slice with (w' := 18%N) by lia.
+  entailer.
+Qed.
+
+Definition act_hash_index_2_fd :=
+  ltac:(get_fd ["Bf2BloomFilter"; "act_hash_index_2"] ge).
+
+Definition hash2 (v : Val) :=
+  hash_Z 32
+    {|
+      Tofino.CRCP_width := 32;
+      Tofino.CRCP_coeff := P4Arith.to_lbool 32 517762881;
+      Tofino.CRCP_reversed := true;
+      Tofino.CRCP_msb := false;
+      Tofino.CRCP_extended := false;
+      Tofino.CRCP_init := P4Arith.to_lbool 32 0;
+      Tofino.CRCP_xor := P4Arith.to_lbool 32 4294967295
+    |}
+    v.
+
+Definition act_hash_index_2_spec : func_spec :=
+  WITH (* p *),
+    PATH p
+    MOD (Some [["ds_md"]; ["act_hash_index_2"; "t'1"]]) []
+    WITH (key : Val) (ds_md : Sval),
+      PRE
+        (ARG []
+        (MEM [(["ds_key"], eval_val_to_sval key); (["ds_md"], ds_md)]
+        (EXT [])))
+      POST
+        (ARG_RET [] ValBaseNull
+        (MEM [(["ds_md"], update "hash_index_2" (P4Bit 18 (hash2 key)) ds_md)]
+        (EXT []))).
+
+(*  action act_hash_index_2() {
+        ds_md.hash_index_2 = hash_idx_2.get(ds_key)[17:0];
+    }
+*)
+
+Lemma act_hash_index_2_body :
+  func_sound ge act_hash_index_2_fd nil act_hash_index_2_spec.
+Proof.
+  start_function.
+  step_call @Hash_get_body.
+  { entailer. }
+  { compute. reflexivity. }
+  step.
+  step.
+  simpl sval_to_bits_width.
+  cbv match.
+  rewrite bit_bitstring_slice with (w' := 18%N) by lia.
+  entailer.
+Qed.
+
+Definition act_hash_index_3_fd :=
+  ltac:(get_fd ["Bf2BloomFilter"; "act_hash_index_3"] ge).
+
+Definition hash3 (v : Val) :=
+  hash_Z 32
+    {|
+      Tofino.CRCP_width := 32;
+      Tofino.CRCP_coeff := P4Arith.to_lbool 32 2821953579;
+      Tofino.CRCP_reversed := true;
+      Tofino.CRCP_msb := false;
+      Tofino.CRCP_extended := false;
+      Tofino.CRCP_init := P4Arith.to_lbool 32 0;
+      Tofino.CRCP_xor := P4Arith.to_lbool 32 4294967295
+    |}
+    v.
+
+Definition act_hash_index_3_spec : func_spec :=
+  WITH (* p *),
+    PATH p
+    MOD (Some [["ds_md"]; ["act_hash_index_3"; "t'2"]]) []
+    WITH (key : Val) (ds_md : Sval),
+      PRE
+        (ARG []
+        (MEM [(["ds_key"], eval_val_to_sval key); (["ds_md"], ds_md)]
+        (EXT [])))
+      POST
+        (ARG_RET [] ValBaseNull
+        (MEM [(["ds_md"], update "hash_index_3" (P4Bit 18 (hash3 key)) ds_md)]
+        (EXT []))).
+
+(*  action act_hash_index_3() {
+        ds_md.hash_index_3 = hash_idx_3.get(ds_key)[17:0];
+    }
+*)
+
+Lemma act_hash_index_3_body :
+  func_sound ge act_hash_index_3_fd nil act_hash_index_3_spec.
+Proof.
+  start_function.
+  step_call @Hash_get_body.
+  { entailer. }
+  { compute. reflexivity. }
+  step.
+  step.
+  simpl sval_to_bits_width.
+  cbv match.
+  rewrite bit_bitstring_slice with (w' := 18%N) by lia.
+  entailer.
+Qed.
+
 Definition regact_clear_index_apply_fd :=
   ltac:(get_am_fd ge am_ge (p ++ ["regact_clear_index"; "apply"]) ge).
 
@@ -70,28 +242,6 @@ Definition act_clear_index_spec : func_spec :=
         (ARG_RET [] ValBaseNull
         (MEM [(["ds_md"], update "clear_index_1" (P4Bit 18 i) ds_md)]
         (EXT [fil_clear_index_repr p 18 (update_clear_index (num_slots := num_slots) i)]))).
-
-Lemma sval_refine_refl' : forall sv sv',
-  sv = sv' ->
-  sval_refine sv sv'.
-Proof.
-  intros; subst; apply sval_refine_refl.
-Qed.
-
-(* Need a better name. *)
-Lemma bit_bitstring_slice : forall (w w' : N) v,
-  (w' > 0)%N ->
-  ValBaseBit (Ops.bitstring_slice (P4Arith.to_loptbool w v) (N.to_nat 0) (N.to_nat (w' - 1)))
-    = P4Bit w' v.
-Proof.
-  intros.
-Admitted.
-
-Lemma P4Bit_trunc : forall w v v',
-  v mod 2 ^ Z.of_N w = v' mod 2 ^ Z.of_N w ->
-  P4Bit w v = P4Bit w v'.
-Proof.
-Admitted.
 
 Lemma act_clear_index_body :
   func_sound ge act_clear_index_fd nil act_clear_index_spec.
