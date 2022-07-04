@@ -1131,7 +1131,7 @@ Proof.
     eapply Z_div_squeeze_pos with (-hi) (-lo); lia.
 Qed.
 
-Ltac rep_lia := unfold is_true, frame_time, num_frames in *; lia.
+Ltac rep_lia := unfold is_true, frame_tick_tocks, num_frames in *; lia.
 
 
 Lemma sval_to_val_eval_p4int_sval : forall t: P4Int.t Info,sval_to_val read_ndetbit  (eval_p4int_sval t)  (eval_p4int_val t).
@@ -1159,17 +1159,20 @@ Qed.
 Lemma tbl_set_win_insert_body :
   func_sound ge tbl_set_win_fd nil tbl_set_win_insert_spec.
 Proof.
-Ltac Tactics.hoare_func_table ::= 
+Ltac Tactics.hoare_func_table ::=
   lazymatch goal with
   | |- hoare_func _ _ _ (FTable _ _ _ _ _) _ _ =>
-        eapply hoare_func_table';
-         [ eapply hoare_table_match_list_intro';
-            [ reflexivity
-            | simplify_lift_option_eval_sval_to_val; reflexivity
-            | eapply hoare_table_entries_intros;
-               repeat first [                simple apply sval_to_val_eval_p4int_sval              | econstructor              ] 
-            | hoare_extern_match_list ]
-         |  ]
+       eapply hoare_func_table';
+       [ eapply hoare_table_match_list_intro';
+          [ reflexivity
+          | simplify_lift_option_eval_sval_to_val; reflexivity
+          | eapply hoare_table_entries_intros;
+            repeat first [
+              simple apply sval_to_val_eval_p4int_sval
+            | econstructor
+            ]
+          | hoare_extern_match_list ]
+       |  ]
   | _ =>
       fail
        "The goal is not in the form of (hoare_func _ _ _ (FTable _ _ _ _ _) _ _)"
@@ -1191,28 +1194,81 @@ Ltac Tactics.hoare_func_table ::=
   simpl Tofino.extern_matches.
   (* quadratic time Time (tactic ; tactic) *)
 
+Ltac solve_assert_int :=
+  simpl; rewrite P4Arith.bit_from_to_bool;
+  unfold P4Arith.BitArith.mod_bound;
+  rewrite Z.mod_small by (unfold P4Arith.BitArith.upper_bound; rep_lia);
+  reflexivity.
+
+Ltac simpl_match_cond cond :=
+  simpl in cond; unfold fold_andb, fold_left in cond; simpl in cond;
+  repeat lazymatch goal with
+  | cond : context [Tofino.values_match_range ?x ?lo ?hi] |- _ =>
+      erewrite (reduce_match_range _ x lo hi) in cond;
+      [ idtac
+      | compute; reflexivity
+      | compute; reflexivity
+      | solve_assert_int
+      ]
+  end.
+
+
 
 Ltac hoare_table_action_cases' :=
   first [
     apply hoare_table_action_cases'_nil (* solver: contradiction*)
-  | apply hoare_table_action_cases'_cons;
-    [ let H := fresh in intro H; simpl in H
-    | let H := fresh in intro H; simpl in H; 
+  | refine (@id (hoare_table_action_cases' _ _ _ _ _ _ ((_, _) :: _)) _);
+    lazymatch goal with
+    | |- hoare_table_action_cases' _ _ _ _ _ _ ((?cond, _) :: _)  =>
+      let H_cond := fresh in
+      let cond_name := fresh "cond" in
+      remember cond as cond_name eqn:H_cond;
+      simpl_match_cond H_cond;
+      subst cond_name
+    end;
+    apply hoare_table_action_cases'_cons;
+    [ let H := fresh in intro H
+    | let H := fresh in intro H;
       hoare_table_action_cases'
     ]
   ].
 
 
-[&& entry, entry, entry, entry ]
+  hoare_table_action_cases'.
+  (* admit.
+  admit.
+  admit.
+  admit.
+  admit.
+  admit.
+  admit.
+  admit.
+  admit.
+  admit.
+  admit.
+  admit.
+  admit.
+  admit.
+  admit.
+  admit.
+  admit.
 
+(* [&& entry, entry, entry, entry ] *)
+
+  apply hoare_table_action_cases'_cons.
+  simpl.
+
+  simpl_match_cond.
 
   hoare_table_action_cases'.
-  unfold frame_time, num_frames in *.
-  unfold fold_andb, fold_left in H. simpl in H. 
+  simpl in H.
+  P4Arith.to_lbool eval_p4int_val
+  unfold frame_tick_tocks, num_frames in *.
+  unfold fold_andb, fold_left in H. simpl in H.
   erewrite reduce_match_range in H.
   2 : { compute. reflexivity. }
   2 : { compute. reflexivity. }
-  2 : { 
+  2 : {
     simpl. rewrite P4Arith.bit_from_to_bool.
     unfold P4Arith.BitArith.mod_bound.
     rewrite Z.mod_small.
@@ -1239,7 +1295,7 @@ Ltac solve_modifies :=  first [    solve [eauto 100 with nocore modifies]  | idt
     }
     entailer.
   }
-
+ *)
 
 Abort.
 
