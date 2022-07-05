@@ -3,8 +3,8 @@ Require Import Poulet4.P4light.Semantics.Semantics.
 Require Import ProD3.core.Core.
 Require Import ProD3.core.Tofino.
 Require Import ProD3.examples.sbf.p4ast.
-Require Import ProD3.examples.sbf.common.
 Require Import ProD3.examples.sbf.ConFilter.
+Require Import ProD3.examples.sbf.common.
 Require Import ProD3.examples.sbf.FilterRepr.
 Require Import Hammer.Plugin.Hammer.
 Require Export Coq.Program.Program.
@@ -20,13 +20,11 @@ Definition p := ["pipe"; "ingress"; "bf2_ds"; "win_4"].
 Definition Win_fundef :=
   ltac:(get_fd ["Bf2BloomFilterWin"; "apply"] ge).
 
-Definition rows := ["row_1"; "row_2"; "row_3"].
-
 Definition Win_noop_spec : func_spec :=
   WITH (* p *),
     PATH p
     MOD None [p]
-    WITH (f : frame num_rows num_slots) (is : listn Z num_rows)
+    WITH (f : frame) (is : listn Z num_rows)
       (_ : Forall (fun i => 0 <= i < num_slots) (`is)),
       PRE
         (ARG [ValBaseStruct
@@ -64,7 +62,7 @@ Definition Win_insert_spec : func_spec :=
   WITH (* p *),
     PATH p
     MOD None [p]
-    WITH (f : frame num_rows num_slots) (is : listn Z num_rows)
+    WITH (f : frame) (is : listn Z num_rows)
       (_ : Forall (fun i => 0 <= i < num_slots) (`is)),
       PRE
         (ARG [ValBaseStruct
@@ -98,17 +96,11 @@ Lemma Win_insert_body :
 Proof.
 Admitted.
 
-#[local] Instance row_inhabit: Inhabitant (row num_slots).
-Proof.
-  exists (Zrepeat false num_slots).
-  apply Zlength_Zrepeat. unfold num_slots. lia.
-Qed.
-
 Definition Win_query_spec : func_spec :=
   WITH (* p *),
     PATH p
     MOD None [p]
-    WITH (f : frame num_rows num_slots) (is : listn Z num_rows)
+    WITH (f : frame) (is : listn Z num_rows)
       (_ : Forall (fun i => 0 <= i < num_slots) (`is)),
       PRE
         (ARG [ValBaseStruct
@@ -146,7 +138,7 @@ Definition Win_query_spec2 : func_spec :=
   WITH (* p *),
     PATH p
     MOD None [p]
-    WITH (f : frame num_rows num_slots) (is : listn Z num_rows)
+    WITH (f : frame) (is : listn Z num_rows)
       (_ : Forall (fun i => 0 <= i < num_slots) (`is)),
       PRE
         (ARG [ValBaseStruct
@@ -185,7 +177,7 @@ Definition Win_clear_spec : func_spec :=
   WITH (* p *),
     PATH p
     MOD None [p]
-    WITH (f : frame num_rows num_slots) (is : listn Z num_rows)
+    WITH (f : frame) (is : listn Z num_rows)
       (_ : Forall (fun i => 0 <= i < num_slots) (`is)),
       PRE
         (ARG [ValBaseStruct
@@ -220,3 +212,103 @@ Proof.
 Admitted.
 
 #[export] Hint Extern 5 (func_modifies _ _ _ _ _) => (apply Win_noop_body) : func_specs.
+
+Definition Win_spec : func_spec :=
+  WITH (* p *),
+    PATH p
+    MOD None [p]
+    WITH (op : Z) (f : frame) (is : listn Z num_rows)
+      (_ : In op [NOOP; CLEAR; INSERT; QUERY])
+      (_ : Forall (fun i => 0 <= i < num_slots) (`is)),
+      PRE
+        (ARG [ValBaseStruct
+               [("api", P4Bit 8 op);
+                ("index_1", P4Bit 18 (Znth 0 (`is)));
+                ("index_2", P4Bit 18 (Znth 1 (`is)));
+                ("index_3", P4Bit 18 (Znth 2 (`is)));
+                ("rw_1", P4Bit_ 8);
+                ("rw_2", P4Bit_ 8);
+                ("rw_3", P4Bit_ 8)
+               ]
+             ]
+        (MEM []
+        (EXT [frame_repr p rows f])))
+      POST
+        (ARG_RET [
+          if op =? NOOP then
+            ValBaseStruct
+              [("api", P4Bit 8 NOOP);
+               ("index_1", P4Bit 18 (Znth 0 (`is)));
+               ("index_2", P4Bit 18 (Znth 1 (`is)));
+               ("index_3", P4Bit 18 (Znth 2 (`is)));
+               ("rw_1", P4Bit_ 8);
+               ("rw_2", P4Bit_ 8);
+               ("rw_3", P4Bit_ 8)
+              ]
+          else if op =? CLEAR then
+            ValBaseStruct
+              [("api", P4Bit 8 CLEAR);
+               ("index_1", P4Bit 18 (Znth 0 (`is)));
+               ("index_2", P4Bit 18 (Znth 1 (`is)));
+               ("index_3", P4Bit 18 (Znth 2 (`is)));
+               ("rw_1", P4Bit 8 0);
+               ("rw_2", P4Bit 8 0);
+               ("rw_3", P4Bit 8 0)
+              ]
+          else if op =? INSERT then
+            ValBaseStruct
+              [("api", P4Bit 8 INSERT);
+               ("index_1", P4Bit 18 (Znth 0 (`is)));
+               ("index_2", P4Bit 18 (Znth 1 (`is)));
+               ("index_3", P4Bit 18 (Znth 2 (`is)));
+               ("rw_1", P4Bit 8 1);
+               ("rw_2", P4Bit 8 1);
+               ("rw_3", P4Bit 8 1)
+              ]
+          else
+            ValBaseStruct
+              [("api", P4Bit 8 QUERY);
+               ("index_1", P4Bit 18 (Znth 0 (`is)));
+               ("index_2", P4Bit 18 (Znth 1 (`is)));
+               ("index_3", P4Bit 18 (Znth 2 (`is)));
+               ("rw_1", P4Bit 8 (Z.b2z (row_query (Znth 0 (`f)) (Znth 0 (`is)))));
+               ("rw_2", P4Bit 8 (Z.b2z (row_query (Znth 1 (`f)) (Znth 1 (`is)))));
+               ("rw_3", P4Bit 8 (Z.b2z (row_query (Znth 2 (`f)) (Znth 2 (`is)))))
+              ]
+        ] ValBaseNull
+        (MEM []
+        (EXT [frame_repr p rows (
+          if op =? NOOP then
+            f
+          else if op =? CLEAR then
+            frame_clear f is
+          else if op =? INSERT then
+            frame_insert f is
+          else
+            f
+        )]))).
+
+Lemma Win_body :
+  func_sound ge Win_fundef nil Win_spec.
+Proof.
+  intros_fs_bind.
+  split; only 2 : solve_modifies.
+  intros_fsh_bind.
+  destruct H.
+  { subst.
+    apply Win_noop_body; auto.
+  }
+  destruct H.
+  { subst.
+    apply Win_clear_body; auto.
+  }
+  destruct H.
+  { subst.
+    apply Win_insert_body; auto.
+  }
+  destruct H.
+  { subst.
+    apply Win_query_body; auto.
+  }
+  destruct H.
+Qed.

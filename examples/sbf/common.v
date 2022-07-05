@@ -3,6 +3,7 @@ Require Import Poulet4.P4light.Semantics.Semantics.
 Require Import ProD3.core.Core.
 Require Import ProD3.core.Tofino.
 Require Import ProD3.examples.sbf.p4ast.
+Require Import ProD3.examples.sbf.ConFilter.
 
 Open Scope func_spec.
 
@@ -29,6 +30,19 @@ Definition num_frames := 4.
 
 Definition rows := ["row_1"; "row_2"; "row_3"].
 Definition panes := ["win_1"; "win_2"; "win_3"; "win_4"].
+
+Definition H_num_slots : 0 < num_slots := eq_refl.
+Definition H_num_rows : 0 < num_rows := eq_refl.
+Definition H_num_frames : 1 < num_frames := eq_refl.
+
+Notation row := (row num_slots).
+Notation frame := (frame num_rows num_slots).
+
+#[export] Instance Inhabitant_row : Inhabitant row :=
+  Inhabitant_row H_num_slots.
+
+#[export] Instance Inhabitant_frame : Inhabitant frame :=
+  Inhabitant_frame H_num_rows H_num_slots.
 
 (* NoAction *)
 

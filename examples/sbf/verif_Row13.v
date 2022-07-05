@@ -3,8 +3,8 @@ Require Import Poulet4.P4light.Semantics.Semantics.
 Require Import ProD3.core.Core.
 Require Import ProD3.core.Tofino.
 Require Import ProD3.examples.sbf.p4ast.
-Require Import ProD3.examples.sbf.common.
 Require Import ProD3.examples.sbf.ConFilter.
+Require Import ProD3.examples.sbf.common.
 Require Import ProD3.examples.sbf.FilterRepr.
 Require Import Hammer.Plugin.Hammer.
 Import ListNotations.
@@ -55,7 +55,7 @@ Definition Row_insert_spec : func_spec :=
   WITH (* p *),
     PATH p
     MOD (Some [["rw"]]) [p]
-    WITH (r : row num_slots) (i : Z)
+    WITH (r : row) (i : Z)
       (_ : 0 <= i < num_slots),
       PRE
         (ARG []
@@ -123,7 +123,7 @@ Definition Row_query_spec : func_spec :=
   WITH (* p *),
     PATH p
     MOD (Some [["rw"]]) [p]
-    WITH (r : row num_slots) (i : Z)
+    WITH (r : row) (i : Z)
       (_ : 0 <= i < num_slots),
       PRE
         (ARG []
@@ -212,7 +212,7 @@ Definition Row_clear_spec : func_spec :=
   WITH (* p *),
     PATH p
     MOD (Some [["rw"]]) [p]
-    WITH (r : row num_slots) (i : Z)
+    WITH (r : row) (i : Z)
       (_ : 0 <= i < num_slots),
       PRE
         (ARG []
@@ -255,7 +255,7 @@ Definition Row_noop_case_spec : func_spec :=
   WITH (* p *),
     PATH p
     MOD None [p]
-    WITH (r : row num_slots) (i : Z)
+    WITH (r : row) (i : Z)
       (_ : 0 <= i < num_slots),
       PRE
         (ARG [P4Bit 8 NOOP;
@@ -271,7 +271,7 @@ Definition Row_tbl_bloom_noop_spec : func_spec :=
   WITH (* p *),
     PATH p
     MOD (Some [["rw"]]) [p]
-    WITH (r : row num_slots) (i : Z)
+    WITH (r : row) (i : Z)
       (_ : 0 <= i < num_slots),
       PRE
         (ARG []
@@ -318,7 +318,7 @@ Definition Row_insert_case_spec : func_spec :=
   WITH (* p *),
     PATH p
     MOD None [p]
-    WITH (r : row num_slots) (i : Z)
+    WITH (r : row) (i : Z)
       (_ : 0 <= i < num_slots),
       PRE
         (ARG [P4Bit 8 INSERT;
@@ -334,7 +334,7 @@ Definition Row_tbl_bloom_insert_spec : func_spec :=
   WITH (* p *),
     PATH p
     MOD (Some [["rw"]]) [p]
-    WITH (r : row num_slots) (i : Z)
+    WITH (r : row) (i : Z)
       (_ : 0 <= i < num_slots),
       PRE
         (ARG []
@@ -375,7 +375,7 @@ Definition Row_query_case_spec : func_spec :=
   WITH (* p *),
     PATH p
     MOD None [p]
-    WITH (r : row num_slots) (i : Z)
+    WITH (r : row) (i : Z)
       (_ : 0 <= i < num_slots),
       PRE
         (ARG [P4Bit 8 QUERY;
@@ -391,7 +391,7 @@ Definition Row_tbl_bloom_query_spec : func_spec :=
   WITH (* p *),
     PATH p
     MOD (Some [["rw"]]) [p]
-    WITH (r : row num_slots) (i : Z)
+    WITH (r : row) (i : Z)
       (_ : 0 <= i < num_slots),
       PRE
         (ARG []
@@ -433,7 +433,7 @@ Definition Row_clear_case_spec : func_spec :=
   WITH (* p *),
     PATH p
     MOD None [p]
-    WITH (r : row num_slots) (i : Z)
+    WITH (r : row) (i : Z)
       (_ : 0 <= i < num_slots),
       PRE
         (ARG [P4Bit 8 CLEAR;
@@ -449,7 +449,7 @@ Definition Row_tbl_bloom_clear_spec : func_spec :=
   WITH (* p *),
     PATH p
     MOD (Some [["rw"]]) [p]
-    WITH (r : row num_slots) (i : Z)
+    WITH (r : row) (i : Z)
       (_ : 0 <= i < num_slots),
       PRE
         (ARG []

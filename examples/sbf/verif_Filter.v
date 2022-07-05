@@ -1297,8 +1297,7 @@ Ltac solve_modifies :=  first [    solve [eauto 100 with nocore modifies]  | idt
   }
  *)
 
-Abort.
-
+Admitted.
 
 #[local] Hint Extern 5 (func_modifies _ _ _ _ _) => (apply tbl_set_win_insert_body) : func_specs.
 
