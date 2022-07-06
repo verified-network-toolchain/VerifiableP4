@@ -1149,9 +1149,9 @@ Proof.
     rewrite N.eqb_refl. trivial. }
   unfold Tofino.values_match_singleton in IHx |- *. simpl in IHx |- *. rewrite String.eqb_refl.
   eapply IHx; assumption.
-(*   assert (Tofino.values_match_singleton 
+(*   assert (Tofino.values_match_singleton
     (ValBaseSenumField typ_name0 x) (ValBaseSenumField typ_name0 y)
-    = Tofino.values_match_singleton x y). 
+    = Tofino.values_match_singleton x y).
   { unfold Tofino.values_match_singleton. simpl. rewrite String.eqb_refl. trivial. }
   { rewrite H. eapply IHx; assumption. } *)
 Qed.
@@ -1165,7 +1165,7 @@ Proof.
   - eapply IHx; eauto.
 Qed.
 
-(* 
+(*
 Lemma assert_int_div_2 : forall x w x' hd tl,
   Tofino.assert_int x = Some (w, x', hd :: tl) ->
   hd <> true \/ tl <> [] ->
@@ -1174,18 +1174,18 @@ Lemma assert_int_div_2 : forall x w x' hd tl,
 Proof.
   induction x; intros; simpl in H; try discriminate.
   - exists (ValBaseBit tl). simpl. unfold P4Arith.BitArith.from_lbool in *.
-    inv H. f_equal. f_equal. f_equal. 
+    inv H. f_equal. f_equal. f_equal.
     + list_solve.
-    + simpl. 
-      rewrite (P4Arith.BitArith.lbool_to_val_1_0 tl 2 1). 
+    + simpl.
+      rewrite (P4Arith.BitArith.lbool_to_val_1_0 tl 2 1).
       rewrite (P4Arith.BitArith.lbool_to_val_1_0 tl 2 0).
       destruct hd; rewrite Z.div_add_l by lia; rewrite Z.div_small by lia; lia.
   - exists (ValBaseInt tl). simpl. unfold P4Arith.IntArith.from_lbool in *.
-    inv H. f_equal. f_equal. f_equal. 
+    inv H. f_equal. f_equal. f_equal.
     + list_solve.
-    +  simpl. rewrite (P4Arith.IntArith.lbool_to_val_1_0 tl 2 1). 
+    +  simpl. rewrite (P4Arith.IntArith.lbool_to_val_1_0 tl 2 1).
       rewrite (P4Arith.IntArith.lbool_to_val_1_0 tl 2 0). simpl.
-      destruct hd, tl. 
+      destruct hd, tl.
       2, 4: rewrite Z.div_add_l by lia; rewrite Z.div_small by lia; lia.
       1: destruct H0; exfalso; now apply H.
       simpl; compute; easy.
@@ -1193,29 +1193,29 @@ Proof.
 Qed.
 
 
-Lemma z_odd_bool : forall x w x' hd tl, 
+Lemma z_odd_bool : forall x w x' hd tl,
    Tofino.assert_int x = Some (w, x', hd :: tl) ->
    hd = Z.odd x'.
 Proof.
   induction x; intros; simpl in H; try discriminate.
   - unfold P4Arith.BitArith.from_lbool in H.
     inv H. simpl. destruct hd.
-    + rewrite (P4Arith.BitArith.lbool_to_val_1_0 tl 2 1). 
+    + rewrite (P4Arith.BitArith.lbool_to_val_1_0 tl 2 1).
       replace (P4Arith.BitArith.lbool_to_val tl 1 0 * 2 + 1) with
       (1 + 2 * P4Arith.BitArith.lbool_to_val tl 1 0 ) by lia.
       now rewrite Z.odd_add_mul_2.
     + rewrite (P4Arith.BitArith.lbool_to_val_1_0 tl 2 0).
       replace (P4Arith.BitArith.lbool_to_val tl 1 0 * 2 + 0) with
-      (0 + 2 * P4Arith.BitArith.lbool_to_val tl 1 0 ) by lia. 
-      now rewrite Z.odd_add_mul_2. 
+      (0 + 2 * P4Arith.BitArith.lbool_to_val tl 1 0 ) by lia.
+      now rewrite Z.odd_add_mul_2.
   - unfold P4Arith.IntArith.from_lbool in H.
-    inv H. simpl. destruct hd, tl. 
+    inv H. simpl. destruct hd, tl.
     1, 3: easy.
-    + rewrite (P4Arith.IntArith.lbool_to_val_1_0 (b :: tl) 2 1). 
+    + rewrite (P4Arith.IntArith.lbool_to_val_1_0 (b :: tl) 2 1).
       replace (P4Arith.IntArith.lbool_to_val (b :: tl) 1 0 * 2 + 1) with
       (1 + 2 * P4Arith.IntArith.lbool_to_val (b :: tl) 1 0 ) by lia.
       now rewrite Z.odd_add_mul_2.
-    + rewrite (P4Arith.IntArith.lbool_to_val_1_0 (b :: tl) 2 0). 
+    + rewrite (P4Arith.IntArith.lbool_to_val_1_0 (b :: tl) 2 0).
       replace (P4Arith.IntArith.lbool_to_val (b :: tl) 1 0 * 2 + 0) with
       (0 + 2 * P4Arith.IntArith.lbool_to_val (b :: tl) 1 0 ) by lia.
       now rewrite Z.odd_add_mul_2.
@@ -1239,7 +1239,7 @@ Proof.
   try list_solve.
   assert (a = Z.odd x' /\ xb = P4Arith.to_lbool (w - 1) (x' / 2)).
   { unfold P4Arith.to_lbool in H1 |- *.
-    rewrite <- to_lbool''_to_lbool' in H1 |- *. 
+    rewrite <- to_lbool''_to_lbool' in H1 |- *.
     replace (N.to_nat w) with (S (N.to_nat (w - 1))) in H1.
     2 : { assert (w > 0)%N by list_solve. lia. }
     (* lia seems more powerful than I thought *)
@@ -1344,7 +1344,7 @@ Qed.
   match bits2, bits1 with
   | [], [] => true
   | false::tl2, _::tl1 => vmm_help_z' (v / 2) tl1 tl2
-  | true::tl2, hd1::tl1 => 
+  | true::tl2, hd1::tl1 =>
       andb (Bool.eqb (Z.odd v) hd1) (vmm_help_z' (v / 2) tl1 tl2)
   | _, _ => Tofino.dummy_bool
   end.
@@ -1358,26 +1358,26 @@ Proof. reflexivity.
   Tofino.assert_int x = Some (w, x', xb) ->
   Tofino.vmm_help xb vb mb = Tofino.vmm_help_z x' vb mb.
 Proof.
-  induction xb; 
+  induction xb;
   destruct vb;
   destruct mb; intros;
   try (unfold Tofino.vmm_help_z; easy);
   try (apply assert_int_len in H1; list_solve).
   assert (Tofino.vmm_help xb vb mb = Tofino.vmm_help_z (x' / 2) vb mb).
   {
-    destruct a, xb; 
+    destruct a, xb;
     try (
       apply assert_int_len in H1;
       assert (mb = []) by list_solve;
       assert (vb = []) by list_solve; subst mb; subst vb; simpl;
       easy).
-    destruct (assert_int_div_2 _ _ _ _ _ H1). right. intros S. inv S. 
+    destruct (assert_int_div_2 _ _ _ _ _ H1). right. intros S. inv S.
     eapply IHxb.
     instantiate (1 := (w - 1)%N).
     { list_solve. }
     { list_solve. }
     { eauto. }
-    destruct (assert_int_div_2 _ _ _ _ _ H1). right. intros S. inv S. 
+    destruct (assert_int_div_2 _ _ _ _ _ H1). right. intros S. inv S.
     eapply IHxb.
     instantiate (1 := (w - 1)%N).
     { list_solve. }
@@ -1395,7 +1395,7 @@ Qed. *)
   Tofino.assert_int m = Some (w, m', mb) ->
   Tofino.values_match_mask x v m = Tofino.vmm_help_z x' vb mb.
 Proof.
-  intros. 
+  intros.
   unfold Tofino.values_match_mask; rewrite H, H0, H1; rewrite N.eqb_refl; simpl.
   apply assert_int_conv in H.
   apply assert_int_len in H0, H1.
@@ -1443,9 +1443,9 @@ Ltac Tactics.hoare_func_table ::=
 
   start_function.
 
-(*   econstructor. econstructor. econstructor. econstructor. econstructor. econstructor. econstructor. 
-  apply sval_to_val_eval_p4int_sval. econstructor. econstructor. econstructor. econstructor. 
-  econstructor. econstructor. 
+(*   econstructor. econstructor. econstructor. econstructor. econstructor. econstructor. econstructor.
+  apply sval_to_val_eval_p4int_sval. econstructor. econstructor. econstructor. econstructor.
+  econstructor. econstructor.
  *)
 (* Ltac foo := lazymatch goal with  | |- ?x = ?y =>      unify x y  end. *)
 
@@ -1460,7 +1460,7 @@ Ltac Tactics.hoare_func_table ::=
 
 
 (* To be expanded *)
-(* test examples: 
+(* test examples:
    different conditions for simpl_match_cond
 
 Ltac foo H :=  let t := type of H in  idtac t.foo H.
@@ -1520,7 +1520,7 @@ Ltac hoare_table_action_cases' :=
 
   hoare_table_action_cases'.
 
-(* constructor : 
+(* constructor :
    reduction as strong as Hnf (apply/reflexivity: certain form in mind) *)
 
   (* admit.
@@ -1573,10 +1573,10 @@ Ltac solve_modifies :=  first [    solve [eauto 100 with nocore modifies]  | idt
 
   table_action act_set_clear_win_1_body.
   { entailer. }
-  { replace (get_clear_frame timer) with 0. 
+  { replace (get_clear_frame timer) with 0.
     2 : {
       unfold get_clear_frame.
-      destruct (fst timer =? frame_time * num_frames) eqn:?. 
+      destruct (fst timer =? frame_time * num_frames) eqn:?.
       unfold is_true in *; rep_lia.
       symmetry.
       eapply Z_div_squeeze with 0 7033; auto; rep_lia.
@@ -1600,7 +1600,7 @@ Proof.
 Simpl: more heuristics in what to unfold.
        make more decisions.
        exponential time? 70 seconds
-       no evaluation order => maybe evaluation before patternmatching => 
+       no evaluation order => maybe evaluation before patternmatching =>
          unnecessary branching and computation
 Bool.eqb
        (Z.odd
@@ -1620,7 +1620,7 @@ H0 : (if
       else false) = true *)
 
 
-  next_case'.
+(*  next_case'.
   { simpl in H0.
     replace (Z.odd (tstamp / 2097152)) with false by admit.
     table_action act_clear_window_signal_0_body.
@@ -1636,7 +1636,7 @@ H0 : (if
     { auto. }
     { entailer. }
   }
-  (* This case should be impossible. *)
+  This case should be impossible. *)
   admit.
 Admitted.
 
