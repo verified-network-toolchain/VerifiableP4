@@ -809,7 +809,6 @@ Proof.
     destruct (cfil_clear_idx + num_slots - Z.min num_slots num_clrs <? num_slots) eqn:?H;
       list_solve.
   }
-  Unshelve. exact 0.
 Qed.
 
 Lemma frame_query_normal_unfold:
@@ -898,7 +897,6 @@ Proof.
     pose proof (frame_query_normal_unfold (Znth i normal_frs) h).
     rewrite Znth_map in H2 by list_solve. eapply frame_query_sound in H4; eauto. rewrite <- H4, Heql.
     clear -H H0 H1 H3. list_solve.
-    Unshelve. exact 0.
 Qed.
 
 Lemma filter_clear_sound: forall f cf th f',
@@ -955,7 +953,6 @@ Proof.
       clear -H5 H2 H11 H3 H6.
       destruct (cfil_clear_idx + num_slots - Z.min num_slots num_clrs <? num_slots) eqn:?H;
         list_solve.
-      Unshelve. exact 0.
 Qed.
 
 End Frame.

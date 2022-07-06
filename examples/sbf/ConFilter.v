@@ -124,6 +124,7 @@ Definition update_clear_index (i : Z) :=
 Lemma update_clear_index_wf: forall i, clear_index_wf i -> clear_index_wf (update_clear_index i).
 Proof.
   intros. red in H |- *. unfold update_clear_index.
+  clear -H.
   destruct (i + 1 =? num_slots) eqn: ?H; lia.
 Qed.
 
