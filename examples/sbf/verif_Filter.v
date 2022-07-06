@@ -1271,14 +1271,90 @@ Proof.
   - eapply IHxb with (w := (w - 1)%N); list_solve.
 Qed.
 
-Compute (P4Arith.to_lbool (fst (P4Arith.IntArith.from_lbool [])) (snd (P4Arith.IntArith.from_lbool []))).
+Lemma to_lbool''_to_lbool : forall (width : N) (value : Z),
+  to_lbool'' (N.to_nat width) value = P4Arith.to_lbool width value.
+Proof.
+  intros.
+  apply to_lbool''_to_lbool'.
+Qed.
+
+Lemma bit_to_from_bool : forall bl,
+  P4Arith.to_lbool (fst (P4Arith.BitArith.from_lbool bl)) (snd (P4Arith.BitArith.from_lbool bl)) = bl.
+Proof.
+  intros.
+  rewrite <- to_lbool''_to_lbool.
+  induction bl; auto.
+  simpl.
+  replace (N.to_nat (Z.to_N (Zlength (a :: bl)))) with (S (N.to_nat (Z.to_N (Zlength bl)))) by list_solve.
+  simpl to_lbool''.
+  destruct a; rewrite P4Arith.BitArith.lbool_to_val_1_0.
+  - f_equal.
+    { replace (P4Arith.BitArith.lbool_to_val bl 1 0 * 2 + 1) with
+        (1 + 2 * P4Arith.BitArith.lbool_to_val bl 1 0) by lia.
+      rewrite Z.odd_add_mul_2; auto.
+    }
+    rewrite Z.div_add_l by lia.
+    replace (1 / 2) with 0 by auto.
+    rewrite Z.add_0_r.
+    apply IHbl.
+  - f_equal.
+    { replace (P4Arith.BitArith.lbool_to_val bl 1 0 * 2 + 0) with
+        (0 + 2 * P4Arith.BitArith.lbool_to_val bl 1 0) by lia.
+      rewrite Z.odd_add_mul_2; auto.
+    }
+    rewrite Z.div_add_l by lia.
+    replace (0 / 2) with 0 by auto.
+    rewrite Z.add_0_r.
+    apply IHbl.
+Qed.
+
+Lemma int_to_from_bool : forall bl,
+  P4Arith.to_lbool (fst (P4Arith.IntArith.from_lbool bl)) (snd (P4Arith.IntArith.from_lbool bl)) = bl.
+Proof.
+  intros.
+  rewrite <- to_lbool''_to_lbool.
+  induction bl; auto.
+  simpl.
+  replace (N.to_nat (Z.to_N (Zlength (a :: bl)))) with (S (N.to_nat (Z.to_N (Zlength bl)))) by list_solve.
+  simpl to_lbool''.
+  destruct a; rewrite P4Arith.IntArith.lbool_to_val_1_0.
+  - f_equal.
+    { destruct bl as [ | b bl']; auto.
+      set (bl := b :: bl') in *.
+      replace (P4Arith.IntArith.lbool_to_val bl 1 0 * 2 + 1) with
+        (1 + 2 * P4Arith.IntArith.lbool_to_val bl 1 0) by lia.
+      rewrite Z.odd_add_mul_2; auto.
+    }
+    destruct bl as [ | b bl']; auto.
+    set (bl := b :: bl') in *.
+    rewrite Z.div_add_l by lia.
+    replace (1 / 2) with 0 by auto.
+    rewrite Z.add_0_r.
+    apply IHbl.
+  - f_equal.
+    { destruct bl as [ | b bl']; auto.
+      set (bl := b :: bl') in *.
+      replace (P4Arith.IntArith.lbool_to_val bl 1 0 * 2 + 0) with
+        (0 + 2 * P4Arith.IntArith.lbool_to_val bl 1 0) by lia.
+      rewrite Z.odd_add_mul_2; auto.
+    }
+    destruct bl as [ | b bl']; auto.
+    set (bl := b :: bl') in *.
+    rewrite Z.div_add_l by lia.
+    replace (0 / 2) with 0 by auto.
+    rewrite Z.add_0_r.
+    apply IHbl.
+Qed.
 
 Lemma assert_int_conv : forall w x x' xb,
   Tofino.assert_int x = Some (w, x', xb) ->
   P4Arith.to_lbool w x' = xb.
 Proof.
-  induction x; intros; simpl in H; try discriminate.
-Admitted.
+  induction x; intros; simpl in H; try discriminate; inv H.
+  - apply bit_to_from_bool.
+  - apply int_to_from_bool.
+  - auto.
+Qed.
 
 (* Fixpoint vmm_help_z' (v : Z) (bits1 bits2: list bool) :=
   match bits2, bits1 with
