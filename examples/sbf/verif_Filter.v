@@ -1147,12 +1147,13 @@ Proof.
     remember (P4Arith.IntArith.from_lbool value0) as z0_name. inv H1.
     remember (P4Arith.IntArith.from_lbool value) as z_name. inv H0.
     rewrite N.eqb_refl. trivial. }
-
-  assert (Tofino.values_match_singleton 
+  unfold Tofino.values_match_singleton in IHx |- *. simpl in IHx |- *. rewrite String.eqb_refl.
+  eapply IHx; assumption.
+(*   assert (Tofino.values_match_singleton 
     (ValBaseSenumField typ_name0 x) (ValBaseSenumField typ_name0 y)
     = Tofino.values_match_singleton x y). 
   { unfold Tofino.values_match_singleton. simpl. rewrite String.eqb_refl. trivial. }
-  { rewrite H. eapply IHx; assumption. }
+  { rewrite H. eapply IHx; assumption. } *)
 Qed.
 
 Lemma assert_int_len : forall x w x' xb,
@@ -1164,6 +1165,7 @@ Proof.
   - eapply IHx; eauto.
 Qed.
 
+(* 
 Lemma assert_int_div_2 : forall x w x' hd tl,
   Tofino.assert_int x = Some (w, x', hd :: tl) ->
   hd <> true \/ tl <> [] ->
@@ -1218,9 +1220,9 @@ Proof.
       (0 + 2 * P4Arith.IntArith.lbool_to_val (b :: tl) 1 0 ) by lia.
       now rewrite Z.odd_add_mul_2.
   - eapply IHx; eauto.
-Qed.
+Qed. *)
 
-Lemma vmm_help_eq_aux : forall xb vb mb w x',
+Lemma vmm_help_eq : forall xb vb mb w x',
   Z.to_N (Zlength vb) = w ->
   Z.to_N (Zlength mb) = w ->
   P4Arith.to_lbool w x' = xb ->
@@ -1350,14 +1352,12 @@ Goal vmm_help_z' = Tofino.vmm_help_z.
 Proof. reflexivity.
  *)
 
-Lemma vmm_help_eq : forall xb vb mb x w x',
+(* Lemma vmm_help_eq : forall xb vb mb x w x',
   Z.to_N (Zlength vb) = w ->
   Z.to_N (Zlength mb) = w ->
   Tofino.assert_int x = Some (w, x', xb) ->
   Tofino.vmm_help xb vb mb = Tofino.vmm_help_z x' vb mb.
 Proof.
-
-
   induction xb; 
   destruct vb;
   destruct mb; intros;
@@ -1387,9 +1387,9 @@ Proof.
   destruct b0; simpl; auto.
   erewrite <- z_odd_bool; eauto.
   destruct (Bool.eqb a b) eqn: ?H; auto.
-Qed.
+Qed. *)
 
-Lemma reduce_match_mask: forall w x v m x' v' m' xb vb mb ,
+(* Lemma reduce_match_mask: forall w x v m x' v' m' xb vb mb ,
   Tofino.assert_int x = Some (w, x', xb) ->
   Tofino.assert_int v = Some (w, v', vb) ->
   Tofino.assert_int m = Some (w, m', mb) ->
@@ -1397,10 +1397,20 @@ Lemma reduce_match_mask: forall w x v m x' v' m' xb vb mb ,
 Proof.
   intros. 
   unfold Tofino.values_match_mask; rewrite H, H0, H1; rewrite N.eqb_refl; simpl.
-  eapply vmm_help_eq; apply assert_int_len in H0, H1.
-  apply H0. 
-  apply H1.
-  apply H.
+  apply assert_int_conv in H.
+  apply assert_int_len in H0, H1.
+  eapply vmm_help_eq; eauto.
+Qed. *)
+
+Lemma reduce_match_mask: forall w x v m x' v' m' xb vb mb,
+  Tofino.assert_int x = Some (w, x', xb) ->
+  Tofino.assert_int v = Some (w, v', vb) ->
+  Tofino.assert_int m = Some (w, m', mb) ->
+  Tofino.values_match_mask x v m = Tofino.vmm_help xb vb mb.
+Proof.
+  intros.
+  unfold Tofino.values_match_mask; rewrite H, H0, H1; rewrite N.eqb_refl; simpl.
+  auto.
 Qed.
 
 (*
@@ -1446,11 +1456,19 @@ Ltac Tactics.hoare_func_table ::=
   end. *)
   simpl Tofino.extern_matches.
   (* quadratic time Time (tactic ; tactic) *)
+(* quadratic time Time (tactic ; tactic) *)
 
+
+(* To be expanded *)
+(* test examples: 
+   different conditions for simpl_match_cond
+
+Ltac foo H :=  let t := type of H in  idtac t.foo H.
+    *)
 Ltac solve_assert_int :=
   simpl; rewrite P4Arith.bit_from_to_bool;
   unfold P4Arith.BitArith.mod_bound;
-  rewrite Z.mod_small by (unfold P4Arith.BitArith.upper_bound; rep_lia);
+  try rewrite Z.mod_small by (unfold P4Arith.BitArith.upper_bound; rep_lia);
   reflexivity.
 
 Ltac simpl_match_cond cond :=
@@ -1476,8 +1494,10 @@ Ltac simpl_match_cond cond :=
       | solve_assert_int
       | compute; reflexivity
       | compute; reflexivity
-      ]
+      ];
+      cbv - [Bool.eqb Z.odd Z.div] in cond
   end.
+(* cbv -[Bool.eqb Z.odd Z.div] in cond *)
 
 Ltac hoare_table_action_cases' :=
   first [
@@ -1520,11 +1540,10 @@ Ltac hoare_table_action_cases' :=
   admit.
   admit.
   admit.
-  *)
 
 (* [&& entry, entry, entry, entry ] *)
 
-  (* apply hoare_table_action_cases'_cons.
+  apply hoare_table_action_cases'_cons.
   simpl.
 
   simpl_match_cond.
@@ -1563,8 +1582,62 @@ Ltac solve_modifies :=  first [    solve [eauto 100 with nocore modifies]  | idt
       eapply Z_div_squeeze with 0 7033; auto; rep_lia.
     }
     entailer.
-  } *)
+  }
+ *)
 
+Admitted.
+
+
+Lemma tbl_clear_window_body' :
+  func_sound ge tbl_clear_window_fd nil tbl_clear_window_spec.
+Proof.
+  start_function.
+  simpl Tofino.extern_matches.
+  hoare_table_action_cases'.
+
+
+(*
+Simpl: more heuristics in what to unfold.
+       make more decisions.
+       exponential time? 70 seconds
+       no evaluation order => maybe evaluation before patternmatching => 
+         unnecessary branching and computation
+Bool.eqb
+       (Z.odd
+          (tstamp_mod / 2 / 2 / 2 / 2 / 2 / 2 / 2 / 2 / 2 / 2 / 2 / 2 / 2 /
+           2 / 2 / 2 / 2 / 2 / 2 / 2 / 2)) false && true
+
+Call by value: unfold Bool.eqb and && true
+               more computation
+H0 : (if
+       if
+        Z.odd
+          (tstamp_mod / 2 / 2 / 2 / 2 / 2 / 2 / 2 / 2 / 2 / 2 / 2 / 2 / 2 /
+           2 / 2 / 2 / 2 / 2 / 2 / 2 / 2)
+       then false
+       else true
+      then true
+      else false) = true *)
+
+
+  next_case'.
+  { simpl in H0.
+    replace (Z.odd (tstamp / 2097152)) with false by admit.
+    table_action act_clear_window_signal_0_body.
+    { entailer. }
+    { auto. }
+    { entailer. }
+  }
+  next_case'.
+  { simpl in H1.
+    replace (Z.odd (tstamp / 2097152)) with true by admit.
+    table_action act_clear_window_signal_1_body.
+    { entailer. }
+    { auto. }
+    { entailer. }
+  }
+  (* This case should be impossible. *)
+  admit.
 Admitted.
 
 #[local] Hint Extern 5 (func_modifies _ _ _ _ _) => (apply tbl_set_win_insert_body) : func_specs.
