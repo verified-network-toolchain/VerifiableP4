@@ -696,14 +696,14 @@ Proof.
         eapply odd_div_false_le_t; eauto. apply Z.divide_sub_r; auto.
       * split. 1: lia. rewrite <- Z.add_assoc. simpl Z.add. eapply odd_div_false_t_lt; eauto. 2: lia.
         apply Z.divide_sub_r; auto.
-    + rewrite Heqci. rewrite Heqnew_timer. rewrite <- get_clear_frame_update_eq; auto. lia.
+    + rewrite Heqci. rewrite Heqnew_timer. rewrite <- get_clear_frame_update_eq; auto.
 Qed.
 
 Lemma filter_insert_sound: forall f cf th f',
     filter_sim f cf ->
     filter_insert f th = Some f' ->
-    filter_sim f' (ConFilter.filter_insert H_num_frames0 H_num_rows H_num_slots frame_tick_tocks H_frame_tick_tocks0
-                     cf (Z.odd (fst th / tick_time)) (map_hashes (snd th))).
+    filter_sim f' (ConFilter.filter_insert H_num_frames0 H_num_rows H_num_slots
+                     frame_tick_tocks cf (Z.odd (fst th / tick_time)) (map_hashes (snd th))).
 Proof.
   intros.
   unfold filter_insert in H0. destruct th as [timestamp h].
@@ -740,7 +740,7 @@ Proof.
               (exist (fun i : list Z => Zlength i = num_rows)
                  (Zrepeat cfil_clear_idx num_rows)
                  (ConFilter.filter_insert_obligation_1 H_num_frames0 H_num_rows
-                    frame_tick_tocks H_frame_tick_tocks0
+                    frame_tick_tocks
                     {|
                       fil_frames :=
                         exist
@@ -809,6 +809,7 @@ Proof.
     destruct (cfil_clear_idx + num_slots - Z.min num_slots num_clrs <? num_slots) eqn:?H;
       list_solve.
   }
+  Unshelve. exact 0.
 Qed.
 
 Lemma frame_query_normal_unfold:
@@ -825,8 +826,8 @@ Qed.
 Lemma filter_query_sound: forall f cf th f' res,
     filter_sim f cf ->
     filter_query f th = Some (f', res) ->
-    let '(cf', cres) := (ConFilter.filter_query H_num_frames0 H_num_rows H_num_slots frame_tick_tocks H_frame_tick_tocks0
-                         cf (Z.odd (fst th / tick_time)) (map_hashes (snd th))) in
+    let '(cf', cres) := (ConFilter.filter_query H_num_frames0 H_num_rows H_num_slots
+                           frame_tick_tocks cf (Z.odd (fst th / tick_time)) (map_hashes (snd th))) in
     filter_sim f' cf' /\ res = cres.
 Proof.
   intros.
@@ -849,7 +850,7 @@ Proof.
   set (cleared_cf := (ConFilter.frame_clear (Znth cf cframes)
                         (exist (fun i : list Z => Zlength i = num_rows) (Zrepeat cfil_clear_idx num_rows)
                            (ConFilter.filter_query_obligation_1 H_num_frames0 H_num_rows frame_tick_tocks
-                              H_frame_tick_tocks0
+
                               {|
                                 fil_frames :=
                                   exist
@@ -897,13 +898,13 @@ Proof.
     pose proof (frame_query_normal_unfold (Znth i normal_frs) h).
     rewrite Znth_map in H2 by list_solve. eapply frame_query_sound in H4; eauto. rewrite <- H4, Heql.
     clear -H H0 H1 H3. list_solve.
+    Unshelve. exact 0.
 Qed.
 
 Lemma filter_clear_sound: forall f cf th f',
     filter_sim f cf ->
     filter_clear f th = Some f' ->
-    filter_sim f' (ConFilter.filter_clear H_num_frames0 H_num_rows H_num_slots frame_tick_tocks H_frame_tick_tocks0
-                     cf (Z.odd (fst th / tick_time)) (map_hashes (snd th))).
+    filter_sim f' (ConFilter.filter_clear H_num_frames0 H_num_rows H_num_slots frame_tick_tocks cf (Z.odd (fst th / tick_time)) (map_hashes (snd th))).
 Proof.
   intros.
   unfold filter_clear in H0. destruct th as [timestamp h].
@@ -925,7 +926,6 @@ Proof.
   set (cleared_cf := ConFilter.frame_clear (Znth cf cframes)
                        (exist (fun i : list Z => Zlength i = num_rows) (Zrepeat cfil_clear_idx num_rows)
                           (ConFilter.filter_clear_obligation_1 H_num_frames0 H_num_rows frame_tick_tocks
-                             H_frame_tick_tocks0
                              {|
                                fil_frames :=
                                  exist
@@ -955,6 +955,7 @@ Proof.
       clear -H5 H2 H11 H3 H6.
       destruct (cfil_clear_idx + num_slots - Z.min num_slots num_clrs <? num_slots) eqn:?H;
         list_solve.
+      Unshelve. exact 0.
 Qed.
 
 End Frame.

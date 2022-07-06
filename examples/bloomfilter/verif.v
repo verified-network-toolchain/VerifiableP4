@@ -225,8 +225,8 @@ Proof.
     inv H6. inv H3. inv H5. inv H4. inv H7. inv H8. inv H5.
     apply Members.Forall2_bit_refine_Some_same' in H2, H4. subst. inv H0. inv H7.
     simpl in H. inv H. simpl. red. split; [|split]; auto.
-    + Opaque to_lbool. inv H4. inv H6. inv H8. inv H4. apply Forall2_ndetbit in H2.
-      inv H7. inv H6. inv H10. inv H8. inv H6. apply Forall2_ndetbit in H4. subst.
+    + Opaque to_lbool. inv H4. inv H6. inv H8. inv H4. apply ValueUtil.Forall2_ndetbit in H2.
+      inv H7. inv H6. inv H10. inv H8. inv H6. apply ValueUtil.Forall2_ndetbit in H4. subst.
       inv H13. inv H7. constructor. 2: constructor. unfold bound_hash_output in H4.
       rewrite !bit_from_to_bool in H4. vm_compute in H5. inv H5.
       apply Forall2_bit_refine_eval_val_eq in H3. subst lv'.
