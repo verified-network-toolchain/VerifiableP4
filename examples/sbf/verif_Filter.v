@@ -3,13 +3,13 @@ Require Import Poulet4.P4light.Semantics.Semantics.
 Require Import ProD3.core.Core.
 Require Import ProD3.core.Tofino.
 Require Import ProD3.examples.sbf.p4ast.
-Require Import ProD3.examples.sbf.common.
 Require Import ProD3.examples.sbf.ConFilter.
+Require Import ProD3.examples.sbf.common.
 Require Import ProD3.examples.sbf.FilterRepr.
-(* Require Import ProD3.examples.sbf.verif_Win1.
+Require Import ProD3.examples.sbf.verif_Win1.
 Require Import ProD3.examples.sbf.verif_Win2.
 Require Import ProD3.examples.sbf.verif_Win3.
-Require Import ProD3.examples.sbf.verif_Win4. *)
+Require Import ProD3.examples.sbf.verif_Win4.
 Require Import Hammer.Plugin.Hammer.
 Require Export Coq.Program.Program.
 Import ListNotations.
@@ -172,22 +172,8 @@ Qed.
 Definition tbl_hash_index_2_fd :=
   ltac:(get_fd ["Bf2BloomFilter"; "tbl_hash_index_2"; "apply"] ge).
 
-Definition tbl_hash_index_2_spec : func_spec :=
-  WITH (* p *),
-    PATH p
-    MOD (Some [["ds_md"]; ["act_hash_index_2"; "t'1"]]) []
-    WITH (key : Val) (ds_md : Sval),
-      PRE
-        (ARG []
-        (MEM [(["ds_key"], eval_val_to_sval key); (["ds_md"], ds_md)]
-        (EXT [])))
-      POST
-        (ARG_RET [] ValBaseNull
-        (MEM [(["ds_md"], update "hash_index_2" (P4Bit 18 (hash1 key)) ds_md)]
-        (EXT []))).
-
 Lemma tbl_hash_index_2_body :
-  func_sound ge tbl_hash_index_2_fd nil tbl_hash_index_2_spec.
+  func_sound ge tbl_hash_index_2_fd nil act_hash_index_2_spec.
 Proof.
 Admitted.
 
@@ -246,22 +232,8 @@ Qed.
 Definition tbl_hash_index_3_fd :=
   ltac:(get_fd ["Bf2BloomFilter"; "tbl_hash_index_3"; "apply"] ge).
 
-Definition tbl_hash_index_3_spec : func_spec :=
-  WITH (* p *),
-    PATH p
-    MOD (Some [["ds_md"]; ["act_hash_index_3"; "t'2"]]) []
-    WITH (key : Val) (ds_md : Sval),
-      PRE
-        (ARG []
-        (MEM [(["ds_key"], eval_val_to_sval key); (["ds_md"], ds_md)]
-        (EXT [])))
-      POST
-        (ARG_RET [] ValBaseNull
-        (MEM [(["ds_md"], update "hash_index_3" (P4Bit 18 (hash1 key)) ds_md)]
-        (EXT []))).
-
 Lemma tbl_hash_index_3_body :
-  func_sound ge tbl_hash_index_3_fd nil tbl_hash_index_3_spec.
+  func_sound ge tbl_hash_index_3_fd nil act_hash_index_3_spec.
 Proof.
 Admitted.
 
@@ -303,8 +275,7 @@ Definition act_clear_index_spec : func_spec :=
   WITH (* p *),
     PATH p
     MOD (Some [["ds_md"]; ["act_clear_index"; "t'3"]]) [p ++ ["reg_clear_index"]]
-    WITH (i : Z) (ds_md : Sval)
-      (_ : 0 <= i < num_slots),
+    WITH (i : Z) (ds_md : Sval),
       PRE
         (ARG []
         (MEM [(["ds_md"], ds_md)]
@@ -348,7 +319,8 @@ Proof.
     apply ext_implies_prop_intro.
     unfold update_clear_index.
     change (Z.pow_pos 2 18) with (2 ^ Z.of_N 18).
-    rewrite Zplus_mod, H0. clear H0.
+    assert (0 <= i < num_slots) by (subst; apply Z.mod_pos_bound; reflexivity).
+    rewrite Zplus_mod, H. clear H.
     destruct (i + 1 =? num_slots) eqn:?H.
     - assert (i = num_slots - 1) by lia.
       subst; auto.
@@ -356,6 +328,16 @@ Proof.
       unfold num_slots in *; lia.
   }
 Qed.
+
+Definition tbl_clear_index_fd :=
+  ltac:(get_fd ["Bf2BloomFilter"; "tbl_clear_index"; "apply"] ge).
+
+Lemma tbl_clear_index_body :
+  func_sound ge tbl_clear_index_fd nil act_clear_index_spec.
+Proof.
+Admitted.
+
+#[local] Hint Extern 5 (func_modifies _ _ _ _ _) => (apply tbl_clear_index_body) : func_specs.
 
 Definition regact_clear_window_signal_0_apply_fd :=
   ltac:(get_am_fd ge am_ge (p ++ ["regact_clear_window_signal_0"; "apply"]) ge).
@@ -1538,10 +1520,11 @@ Ltac hoare_table_action_cases' :=
   admit.
   admit.
   admit.
+  *)
 
 (* [&& entry, entry, entry, entry ] *)
 
-  apply hoare_table_action_cases'_cons.
+  (* apply hoare_table_action_cases'_cons.
   simpl.
 
   simpl_match_cond.
@@ -1580,8 +1563,7 @@ Ltac solve_modifies :=  first [    solve [eauto 100 with nocore modifies]  | idt
       eapply Z_div_squeeze with 0 7033; auto; rep_lia.
     }
     entailer.
-  }
- *)
+  } *)
 
 Admitted.
 
@@ -1609,16 +1591,117 @@ Definition Filter_insert_spec : func_spec :=
         (MEM []
         (EXT [filter_repr p 18 panes rows (filter_insert cf (Z.odd (tstamp/2097152)) (hashes key))]))).
 
+Ltac simpl_assertion ::=
+  cbn [
+    (* First, most basic definitions for comparison. *)
+    bool_rect bool_rec Bool.bool_dec Ascii.ascii_rect Ascii.ascii_rec Ascii.ascii_dec sumbool_rect
+    sumbool_rec string_rect string_rec string_dec EquivUtil.StringEqDec EquivDec.equiv_dec EquivDec.list_eqdec
+    in_dec path_eq_dec list_eq_dec Datatypes.list_rec list_rect negb is_left
+
+    is_some isSome
+
+    P4String.str
+
+    app find find
+
+    fst snd force map lift_option
+
+    lift_option_kv kv_map option_map List.filter
+
+    AList.set AList.set_some AList.get
+
+    filter_in Semantics.is_in flat_map
+
+    eval_write_vars fold_left eval_write_var AList.set_some combine
+
+    Members.update Members.get
+
+    exclude
+
+    ext_exclude eq_rect Result.Result.forallb].
+
+Lemma Zlength_0_nil {A} : forall (al : list A),
+  Zlength al = 0 ->
+  al = nil.
+Proof.
+  intros. destruct al; list_solve.
+Qed.
+
+Lemma Zlength_gt_0_destruct {A} : forall (al : list A) n,
+  Zlength al = n ->
+  0 < n ->
+  exists x al', al = x :: al' /\ Zlength al' = n - 1.
+Proof.
+  intros.
+  destruct al; only 1 : list_solve.
+  assert (Zlength al = n - 1) by list_solve.
+  eauto.
+Qed.
+
+Lemma Zlength_lt_0_False {A} : forall (al : list A) n,
+  Zlength al = n ->
+  0 > n ->
+  False.
+Proof.
+  intros. list_solve.
+Qed.
+
 Lemma Filter_insert_body :
   func_sound ge Filter_fd nil Filter_insert_spec.
 Proof.
   intros_fs_bind; split. 2 : admit.
   init_function.
-  step.
-  step_call tbl_hash_index_1_body.
+  destruct cf as [[ps ?H] ? ?].
+
+Ltac destruct_list xs :=
+  lazymatch goal with
+  | H : Zlength xs = ?n |- _ =>
+      let n' := eval compute in n in
+      lazymatch n' with
+      | Z0 => apply Zlength_0_nil in H; subst xs
+      | Zpos _ =>
+          first [ (* in case of H is used somewhere else *)
+            apply Zlength_gt_0_destruct in H; only 2 : reflexivity;
+            let xs' := fresh "xs" in
+            destruct H as [?x [xs' []]]; subst xs; destruct_list xs'
+          | let H' := fresh in
+            pose proof H as H';
+            apply Zlength_gt_0_destruct in H'; only 2 : reflexivity;
+            let xs' := fresh "xs" in
+            destruct H' as [?x [xs' []]]; subst xs; destruct_list xs'
+          ]
+      | Zneg _ =>
+          first [ (* in case of H is used somewhere else *)
+            apply Zlength_lt_0_False in H; only 2 : reflexivity;
+            inversion H
+          | let H' := fresh in
+            pose proof H as H';
+            apply Zlength_lt_0_False in H'; only 2 : reflexivity;
+            inversion H'
+          ]
+      end
+  | _ =>
+      idtac "Length of" xs "is not found"
+  end.
+  unfold filter_repr.
+  cbn [proj1_sig] in *.
+  destruct_list ps.
+  normalize_EXT.
+  Time step.
+  Time step_call tbl_hash_index_1_body.
   { entailer. }
+  Time simpl_assertion.
   step_call tbl_hash_index_2_body.
   { entailer. }
+  Time simpl_assertion.
   step_call tbl_hash_index_3_body.
+  { entailer. }
+  Time simpl_assertion.
+  step_call tbl_clear_index_body.
+  { entailer. }
+  Time simpl_assertion.
+  simpl Result.Result.andb.
+  cbn match.
+  step_call tbl_clear_window_body.
   { entailer. }
 Abort.

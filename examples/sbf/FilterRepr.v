@@ -69,12 +69,13 @@ Definition timer_repr (p : path) (t : Z * bool) : ext_pred :=
         (Tofino.ObjRegister [timer_repr_val t])).
 
 Program Definition filter_repr (p : path) (w : N) (panes : list string) (rows : list string) (cf : ConFilter.filter num_frames num_rows num_slots) : ext_pred :=
-  let 'mk_filter pns clear_index timer := cf in
   ExtPred.wrap [p] (
+    let 'mk_filter pns clear_index timer := cf in
     map2 (fun pane cpa => frame_repr (p ++ [pane]) rows cpa) panes pns ++
     [fil_clear_index_repr p w clear_index] ++
     [timer_repr p timer]) _.
 Next Obligation.
+  destruct cf as [pns clear_index timer].
   rewrite forallb_app, Reflect.andE; split.
   2 : simpl; rewrite Reflect.andE; split.
   - unfold map2. generalize (combine panes (proj1_sig pns)) as panes_pns.

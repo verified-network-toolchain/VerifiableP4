@@ -47,6 +47,8 @@ Ltac simpl_assertion :=
     bool_rect bool_rec Bool.bool_dec Ascii.ascii_rect Ascii.ascii_rec Ascii.ascii_dec sumbool_rect
     sumbool_rec string_rect string_rec string_dec EquivUtil.StringEqDec EquivDec.equiv_dec EquivDec.list_eqdec
 
+    is_some isSome
+
     P4String.str
 
     app find find
@@ -405,7 +407,7 @@ Ltac step_call_func func_spec :=
           eapply func_spec_combine';
             (* Issue: error message is hard to track when func_spec is not a func spec for the function. *)
             [ eapply func_spec
-            | idtac
+            | simpl_assertion
             | reflexivity (* exclude *)
               (* This is dangerous if there are other evars. *)
             | instantiate (2 := ltac:(test_ext_exclude)); reflexivity (* exclude_ext *)
@@ -467,7 +469,7 @@ Ltac step_call_tac func_spec :=
       | BlockEmpty _ => apply hoare_block_nil
       | BlockCons _ _ =>
           eapply hoare_block_cons;
-          only 1 : step_stmt_call func_spec
+            [step_stmt_call func_spec | simpl_assertion]
       end
   | |- hoare_stmt _ _ _ _ _ =>
       step_stmt_call func_spec
