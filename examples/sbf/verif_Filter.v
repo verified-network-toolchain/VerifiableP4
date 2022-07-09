@@ -290,7 +290,7 @@ Lemma act_clear_index_body :
 Proof.
   start_function.
   unfold fil_clear_index_repr.
-  Intros' i'.
+  Intros i'.
   normalize_EXT.
   Intros_prop.
   step_call regact_clear_index_execute_body.
@@ -313,7 +313,7 @@ Proof.
     auto.
   }
   { simpl.
-    Exists' (i' + 1).
+    Exists (i' + 1).
     normalize_EXT.
     entailer.
     apply ext_implies_prop_intro.
@@ -486,12 +486,13 @@ Definition regact_clear_window_signal_1_execute_body :=
 Definition act_clear_window_signal_0_fd :=
   ltac:(get_fd ["Bf2BloomFilter"; "act_clear_window_signal_0"] ge).
 
+Notation timer_repr := (@timer_repr num_frames frame_tick_tocks).
+
 Definition act_clear_window_signal_0_spec : func_spec :=
   WITH (* p *),
     PATH p
     MOD (Some [["ds_md"]]) [p ++ ["reg_clear_window"]]
-    WITH (t : Z * bool) (ds_md : Sval)
-      (_ : 0 <= fst t <= 28136),
+    WITH (t : Z * bool) (ds_md : Sval),
       PRE
         (ARG []
         (MEM [(["ds_md"], ds_md)]
@@ -510,6 +511,9 @@ Lemma act_clear_window_signal_0_body :
   func_sound ge act_clear_window_signal_0_fd nil act_clear_window_signal_0_spec.
 Proof.
   start_function.
+  unfold timer_repr.
+  normalize_EXT.
+  Intros_prop.
   step_call regact_clear_window_signal_0_execute_body.
   { entailer. }
   { auto. }
@@ -517,6 +521,10 @@ Proof.
   { reflexivity. }
   step.
   entailer.
+  simpl ext_exclude.
+  apply ext_implies_prop_intro.
+  apply update_timer_wf; auto;
+    unfold num_frames, frame_tick_tocks; lia.
 Qed.
 
 Definition act_clear_window_signal_1_fd :=
@@ -526,8 +534,7 @@ Definition act_clear_window_signal_1_spec : func_spec :=
   WITH (* p *),
     PATH p
     MOD (Some [["ds_md"]]) [p ++ ["reg_clear_window"]]
-    WITH (t : Z * bool) (ds_md : Sval)
-      (_ : 0 <= fst t <= 28136),
+    WITH (t : Z * bool) (ds_md : Sval),
       PRE
         (ARG []
         (MEM [(["ds_md"], ds_md)]
@@ -546,14 +553,22 @@ Lemma act_clear_window_signal_1_body :
   func_sound ge act_clear_window_signal_1_fd nil act_clear_window_signal_1_spec.
 Proof.
   start_function.
+  unfold timer_repr.
+  normalize_EXT.
+  Intros_prop.
   step_call regact_clear_window_signal_1_execute_body.
   { entailer. }
   { auto. }
   { lia. }
   { reflexivity. }
-  { auto. }
+  { unfold timer_wf in H.
+    destruct (snd t); unfold frame_tick_tocks, num_frames in *; lia.
+  }
   step.
   entailer.
+  apply ext_implies_prop_intro.
+  apply update_timer_wf; auto;
+    unfold num_frames, frame_tick_tocks; lia.
 Qed.
 
 #[local] Hint Extern 5 (func_modifies _ _ _ _ _) => (apply act_clear_window_signal_0_body) : func_specs.
@@ -566,8 +581,7 @@ Definition tbl_clear_window_spec : func_spec :=
   WITH (* p *),
     PATH p
     MOD (Some [["ds_md"]]) [p ++ ["reg_clear_window"]]
-    WITH (t : Z * bool) (ds_md : Sval) (tstamp : Z)
-      (_ : 0 <= fst t <= 28136),
+    WITH (t : Z * bool) (ds_md : Sval) (tstamp : Z),
       PRE
         (ARG []
         (MEM [(["ds_md"], ds_md); (["ingress_mac_tstamp"], P4Bit 48 tstamp)]
@@ -603,19 +617,17 @@ Lemma tbl_clear_window_body :
 Proof.
   start_function.
   next_case'.
-  { simpl in H0.
+  { simpl in H.
     replace (Z.odd (tstamp / 2097152)) with false by admit.
     table_action act_clear_window_signal_0_body.
     { entailer. }
-    { auto. }
     { entailer. }
   }
   next_case'.
-  { simpl in H1.
+  { simpl in H0.
     replace (Z.odd (tstamp / 2097152)) with true by admit.
     table_action act_clear_window_signal_1_body.
     { entailer. }
-    { auto. }
     { entailer. }
   }
   (* This case should be impossible. *)
@@ -1650,6 +1662,8 @@ Definition filter_insert := @filter_insert num_frames num_rows num_slots ltac:(r
 
 Program Definition hashes (key : Val) : listn Z num_rows := (exist _ [hash1 key; hash2 key; hash3 key] _).
 
+Notation filter_repr := (filter_repr (frame_tick_tocks := frame_tick_tocks)).
+
 Definition Filter_insert_spec : func_spec :=
   WITH (* p *),
     PATH p
@@ -1669,7 +1683,7 @@ Ltac simpl_assertion ::=
     (* First, most basic definitions for comparison. *)
     bool_rect bool_rec Bool.bool_dec Ascii.ascii_rect Ascii.ascii_rec Ascii.ascii_dec sumbool_rect
     sumbool_rec string_rect string_rec string_dec EquivUtil.StringEqDec EquivDec.equiv_dec EquivDec.list_eqdec
-    in_dec path_eq_dec list_eq_dec Datatypes.list_rec list_rect negb is_left
+    in_dec path_eq_dec list_eq_dec Datatypes.list_rec list_rect negb is_left id
 
     is_some isSome
 
@@ -1691,33 +1705,7 @@ Ltac simpl_assertion ::=
 
     exclude
 
-    ext_exclude eq_rect Result.Result.forallb].
-
-Lemma Zlength_0_nil {A} : forall (al : list A),
-  Zlength al = 0 ->
-  al = nil.
-Proof.
-  intros. destruct al; list_solve.
-Qed.
-
-Lemma Zlength_gt_0_destruct {A} : forall (al : list A) n,
-  Zlength al = n ->
-  0 < n ->
-  exists x al', al = x :: al' /\ Zlength al' = n - 1.
-Proof.
-  intros.
-  destruct al; only 1 : list_solve.
-  assert (Zlength al = n - 1) by list_solve.
-  eauto.
-Qed.
-
-Lemma Zlength_lt_0_False {A} : forall (al : list A) n,
-  Zlength al = n ->
-  0 > n ->
-  False.
-Proof.
-  intros. list_solve.
-Qed.
+    ext_exclude eq_rect Result.Result.forallb Result.Result.andb].
 
 Lemma Filter_insert_body :
   func_sound ge Filter_fd nil Filter_insert_spec.
@@ -1725,37 +1713,6 @@ Proof.
   intros_fs_bind; split. 2 : admit.
   init_function.
   destruct cf as [[ps ?H] ? ?].
-
-Ltac destruct_list xs :=
-  lazymatch goal with
-  | H : Zlength xs = ?n |- _ =>
-      let n' := eval compute in n in
-      lazymatch n' with
-      | Z0 => apply Zlength_0_nil in H; subst xs
-      | Zpos _ =>
-          first [ (* in case of H is used somewhere else *)
-            apply Zlength_gt_0_destruct in H; only 2 : reflexivity;
-            let xs' := fresh "xs" in
-            destruct H as [?x [xs' []]]; subst xs; destruct_list xs'
-          | let H' := fresh in
-            pose proof H as H';
-            apply Zlength_gt_0_destruct in H'; only 2 : reflexivity;
-            let xs' := fresh "xs" in
-            destruct H' as [?x [xs' []]]; subst xs; destruct_list xs'
-          ]
-      | Zneg _ =>
-          first [ (* in case of H is used somewhere else *)
-            apply Zlength_lt_0_False in H; only 2 : reflexivity;
-            inversion H
-          | let H' := fresh in
-            pose proof H as H';
-            apply Zlength_lt_0_False in H'; only 2 : reflexivity;
-            inversion H'
-          ]
-      end
-  | _ =>
-      idtac "Length of" xs "is not found"
-  end.
   unfold filter_repr.
   cbn [proj1_sig] in *.
   destruct_list ps.
@@ -1770,11 +1727,120 @@ Ltac destruct_list xs :=
   step_call tbl_hash_index_3_body.
   { entailer. }
   Time simpl_assertion.
+  set (is := (exist _ [hash1 key; hash2 key; hash3 key] eq_refl : listn Z 3)).
+  set (clear_is := (exist _ (Zrepeat fil_clear_index 3) eq_refl : listn Z 3)).
+  assert (Forall (fun i : Z => 0 <= i < num_slots) (`is)). {
+    admit. (* need hash lemma *)
+  }
+  P4assert (0 <= fil_clear_index < num_slots). {
+    unfold fil_clear_index_repr.
+    normalize_EXT.
+    admit.
+  }
+  assert (Forall (fun i : Z => 0 <= i < num_slots) (`clear_is)). {
+    repeat first [
+      assumption
+    | constructor
+    ].
+  }
   step_call tbl_clear_index_body.
   { entailer. }
   Time simpl_assertion.
-  simpl Result.Result.andb.
-  cbn match.
   step_call tbl_clear_window_body.
   { entailer. }
+  Intros _.
+  set (new_timer := update_timer fil_timer (Z.odd (tstamp / 2097152))).
+  (* We need assert_Prop. *)
+  P4assert (0 <= fst new_timer <= num_frames * frame_tick_tocks).
+  { unfold timer_repr.
+    normalize_EXT.
+    Intros_prop.
+    apply ext_implies_prop_intro.
+    unfold timer_wf in *.
+    destruct (snd new_timer); lia.
+  }
+  step_call tbl_set_win_insert_body.
+  { entailer. }
+  { auto. }
+  { unfold INSERT; lia. }
+  Intros _.
+  assert (0 <= get_clear_frame new_timer < num_frames) by admit.
+  destruct (get_clear_frame new_timer =? 0) eqn:?.
+  { replace (get_clear_frame new_timer) with 0 by lia.
+    step_call verif_Win1.Win_body _ _ clear_is.
+    { entailer. }
+    { solve [repeat constructor]. }
+    { auto. }
+    step_call verif_Win2.Win_body _ _ is.
+    { entailer. }
+    { solve [repeat constructor]. }
+    { auto. }
+    step_call verif_Win3.Win_body _ _ is.
+    { entailer. }
+    { solve [repeat constructor]. }
+    { auto. }
+    step_call verif_Win4.Win_body _ _ is.
+    { entailer. }
+    { solve [repeat constructor]. }
+    { auto. }
+    (* TODO merge result *)
+  }
+  destruct (get_clear_frame new_timer =? 1) eqn:?.
+  { replace (get_clear_frame new_timer) with 1 by lia.
+    step_call verif_Win1.Win_body _ _ is.
+    { entailer. }
+    { solve [repeat constructor]. }
+    { auto. }
+    step_call verif_Win2.Win_body _ _ clear_is.
+    { entailer. }
+    { solve [repeat constructor]. }
+    { auto. }
+    step_call verif_Win3.Win_body _ _ is.
+    { entailer. }
+    { solve [repeat constructor]. }
+    { auto. }
+    step_call verif_Win4.Win_body _ _ is.
+    { entailer. }
+    { solve [repeat constructor]. }
+    { auto. }
+  }
+  destruct (get_clear_frame new_timer =? 2) eqn:?.
+  { replace (get_clear_frame new_timer) with 2 by lia.
+    step_call verif_Win1.Win_body _ _ is.
+    { entailer. }
+    { solve [repeat constructor]. }
+    { auto. }
+    step_call verif_Win2.Win_body _ _ is.
+    { entailer. }
+    { solve [repeat constructor]. }
+    { auto. }
+    step_call verif_Win3.Win_body _ _ clear_is.
+    { entailer. }
+    { solve [repeat constructor]. }
+    { auto. }
+    step_call verif_Win4.Win_body _ _ is.
+    { entailer. }
+    { solve [repeat constructor]. }
+    { auto. }
+  }
+  destruct (get_clear_frame new_timer =? 3) eqn:?.
+  { replace (get_clear_frame new_timer) with 3 by lia.
+    step_call verif_Win1.Win_body _ _ is.
+    { entailer. }
+    { solve [repeat constructor]. }
+    { auto. }
+    step_call verif_Win2.Win_body _ _ is.
+    { entailer. }
+    { solve [repeat constructor]. }
+    { auto. }
+    step_call verif_Win3.Win_body _ _ is.
+    { entailer. }
+    { solve [repeat constructor]. }
+    { auto. }
+    step_call verif_Win4.Win_body _ _ clear_is.
+    { entailer. }
+    { solve [repeat constructor]. }
+    { auto. }
+  }
+  rep_lia.
 Abort.

@@ -107,7 +107,21 @@ Proof.
     sfirstorder.
 Qed.
 
-Lemma extract_nth_ext_ex'' : forall n pre a_ext A (S : A -> ext_pred) ep H,
+Lemma extract_nth_ext_ex_ext_implies_pre : forall n a_ext post A (S : A -> ext_pred) ep H,
+  nth n a_ext (ExtPred.prop True) = (ExtPred.ex S ep H) ->
+  (forall x, ext_implies (replace_nth n a_ext (S x)) post) ->
+  ext_implies a_ext post.
+Proof.
+  intros.
+  unfold ext_implies in *.
+  change ext_denote with EXT in *.
+  erewrite extract_nth_ext_ex with (a_ext := a_ext) by eauto.
+  intros.
+  destruct H2.
+  eauto.
+Qed.
+
+Lemma extract_nth_ext_ex_ext_implies_post : forall n pre a_ext A (S : A -> ext_pred) ep H,
   nth n a_ext (ExtPred.prop True) = (ExtPred.ex S ep H) ->
   (exists x, ext_implies pre (replace_nth n a_ext (S x))) ->
   ext_implies pre a_ext.
@@ -127,47 +141,86 @@ Fixpoint remove_nth {A} (n : nat) (al : list A) {struct n} : list A :=
   | _, nil => nil
   end.
 
-Lemma extract_nth_ext_prop : forall n a_mem a_ext (S : Prop),
+Lemma extract_nth_ext_prop : forall n a_ext (S : Prop),
   nth n a_ext (ExtPred.prop True) = (ExtPred.prop S) ->
-  MEM a_mem (EXT a_ext) =
-    (fun st => S /\ MEM a_mem (EXT (remove_nth n a_ext)) st).
+  ext_assertion_equiv a_ext (ExtPred.prop S :: remove_nth n a_ext).
 Proof.
   intros.
-  transitivity (MEM a_mem (fun es => S /\ EXT (remove_nth n a_ext) es)).
-  - f_equal.
-    generalize dependent n; induction a_ext; intros.
-    + extensionality es.
-      apply prop_ext.
-      split; only 2 : hauto lq: on.
-      intros _.
-      replace (nth n [] (ExtPred.prop True)) with (ExtPred.prop True) in H. 2 : {
-        destruct n; auto.
-      }
-      split. 2 : {
-        (* hammer should solve here *)
-        destruct n; simpl; apply I.
-      }
-      assert (ExtPred.prop S es). {
-        rewrite <- H.
-        simpl. auto.
-      }
-      apply H0.
-    + destruct n.
-      * simpl in H. rewrite H.
-        clear.
-        reflexivity.
-      * specialize (IHa_ext _ H).
-        change (EXT (a :: a_ext)) with (fun es => a es /\ EXT a_ext es).
-        rewrite IHa_ext.
-        clear.
-        extensionality es.
-        apply prop_ext.
-        simpl. fcrush.
-  - clear.
-    extensionality st.
+  generalize dependent n; induction a_ext; intros.
+  + replace (nth n [] (ExtPred.prop True)) with (ExtPred.prop True) in H. 2 : {
+      destruct n; auto.
+    }
+    rewrite <- H.
+    hnf.
+    extensionality es.
     apply prop_ext.
-    destruct st.
-    sauto.
+    cbn. (* sauto lq: on. *)
+    replace (remove_nth n []) with (@nil ext_pred). 2 : {
+      destruct n; auto.
+    }
+    split; auto.
+  + destruct n.
+    * simpl in H. rewrite H.
+      clear.
+      reflexivity.
+    * specialize (IHa_ext _ H).
+      unfold ext_assertion_equiv in *.
+      cbn.
+      change (ext_denote (a :: a_ext)) with (fun es => a es /\ ext_denote a_ext es).
+      rewrite IHa_ext.
+      clear.
+      extensionality es.
+      apply prop_ext.
+      fcrush.
+Qed.
+
+Lemma ext_implies_pre_prop : forall (P : Prop) pre_ext post_ext,
+  (P -> ext_implies pre_ext post_ext) ->
+  ext_implies (ExtPred.prop P :: pre_ext) post_ext.
+Proof.
+  unfold ext_implies.
+  intros.
+  destruct H0.
+  eauto.
+Qed.
+
+Lemma hoare_block_pre_ext_prop : forall ge p (P : Prop) pre_mem pre_ext stmt post,
+  (P -> hoare_block ge p (MEM pre_mem (EXT pre_ext)) stmt post) ->
+  hoare_block ge p (MEM pre_mem (EXT (ExtPred.prop P :: pre_ext))) stmt post.
+Proof.
+  unfold hoare_block; intros.
+  destruct st.
+  destruct H0, H2.
+  eapply H; try eassumption.
+  split; eassumption.
+Qed.
+
+Lemma hoare_block_assert_Prop : forall ge p pre_mem pre_ext stmt post P,
+  ext_implies pre_ext [ExtPred.prop P] ->
+  (P -> hoare_block ge p (MEM pre_mem (EXT pre_ext)) stmt post) ->
+  hoare_block ge p (MEM pre_mem (EXT pre_ext)) stmt post.
+Proof.
+  unfold hoare_block; intros.
+  assert P. {
+    destruct st as [m es].
+    destruct H1.
+    specialize (H es ltac:(eauto)).
+    exact (proj1 H).
+  }
+  eauto.
+Qed.
+
+Lemma ext_implies_assert_Prop : forall pre_ext post_ext P,
+  ext_implies pre_ext [ExtPred.prop P] ->
+  (P -> ext_implies pre_ext post_ext) ->
+  ext_implies pre_ext post_ext.
+Proof.
+  unfold ext_implies; intros.
+  assert P. {
+    specialize (H es ltac:(eauto)).
+    exact (proj1 H).
+  }
+  eauto.
 Qed.
 
 End ExtExtract.

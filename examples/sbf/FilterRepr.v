@@ -14,7 +14,7 @@ Section FilterRepr.
 Notation ident := string.
 Notation path := (list ident).
 
-Context {num_frames num_rows num_slots : Z}.
+Context {num_frames num_rows num_slots frame_tick_tocks : Z}.
 
 Definition bool_to_val (b : bool) : ValueBase :=
   ValBaseBit [b; false; false; false; false; false; false; false].
@@ -65,8 +65,10 @@ Definition timer_repr_val (t : Z * bool) :=
   force_sval_to_val (timer_repr_sval t).
 
 Definition timer_repr (p : path) (t : Z * bool) : ext_pred :=
-  (ExtPred.singleton (p ++ ["reg_clear_window"])
-        (Tofino.ObjRegister [timer_repr_val t])).
+  ExtPred.and
+    (ExtPred.prop (timer_wf num_frames frame_tick_tocks t))
+    (ExtPred.singleton (p ++ ["reg_clear_window"])
+          (Tofino.ObjRegister [timer_repr_val t])).
 
 Program Definition filter_repr (p : path) (w : N) (panes : list string) (rows : list string) (cf : ConFilter.filter num_frames num_rows num_slots) : ext_pred :=
   ExtPred.wrap [p] (

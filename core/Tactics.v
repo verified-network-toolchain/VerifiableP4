@@ -783,15 +783,7 @@ Ltac entailer :=
 
 (* Assertion manipulation *)
 
-Tactic Notation "Intros" simple_intropattern(x) :=
-  lazymatch goal with
-  | |- hoare_block _ _ (assr_exists _) _ _ =>
-      eapply hoare_block_pre_ex;
-      intros x
-  | _ =>
-      fail "There is nothing to Intro."
-  end.
-
+(* Need to improve efficiency. *)
 Ltac normalize_EXT :=
   repeat rewrite AssertionLang.ext_pred_and_cons;
   repeat rewrite AssertionLang.ext_pred_wrap_cons.
@@ -807,49 +799,84 @@ Ltac extract_ex_in_EXT a :=
     end
   end.
 
-Ltac Intros' x :=
-  lazymatch goal with
-  | |- hoare_block _ _ ?pre _ _ =>
-      extract_ex_in_EXT pre;
-      eapply hoare_block_pre_ex;
-      intro x
-  end.
-
-Ltac extract_ex_in_EXT' a :=
+Ltac extract_nth_ext_ex_ext_implies_pre a :=
   lazymatch a with
   | ?a_ext =>
     lazymatch a_ext with context [(ExtPred.ex (A := ?A) ?S _ _) :: ?a_ext'] =>
       let n := constr:((length a_ext - Datatypes.S (length a_ext'))%nat) in
       let n' := eval lazy beta zeta iota delta in n in
-      apply (extract_nth_ext_ex'' n' _ a_ext A S _ _ eq_refl);
+      apply (extract_nth_ext_ex_ext_implies_pre n' _ a_ext A S _ _ eq_refl);
       unfold replace_nth at 1
     end
   end.
 
-Ltac Exists' x:=
+Tactic Notation "Intros" simple_intropattern(x) :=
+  lazymatch goal with
+  | |- hoare_block _ _ (assr_exists _) _ _ =>
+      eapply hoare_block_pre_ex;
+      intros x
+  | |- hoare_block _ _ ?pre _ _ =>
+      extract_ex_in_EXT pre;
+      eapply hoare_block_pre_ex;
+      intro x
+  | |- ext_implies ?pre _ =>
+      extract_nth_ext_ex_ext_implies_pre pre;
+      intro x
+  | _ =>
+      fail "There is nothing to Intro"
+  end.
+
+Ltac extract_ex_in_EXT_ext_implies_post a :=
+  lazymatch a with
+  | ?a_ext =>
+    lazymatch a_ext with context [(ExtPred.ex (A := ?A) ?S _ _) :: ?a_ext'] =>
+      let n := constr:((length a_ext - Datatypes.S (length a_ext'))%nat) in
+      let n' := eval lazy beta zeta iota delta in n in
+      apply (extract_nth_ext_ex_ext_implies_post n' _ a_ext A S _ _ eq_refl);
+      unfold replace_nth at 1
+    end
+  end.
+
+Ltac Exists x:=
   lazymatch goal with
   | |- ext_implies ?pre ?post =>
-      extract_ex_in_EXT' post;
+      extract_ex_in_EXT_ext_implies_post post;
       exists x
   end.
 
-Ltac extract_prop_in_EXT a :=
-  lazymatch a with
-  | MEM _ (EXT ?a_ext) =>
-    lazymatch a_ext with context [(ExtPred.prop ?S) :: ?a_ext'] =>
-      let n := constr:((length a_ext - Datatypes.S (length a_ext'))%nat) in
-      let n' := eval lazy beta zeta iota delta in n in
-      rewrite (extract_nth_ext_prop n' _ a_ext S eq_refl);
-      unfold remove_nth at 1
-    end
+Ltac extract_prop_in_EXT a_ext :=
+  lazymatch a_ext with context [(ExtPred.prop ?S) :: ?a_ext'] =>
+    let n := constr:((length a_ext - Datatypes.S (length a_ext'))%nat) in
+    let n' := eval lazy beta zeta iota delta in n in
+    rewrite (extract_nth_ext_prop n' a_ext S eq_refl);
+    unfold remove_nth at 1
   end.
 
 Ltac Intros_prop :=
   lazymatch goal with
-  | |- hoare_block _ _ ?pre _ _ =>
+  | |- hoare_block _ _ (MEM _ (EXT ?pre)) _ _ =>
       extract_prop_in_EXT pre;
-      eapply hoare_block_pre_prop;
+      eapply hoare_block_pre_ext_prop;
       intros ?H
+  | |- ext_implies ?pre _ =>
+      extract_prop_in_EXT pre;
+      eapply ext_implies_pre_prop;
+      intros ?H
+  end.
+
+Ltac P4assert Q :=
+  lazymatch type of Q with
+  | Prop => idtac
+  | _ => fail 0 Q "is not a Prop"
+  end;
+  lazymatch goal with
+  | |- hoare_block _ _ (MEM _ (EXT _)) _ _ =>
+      apply hoare_block_assert_Prop with (P := Q);
+      only 2 : intros ?H
+  | |- ext_implies _ _ =>
+      apply ext_implies_assert_Prop with (P := Q);
+      only 2 : intros ?H
+  | _ => fail 0 "The goal is not supported"
   end.
 
 (* Term-generating tactics *)
