@@ -325,7 +325,7 @@ Proof.
     - assert (i = num_slots - 1) by lia.
       subst; auto.
     - rewrite Z.mod_small with (a := i + 1); auto.
-      unfold num_slots in *; lia.
+      lia.
   }
 Qed.
 
@@ -341,8 +341,6 @@ Admitted.
 
 Definition regact_clear_window_signal_0_apply_fd :=
   ltac:(get_am_fd ge am_ge (p ++ ["regact_clear_window_signal_0"; "apply"]) ge).
-
-Definition frame_tick_tocks : Z := 7034.
 
 Notation update_timer := (@update_timer num_frames frame_tick_tocks).
 
@@ -523,8 +521,7 @@ Proof.
   entailer.
   simpl ext_exclude.
   apply ext_implies_prop_intro.
-  apply update_timer_wf; auto;
-    unfold num_frames, frame_tick_tocks; lia.
+  apply update_timer_wf; auto; lia.
 Qed.
 
 Definition act_clear_window_signal_1_fd :=
@@ -562,13 +559,12 @@ Proof.
   { lia. }
   { reflexivity. }
   { unfold timer_wf in H.
-    destruct (snd t); unfold frame_tick_tocks, num_frames in *; lia.
+    destruct (snd t); lia.
   }
   step.
   entailer.
   apply ext_implies_prop_intro.
-  apply update_timer_wf; auto;
-    unfold num_frames, frame_tick_tocks; lia.
+  apply update_timer_wf; auto; lia.
 Qed.
 
 #[local] Hint Extern 5 (func_modifies _ _ _ _ _) => (apply act_clear_window_signal_0_body) : func_specs.
@@ -1127,8 +1123,6 @@ Proof.
     eapply Z_div_squeeze_pos with (-hi) (-lo); lia.
 Qed.
 
-Ltac rep_lia := unfold is_true, frame_tick_tocks, num_frames in *; lia.
-
 Lemma reduce_match_range: forall w x lo hi x' lo' hi' xb lob hib,
   Tofino.assert_int x = Some (w, x', xb) ->
   Tofino.assert_int lo = Some (w, lo', lob) ->
@@ -1480,7 +1474,7 @@ Ltac foo H :=  let t := type of H in  idtac t.foo H.
 Ltac solve_assert_int :=
   simpl; rewrite P4Arith.bit_from_to_bool;
   unfold P4Arith.BitArith.mod_bound;
-  try rewrite Z.mod_small by (unfold P4Arith.BitArith.upper_bound; rep_lia);
+  try rewrite Z.mod_small by (unfold P4Arith.BitArith.upper_bound; lia);
   reflexivity.
 
 Ltac simpl_match_cond cond :=
@@ -1589,9 +1583,9 @@ Ltac solve_modifies :=  first [    solve [eauto 100 with nocore modifies]  | idt
     2 : {
       unfold get_clear_frame.
       destruct (fst timer =? frame_time * num_frames) eqn:?.
-      unfold is_true in *; rep_lia.
+      unfold is_true in *; lia.
       symmetry.
-      eapply Z_div_squeeze with 0 7033; auto; rep_lia.
+      eapply Z_div_squeeze with 0 7033; auto; lia.
     }
     entailer.
   }
@@ -1657,7 +1651,7 @@ Admitted.
 Definition Filter_fd :=
   ltac:(get_fd ["Bf2BloomFilter"; "apply"] ge).
 
-Definition filter_insert := @filter_insert num_frames num_rows num_slots ltac:(rep_lia) ltac:(unfold num_rows; rep_lia) ltac:(unfold num_slots; rep_lia)
+Definition filter_insert := @filter_insert num_frames num_rows num_slots ltac:(lia) ltac:(lia) ltac:(lia)
   frame_tick_tocks.
 
 Program Definition hashes (key : Val) : listn Z num_rows := (exist _ [hash1 key; hash2 key; hash3 key] _).
@@ -1762,7 +1756,7 @@ Proof.
   step_call tbl_set_win_insert_body.
   { entailer. }
   { auto. }
-  { unfold INSERT; lia. }
+  { lia. }
   Intros _.
   assert (0 <= get_clear_frame new_timer < num_frames) by admit.
   destruct (get_clear_frame new_timer =? 0) eqn:?.
@@ -1783,6 +1777,7 @@ Proof.
     { entailer. }
     { solve [repeat constructor]. }
     { auto. }
+    admit.
     (* TODO merge result *)
   }
   destruct (get_clear_frame new_timer =? 1) eqn:?.
@@ -1803,6 +1798,7 @@ Proof.
     { entailer. }
     { solve [repeat constructor]. }
     { auto. }
+    admit.
   }
   destruct (get_clear_frame new_timer =? 2) eqn:?.
   { replace (get_clear_frame new_timer) with 2 by lia.
@@ -1822,6 +1818,7 @@ Proof.
     { entailer. }
     { solve [repeat constructor]. }
     { auto. }
+    admit.
   }
   destruct (get_clear_frame new_timer =? 3) eqn:?.
   { replace (get_clear_frame new_timer) with 3 by lia.
@@ -1841,6 +1838,7 @@ Proof.
     { entailer. }
     { solve [repeat constructor]. }
     { auto. }
+    admit.
   }
-  rep_lia.
+  lia.
 Abort.

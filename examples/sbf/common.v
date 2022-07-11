@@ -27,6 +27,12 @@ Definition INSQUERY := 4.
 Definition num_slots := 262144.
 Definition num_rows := 3.
 Definition num_frames := 4.
+Definition frame_tick_tocks := 7034.
+
+Ltac Zify.zify_pre_hook ::=
+  unfold is_true, num_slots, num_rows, num_frames, frame_tick_tocks,
+  NOOP, CLEAR, INSERT, QUERY, INSQUERY
+  in *.
 
 Definition rows := ["row_1"; "row_2"; "row_3"].
 Definition panes := ["win_1"; "win_2"; "win_3"; "win_4"].
