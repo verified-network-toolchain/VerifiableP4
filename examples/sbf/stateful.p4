@@ -181,6 +181,7 @@ control Bf2BloomFilter(in bf2_key_t ds_key,
         actions = {
             act_hash_index_1();
         }
+        const entries = { }
         default_action = act_hash_index_1();
         size = 1;
     }
@@ -194,6 +195,7 @@ control Bf2BloomFilter(in bf2_key_t ds_key,
         actions = {
             act_hash_index_2();
         }
+        const entries = { }
         default_action = act_hash_index_2();
         size = 1;
     }
@@ -207,6 +209,7 @@ control Bf2BloomFilter(in bf2_key_t ds_key,
         actions = {
             act_hash_index_3();
         }
+        const entries = { }
         default_action = act_hash_index_3();
         size = 1;
     }
@@ -225,6 +228,7 @@ control Bf2BloomFilter(in bf2_key_t ds_key,
         actions = {
             act_clear_index();
         }
+        const entries = { }
         default_action = act_clear_index();
         size = 1;
     }

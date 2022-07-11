@@ -4066,7 +4066,7 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                 (MkTablePreActionRef
                      (BareName
                       {| stags := NoInfo; str := "act_hash_index_1" |}) nil)
-                (TypAction nil nil))] None
+                (TypAction nil nil))] (Some nil)
           (Some
            (MkTableActionRef NoInfo
                 (MkTablePreActionRef
@@ -4209,7 +4209,7 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                 (MkTablePreActionRef
                      (BareName
                       {| stags := NoInfo; str := "act_hash_index_2" |}) nil)
-                (TypAction nil nil))] None
+                (TypAction nil nil))] (Some nil)
           (Some
            (MkTableActionRef NoInfo
                 (MkTablePreActionRef
@@ -4352,7 +4352,7 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                 (MkTablePreActionRef
                      (BareName
                       {| stags := NoInfo; str := "act_hash_index_3" |}) nil)
-                (TypAction nil nil))] None
+                (TypAction nil nil))] (Some nil)
           (Some
            (MkTableActionRef NoInfo
                 (MkTablePreActionRef
@@ -4518,7 +4518,7 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                 (MkTablePreActionRef
                      (BareName
                       {| stags := NoInfo; str := "act_clear_index" |}) nil)
-                (TypAction nil nil))] None
+                (TypAction nil nil))] (Some nil)
           (Some
            (MkTableActionRef NoInfo
                 (MkTablePreActionRef

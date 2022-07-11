@@ -108,14 +108,20 @@ Definition tbl_hash_index_1_spec : func_spec :=
         (MEM [(["ds_key"], eval_val_to_sval key); (["ds_md"], ds_md)]
         (EXT [])))
       POST
-        (ARG_RET [] ValBaseNull
+        (EX retv,
+        (ARG_RET [] retv
         (MEM [(["ds_md"], update "hash_index_1" (P4Bit 18 (hash1 key)) ds_md)]
-        (EXT []))).
+        (EXT []))))%arg_ret_assr.
 
 Lemma tbl_hash_index_1_body :
   func_sound ge tbl_hash_index_1_fd nil tbl_hash_index_1_spec.
 Proof.
-Admitted.
+  start_function.
+  next_case.
+  table_action act_hash_index_1_body.
+  { entailer. }
+  { entailer. }
+Qed.
 
 #[local] Hint Extern 5 (func_modifies _ _ _ _ _) => (apply tbl_hash_index_1_body) : func_specs.
 
@@ -169,13 +175,35 @@ Proof.
   entailer.
 Qed.
 
+#[local] Hint Extern 5 (func_modifies _ _ _ _ _) => (apply act_hash_index_2_body) : func_specs.
+
 Definition tbl_hash_index_2_fd :=
   ltac:(get_fd ["Bf2BloomFilter"; "tbl_hash_index_2"; "apply"] ge).
 
+Definition tbl_hash_index_2_spec : func_spec :=
+  WITH (* p *),
+    PATH p
+    MOD (Some [["ds_md"]; ["act_hash_index_2"; "t'1"]]) []
+    WITH (key : Val) (ds_md : Sval),
+      PRE
+        (ARG []
+        (MEM [(["ds_key"], eval_val_to_sval key); (["ds_md"], ds_md)]
+        (EXT [])))
+      POST
+        (EX retv,
+        (ARG_RET [] retv
+        (MEM [(["ds_md"], update "hash_index_2" (P4Bit 18 (hash2 key)) ds_md)]
+        (EXT []))))%arg_ret_assr.
+
 Lemma tbl_hash_index_2_body :
-  func_sound ge tbl_hash_index_2_fd nil act_hash_index_2_spec.
+  func_sound ge tbl_hash_index_2_fd nil tbl_hash_index_2_spec.
 Proof.
-Admitted.
+  start_function.
+  next_case.
+  table_action act_hash_index_2_body.
+  { entailer. }
+  { entailer. }
+Qed.
 
 #[local] Hint Extern 5 (func_modifies _ _ _ _ _) => (apply tbl_hash_index_2_body) : func_specs.
 
@@ -229,13 +257,35 @@ Proof.
   entailer.
 Qed.
 
+#[local] Hint Extern 5 (func_modifies _ _ _ _ _) => (apply act_hash_index_3_body) : func_specs.
+
 Definition tbl_hash_index_3_fd :=
   ltac:(get_fd ["Bf2BloomFilter"; "tbl_hash_index_3"; "apply"] ge).
 
+Definition tbl_hash_index_3_spec : func_spec :=
+  WITH (* p *),
+    PATH p
+    MOD (Some [["ds_md"]; ["act_hash_index_3"; "t'2"]]) []
+    WITH (key : Val) (ds_md : Sval),
+      PRE
+        (ARG []
+        (MEM [(["ds_key"], eval_val_to_sval key); (["ds_md"], ds_md)]
+        (EXT [])))
+      POST
+        (EX retv,
+        (ARG_RET [] retv
+        (MEM [(["ds_md"], update "hash_index_3" (P4Bit 18 (hash3 key)) ds_md)]
+        (EXT []))))%arg_ret_assr.
+
 Lemma tbl_hash_index_3_body :
-  func_sound ge tbl_hash_index_3_fd nil act_hash_index_3_spec.
+  func_sound ge tbl_hash_index_3_fd nil tbl_hash_index_3_spec.
 Proof.
-Admitted.
+  start_function.
+  next_case.
+  table_action act_hash_index_3_body.
+  { entailer. }
+  { entailer. }
+Qed.
 
 #[local] Hint Extern 5 (func_modifies _ _ _ _ _) => (apply tbl_hash_index_3_body) : func_specs.
 
@@ -329,13 +379,35 @@ Proof.
   }
 Qed.
 
+#[local] Hint Extern 5 (func_modifies _ _ _ _ _) => (apply act_clear_index_body) : func_specs.
+
 Definition tbl_clear_index_fd :=
   ltac:(get_fd ["Bf2BloomFilter"; "tbl_clear_index"; "apply"] ge).
 
+Definition tbl_clear_index_spec : func_spec :=
+  WITH (* p *),
+    PATH p
+    MOD (Some [["ds_md"]; ["act_clear_index"; "t'3"]]) [p ++ ["reg_clear_index"]]
+    WITH (i : Z) (ds_md : Sval),
+      PRE
+        (ARG []
+        (MEM [(["ds_md"], ds_md)]
+        (EXT [fil_clear_index_repr p 18 i])))
+      POST
+        (EX retv,
+        (ARG_RET [] retv
+        (MEM [(["ds_md"], update "clear_index_1" (P4Bit 18 i) ds_md)]
+        (EXT [fil_clear_index_repr p 18 (update_clear_index (num_slots := num_slots) i)]))))%arg_ret_assr.
+
 Lemma tbl_clear_index_body :
-  func_sound ge tbl_clear_index_fd nil act_clear_index_spec.
+  func_sound ge tbl_clear_index_fd nil tbl_clear_index_spec.
 Proof.
-Admitted.
+  start_function.
+  next_case.
+  table_action act_clear_index_body.
+  { entailer. }
+  { entailer. }
+Qed.
 
 #[local] Hint Extern 5 (func_modifies _ _ _ _ _) => (apply tbl_clear_index_body) : func_specs.
 
@@ -1715,12 +1787,15 @@ Proof.
   Time step_call tbl_hash_index_1_body.
   { entailer. }
   Time simpl_assertion.
+  Intros _.
   step_call tbl_hash_index_2_body.
   { entailer. }
   Time simpl_assertion.
+  Intros _.
   step_call tbl_hash_index_3_body.
   { entailer. }
   Time simpl_assertion.
+  Intros _.
   set (is := (exist _ [hash1 key; hash2 key; hash3 key] eq_refl : listn Z 3)).
   set (clear_is := (exist _ (Zrepeat fil_clear_index 3) eq_refl : listn Z 3)).
   assert (Forall (fun i : Z => 0 <= i < num_slots) (`is)). {
@@ -1740,6 +1815,7 @@ Proof.
   step_call tbl_clear_index_body.
   { entailer. }
   Time simpl_assertion.
+  Intros _.
   step_call tbl_clear_window_body.
   { entailer. }
   Intros _.

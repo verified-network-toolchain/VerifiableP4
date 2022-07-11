@@ -389,9 +389,12 @@ Ltac start_function :=
 Ltac next_case :=
   lazymatch goal with
   | |- hoare_table_action_cases' _ _ _ _ _ _ _ =>
-      constructor;
-      let H := fresh in
-      intro H; try solve [inv H]
+      first [
+        apply hoare_table_action_cases'_nil
+      | apply hoare_table_action_cases'_cons;
+        let H := fresh in
+        intro H; try solve [inv H]
+      ]
   | _ =>
       fail "The goal is not in the form of (hoare_table_action_cases' _ _ _ _ _ _ _)"
   end.
