@@ -886,17 +886,51 @@ Definition hoare_table_entries p entries entryvs : Prop :=
     exec_table_entries ge read_ndetbit p entries entryvs' ->
     entryvs' = entryvs.
 
-(* This should be true eventually.
-  The reason that this is currently not true is that it allows to read from st.
-  But actually table entries can only depends on constants.
-  Ideally we write exec_table_entries as a function instead of a relation. *)
-Axiom exec_table_entries_det : forall p p' entries entryvs entryvs',
+(* This is still not true. For example, reading from an invalid header or an out-of-bound
+  position of a header stack is still nondeterministic. *)
+Lemma exec_expr_det_empty_det : forall p expr v v',
+  exec_expr_det ge read_ndetbit p empty_state expr v ->
+  exec_expr_det ge read_ndetbit p empty_state expr v' ->
+  v' = v.
+Proof.
+  clear.
+  (* intros.
+  inv H0. inv H1.
+  generalize dependent v'.
+  induction H2; intros; inv H0.
+  - inv H3. inv H4. inv H1. inv H2. auto.
+  - destruct i. destruct width_signed as [[? []] | ]; inv H3; inv H4. *)
+Admitted.
+
+Lemma exec_table_entries_det : forall p entries entryvs entryvs',
   exec_table_entries ge read_ndetbit p entries entryvs ->
-  exec_table_entries ge read_ndetbit p' entries entryvs' ->
+  exec_table_entries ge read_ndetbit p entries entryvs' ->
   entryvs' = entryvs.
+Proof.
+  intros. generalize dependent entryvs'.
+  induction H0; intros.
+  { inv H1; auto. }
+  inv H2.
+  f_equal; only 2 : eauto.
+  clear -H0 H5.
+  inv H0; inv H5.
+  assert (svs0 = svs). {
+    clear -H1 H6.
+    generalize dependent svs0.
+    induction H1; intros.
+    { inv H6; auto. }
+    inv H6; f_equal; only 2 : eauto.
+    clear -H0 H4.
+    inv H0; inv H4; try f_equal; eauto using exec_expr_det_empty_det.
+    assert (oldv0 = oldv) by eauto using exec_expr_det_empty_det.
+    congruence.
+  }
+  subst.
+  destruct (PeanoNat.Nat.eqb (length svs) 1); congruence.
+Qed.
 
 Lemma hoare_table_entries_intros : forall p entries entryvs,
-  exec_table_entries ge read_ndetbit [] entries entryvs ->
+  exec_table_entries ge read_ndetbit p entries entryvs ->
   hoare_table_entries p entries entryvs.
 Proof.
   unfold hoare_table_entries; intros.
@@ -1006,7 +1040,7 @@ Fixpoint hoare_table_match_list (p : path) (pre : assertion) (name : ident) (key
   | nil => hoare_table_match p pre name keys const_entries None
   end.
 
-Definition hoare_table_match_list_intro : forall p pre name keys keysvals keyvals const_entries entryvs cases,
+Lemma hoare_table_match_list_intro : forall p pre name keys keysvals keyvals const_entries entryvs cases,
   let entries := const_entries in
   let match_kinds := map table_key_matchkind keys in
   hoare_exprs_det p pre (map table_key_key keys) keysvals ->
