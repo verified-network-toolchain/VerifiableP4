@@ -289,29 +289,8 @@ Qed.
 
 #[local] Hint Extern 5 (func_modifies _ _ _ _ _) => (apply tbl_hash_index_3_body) : func_specs.
 
-Definition regact_clear_index_apply_fd :=
-  ltac:(get_am_fd ge am_ge (p ++ ["regact_clear_index"; "apply"]) ge).
-
-Definition regact_clear_index_apply_spec : func_spec :=
-  RegisterAction_apply_spec (p ++ ["regact_clear_index"]) (fun i => ValBaseBit (P4Arith.to_lbool 32 i))
-    (fun i => i + 1) (fun i => P4Bit 32 i).
-
-Lemma regact_clear_index_apply_body :
-  func_sound am_ge regact_clear_index_apply_fd nil regact_clear_index_apply_spec.
-Proof.
-  start_function.
-  step.
-  step.
-  step.
-  step.
-  entailer.
-  { red.
-    change (eval_val_to_sval (ValBaseBit (P4Arith.to_lbool 32 old_value)))
-      with (P4Bit 32 old_value).
-    rewrite abs_plus_bit.
-    apply sval_refine_refl.
-  }
-Qed.
+Definition regact_clear_index_apply_body :=
+  ltac:(auto_regact ge am_ge (p ++ ["regact_clear_index"])).
 
 Definition regact_clear_index_execute_body :=
   ltac:(build_execute_body ge regact_clear_index_apply_body).
@@ -412,7 +391,7 @@ Qed.
 #[local] Hint Extern 5 (func_modifies _ _ _ _ _) => (apply tbl_clear_index_body) : func_specs.
 
 Definition regact_clear_window_signal_0_apply_fd :=
-  ltac:(get_am_fd ge am_ge (p ++ ["regact_clear_window_signal_0"; "apply"]) ge).
+  ltac:(get_am_fd ge am_ge (p ++ ["regact_clear_window_signal_0"; "apply"])).
 
 Notation update_timer := (@update_timer num_frames frame_tick_tocks).
 
@@ -468,7 +447,7 @@ Definition regact_clear_window_signal_0_execute_body :=
   ltac:(build_execute_body ge regact_clear_window_signal_0_apply_body).
 
 Definition regact_clear_window_signal_1_apply_fd :=
-  ltac:(get_am_fd ge am_ge (p ++ ["regact_clear_window_signal_1"; "apply"]) ge).
+  ltac:(get_am_fd ge am_ge (p ++ ["regact_clear_window_signal_1"; "apply"])).
 
 Definition regact_clear_window_signal_1_apply_spec : func_spec :=
   RegisterAction_apply_spec' (p ++ ["regact_clear_window_signal_1"]) (fun t => 0 <= fst t <= 28136) timer_repr_val
@@ -1720,6 +1699,24 @@ Admitted.
 
 #[local] Hint Extern 5 (func_modifies _ _ _ _ _) => (apply tbl_set_win_insert_body) : func_specs.
 
+Definition tbl_merge_wins_fd :=
+  ltac:(get_fd ["Bf2BloomFilter"; "tbl_merge_wins"; "apply"] ge).
+
+Definition tbl_merge_wins_spec : func_spec :=
+  WITH (* p *),
+    PATH p
+    MOD (Some [["ds_md"]]) []
+    WITH ds_md,
+      PRE
+        (ARG []
+        (MEM [(["api"], P4Bit 8 INSERT); (["ds_md"], ds_md)]
+        (EXT [])))
+      POST
+        (EX retv,
+        (ARG_RET [] retv
+        (MEM [(["ds_md"], ds_md)]
+        (EXT []))))%arg_ret_assr.
+
 Definition Filter_fd :=
   ltac:(get_fd ["Bf2BloomFilter"; "apply"] ge).
 
@@ -1853,6 +1850,7 @@ Proof.
     { entailer. }
     { solve [repeat constructor]. }
     { auto. }
+    simpl Z.eqb. cbn match.
     admit.
     (* TODO merge result *)
   }

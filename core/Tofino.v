@@ -33,6 +33,46 @@ Ltac get_ext_obj p ge :=
     (force dummy_env_object (PathMap.get p (ge_ext ge))) in
   exact ext_obj.
 
+Ltac auto_regact ge am_ge p :=
+  (* get r *)
+  let r := eval compute in (PathMap.get p (ge_ext ge)) in
+  let r := lazymatch r with (Some (Tofino.EnvRegAction ?r)) => r end in
+  (* get (index_w, typ, s) *)
+  let s := eval compute in (PathMap.get r (ge_ext ge)) in
+  let index_w := lazymatch s with (Some (Tofino.EnvRegister (?index_w, _, _))) => index_w end in
+  let typ := lazymatch s with (Some (Tofino.EnvRegister (_, ?typ, _))) => typ end in
+  let s := lazymatch s with (Some (Tofino.EnvRegister (_, _, ?s))) => s end in
+  (* get w *)
+  let w := lazymatch typ with TypBit ?w => w | _ => fail 0 typ "is unsupported" end in
+  (* get apply_fd *)
+  let am_sem := eval compute -[am_ge extern_match] in
+    (force dummy_env_object (PathMap.get (p ++ ["apply"]) (ge_ext ge))) in
+  let apply_fd :=
+    lazymatch am_sem with Tofino.EnvAbsMet (exec_abstract_method ?ge ?p ?fd) => fd end in
+  (* pose the sigma type term H *)
+  let H := fresh in
+  unshelve epose (_ : sigT (fun f => (sig (fun retv =>
+    func_sound am_ge apply_fd nil
+      (RegisterAction_apply_spec p (fun i => ValBaseBit (P4Arith.to_lbool w i)) f retv))))) as H;
+  (* build H *)
+  only 1 : (
+    do 2 eexists;
+    start_function;
+    lazymatch goal with
+    | |- context [eval_val_to_sval (ValBaseBit (P4Arith.to_lbool w ?old_value))] =>
+        change (eval_val_to_sval (ValBaseBit (P4Arith.to_lbool w old_value)))
+          with (P4Bit w old_value)
+    end;
+    repeat step;
+    entailer
+  );
+  let body_H := eval unfold H in H in
+  lazymatch body_H with
+  | existT _ ?f (exist _ ?retv ?H') =>
+      exact (H' : func_sound _ _ _
+        (RegisterAction_apply_spec p (fun i => ValBaseBit (P4Arith.to_lbool w i)) f retv))
+  end.
+
 Ltac build_execute_body ge body :=
   (* get spec from body *)
   lazymatch type of body with

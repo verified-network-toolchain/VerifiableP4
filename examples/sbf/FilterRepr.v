@@ -17,7 +17,7 @@ Notation path := (list ident).
 Context {num_frames num_rows num_slots frame_tick_tocks : Z}.
 
 Definition bool_to_val (b : bool) : ValueBase :=
-  ValBaseBit [b; false; false; false; false; false; false; false].
+  ValBaseBit (P4Arith.to_lbool 8 (Z.b2z b)).
 
 Definition row_reg_repr (p : path) (cr : ConFilter.row num_slots) : ext_pred :=
   ExtPred.singleton (p ++ ["reg_row"]) (Tofino.ObjRegister (map bool_to_val (proj1_sig cr))).

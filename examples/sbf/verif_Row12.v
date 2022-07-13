@@ -18,23 +18,8 @@ Definition p := ["pipe"; "ingress"; "bf2_ds"; "win_1"; "row_2"].
 
 Open Scope func_spec.
 
-Definition Row_regact_insert_apply_fd :=
-  ltac:(get_am_fd ge am_ge (p ++ ["regact_insert"; "apply"])).
-
-Definition Row_regact_insert_apply_spec : func_spec :=
-  RegisterAction_apply_spec (p ++ ["regact_insert"]) (fun b => bool_to_val b)
-    (fun _ => true) (fun _ => P4Bit 8 1).
-
-Lemma Row_regact_insert_apply_body :
-  func_sound am_ge Row_regact_insert_apply_fd nil Row_regact_insert_apply_spec.
-Proof.
-  start_function.
-  step.
-  step.
-  step.
-  step.
-  entailer.
-Qed.
+Definition Row_regact_insert_apply_body :=
+  ltac:(auto_regact ge am_ge (p ++ ["regact_insert"])).
 
 (* I would like to make it opaque, but I don't know how to. *)
 Definition Row_regact_insert_execute_body :=
@@ -76,7 +61,7 @@ Proof.
   step_call Row_regact_insert_execute_body.
   { entailer. }
   { list_solve. }
-  { unfold num_slots in *; list_solve. }
+  { lia. }
   { rewrite Znth_map by list_solve.
     reflexivity.
   }
@@ -88,22 +73,8 @@ Qed.
 
 #[local] Hint Extern 5 (func_modifies _ _ _ _ _) => (apply Row_insert_body) : func_specs.
 
-Definition Row_regact_query_apply_fd :=
-  ltac:(get_am_fd ge am_ge (p ++ ["regact_query"; "apply"])).
-
-Definition Row_regact_query_apply_spec : func_spec :=
-  RegisterAction_apply_spec (p ++ ["regact_query"]) (fun b => bool_to_val b)
-    (fun b => b) (fun b => eval_val_to_sval (bool_to_val b)).
-
-Lemma Row_regact_query_apply_body :
-  func_sound am_ge Row_regact_query_apply_fd nil Row_regact_query_apply_spec.
-Proof.
-  start_function.
-  step.
-  step.
-  step.
-  entailer.
-Qed.
+Definition Row_regact_query_apply_body :=
+  ltac:(auto_regact ge am_ge (p ++ ["regact_query"])).
 
 Definition Row_regact_query_execute_body :=
   ltac:(build_execute_body ge Row_regact_query_apply_body).
@@ -134,21 +105,6 @@ Definition Row_query_spec : func_spec :=
         (MEM [(["rw"], P4Bit 8 (Z.b2z (row_query r i)))]
         (EXT [row_repr p r]))).
 
-Lemma upd_Znth_Znth_same : forall {A} {dA : Inhabitant A} (al : list A) i,
-  upd_Znth i al (Znth i al) = al.
-Proof.
-  intros.
-  list_solve.
-Qed.
-
-Lemma upd_Znth_Znth_same' : forall {A} {dA : Inhabitant A} (al : list A) a i,
-  a = Znth i al ->
-  upd_Znth i al a = al.
-Proof.
-  intros.
-  list_solve.
-Qed.
-
 Lemma Row_query_body :
   func_sound ge Row_query_fundef nil Row_query_spec.
 Proof.
@@ -159,39 +115,21 @@ Proof.
   step_call Row_regact_query_execute_body.
   { entailer. }
   { list_solve. }
-  { unfold num_slots in *; list_solve. }
+  { lia. }
   { rewrite Znth_map by list_solve.
     reflexivity.
   }
   step.
   entailer.
-  { unfold row_query, proj1_sig.
-    destruct (Znth i r); apply sval_refine_refl.
-  }
   { f_equal.
-    list_solve.
+    list_simplify. subst. auto.
   }
 Qed.
 
 #[local] Hint Extern 5 (func_modifies _ _ _ _ _) => (apply Row_query_body) : func_specs.
 
-Definition Row_regact_clear_apply_fd :=
-  ltac:(get_am_fd ge am_ge (p ++ ["regact_clear"; "apply"])).
-
-Definition Row_regact_clear_apply_spec : func_spec :=
-  RegisterAction_apply_spec (p ++ ["regact_clear"]) (fun b => bool_to_val b)
-    (fun _ => false) (fun _ => P4Bit 8 0).
-
-Lemma Row_regact_clear_apply_body :
-  func_sound am_ge Row_regact_clear_apply_fd nil Row_regact_clear_apply_spec.
-Proof.
-  start_function.
-  step.
-  step.
-  step.
-  step.
-  entailer.
-Qed.
+Definition Row_regact_clear_apply_body :=
+  ltac:(auto_regact ge am_ge (p ++ ["regact_clear"])).
 
 (* Finished transaction in 0.179 secs (0.14u,0.031s) (successful) *)
 Definition Row_regact_clear_execute_body :=
@@ -233,7 +171,7 @@ Proof.
   step_call Row_regact_clear_execute_body.
   { entailer. }
   { list_solve. }
-  { unfold num_slots in *; list_solve. }
+  { lia. }
   { rewrite Znth_map by list_solve.
     reflexivity.
   }
