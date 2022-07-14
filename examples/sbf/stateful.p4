@@ -51,7 +51,7 @@ struct bf2_ds_md_t {
 struct metadata_t {
     bf2_key_t bf2_key;
     api_t bf2_api;
-    bit<8> solicitated;
+    bit<8> solicited;
 }
 
 struct window_pair_t {
@@ -151,7 +151,6 @@ control Bf2BloomFilterRow(in api_t api,
         size = 4;
     }
     apply {
-        rw = 0;
         tbl_bloom.apply();
     }
 }
@@ -178,11 +177,9 @@ control Bf2BloomFilter(in bf2_key_t ds_key,
         ds_md.hash_index_1 = hash_idx_1.get(ds_key)[17:0];
     }
     table tbl_hash_index_1 {
-        key = { }
         actions = {
             act_hash_index_1();
         }
-        const entries = { }
         default_action = act_hash_index_1();
         size = 1;
     }
@@ -192,11 +189,9 @@ control Bf2BloomFilter(in bf2_key_t ds_key,
         ds_md.hash_index_2 = hash_idx_2.get(ds_key)[17:0];
     }
     table tbl_hash_index_2 {
-        key = { }
         actions = {
             act_hash_index_2();
         }
-        const entries = { }
         default_action = act_hash_index_2();
         size = 1;
     }
@@ -206,11 +201,9 @@ control Bf2BloomFilter(in bf2_key_t ds_key,
         ds_md.hash_index_3 = hash_idx_3.get(ds_key)[17:0];
     }
     table tbl_hash_index_3 {
-        key = { }
         actions = {
             act_hash_index_3();
         }
-        const entries = { }
         default_action = act_hash_index_3();
         size = 1;
     }
@@ -225,31 +218,40 @@ control Bf2BloomFilter(in bf2_key_t ds_key,
         ds_md.clear_index_1 = regact_clear_index.execute(1w0)[17:0];
     }
     table tbl_clear_index {
-        key = { }
         actions = {
             act_clear_index();
         }
-        const entries = { }
         default_action = act_clear_index();
         size = 1;
     }
     Register<window_pair_t, bit<1>>(32w1, {16w0, 16w0}) reg_clear_window;
     RegisterAction<window_pair_t, bit<1>, window_t>(reg_clear_window) regact_clear_window_signal_0 = {
         void apply(inout window_pair_t val, out window_t rv) {
-            if ((val.lo != 16w0))
+            bool flip = (val.lo != 16w0);
+            bool wrap = (val.hi == 16w28135);
+            if (flip)
             {
-                val.hi = (val.hi + 16w1);
-                val.lo = 16w0;
+                if (wrap)
+                {
+                    val.lo = 16w0;
+                    val.hi = 16w0;
+                }
+                else
+                {
+                    val.lo = 16w0;
+                    val.hi = (val.hi + 16w1);
+                }
+            }
+            else
+            {
+                val.lo = val.lo;
+                val.hi = val.hi;
             }
             rv = val.hi;
         }
     };
     RegisterAction<window_pair_t, bit<1>, window_t>(reg_clear_window) regact_clear_window_signal_1 = {
         void apply(inout window_pair_t val, out window_t rv) {
-            if ((val.hi == 16w28136))
-            {
-                val.hi = 16w0;
-            }
             if ((val.lo != 16w1))
             {
                 val.lo = 16w1;
@@ -391,10 +393,6 @@ control Bf2BloomFilter(in bf2_key_t ds_key,
                                                                  NOOP,
                                                                  INSERT,
                                                                  CLEAR);
-            (INSERT, 16w28136) : act_set_clear_win_1(CLEAR,
-                                                     NOOP,
-                                                     NOOP,
-                                                     INSERT);
             (QUERY, 16w0 .. 16w7033) : act_set_clear_win_1(CLEAR,
                                                            QUERY,
                                                            QUERY,
@@ -411,10 +409,6 @@ control Bf2BloomFilter(in bf2_key_t ds_key,
                                                                 QUERY,
                                                                 QUERY,
                                                                 CLEAR);
-            (QUERY, 16w28136) : act_set_clear_win_1(CLEAR,
-                                                    QUERY,
-                                                    QUERY,
-                                                    QUERY);
             (CLEAR, 16w0 .. 16w7033) : act_set_clear_win_1(CLEAR,
                                                            NOOP,
                                                            NOOP,
@@ -431,11 +425,10 @@ control Bf2BloomFilter(in bf2_key_t ds_key,
                                                                 NOOP,
                                                                 NOOP,
                                                                 CLEAR);
-            (CLEAR, 16w28136) : act_set_clear_win_1(CLEAR, NOOP, NOOP, NOOP);
             (_, _) : .NoAction();
         }
         default_action = .NoAction();
-        size = 16;
+        size = 13;
     }
     Bf2BloomFilterWin() win_1;
     Bf2BloomFilterWin() win_2;
@@ -502,10 +495,9 @@ control SwitchIngress(inout header_t hdr,
                       inout ingress_intrinsic_metadata_for_tm_t ig_intr_tm_md)
                       {
     action act_for_tbl_1_action_0() {
-        ig_md.solicitated = 0;
+        ig_md.solicited = 0;
     }
     table tbl_for_stmt_1 {
-        key = { }
         actions = {
             act_for_tbl_1_action_0();
         }
@@ -545,7 +537,7 @@ control SwitchIngress(inout header_t hdr,
     }
     table tbl_for_stmt_3 {
         key = {
-            ig_md.solicitated : ternary;
+            ig_md.solicited : ternary;
         }
         actions = {
             act_for_tbl_3_action_0();
@@ -564,7 +556,7 @@ control SwitchIngress(inout header_t hdr,
         bf2_ds.apply(ig_md.bf2_key,
                      ig_md.bf2_api,
                      ig_intr_md.ingress_mac_tstamp,
-                     ig_md.solicitated);
+                     ig_md.solicited);
         tbl_for_stmt_3.apply();
     }
 }
