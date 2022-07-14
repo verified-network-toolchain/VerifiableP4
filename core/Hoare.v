@@ -315,6 +315,12 @@ Proof.
   sfirstorder.
 Qed.
 
+Lemma arg_ret_implies_refl : forall P : Hoare.arg_ret_assertion,
+  arg_ret_implies P P.
+Proof.
+  sfirstorder.
+Qed.
+
 (* Pre and post rules. *)
 
 Lemma hoare_block_pre : forall p pre pre' block post,

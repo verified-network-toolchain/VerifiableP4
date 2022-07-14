@@ -606,7 +606,7 @@ Ltac table_action spec :=
 (* Tactics for step into a function call, instead of using a function spec.
   They may need some refactoring. *)
 
-Ltac step_into_call_func :=
+Ltac step_call_into :=
   lazymatch goal with
   | |- hoare_call _ _ _ _ _ =>
       eapply hoare_call_func';
@@ -620,7 +620,7 @@ Ltac step_into_call_func :=
   | _ => fail "The goal is not in the form of (hoare_call _ _ _ _ _)"
   end.
 
-Ltac step_stmt_into_call :=
+Ltac step_stmt_into :=
   lazymatch goal with
   | |- hoare_stmt _ _ (MEM _ (EXT _)) ?stmt _ =>
       lazymatch stmt with
@@ -629,14 +629,14 @@ Ltac step_stmt_into_call :=
           eapply hoare_stmt_assign_call';
             [ reflexivity (* is_call_expression *)
             | reflexivity (* eval_lexpr *)
-            | step_into_call_func (* hoare_call *)
+            | step_call_into (* hoare_call *)
             | reflexivity (* is_no_dup *)
             | eval_write (* eval_write *)
             ]
       (* hoare_stmt_method_call' *)
       | MkStatement _ (StatMethodCall ?func _ _) _ =>
           eapply hoare_stmt_method_call';
-            step_into_call_func (* hoare_call *)
+            step_call_into (* hoare_call *)
       (* hoare_stmt_var_call' *)
       | MkStatement _
             (StatVariable _ _
@@ -649,31 +649,35 @@ Ltac step_stmt_into_call :=
           end;
           eapply hoare_stmt_var_call';
             [ reflexivity (* is_call_expression *)
-            | step_into_call_func (* hoare_call *)
+            | step_call_into (* hoare_call *)
             | reflexivity (* is_no_dup *)
             | eval_write (* eval_write *)
             ]
       (* hoare_stmt_direct_application' *)
       | MkStatement _ (StatDirectApplication _ _ _) _ =>
           eapply hoare_stmt_direct_application';
-            step_into_call_func (* hoare_call *)
+            step_call_into (* hoare_call *)
       | _ => fail "This function call is not supported"
       end
   | _ => fail "The goal is not in the form of (hoare_stmt _ _ (MEM _ (EXT _)) ?stmt _)"
   end.
 
-Ltac step_into_call :=
+Ltac step_into_no_post :=
   lazymatch goal with
-  | |- hoare_block _ _ (MEM _ (EXT _)) (BlockCons ?stmt _) _ =>
+  | |- hoare_block _ _ (MEM _ (EXT _)) (BlockCons ?stmt (BlockEmpty _)) _ =>
       eapply hoare_block_cons;
-      [ step_stmt_into_call
+      [ step_stmt_into
       | eapply hoare_block_nil
       ]
   | |- hoare_stmt _ _ (MEM _ (EXT _)) ?stmt _ =>
-      step_stmt_into_call
+      step_stmt_into
   | _ => fail "The goal is not in the form of (hoare_block _ _ (MEM _ (EXT _)) (BlockCons _ _) _)"
               "or (hoare_stmt _ _ (MEM _ (EXT _)) _ _)"
   end.
+
+Tactic Notation "step_into" := step_into_no_post.
+
+Tactic Notation "step_into" constr(post) := fail "unimplemented".
 
 (* Refine function tactics. *)
 

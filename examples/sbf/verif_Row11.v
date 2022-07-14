@@ -201,7 +201,7 @@ Definition Row_noop_case_spec : func_spec :=
         (MEM []
         (EXT [row_repr p r])))
       POST
-        (ARG_RET [P4NewBit 8] ValBaseNull
+        (ARG_RET [P4Bit 8 0] ValBaseNull
         (MEM []
         (EXT [row_repr p r]))).
 
@@ -209,18 +209,16 @@ Definition Row_tbl_bloom_noop_spec : func_spec :=
   WITH (* p *),
     PATH p
     MOD (Some [["rw"]]) [p]
-    WITH (r : row) (i : Z)
-      (_ : 0 <= i < num_slots),
+    WITH (r : row),
       PRE
         (ARG []
         (MEM [(["api"], P4Bit 8 NOOP);
-              (["index"], P4Bit 18 i);
-              (["rw"], P4NewBit 8)]
+              (["rw"], P4Bit 8 0)]
         (EXT [row_repr p r])))
       POST
         (EX retv,
         (ARG_RET [] retv
-        (MEM [(["rw"], P4NewBit 8)]
+        (MEM [(["rw"], P4Bit 8 0)]
         (EXT [row_repr p r]))))%arg_ret_assr.
 
 Lemma Row_tbl_bloom_noop_body :
@@ -242,9 +240,9 @@ Lemma Row_noop_case_body :
 Proof.
   start_function.
   step.
+  step.
   step_call Row_tbl_bloom_noop_body.
   { entailer. }
-  { auto. }
   Intros _.
   step.
   entailer.
@@ -300,6 +298,7 @@ Lemma Row_insert_case_body :
   func_sound ge Row_fundef nil Row_insert_case_spec.
 Proof.
   start_function.
+  step.
   step.
   step_call Row_tbl_bloom_insert_body.
   { entailer. }
@@ -359,6 +358,7 @@ Lemma Row_query_case_body :
 Proof.
   start_function.
   step.
+  step.
   step_call Row_tbl_bloom_query_body.
   { entailer. }
   { auto. }
@@ -417,6 +417,7 @@ Lemma Row_clear_case_body :
   func_sound ge Row_fundef nil Row_clear_case_spec.
 Proof.
   start_function.
+  step.
   step.
   step_call Row_tbl_bloom_clear_body.
   { entailer. }

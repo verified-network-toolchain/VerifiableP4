@@ -1783,7 +1783,6 @@ Proof.
   Time step.
   Time step_call tbl_hash_index_1_body.
   { entailer. }
-  Time simpl_assertion.
   Intros _.
   step_call tbl_hash_index_2_body.
   { entailer. }
@@ -1831,6 +1830,13 @@ Proof.
   { auto. }
   { lia. }
   Intros _.
+  (* unfold and fold in the post condition *)
+  unfold filter_insert, ConFilter.filter_insert.
+  unfold proj1_sig.
+  fold new_timer.
+  replace (exist (fun i : list Z => Zlength i = num_rows) (Zrepeat fil_clear_index num_rows) _) with clear_is. 2 : {
+    apply subset_eq_compat. auto.
+  }
   assert (0 <= get_clear_frame new_timer < num_frames) by admit.
   destruct (get_clear_frame new_timer =? 0) eqn:?.
   { replace (get_clear_frame new_timer) with 0 by lia.
@@ -1851,8 +1857,21 @@ Proof.
     { solve [repeat constructor]. }
     { auto. }
     simpl Z.eqb. cbn match.
-    admit.
-    (* TODO merge result *)
+    step_into.
+    { hoare_func_table.
+      hoare_table_action_cases';
+      try lazymatch goal with
+      | H : is_true false |- _ => inv H
+      | H : is_true (~~true) |- _ => inv H
+      end.
+      table_action NoAction_body.
+      { entailer. }
+      { apply arg_ret_implies_refl. }
+    }
+    { reflexivity. }
+    { reflexivity. }
+    simpl_assertion.
+    entailer.
   }
   destruct (get_clear_frame new_timer =? 1) eqn:?.
   { replace (get_clear_frame new_timer) with 1 by lia.
@@ -1872,7 +1891,22 @@ Proof.
     { entailer. }
     { solve [repeat constructor]. }
     { auto. }
-    admit.
+    simpl Z.eqb. cbn match.
+    step_into.
+    { hoare_func_table.
+      hoare_table_action_cases';
+      try lazymatch goal with
+      | H : is_true false |- _ => inv H
+      | H : is_true (~~true) |- _ => inv H
+      end.
+      table_action NoAction_body.
+      { entailer. }
+      { apply arg_ret_implies_refl. }
+    }
+    { reflexivity. }
+    { reflexivity. }
+    simpl_assertion.
+    entailer.
   }
   destruct (get_clear_frame new_timer =? 2) eqn:?.
   { replace (get_clear_frame new_timer) with 2 by lia.
@@ -1892,7 +1926,22 @@ Proof.
     { entailer. }
     { solve [repeat constructor]. }
     { auto. }
-    admit.
+    simpl Z.eqb. cbn match.
+    step_into.
+    { hoare_func_table.
+      hoare_table_action_cases';
+      try lazymatch goal with
+      | H : is_true false |- _ => inv H
+      | H : is_true (~~true) |- _ => inv H
+      end.
+      table_action NoAction_body.
+      { entailer. }
+      { apply arg_ret_implies_refl. }
+    }
+    { reflexivity. }
+    { reflexivity. }
+    simpl_assertion.
+    entailer.
   }
   destruct (get_clear_frame new_timer =? 3) eqn:?.
   { replace (get_clear_frame new_timer) with 3 by lia.
@@ -1912,7 +1961,22 @@ Proof.
     { entailer. }
     { solve [repeat constructor]. }
     { auto. }
-    admit.
+    simpl Z.eqb. cbn match.
+    step_into.
+    { hoare_func_table.
+      hoare_table_action_cases';
+      try lazymatch goal with
+      | H : is_true false |- _ => inv H
+      | H : is_true (~~true) |- _ => inv H
+      end.
+      table_action NoAction_body.
+      { entailer. }
+      { apply arg_ret_implies_refl. }
+    }
+    { reflexivity. }
+    { reflexivity. }
+    simpl_assertion.
+    entailer.
   }
   lia.
-Abort.
+Admitted.

@@ -3625,25 +3625,44 @@ Definition Bf2BloomFilterRow := DeclControl NoInfo
                 TypVoid)) (Some 4%N) nil)]
     (BlockCons
          (MkStatement NoInfo
-              (StatMethodCall
+              (StatAssignment
                    (MkExpression NoInfo
-                        (ExpExpressionMember
+                        (ExpName
+                         (BareName {| stags := NoInfo; str := "rw" |})
+                         (LInstance ["rw"]))
+                        (TypTypeName
+                         {| stags := NoInfo; str := "bf2_value_t" |}) Out)
+                   (MkExpression NoInfo
+                        (ExpCast (TypBit 8%N)
                              (MkExpression NoInfo
-                                  (ExpName
-                                   (BareName
-                                    {| stags := NoInfo; str := "tbl_bloom" |})
-                                   (LInstance ["tbl_bloom"]))
-                                  (TypTable
-                                   {| stags := NoInfo;
-                                      str := "apply_result_tbl_bloom" |})
-                                  Directionless)
-                             {| stags := NoInfo; str := "apply" |})
-                        (TypFunction
-                         (MkFunctionType nil nil FunTable
-                              (TypTypeName
-                               {| stags := NoInfo;
-                                  str := "apply_result_tbl_bloom" |})))
-                        Directionless) nil nil) StmUnit) (BlockEmpty NoInfo)).
+                                  (ExpInt
+                                   {| itags := NoInfo; value := 0;
+                                      width_signed := None |}) TypInteger
+                                  Directionless)) (TypBit 8%N) Directionless))
+              StmUnit)
+         (BlockCons
+              (MkStatement NoInfo
+                   (StatMethodCall
+                        (MkExpression NoInfo
+                             (ExpExpressionMember
+                                  (MkExpression NoInfo
+                                       (ExpName
+                                        (BareName
+                                         {| stags := NoInfo;
+                                            str := "tbl_bloom" |})
+                                        (LInstance ["tbl_bloom"]))
+                                       (TypTable
+                                        {| stags := NoInfo;
+                                           str := "apply_result_tbl_bloom" |})
+                                       Directionless)
+                                  {| stags := NoInfo; str := "apply" |})
+                             (TypFunction
+                              (MkFunctionType nil nil FunTable
+                                   (TypTypeName
+                                    {| stags := NoInfo;
+                                       str := "apply_result_tbl_bloom" |})))
+                             Directionless) nil nil) StmUnit)
+              (BlockEmpty NoInfo))).
 
 Definition Bf2BloomFilterWin := DeclControl NoInfo
     {| stags := NoInfo; str := "Bf2BloomFilterWin" |} nil

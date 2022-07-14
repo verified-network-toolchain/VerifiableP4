@@ -151,6 +151,7 @@ control Bf2BloomFilterRow(in api_t api,
         size = 4;
     }
     apply {
+        rw = 0;
         tbl_bloom.apply();
     }
 }

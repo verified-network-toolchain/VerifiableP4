@@ -32,9 +32,9 @@ Definition Win_noop_spec : func_spec :=
                 ("index_1", P4Bit 18 (Znth 0 (`is)));
                 ("index_2", P4Bit 18 (Znth 1 (`is)));
                 ("index_3", P4Bit 18 (Znth 2 (`is)));
-                ("rw_1", P4NewBit 8);
-                ("rw_2", P4NewBit 8);
-                ("rw_3", P4NewBit 8)
+                ("rw_1", P4Bit_ 8);
+                ("rw_2", P4Bit_ 8);
+                ("rw_3", P4Bit_ 8)
                ]
              ]
         (MEM []
@@ -45,9 +45,9 @@ Definition Win_noop_spec : func_spec :=
                 ("index_1", P4Bit 18 (Znth 0 (`is)));
                 ("index_2", P4Bit 18 (Znth 1 (`is)));
                 ("index_3", P4Bit 18 (Znth 2 (`is)));
-                ("rw_1", P4NewBit 8);
-                ("rw_2", P4NewBit 8);
-                ("rw_3", P4NewBit 8)
+                ("rw_1", P4Bit 8 0);
+                ("rw_2", P4Bit 8 0);
+                ("rw_3", P4Bit 8 0)
                ]
         ] ValBaseNull
         (MEM []
@@ -70,9 +70,9 @@ Definition Win_insert_spec : func_spec :=
                 ("index_1", P4Bit 18 (Znth 0 (`is)));
                 ("index_2", P4Bit 18 (Znth 1 (`is)));
                 ("index_3", P4Bit 18 (Znth 2 (`is)));
-                ("rw_1", P4NewBit 8);
-                ("rw_2", P4NewBit 8);
-                ("rw_3", P4NewBit 8)
+                ("rw_1", P4Bit_ 8);
+                ("rw_2", P4Bit_ 8);
+                ("rw_3", P4Bit_ 8)
                ]
              ]
         (MEM []
@@ -108,9 +108,9 @@ Definition Win_query_spec : func_spec :=
                 ("index_1", P4Bit 18 (Znth 0 (`is)));
                 ("index_2", P4Bit 18 (Znth 1 (`is)));
                 ("index_3", P4Bit 18 (Znth 2 (`is)));
-                ("rw_1", P4NewBit 8);
-                ("rw_2", P4NewBit 8);
-                ("rw_3", P4NewBit 8)
+                ("rw_1", P4Bit_ 8);
+                ("rw_2", P4Bit_ 8);
+                ("rw_3", P4Bit_ 8)
                ]
              ]
         (MEM []
@@ -146,9 +146,9 @@ Definition Win_query_spec2 : func_spec :=
                 ("index_1", P4Bit 18 (Znth 0 (`is)));
                 ("index_2", P4Bit 18 (Znth 1 (`is)));
                 ("index_3", P4Bit 18 (Znth 2 (`is)));
-                ("rw_1", P4NewBit 8);
-                ("rw_2", P4NewBit 8);
-                ("rw_3", P4NewBit 8)
+                ("rw_1", P4Bit_ 8);
+                ("rw_2", P4Bit_ 8);
+                ("rw_3", P4Bit_ 8)
                ]
              ]
         (MEM []
@@ -185,9 +185,9 @@ Definition Win_clear_spec : func_spec :=
                 ("index_1", P4Bit 18 (Znth 0 (`is)));
                 ("index_2", P4Bit 18 (Znth 1 (`is)));
                 ("index_3", P4Bit 18 (Znth 2 (`is)));
-                ("rw_1", P4NewBit 8);
-                ("rw_2", P4NewBit 8);
-                ("rw_3", P4NewBit 8)
+                ("rw_1", P4Bit_ 8);
+                ("rw_2", P4Bit_ 8);
+                ("rw_3", P4Bit_ 8)
                ]
              ]
         (MEM []
@@ -241,9 +241,9 @@ Definition Win_spec : func_spec :=
                ("index_1", P4Bit 18 (Znth 0 (`is)));
                ("index_2", P4Bit 18 (Znth 1 (`is)));
                ("index_3", P4Bit 18 (Znth 2 (`is)));
-               ("rw_1", P4Bit_ 8);
-               ("rw_2", P4Bit_ 8);
-               ("rw_3", P4Bit_ 8)
+               ("rw_1", P4Bit 8 0);
+               ("rw_2", P4Bit 8 0);
+               ("rw_3", P4Bit 8 0)
               ]
           else if op =? CLEAR then
             ValBaseStruct
