@@ -24,6 +24,8 @@ Definition p := ["pipe"; "ingress"; "bf2_ds"].
 Definition act_hash_index_1_fd :=
   ltac:(get_fd ["Bf2BloomFilter"; "act_hash_index_1"] ge).
 
+(* TODO hash1 is not in range, right? *)
+
 Definition hash1 (v : Val) :=
   hash_Z 32
     {|
@@ -35,7 +37,8 @@ Definition hash1 (v : Val) :=
       Tofino.CRCP_init := P4Arith.to_lbool 32 0;
       Tofino.CRCP_xor := P4Arith.to_lbool 32 4294967295
     |}
-    v.
+    v
+    mod 2 ^ 18.
 
 Definition act_hash_index_1_spec : func_spec :=
   WITH (* p *),
@@ -63,20 +66,71 @@ Proof.
   intros; subst; apply sval_refine_refl.
 Qed.
 
+(* Lemma bitstring_slice_sublist {A} lo hi
+
+Ops.bitstring_slice *)
+
 (* Need a better name. *)
 Lemma bit_bitstring_slice : forall (w w' : N) v,
+  (w >= w')%N ->
   (w' > 0)%N ->
   ValBaseBit (Ops.bitstring_slice (P4Arith.to_loptbool w v) (N.to_nat 0) (N.to_nat (w' - 1)))
     = P4Bit w' v.
 Proof.
-  intros.
+  (* intros.
+  unfold P4Bit, P4Arith.to_loptbool, P4Arith.to_lbool.
+  rewrite <- !to_lbool''_to_lbool'.
+  replace w with (N.of_nat (N.to_nat w)) in * by lia.
+  revert H. generalize (N.to_nat w). clear w; intro w; intros.
+  induction w.
+  - lia.
+  - destruct (w' =? N.of_nat (S w))%N eqn:?H.
+    + admit.
+    + rewrite <- IHw. 2 : {
+        rewrite N.eqb_neq in *.
+        lia.
+      }
+      simpl.
+        assert (N.of_nat (S w) <> w') by lia.
+    destruct ((N.of_nat w >=? w')%N) eqn:?H.
+    intros.
+  intros. *)
 Admitted.
 
 Lemma P4Bit_trunc : forall w v v',
   v mod 2 ^ Z.of_N w = v' mod 2 ^ Z.of_N w ->
   P4Bit w v = P4Bit w v'.
 Proof.
-Admitted.
+  intros.
+  unfold P4Bit. f_equal.
+  replace w with (N.of_nat (N.to_nat w)) in * by lia.
+  revert H.
+  revert v v'.
+  generalize (N.to_nat w). clear w; intros w.
+  induction w; intros.
+  - reflexivity.
+  - specialize (IHw (v / 2) (v' / 2)).
+    unfold P4Bit in *.
+    unfold P4Arith.to_loptbool, P4Arith.to_lbool in *.
+    rewrite <- !to_lbool''_to_lbool' in *.
+    replace (N.to_nat (N.of_nat w)) with w in * by lia.
+    replace (N.to_nat (N.of_nat (S w))) with (S w) in * by lia.
+    simpl.
+    assert (Z.odd v = Z.odd v'). {
+      rewrite <- P4Arith.Z_odd_pow_2_S with (n := w) (v := v).
+      rewrite <- P4Arith.Z_odd_pow_2_S with (n := w) (v := v').
+      f_equal. lia.
+    }
+    replace (2 ^ Z.of_N (N.of_nat (S w))) with (2 * 2 ^ Z.of_N (N.of_nat w)) in *. 2 : {
+      replace (Z.of_N (N.of_nat (S w))) with (1 + Z.of_N (N.of_nat w)) by lia.
+      rewrite Z.pow_add_r; lia.
+    }
+    rewrite <- !P4Arith.div_2_mod_2_pow in H by lia.
+    rewrite H0 in *.
+    f_equal.
+    apply IHw.
+    lia.
+Qed.
 
 Lemma act_hash_index_1_body :
   func_sound ge act_hash_index_1_fd nil act_hash_index_1_spec.
@@ -91,6 +145,13 @@ Proof.
   cbv match.
   rewrite bit_bitstring_slice with (w' := 18%N) by lia.
   entailer.
+  { apply sval_refine_refl'.
+    f_equal.
+    apply P4Bit_trunc.
+    unfold hash1.
+    rewrite Z.mod_mod by lia.
+    auto.
+  }
 Qed.
 
 #[local] Hint Extern 5 (func_modifies _ _ _ _ _) => (apply act_hash_index_1_body) : func_specs.
@@ -139,7 +200,8 @@ Definition hash2 (v : Val) :=
       Tofino.CRCP_init := P4Arith.to_lbool 32 0;
       Tofino.CRCP_xor := P4Arith.to_lbool 32 4294967295
     |}
-    v.
+    v
+    mod 2 ^ 18.
 
 Definition act_hash_index_2_spec : func_spec :=
   WITH (* p *),
@@ -173,6 +235,13 @@ Proof.
   cbv match.
   rewrite bit_bitstring_slice with (w' := 18%N) by lia.
   entailer.
+  { apply sval_refine_refl'.
+    f_equal.
+    apply P4Bit_trunc.
+    unfold hash2.
+    rewrite Z.mod_mod by lia.
+    auto.
+  }
 Qed.
 
 #[local] Hint Extern 5 (func_modifies _ _ _ _ _) => (apply act_hash_index_2_body) : func_specs.
@@ -221,7 +290,8 @@ Definition hash3 (v : Val) :=
       Tofino.CRCP_init := P4Arith.to_lbool 32 0;
       Tofino.CRCP_xor := P4Arith.to_lbool 32 4294967295
     |}
-    v.
+    v
+    mod 2 ^ 18.
 
 Definition act_hash_index_3_spec : func_spec :=
   WITH (* p *),
@@ -255,6 +325,13 @@ Proof.
   cbv match.
   rewrite bit_bitstring_slice with (w' := 18%N) by lia.
   entailer.
+  { apply sval_refine_refl'.
+    f_equal.
+    apply P4Bit_trunc.
+    unfold hash3.
+    rewrite Z.mod_mod by lia.
+    auto.
+  }
 Qed.
 
 #[local] Hint Extern 5 (func_modifies _ _ _ _ _) => (apply act_hash_index_3_body) : func_specs.
@@ -680,6 +757,8 @@ Proof.
   (* This case should be impossible. *)
   admit.
 Admitted.
+
+#[local] Hint Extern 5 (func_modifies _ _ _ _ _) => (apply tbl_clear_window_body) : func_specs.
 
 Definition act_set_clear_win_1_fd :=
   ltac:(get_fd ["Bf2BloomFilter"; "act_set_clear_win_1"] ge).
@@ -1773,8 +1852,7 @@ Ltac simpl_assertion ::=
 Lemma Filter_insert_body :
   func_sound ge Filter_fd nil Filter_insert_spec.
 Proof.
-  intros_fs_bind; split. 2 : admit.
-  init_function.
+  Time start_function.
   destruct cf as [[ps ?H] ? ?].
   unfold filter_repr.
   cbn [proj1_sig] in *.
@@ -1795,7 +1873,9 @@ Proof.
   set (is := (exist _ [hash1 key; hash2 key; hash3 key] eq_refl : listn Z 3)).
   set (clear_is := (exist _ (Zrepeat fil_clear_index 3) eq_refl : listn Z 3)).
   assert (Forall (fun i : Z => 0 <= i < num_slots) (`is)). {
-    admit. (* need hash lemma *)
+    repeat first [apply Forall_cons | apply Forall_nil].
+    all : unfold hash1, hash2, hash3;
+      apply Z.mod_pos_bound; lia.
   }
   P4assert (0 <= fil_clear_index < num_slots). {
     unfold fil_clear_index_repr.
