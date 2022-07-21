@@ -208,8 +208,6 @@ Proof.
       }
       subst.
       entailer.
-      destruct (row_query r i);
-        apply sval_refine_refl.
     }
   }
   econstructor.

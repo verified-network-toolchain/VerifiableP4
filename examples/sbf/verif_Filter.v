@@ -410,7 +410,7 @@ Proof.
   { apply sval_refine_refl'.
     f_equal.
     cbn [sval_to_bits_width P4Bit].
-    rewrite bit_bitstring_slice with (w' := 18%N). 2 : { lia. }
+    rewrite bit_bitstring_slice with (w' := 18%N). 2, 3 : lia.
     apply P4Bit_trunc.
     pose proof (Z.mod_pos_bound i' (2 ^ Z.of_N 18) ltac:(lia)).
     replace (i mod 2 ^ Z.of_N 18) with i. 2 : {
