@@ -1,59 +1,29 @@
-# ProD3
-## Running P4 code in Petr4
-### Environment set-up
-You can follow the instructions from the link below to **install Petr4 from source**.
-https://github.com/cornell-netlab/petr4/#installing-from-source
+# Verifiable P4
+## Installation
+There are two options to install Verifiable P4.
+### Backend-only installation
+This approach only installs the backend of Verifiable P4, which includes the operational semantics, program logic, and proof automation. With this installation, one can verify programs that are already translated into a Coq AST or check existing proofs.
 
-### Running examples
-Run the parser to generate AST in JSON format:
+The following steps install Verifiable P4<br>
+TODO
+### Full installation
+This approach installs the the full Verifiable P4.
+1. Install `petr4`: in a proper directory
 ```
-petr4 typecheck basic.p4 -I ../../includes -json > AST.json
+git clone https://github.com/verified-network-toolchain/petr4/tree/poulet4 --branch poulet4
+cd petr4
+make; make install
 ```
-Run the parser to generate AST in a pretty format:
+2. Install Verifiable P4
 ```
-petr4 typecheck basic.p4 -I ../../includes -pretty -v > AST
-```
-Run the interpreter:
-```
-petr4 run basic.p4 -ctrl-json ctrl.json -pkt-str < a packet in hex, e.g. 2A2A2A2A2A2A2A2A2A2A2A2A21 > -I ../../includes/ -T v1 > eval_result
+git clone https://github.com/verified-network-toolchain/VerifiableP4.git
+make; make install
 ```
 
-## Running P4 code on v1model target
-### Environment set-up
-Current examples adopts the environment set-up of the P4 tutorials. You can follow the instructions from the link below to set up the virtual machine, and then clone this repository to the vm.
-https://github.com/p4lang/tutorials
-
-### Running examples
-In your shell, run:
+## Workflow
+1. Translate a P4 program into Coq AST
 ```
-make run
+./ast_gen.sh name_of_program.p4
 ```
-This will:
-
-- compile basic.p4, and
-- start the topology in Mininet and configure the switch with the appropriate P4 program + table entries, and
-- configure all hosts with the commands listed in topology/topology.json
-
-You should now see a Mininet command prompt, and you can bring up the hosts with
-```
-mininet> xterm h1 h2
-```
-and use scapy commands to send & receive packets:
-```
-scapy> sendp(Ether(src='00:00:00:00:00:00', dst='FF:00:00:00:00:00')/IP(), iface='eth0')
-scapy> sniff(iface='eth0', prn=lambda x:x.show())
-```
-Type exit to leave each xterm and the Mininet command line. Then, to stop mininet:
-```
-make stop
-```
-And to delete all pcaps, build files, and logs:
-```
-make clean
-```
-### Note
-In the count example, to read the counter values of the P4 program at runtime, you can open another shell and run the starter code:
-```
-sudo ./mycontroller.py
-```
-This will build the connection to the switch and print the counters every 2 seconds.
+2. Start to verify a program<br>
+TODO
