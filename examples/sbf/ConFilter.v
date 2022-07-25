@@ -224,18 +224,20 @@ Proof.
     destruct H1; [apply H2; auto |]. destruct H1; [apply H3; auto |].
     destruct b; [apply H2; auto|]. destruct (snd timer) eqn:?H; [| apply H3; auto].
     unfold get_clear_frame, update_timer. destruct timer as [timer tb].
-    red in H. simpl in *. subst. simpl. (*  assert (timer =? cycle_tick_tocks - 1 = false) by lia.
-    rewrite H4. destruct (timer + 1 =? cycle_tick_tocks) eqn:?H.
+    red in H. simpl in *. subst. simpl.
+    destruct (timer =? cycle_tick_tocks - 1) eqn:?H.
     + exfalso. apply H1. exists num_frames. lia.
     + pose proof (Z.div_mod timer frame_tick_tocks ltac:(lia)).
       assert (timer mod frame_tick_tocks <> frame_tick_tocks - 1). {
-        intro. apply H1. rewrite H7 in H6. rewrite H6.
-        exists (timer / frame_tick_tocks + 1). lia. }
+        intro. apply H1. rewrite H6 in H5. rewrite H5.
+        exists (timer / frame_tick_tocks + 1). lia.
+      }
       assert (exists r, timer = timer / frame_tick_tocks * frame_tick_tocks + r /\
                      0 <= r < frame_tick_tocks - 1). {
         exists (timer mod frame_tick_tocks). split. 1: lia.
-        pose proof (Z.mod_pos_bound timer frame_tick_tocks ltac:(lia)). lia. }
-      clear H6. destruct H8 as [r []]. rewrite H6.
+        pose proof (Z.mod_pos_bound timer frame_tick_tocks ltac:(lia)). lia.
+      }
+      clear H6. destruct H7 as [r []]. rewrite H6. simpl.
       rewrite <- Z.add_assoc. rewrite !Z.div_add_l by lia. f_equal. rewrite !Z.div_small; lia.
   - cut (~ (b = false /\ snd timer = true /\ (frame_tick_tocks | fst timer + 1))).
     + intros. apply Decidable.not_and in H2; [| red; destruct b; intuition].
@@ -243,8 +245,7 @@ Proof.
       apply Decidable.not_and in H2; [| red; destruct (snd timer); intuition].
       destruct H2; [left; destruct (snd timer) | right]; intuition.
     + rewrite get_clear_frame_update_neq; auto. lia.
-Qed. *)
-Admitted.
+Qed.
 
 Definition get_insert_frame (cf : Z) : Z :=
   if (cf =? 0) then num_frames - 1 else cf - 1.
