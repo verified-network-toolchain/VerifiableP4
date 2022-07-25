@@ -806,13 +806,13 @@ Ltac extract_ex_in_EXT a :=
     end
   end.
 
-Ltac extract_nth_ext_ex_ext_implies_pre a :=
+Ltac extract_nth_ext_ex_ext_implies_pre a ::=
   lazymatch a with
   | ?a_ext =>
     lazymatch a_ext with context [(ExtPred.ex (A := ?A) ?S _ _) :: ?a_ext'] =>
       let n := constr:((length a_ext - Datatypes.S (length a_ext'))%nat) in
       let n' := eval lazy beta zeta iota delta in n in
-      apply (extract_nth_ext_ex_ext_implies_pre n' _ a_ext A S _ _ eq_refl);
+      apply (extract_nth_ext_ex_ext_implies_pre n' a_ext _ A S _ _ eq_refl);
       unfold replace_nth at 1
     end
   end.

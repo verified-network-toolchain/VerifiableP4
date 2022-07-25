@@ -2247,7 +2247,7 @@ Definition BypassEgress := DeclControl NoInfo
                 (MkTablePreActionRef
                      (BareName
                       {| stags := NoInfo; str := "set_bypass_egress" |}) nil)
-                (TypAction nil nil))] None
+                (TypAction nil nil))] (Some nil)
           (Some
            (MkTableActionRef NoInfo
                 (MkTablePreActionRef
@@ -13905,7 +13905,7 @@ Definition SwitchIngress := DeclControl NoInfo
                 (MkTablePreActionRef
                      (BareName
                       {| stags := NoInfo; str := "act_for_tbl_1_action_0" |})
-                     nil) (TypAction nil nil))] None
+                     nil) (TypAction nil nil))] (Some nil)
           (Some
            (MkTableActionRef NoInfo
                 (MkTablePreActionRef

@@ -1879,8 +1879,13 @@ Proof.
   }
   P4assert (0 <= fil_clear_index < num_slots). {
     unfold fil_clear_index_repr.
+    Intros i'.
     normalize_EXT.
-    admit.
+    Intros_prop.
+    apply ext_implies_prop_intro.
+    subst.
+    apply Z.mod_pos_bound.
+    lia.
   }
   assert (Forall (fun i : Z => 0 <= i < num_slots) (`clear_is)). {
     repeat first [
@@ -1917,7 +1922,14 @@ Proof.
   replace (exist (fun i : list Z => Zlength i = num_rows) (Zrepeat fil_clear_index num_rows) _) with clear_is. 2 : {
     apply subset_eq_compat. auto.
   }
-  assert (0 <= get_clear_frame new_timer < num_frames) by admit.
+  assert (0 <= get_clear_frame new_timer < num_frames). {
+    unfold ConFilter.get_clear_frame.
+    destruct (fst new_timer =? frame_tick_tocks * num_frames) eqn:?.
+    { unfold Z.div. simpl. lia. }
+    split.
+    - apply Z.div_le_lower_bound; lia.
+    - apply Z.div_lt_upper_bound; lia.
+  }
   destruct (get_clear_frame new_timer =? 0) eqn:?.
   { replace (get_clear_frame new_timer) with 0 by lia.
     step_call verif_Win1.Win_body _ _ clear_is.
@@ -2059,4 +2071,5 @@ Proof.
     entailer.
   }
   lia.
-Admitted.
+Qed.
+(* Print Assumptions Filter_insert_body. *)
