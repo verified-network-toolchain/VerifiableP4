@@ -806,7 +806,7 @@ Ltac extract_ex_in_EXT a :=
     end
   end.
 
-Ltac extract_nth_ext_ex_ext_implies_pre a ::=
+Ltac extract_nth_ext_ex_ext_implies_pre a :=
   lazymatch a with
   | ?a_ext =>
     lazymatch a_ext with context [(ExtPred.ex (A := ?A) ?S _ _) :: ?a_ext'] =>
