@@ -240,13 +240,13 @@ Lemma Row_noop_case_body :
 Proof.
   start_function.
   step.
-  step.
   step_call Row_tbl_bloom_noop_body.
-  { entailer. }
+  (* Admit this for now until we have AI for table. *)
+  { admit. (* entailer. *) }
   Intros _.
   step.
   entailer.
-Qed.
+Admitted.
 
 #[export] Hint Extern 5 (func_modifies _ _ _ _ _) => (apply Row_noop_case_body) : func_specs.
 
@@ -298,7 +298,6 @@ Lemma Row_insert_case_body :
   func_sound ge Row_fundef nil Row_insert_case_spec.
 Proof.
   start_function.
-  step.
   step.
   step_call Row_tbl_bloom_insert_body.
   { entailer. }
@@ -358,7 +357,6 @@ Lemma Row_query_case_body :
 Proof.
   start_function.
   step.
-  step.
   step_call Row_tbl_bloom_query_body.
   { entailer. }
   { auto. }
@@ -417,7 +415,6 @@ Lemma Row_clear_case_body :
   func_sound ge Row_fundef nil Row_clear_case_spec.
 Proof.
   start_function.
-  step.
   step.
   step_call Row_tbl_bloom_clear_body.
   { entailer. }

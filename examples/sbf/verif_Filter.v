@@ -473,7 +473,7 @@ Definition regact_clear_window_signal_0_apply_fd :=
 Notation update_timer := (@update_timer num_frames frame_tick_tocks).
 
 Definition regact_clear_window_signal_0_apply_spec : func_spec :=
-  RegisterAction_apply_spec (p ++ ["regact_clear_window_signal_0"]) timer_repr_val
+  RegisterAction_apply_spec' (p ++ ["regact_clear_window_signal_0"]) (fun t => 0 <= fst t < 28136) timer_repr_val
     (fun t => update_timer t false) (fun t => P4Bit 16 (fst (update_timer t false))).
 
 (*  RegisterAction<window_pair_t, bit<1>, window_t>(reg_clear_window) regact_clear_window_signal_0 = {
@@ -496,21 +496,58 @@ Proof.
   change (eval_val_to_sval (timer_repr_val t)) with (timer_repr_sval t).
   unfold timer_repr_sval in *.
   step.
+  step.
+  step.
   (* TODO fix this bug in semantics:
     why we have ["rv"] here?
     when generating uninitialized value for out parameters, the locators in these are not properly set.
   *)
   step_if (MEM [(["apply"; "val"], timer_repr_sval (update_timer t false))]
-           (EXT [])).
+          (EXT [])).
   { unfold timer_repr_sval in *.
     step.
-    step.
-    step.
-    step.
-    destruct t as [? []]; inv H.
-    entailer.
+    step_if.
+    { step.
+      step.
+      step.
+      step.
+      destruct t as [? []]; inv H.
+      simpl fst in *.
+      change (P4Arith.BitArith.mod_bound 16 28135) with 28135 in H0.
+      replace (P4Arith.BitArith.mod_bound 16 z) with z in H0. 2 : {
+        unfold P4Arith.BitArith.mod_bound.
+        rewrite Z.mod_small; auto.
+        change (P4Arith.BitArith.upper_bound 16) with 65536.
+        lia.
+      }
+      unfold update_timer.
+      simpl.
+      destruct (z =? 28135); inv H0.
+      entailer.
+    }
+    { step.
+      step.
+      step.
+      step.
+      destruct t as [? []]; inv H.
+      simpl fst in *.
+      change (P4Arith.BitArith.mod_bound 16 28135) with 28135 in H0.
+      replace (P4Arith.BitArith.mod_bound 16 z) with z in H0. 2 : {
+        unfold P4Arith.BitArith.mod_bound.
+        rewrite Z.mod_small; auto.
+        change (P4Arith.BitArith.upper_bound 16) with 65536.
+        lia.
+      }
+      unfold update_timer.
+      simpl.
+      destruct (z =? 28135); inv H0.
+      entailer.
+    }
   }
   { unfold timer_repr_sval in *.
+    step.
+    step.
+    step.
     step.
     destruct t as [? []]; inv H.
     entailer.
@@ -527,7 +564,7 @@ Definition regact_clear_window_signal_1_apply_fd :=
   ltac:(get_am_fd ge am_ge (p ++ ["regact_clear_window_signal_1"; "apply"])).
 
 Definition regact_clear_window_signal_1_apply_spec : func_spec :=
-  RegisterAction_apply_spec' (p ++ ["regact_clear_window_signal_1"]) (fun t => 0 <= fst t <= 28136) timer_repr_val
+  RegisterAction_apply_spec (p ++ ["regact_clear_window_signal_1"]) timer_repr_val
     (fun t => update_timer t true) (fun t => P4Bit 16 (fst (update_timer t true))).
 
 (*  RegisterAction<window_pair_t, bit<1>, window_t>(reg_clear_window) regact_clear_window_signal_1 = {
@@ -553,50 +590,17 @@ Proof.
   change (eval_val_to_sval (timer_repr_val t)) with (timer_repr_sval t).
   unfold timer_repr_sval in *.
   step.
-  step_if (MEM [(["apply"; "val"], ValBaseStruct [("hi", P4Bit 16 (if (fst t =? 28136) then 0 else fst t));
-                                                  ("lo", P4Bit 16 (Z.b2z (snd t)))])]
-           (EXT [])).
+  step_if (MEM [(["apply"; "val"], timer_repr_sval (update_timer t true))]
+          (EXT [])).
   { step.
     step.
     step.
-    change (P4Arith.BitArith.mod_bound 16 28136) with 28136 in H.
-    replace (P4Arith.BitArith.mod_bound 16 (fst t)) with (fst t) in H. 2 : {
-      unfold P4Arith.BitArith.mod_bound.
-      rewrite Z.mod_small; auto.
-      change (P4Arith.BitArith.upper_bound 16) with 65536.
-      lia.
-    }
-    destruct (fst t =? 28136); inv H.
+    destruct t as [? []]; inv H.
     entailer.
   }
   { step.
-    change (P4Arith.BitArith.mod_bound 16 28136) with 28136 in H.
-    replace (P4Arith.BitArith.mod_bound 16 (fst t)) with (fst t) in H. 2 : {
-      unfold P4Arith.BitArith.mod_bound.
-      rewrite Z.mod_small; auto.
-      change (P4Arith.BitArith.upper_bound 16) with 65536.
-      lia.
-    }
-    destruct (fst t =? 28136); inv H.
+    destruct t as [? []]; inv H.
     entailer.
-  }
-  step_if (MEM [(["apply"; "val"], (timer_repr_sval (update_timer t true)))]
-           (EXT [])).
-  { unfold timer_repr_sval in *.
-    step.
-    step.
-    step.
-    destruct t as [? []]; inv H.
-    simpl.
-    destruct (z =? 28136);
-      entailer.
-  }
-  { unfold timer_repr_sval in *.
-    step.
-    destruct t as [? []]; inv H.
-    simpl.
-    destruct (z =? 28136);
-      entailer.
   }
   step.
   step.
@@ -645,6 +649,7 @@ Proof.
   { auto. }
   { lia. }
   { reflexivity. }
+  { auto. }
   step.
   entailer.
   simpl ext_exclude.
@@ -686,9 +691,6 @@ Proof.
   { auto. }
   { lia. }
   { reflexivity. }
-  { unfold timer_wf in H.
-    destruct (snd t); lia.
-  }
   step.
   entailer.
   apply ext_implies_prop_intro.
@@ -1137,7 +1139,7 @@ Definition P4_bf2_win_md_t_insert (f cf if' : Z) (new_clear_index : Sval) (is : 
   else
     P4_bf2_win_md_t (P4Bit 8 NOOP) is.
 
-Notation get_clear_frame := (get_clear_frame num_frames frame_tick_tocks).
+Notation get_clear_frame := (get_clear_frame frame_tick_tocks).
 Notation get_insert_frame := (get_insert_frame num_frames).
 
 Definition tbl_set_win_insert_spec : func_spec :=
@@ -1163,7 +1165,7 @@ Definition tbl_set_win_insert_spec : func_spec :=
                ["act_set_clear_win_4"; "api_4"]]) []
     WITH (timer : Z * bool) (clear_index_1 hash_index_1 hash_index_2 hash_index_3: Sval)
       (api: Z)
-      (H_timer : 0 <= fst timer <= frame_tick_tocks * num_frames)
+      (H_timer : 0 <= fst timer < frame_tick_tocks * num_frames)
       (H_api : 0 <= api <= 255),
       PRE
         (ARG []
@@ -1902,13 +1904,12 @@ Proof.
   Intros _.
   set (new_timer := update_timer fil_timer (Z.odd (tstamp / 2097152))).
   (* We need assert_Prop. *)
-  P4assert (0 <= fst new_timer <= num_frames * frame_tick_tocks).
+  P4assert (0 <= fst new_timer < num_frames * frame_tick_tocks).
   { unfold timer_repr.
     normalize_EXT.
     Intros_prop.
     apply ext_implies_prop_intro.
-    unfold timer_wf in *.
-    destruct (snd new_timer); lia.
+    auto.
   }
   step_call tbl_set_win_insert_body.
   { entailer. }
@@ -1924,8 +1925,6 @@ Proof.
   }
   assert (0 <= get_clear_frame new_timer < num_frames). {
     unfold ConFilter.get_clear_frame.
-    destruct (fst new_timer =? frame_tick_tocks * num_frames) eqn:?.
-    { unfold Z.div. simpl. lia. }
     split.
     - apply Z.div_le_lower_bound; lia.
     - apply Z.div_lt_upper_bound; lia.
