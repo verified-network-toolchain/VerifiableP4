@@ -64,11 +64,6 @@ Definition hoare_expr (p : path) (pre : assertion) (expr : Expression) (sv : Sva
     exec_expr ge read_ndetbit p st expr sv' ->
     sval_refine sv sv'.
 
-Definition hoare_expr_1 (p : path) (pre : assertion) (expr : Expression) (sv : Sval) :=
-  forall st,
-    pre st ->
-    exec_expr ge read_ndetbit p st expr sv.
-
 Definition hoare_expr_det (p : path) (pre : assertion) (expr : Expression) (sv : Sval) :=
   forall st v' sv',
     pre st ->
@@ -76,12 +71,36 @@ Definition hoare_expr_det (p : path) (pre : assertion) (expr : Expression) (sv :
     val_to_sval v' sv' ->
     sval_refine sv sv'.
 
+Definition hoare_expr_det' (p : path) (pre : assertion) (expr : Expression) (sv : Sval) :=
+  forall st v',
+    pre st ->
+    exec_expr_det ge read_ndetbit p st expr v' ->
+    sval_to_val read_ndetbit sv v'.
+
 Definition hoare_exprs_det (p : path) (pre : assertion) (exprs : list Expression) (svs : list Sval) :=
   forall st vs' svs',
     pre st ->
     exec_exprs_det ge read_ndetbit p st exprs vs' ->
     Forall2 val_to_sval vs' svs' ->
     Forall2 sval_refine svs svs'.
+
+Definition hoare_exprs_det' (p : path) (pre : assertion) (exprs : list Expression) (svs : list Sval) :=
+  forall st vs',
+    pre st ->
+    exec_exprs_det ge read_ndetbit p st exprs vs' ->
+    Forall2 (sval_to_val read_ndetbit) svs vs'.
+
+Lemma hoare_exprs_det'_hoare_exprs_det : forall p pre exprs svs,
+  hoare_exprs_det' p pre exprs svs ->
+  hoare_exprs_det p pre exprs svs.
+Proof.
+  unfold hoare_exprs_det', hoare_exprs_det.
+  intros.
+  specialize (H0 _ _ ltac:(eassumption) ltac:(eassumption)).
+  eapply Forall2_trans; only 2, 3 : eassumption.
+  red; eapply exec_val_trans.
+  red; clear; sauto lq: on.
+Qed.
 
 Definition hoare_lexpr (p : path) (pre : assertion) (expr : Expression) (lv : Lval) :=
   forall st lv' sig,
@@ -456,6 +475,20 @@ Proof.
   eapply sval_refine_trans.
   - eapply H0; eauto.
   - eapply sval_to_val_to_sval; eauto.
+Qed.
+
+Lemma hoare_expr_det'_intro : forall (p : path) (pre : assertion) (expr : Expression) (sv : Sval),
+  hoare_expr p pre expr sv ->
+  hoare_expr_det' p pre expr sv.
+Proof.
+  unfold hoare_expr, hoare_expr_det'. intros.
+  inv H2.
+  eapply exec_val_trans.
+  2 : {
+    eapply H0; eauto.
+  }
+  2 : eassumption.
+  red; clear; sauto lq: on.
 Qed.
 
 Lemma hoare_stmt_assign : forall p pre tags lhs rhs typ post lv sv,
@@ -1118,6 +1151,112 @@ Proof.
     destruct cond.
     + eapply hoare_func_table_action; eauto.
     + auto.
+Qed.
+
+Definition hoare_extern_match_list_nondet (keys : list Sval) (match_kinds : list ident) (entryvs : list table_entry_valset)
+      (cases : list (option bool * action_ref)) : Prop :=
+  forall keyvals, Forall2 (sval_to_val read_ndetbit) keys keyvals ->
+  (fix hoare_extern_match_list' (cases : list (option bool * action_ref)) : Prop :=
+    match cases with
+    | (cond, matched_action) :: cases' =>
+        match cond with
+        | Some cond =>
+            if cond then
+              extern_match (combine keyvals match_kinds) entryvs = Some matched_action
+            else
+              hoare_extern_match_list' cases'
+        | None =>
+            extern_match (combine keyvals match_kinds) entryvs = Some matched_action
+              \/ hoare_extern_match_list' cases'
+        end
+    | nil => extern_match (combine keyvals match_kinds) entryvs = None
+    end) cases.
+
+Definition hoare_table_match_list_nondet (p : path) (pre : assertion) (name : ident) (keys : list TableKey)
+      (const_entries : option (list table_entry)) (cases : list (option bool * action_ref)) : Prop :=
+  forall st matched_action',
+    pre st ->
+    exec_table_match ge read_ndetbit p st name keys const_entries matched_action' ->
+  (fix hoare_table_match_list_nondet' (cases : list (option bool * action_ref)) : Prop :=
+    match cases with
+    | (cond, matched_action) :: cases' =>
+        match cond with
+        | Some cond =>
+            if cond then
+              matched_action' = Some matched_action
+            else
+              hoare_table_match_list_nondet' cases'
+        | None =>
+            matched_action' = Some matched_action
+              \/ hoare_table_match_list_nondet' cases'
+        end
+    | nil => matched_action' = None
+    end) cases.
+
+Lemma hoare_table_match_list_nondet_intro : forall p pre name keys keysvals const_entries entryvs cases,
+  let entries := const_entries in
+  let match_kinds := map table_key_matchkind keys in
+  hoare_exprs_det' p pre (map table_key_key keys) keysvals ->
+  hoare_table_entries p entries entryvs ->
+  hoare_extern_match_list_nondet keysvals match_kinds entryvs cases ->
+  hoare_table_match_list_nondet p pre name keys (Some const_entries) cases.
+Proof.
+  intros. red; intros.
+  inv H4.
+  specialize (H0 _ _ ltac:(eassumption) ltac:(eassumption)).
+  specialize (H2 _ H0).
+  specialize (H1 _ ltac:(eassumption)); subst.
+  auto.
+Qed.
+
+Inductive hoare_table_action_cases_nondet (p : path) (pre : assertion) (actions : list Expression)
+      (default_action : Expression) (post : arg_ret_assertion) : list (option bool * action_ref) -> Prop :=
+  | hoare_table_action_cases_nondet_nil :
+      hoare_table_action_case p pre actions default_action post None ->
+      hoare_table_action_cases_nondet p pre actions default_action post nil
+  | hoare_table_action_cases_nondet_cons_Some : forall (cond : bool) matched_action cases',
+      (cond -> hoare_table_action_case p pre actions default_action post (Some matched_action)) ->
+      (~~cond -> hoare_table_action_cases_nondet p pre actions default_action post cases') ->
+      hoare_table_action_cases_nondet p pre actions default_action post ((Some cond, matched_action) :: cases')
+  | hoare_table_action_cases_nondet_cons_None : forall (cond : bool) matched_action cases',
+      hoare_table_action_case p pre actions default_action post (Some matched_action) ->
+      hoare_table_action_cases_nondet p pre actions default_action post cases' ->
+      hoare_table_action_cases_nondet p pre actions default_action post ((None, matched_action) :: cases').
+
+Lemma hoare_func_table_action' : forall p (pre : assertion) name keys actions default_action const_entries post matched_action,
+  forall (st : state) (st' : state) matched_action' action retv,
+    pre st ->
+    exec_table_match ge read_ndetbit p st name keys const_entries matched_action' ->
+    get_table_call actions default_action matched_action' = Some (action, retv) ->
+    exec_call ge read_ndetbit p st action st' SReturnNull ->
+    matched_action' = matched_action ->
+    hoare_table_action_case p pre actions default_action post matched_action ->
+    satisfies_arg_ret_assertion post [] (SReturn retv) st'.
+Proof.
+  intros.
+  inv H5.
+  rewrite H6 in H2; inv H2.
+  specialize_hoare_call.
+  apply H7.
+Qed.
+
+Lemma hoare_func_table_nondet : forall p pre name keys actions default_action const_entries post cases,
+  hoare_table_match_list_nondet p pre name keys const_entries cases ->
+  hoare_table_action_cases_nondet p pre actions default_action post cases ->
+  hoare_func p (fun _ => pre) (FTable name keys actions (Some default_action) const_entries)
+      [] post.
+Proof.
+  intros. red; intros.
+  inversion H3; subst.
+  specialize (H0 _ _ ltac:(eassumption) ltac:(eassumption)).
+  induction H1.
+  - eapply hoare_func_table_action'; eauto.
+  - destruct cond; simpl in H0.
+    + eapply hoare_func_table_action'; eauto.
+    + auto.
+  - destruct H0.
+    + eapply hoare_func_table_action'; eauto.
+    + eapply IHhoare_table_action_cases_nondet; eauto.
 Qed.
 
 Definition hoare_abstract_method (pre : list Sval -> extern_state -> Prop)

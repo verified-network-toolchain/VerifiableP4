@@ -1524,6 +1524,42 @@ Hint Resolve eval_expr_sound : hoare.
 Definition eval_exprs (ge : genv) (p : path) (a : mem_assertion) (exprs : list Expression) : option (list Sval) :=
   lift_option (map (eval_expr ge p a) exprs).
 
+Lemma hoare_exprs_det_cons' : forall ge (p : path) (pre : assertion) (expr : Expression) (exprs : list Expression)
+    (sv : Sval) (svs : list Sval),
+  hoare_expr_det' ge p pre expr sv ->
+  hoare_exprs_det' ge p pre exprs svs ->
+  hoare_exprs_det' ge p pre (expr :: exprs) (sv :: svs).
+Proof.
+  unfold hoare_expr_det', hoare_exprs_det'; intros.
+  inv H3. inv H4. inv H5.
+  constructor; eauto.
+  - eapply H0; eauto.
+    econstructor; eauto.
+  - eapply H1; eauto.
+    econstructor; eauto.
+Qed.
+
+Lemma eval_exprs_sound' : forall ge p a_mem a_ext exprs svs,
+  eval_exprs ge p a_mem exprs = Some svs ->
+  hoare_exprs_det' ge p (MEM a_mem (EXT a_ext)) exprs svs.
+Proof.
+  induction exprs; intros.
+  - inv H0.
+    unfold hoare_exprs_det'; intros.
+    inv H1. inv H2. inv H3.
+    constructor.
+  - inv H0.
+    apply lift_option_inv in H2.
+    destruct svs; inv H2.
+    apply hoare_exprs_det_cons'.
+    + eapply hoare_expr_det'_intro; eauto.
+      eapply eval_expr_sound; eauto.
+    + eapply IHexprs.
+      unfold eval_exprs.
+      rewrite H3.
+      apply lift_option_map_some.
+Qed.
+
 Lemma hoare_exprs_det_cons : forall ge (p : path) (pre : assertion) (expr : Expression) (exprs : list Expression)
     (sv : Sval) (svs : list Sval),
   hoare_expr_det ge p pre expr sv ->
