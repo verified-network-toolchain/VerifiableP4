@@ -20,6 +20,7 @@ Context {tags_t: Type} {tags_t_inhabitant : Inhabitant tags_t}.
 Notation Val := (@ValueBase bool).
 Notation Sval := (@ValueBase (option bool)).
 (* Notation ValSet := (@ValueSet tags_t). *)
+Notation ValSetT := (@ValSetT tags_t).
 Notation Lval := ValueLvalue.
 
 Notation ident := (String.string).
@@ -27,6 +28,7 @@ Notation path := (list ident).
 Notation P4Int := (P4Int.t tags_t).
 Notation P4String := (P4String.t tags_t).
 Notation Expression := (@Expression tags_t).
+Notation table_entry_valset := (@table_entry_valset tags_t Expression).
 
 Instance target : @Target tags_t Expression := Tofino.
 
@@ -45,6 +47,156 @@ Proof.
   - destruct a.
     destruct b; auto.
 Qed.
+
+Fixpoint assert_int_nondet (sv : Sval) : option (N * option Z * list (option bool)) :=
+  match sv with
+  | ValBaseBit sbits =>
+      match lift_option sbits with
+      | Some bits =>
+          Some (map_snd Some (BitArith.from_lbool bits), sbits)
+      | None =>
+          Some (Z.to_N (Zlength sbits), None, sbits)
+      end
+  | ValBaseInt sbits =>
+      match lift_option sbits with
+      | Some bits =>
+          Some (map_snd Some (BitArith.from_lbool bits), sbits)
+      | None =>
+          Some (Z.to_N (Zlength sbits), None, sbits)
+      end
+  | ValBaseSenumField _ val => assert_int_nondet val
+  | _ => None
+  end.
+
+Definition values_match_singleton_nondet (key: Sval) (val: Val): option bool :=
+  match eval_sval_to_val key with
+  | Some v =>
+      Some (values_match_singleton v val)
+  | None => None
+  end.
+
+(* Fixpoint vmm_help (bits0 bits1 bits2: list bool): bool :=
+  match bits2, bits1, bits0 with
+  | [], [], [] => true
+  | false::tl2, _::tl1, _::tl0 => vmm_help tl0 tl1 tl2
+  | true::tl2, hd1::tl1, hd0::tl0 =>
+      if (Bool.eqb hd0 hd1)
+      then (vmm_help tl0 tl1 tl2)
+      else false
+  (* should never hit *)
+  | _, _, _ => dummy_bool
+  end.
+
+Definition values_match_mask (key: Val) (val mask: Val): bool :=
+  match assert_int key, assert_int val, assert_int mask with
+  | Some (w0, _, bits0), Some (w1, _, bits1), Some (w2, _, bits2) =>
+    if negb ((w0 =? w1)%N && (w1 =? w2)%N) then dummy_bool
+    else vmm_help bits0 bits1 bits2
+  | _, _, _ => dummy_bool
+  end.
+
+Fixpoint vmm_help_z (v : Z) (bits1 bits2: list bool) :=
+  match bits2, bits1 with
+  | [], [] => true
+  | false::tl2, _::tl1 => vmm_help_z (v / 2) tl1 tl2
+  | true::tl2, hd1::tl1 =>
+      if Bool.eqb (Z.odd v) hd1
+      then (vmm_help_z (v / 2) tl1 tl2)
+      else false
+  | _, _ => dummy_bool
+  end.
+
+(* Fixpoint vmm_help_z' (v : Z) (bits1 bits2: list bool) :=
+  match bits2, bits1 with
+  | [], [] => true
+  | false::tl2, _::tl1 => vmm_help_z' (v / 2) tl1 tl2
+  | true::tl2, hd1::tl1 =>
+      andb (Bool.eqb (Z.odd v) hd1) (vmm_help_z' (v / 2) tl1 tl2)
+  | _, _ => Tofino.dummy_bool
+  end. *)
+
+
+Definition lpm_nbits_to_mask (w1 w2 : N) : list bool :=
+(Zrepeat false (Z.of_N (w1 - w2))) ++ (Zrepeat true (Z.of_N w2)).
+
+Definition values_match_lpm (key: Val) (val: Val) (lpm_num_bits: N): bool :=
+  match assert_int key, assert_int val with
+  | Some (w0, _, bits0), Some (w1, _, bits1) =>
+    if negb ((w0 =? w1)%N && (lpm_num_bits <=? w1)%N) then dummy_bool
+    else let bits2 := lpm_nbits_to_mask w1 lpm_num_bits in
+     vmm_help bits0 bits1 bits2
+  | _, _ => dummy_bool
+  end. *)
+
+Definition values_match_range_nondet (key: Sval) (lo hi: Val): option bool :=
+  match assert_int_nondet key, assert_int lo, assert_int hi with
+  | Some (w0, Some z0, _), Some (w1, z1, _), Some (w2, z2, _) =>
+      if negb ((w0 =? w1)%N && (w1 =? w2)%N) then Some dummy_bool
+      else Some ((z1 <=? z0) && (z0 <=? z2))
+  | _, _, _ => None
+  end.
+
+Definition values_match_set_nondet (keys : list Sval) (valset : ValSetT) : option bool :=
+  let values_match_set'' (key_valset: Sval * ValSetT) :=
+    let (key, valset) := key_valset in
+    match valset with
+    | VSTSingleton v => values_match_singleton_nondet key v
+    | VSTUniversal => Some true
+    | VSTMask v1 v2 => None (* values_match_mask key v1 v2 *)
+    | VSTRange lo hi => values_match_range_nondet key lo hi
+    | VSTLpm w2 v1 => None (* values_match_lpm key v1 w2 *)
+    | _ => Some dummy_bool
+    end in
+  let values_match_set' (keys: list Sval) (valset: ValSetT) :=
+    match valset with
+    | VSTProd l =>
+        if negb (Nat.eqb (List.length l) (List.length keys)) then Some dummy_bool
+        else option_map fold_andb (lift_option (List.map values_match_set'' (List.combine keys l)))
+    | _ => values_match_set'' (List.hd ValBaseNull keys, valset)
+    end in
+  match valset with
+  | VSTValueSet _ _ sets =>
+      option_map fold_orb (lift_option (List.map (values_match_set' keys) sets))
+  | _ => values_match_set' keys valset
+  end.
+
+Definition extern_matches_nondet (key: list (Sval * ident)) (entries: list table_entry_valset)
+    : list (option bool * action_ref) :=
+  let ks := List.map fst key in
+  let mks := List.map snd key in
+  match check_lpm_count mks with
+  | None => []
+  | Some lpm_idx =>
+    let entries' := List.map (fun p => (valset_to_valsett (fst p), snd p)) entries in
+    let entries'' :=
+      if (Nat.ltb lpm_idx (List.length mks))
+      then sort_lpm entries' lpm_idx
+      else entries' in
+    List.map (fun s => (values_match_set_nondet ks (fst s), snd s)) entries''
+  end.
+
+Lemma hoare_extern_match_list_nondet_intro : forall keys match_kinds entryvs,
+  hoare_extern_match_list_nondet keys match_kinds entryvs
+      (extern_matches_nondet (combine keys match_kinds) entryvs).
+Proof.
+  (* intros. induction entryvs.
+  - red; intros.
+    unfold extern_matches_nondet.
+    simpl.
+  unfold hoare_extern_match_list_nondet.
+    simpl.
+  unfold hoare_extern_match_list_nondet; intros.
+
+  simpl. unfold extern_match.
+  inductionn
+  remember (extern_matches keys_match_kinds c) as cases.
+  clear Heqcases.
+  induction cases.
+  - auto.
+  - destruct a.
+    destruct b; auto. *)
+(* Qed. *)
+Admitted.
 
 Open Scope func_spec.
 
@@ -421,7 +573,7 @@ Proof. exact 0. Qed.
 Definition hash_Z (hash_w : N) (poly : CRC_polynomial) (v : Val) : Z :=
   match convert_to_bits v with
   | Some input =>
-      extend_hash_output_Z hash_w (Hash.compute_crc (N.to_nat (CRCP_width poly)) (lbool_to_hex (CRCP_coeff poly)) 
+      extend_hash_output_Z hash_w (Hash.compute_crc (N.to_nat (CRCP_width poly)) (lbool_to_hex (CRCP_coeff poly))
           (lbool_to_hex (CRCP_init poly)) (lbool_to_hex (CRCP_xor poly))
           (CRCP_reversed poly) (CRCP_reversed poly) input)
   | None =>
