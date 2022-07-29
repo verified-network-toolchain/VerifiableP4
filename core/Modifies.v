@@ -645,9 +645,11 @@ End Modifies.
   WARNING: In order to avoid backtracking and fail quickly, there should be only one hint
   works in one case. *)
 
-#[export] Hint Resolve In_vars_None In_vars_Some : modifies.
+
+#[export] Hint Resolve In_vars_None : modifies.
 #[export] Hint Resolve in_eq in_cons : modifies.
 (* We define these rules using apply, so it works when the lists are computed. *)
+#[export] Hint Extern 1 (In_vars _ _) => (apply In_vars_Some) : modifies.
 #[export] Hint Extern 1 (incl_vars _ _) => apply incl_vars_None_None : modifies.
 #[export] Hint Extern 1 (incl_vars _ _) => apply incl_vars_None_Some : modifies.
 #[export] Hint Extern 1 (incl_vars _ _) => apply incl_vars_Some_Some : modifies.
@@ -655,6 +657,7 @@ End Modifies.
 #[export] Hint Extern 1 (Forall _ _) => (apply Forall_cons) : modifies.
 #[export] Hint Extern 1 (Forall2 _ _ _) => (apply Forall2_nil) : modifies.
 #[export] Hint Extern 1 (Forall2 _ _ _) => (apply Forall2_cons) : modifies.
+
 (* block_modifies rules *)
 #[export] Hint Resolve block_modifies_nil block_modifies_cons : modifies.
 (* stmt_modifies rules *)

@@ -806,6 +806,59 @@ Proof.
   sfirstorder.
 Qed.
 
+Lemma hoare_func_table_middle' : forall p pre_mem pre_ext name keys actions default_action const_entries post entryvs keysvals,
+  let entries := const_entries in
+  let match_kinds := map table_key_matchkind keys in
+  hoare_exprs_det' ge p (MEM pre_mem (EXT pre_ext)) (map table_key_key keys) keysvals ->
+  hoare_table_entries ge p entries entryvs ->
+  (forall keyvals,
+    Forall2 (sval_to_val read_ndetbit) keysvals keyvals ->
+    exists cases,
+      hoare_extern_match_list (combine keyvals match_kinds) entryvs cases
+        /\ hoare_table_action_cases ge p (MEM pre_mem (EXT pre_ext)) actions default_action post cases) ->
+  hoare_func ge p (ARG [] (MEM pre_mem (EXT pre_ext))) (FTable name keys actions (Some default_action) (Some const_entries))
+      [] post.
+Proof.
+  intros.
+  eapply hoare_func_pre.
+  2 : { eapply hoare_func_table_middle; eauto. }
+  sfirstorder.
+Qed.
+
+Inductive hoare_table_action_cases_nondet' (p : path) (pre : assertion) (actions : list Expression)
+      (default_action : Expression) (post : arg_ret_assertion) : list (option bool * action_ref) -> Prop :=
+  | hoare_table_action_cases_nondet'_nil :
+      hoare_table_action_case' p pre actions default_action post None ->
+      hoare_table_action_cases_nondet' p pre actions default_action post nil
+  | hoare_table_action_cases_nondet'_cons_Some : forall (cond : bool) matched_action cases',
+      (cond -> hoare_table_action_case' p pre actions default_action post (Some matched_action)) ->
+      (~~cond -> hoare_table_action_cases_nondet' p pre actions default_action post cases') ->
+      hoare_table_action_cases_nondet' p pre actions default_action post ((Some cond, matched_action) :: cases')
+  | hoare_table_action_cases_nondet'_cons_None : forall matched_action cases',
+      (hoare_table_action_case' p pre actions default_action post (Some matched_action)) ->
+      (hoare_table_action_cases_nondet' p pre actions default_action post cases') ->
+      hoare_table_action_cases_nondet' p pre actions default_action post ((None, matched_action) :: cases').
+
+(* Lemma hoare_func_table_nondet' : forall p pre_mem pre_ext name keys actions default_action const_entries post
+      cases,
+  hoare_table_match_list_nondet ge p (MEM pre_mem (EXT pre_ext)) name keys const_entries cases ->
+  hoare_table_action_cases' p
+    (MEM pre_mem (EXT pre_ext))
+    actions default_action
+    post cases ->
+  hoare_func ge p
+    (ARG [] (MEM pre_mem (EXT pre_ext)))
+    (FTable name keys actions (Some default_action) const_entries) []
+    post.
+Proof.
+  intros.
+  eapply hoare_func_pre.
+  2 : { eapply hoare_func_table; eauto.
+    eapply hoare_table_action_cases'_hoare_table_action_cases; eauto.
+  }
+  sfirstorder.
+Qed. *)
+
 Definition AM_ARG (a_arg : list Sval) (a : extern_state -> Prop) :=
   fun args es => arg_denote a_arg args /\ a es.
 

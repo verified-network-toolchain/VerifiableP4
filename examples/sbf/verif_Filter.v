@@ -852,13 +852,13 @@ Abort. *)
 
 Definition P4New_bf2_win_md_t :=
   ValBaseStruct
-    [("api", P4NewBit 8);
-     ("index_1", P4NewBit 18);
-     ("index_2", P4NewBit 18);
-     ("index_3", P4NewBit 18);
-     ("rw_1", P4NewBit 8);
-     ("rw_2", P4NewBit 8);
-     ("rw_3", P4NewBit 8)].
+    [("api", P4Bit_ 8);
+     ("index_1", P4Bit_ 18);
+     ("index_2", P4Bit_ 18);
+     ("index_3", P4Bit_ 18);
+     ("rw_1", P4Bit_ 8);
+     ("rw_2", P4Bit_ 8);
+     ("rw_3", P4Bit_ 8)].
 
 Definition P4_bf2_win_md_t (op : Sval) (is : list Sval) :=
   ValBaseStruct
@@ -866,9 +866,9 @@ Definition P4_bf2_win_md_t (op : Sval) (is : list Sval) :=
      ("index_1", Znth 0 is);
      ("index_2", Znth 1 is);
      ("index_3", Znth 2 is);
-     ("rw_1", P4NewBit 8);
-     ("rw_2", P4NewBit 8);
-     ("rw_3", P4NewBit 8)].
+     ("rw_1", P4Bit_ 8);
+     ("rw_2", P4Bit_ 8);
+     ("rw_3", P4Bit_ 8)].
 
 Definition act_set_clear_win_1_spec : func_spec :=
   WITH (* p *),
@@ -1133,7 +1133,7 @@ Definition tbl_set_win_fd :=
 
 Definition P4_bf2_win_md_t_insert (f cf if' : Z) (new_clear_index : Sval) (is : list Sval) :=
   if f=? cf then
-    P4_bf2_win_md_t (P4Bit 8 CLEAR) [new_clear_index; new_clear_index; new_clear_index]
+    P4_bf2_win_md_t (P4Bit 8 CLEAR) (Zrepeat new_clear_index 3)
   else if f=? if' then
     P4_bf2_win_md_t (P4Bit 8 INSERT) is
   else
@@ -1164,12 +1164,10 @@ Definition tbl_set_win_insert_spec : func_spec :=
                ["act_set_clear_win_4"; "api_3"];
                ["act_set_clear_win_4"; "api_4"]]) []
     WITH (timer : Z * bool) (clear_index_1 hash_index_1 hash_index_2 hash_index_3: Sval)
-      (api: Z)
-      (H_timer : 0 <= fst timer < frame_tick_tocks * num_frames)
-      (H_api : 0 <= api <= 255),
+      (H_timer : 0 <= fst timer < frame_tick_tocks * num_frames),
       PRE
         (ARG []
-        (MEM [(["api"], P4Bit 8 api);
+        (MEM [(["api"], P4Bit 8 INSERT);
               (["ds_md"], ValBaseStruct
                  [("clear_window", P4Bit 16 (fst timer));
                   ("clear_index_1", clear_index_1);
@@ -1780,24 +1778,6 @@ Admitted.
 
 #[local] Hint Extern 5 (func_modifies _ _ _ _ _) => (apply tbl_set_win_insert_body) : func_specs.
 
-Definition tbl_merge_wins_fd :=
-  ltac:(get_fd ["Bf2BloomFilter"; "tbl_merge_wins"; "apply"] ge).
-
-Definition tbl_merge_wins_spec : func_spec :=
-  WITH (* p *),
-    PATH p
-    MOD (Some [["ds_md"]]) []
-    WITH ds_md,
-      PRE
-        (ARG []
-        (MEM [(["api"], P4Bit 8 INSERT); (["ds_md"], ds_md)]
-        (EXT [])))
-      POST
-        (EX retv,
-        (ARG_RET [] retv
-        (MEM [(["ds_md"], ds_md)]
-        (EXT []))))%arg_ret_assr.
-
 Definition Filter_fd :=
   ltac:(get_fd ["Bf2BloomFilter"; "apply"] ge).
 
@@ -1914,7 +1894,6 @@ Proof.
   step_call tbl_set_win_insert_body.
   { entailer. }
   { auto. }
-  { lia. }
   Intros _.
   (* unfold and fold in the post condition *)
   unfold filter_insert, ConFilter.filter_insert.
@@ -2071,4 +2050,594 @@ Proof.
   }
   lia.
 Qed.
+
+Definition P4_bf2_win_md_t_query (f cf if' : Z) (new_clear_index : Sval) (is : list Sval) :=
+  if f=? cf then
+    P4_bf2_win_md_t (P4Bit 8 CLEAR) (Zrepeat new_clear_index 3)
+  else
+    P4_bf2_win_md_t (P4Bit 8 QUERY) is.
+
+Definition tbl_set_win_query_spec : func_spec :=
+  WITH (* p *),
+    PATH p
+    MOD (Some [["ds_md"];
+               ["act_set_clear_win_1"; "api_1"];
+               ["act_set_clear_win_1"; "api_2"];
+               ["act_set_clear_win_1"; "api_3"];
+               ["act_set_clear_win_1"; "api_4"];
+               ["act_set_clear_win_2"; "api_1"];
+               ["act_set_clear_win_2"; "api_2"];
+               ["act_set_clear_win_2"; "api_3"];
+               ["act_set_clear_win_2"; "api_4"];
+               ["act_set_clear_win_3"; "api_1"];
+               ["act_set_clear_win_3"; "api_2"];
+               ["act_set_clear_win_3"; "api_3"];
+               ["act_set_clear_win_3"; "api_4"];
+               ["act_set_clear_win_2"; "api_1"];
+               ["act_set_clear_win_4"; "api_1"];
+               ["act_set_clear_win_4"; "api_2"];
+               ["act_set_clear_win_4"; "api_3"];
+               ["act_set_clear_win_4"; "api_4"]]) []
+    WITH (timer : Z * bool) (clear_index_1 hash_index_1 hash_index_2 hash_index_3: Sval)
+      (H_timer : 0 <= fst timer < frame_tick_tocks * num_frames),
+      PRE
+        (ARG []
+        (MEM [(["api"], P4Bit 8 QUERY);
+              (["ds_md"], ValBaseStruct
+                 [("clear_window", P4Bit 16 (fst timer));
+                  ("clear_index_1", clear_index_1);
+                  ("hash_index_1", hash_index_1);
+                  ("hash_index_2", hash_index_2);
+                  ("hash_index_3", hash_index_3);
+                  ("win_1", P4New_bf2_win_md_t);
+                  ("win_2", P4New_bf2_win_md_t);
+                  ("win_3", P4New_bf2_win_md_t);
+                  ("win_4", P4New_bf2_win_md_t)])]
+        (EXT [])))
+      POST
+        (EX retv,
+        (ARG_RET [] retv
+        (let cf := get_clear_frame timer in
+        let if' := get_insert_frame cf in
+        (MEM [(["ds_md"], ValBaseStruct
+                 [("clear_window", P4Bit 16 (fst timer));
+                  ("clear_index_1", clear_index_1);
+                  ("hash_index_1", hash_index_1);
+                  ("hash_index_2", hash_index_2);
+                  ("hash_index_3", hash_index_3);
+                  ("win_1", P4_bf2_win_md_t_query 0 cf if' clear_index_1
+                        [hash_index_1; hash_index_2; hash_index_3]);
+                  ("win_2", P4_bf2_win_md_t_query 1 cf if' clear_index_1
+                        [hash_index_1; hash_index_2; hash_index_3]);
+                  ("win_3", P4_bf2_win_md_t_query 2 cf if' clear_index_1
+                        [hash_index_1; hash_index_2; hash_index_3]);
+                  ("win_4", P4_bf2_win_md_t_query 3 cf if' clear_index_1
+                        [hash_index_1; hash_index_2; hash_index_3])])]
+        (EXT [])))))%arg_ret_assr.
+
+Lemma tbl_set_win_query_body :
+  func_sound ge tbl_set_win_fd nil tbl_set_win_query_spec.
+Admitted.
+
+Definition act_merge_wins_fd :=
+  ltac:(get_fd ["Bf2BloomFilter"; "act_merge_wins"] ge).
+
+Definition act_merge_wins_spec : func_spec :=
+  WITH (* p *),
+    PATH p
+    MOD (Some [["query_res"]]) []
+    WITH,
+      PRE
+        (ARG []
+        (MEM []
+        (EXT [])))
+      POST
+        (ARG_RET [] ValBaseNull
+        (MEM [(["query_res"], (P4Bit 8 1))]
+        (EXT []))).
+
+Lemma act_merge_wins_body :
+  func_sound ge act_merge_wins_fd nil act_merge_wins_spec.
+Proof.
+  start_function.
+  step.
+  step.
+  entailer.
+Qed.
+
+Definition act_merge_default_fd :=
+  ltac:(get_fd ["Bf2BloomFilter"; "act_merge_default"] ge).
+
+Definition act_merge_default_spec : func_spec :=
+  WITH (* p *),
+    PATH p
+    MOD (Some [["query_res"]]) []
+    WITH,
+      PRE
+        (ARG []
+        (MEM []
+        (EXT [])))
+      POST
+        (ARG_RET [] ValBaseNull
+        (MEM [(["query_res"], (P4Bit 8 0))]
+        (EXT []))).
+
+Lemma act_merge_default_body :
+  func_sound ge act_merge_default_fd nil act_merge_default_spec.
+Proof.
+  start_function.
+  step.
+  step.
+  entailer.
+Qed.
+
+Definition tbl_merge_wins_fd :=
+  ltac:(get_fd ["Bf2BloomFilter"; "tbl_merge_wins"; "apply"] ge).
+
+Definition P4_bf2_win_md_t_rw rw1 rw2 rw3 :=
+  ValBaseStruct
+    [("api", P4Bit_ 8);
+     ("index_1", P4Bit_ 18);
+     ("index_2", P4Bit_ 18);
+     ("index_3", P4Bit_ 18);
+     ("rw_1", P4Bit 8 (Z.b2z rw1));
+     ("rw_2", P4Bit 8 (Z.b2z rw2));
+     ("rw_3", P4Bit 8 (Z.b2z rw3))].
+
+(* Because this function doesn't modify ds_md, so we can describe it in this way.
+But if it does modify ds_md, we don't have a really good way to isolate the unchanged part.
+But on the other hand, the get/update system doesn't work very well, either. *)
+Definition tbl_merge_wins_spec : func_spec :=
+  WITH (* p *),
+    PATH p
+    MOD (Some [["query_res"]]) []
+    WITH (* rw11 rw12 rw13 *) rw21 rw22 rw23 rw31 rw32 rw33 rw41 rw42 rw43,
+      PRE
+        (ARG []
+        (MEM [(["api"], P4Bit 8 QUERY);
+              (["ds_md"], ValBaseStruct
+                 [("clear_window", P4Bit_ 16);
+                  ("clear_index_1", P4Bit_ 18);
+                  ("hash_index_1", P4Bit_ 18);
+                  ("hash_index_2", P4Bit_ 18);
+                  ("hash_index_3", P4Bit_ 18);
+                  ("win_1", P4_bf2_win_md_t_rw false false false (* rw11 rw12 rw13 *));
+                  ("win_2", P4_bf2_win_md_t_rw rw21 rw22 rw23);
+                  ("win_3", P4_bf2_win_md_t_rw rw31 rw32 rw33);
+                  ("win_4", P4_bf2_win_md_t_rw rw41 rw42 rw43)])]
+        (EXT [])))
+      POST
+        (EX retv,
+        (ARG_RET [] retv
+        (MEM [(["query_res"], (P4Bit 8 (Z.b2z (
+          fold_orb (map fold_andb
+            [(* [rw11; rw12; rw13]; *)
+             [rw21; rw22; rw23];
+             [rw31; rw32; rw33];
+             [rw41; rw42; rw43]])))))]
+        (EXT []))))%arg_ret_assr.
+
+Definition tbl_merge_wins_insert_spec : func_spec :=
+  WITH (* p *),
+    PATH p
+    MOD (Some [["query_res"]]) []
+    WITH (* rw11 rw12 rw13 *) (* rw21 rw22 rw23 rw31 rw32 rw33 rw41 rw42 rw43 *),
+      PRE
+        (ARG []
+        (MEM [(["api"], P4Bit 8 INSERT);
+              (["query_res"], P4Bit_ 8);
+              (["ds_md"], ValBaseStruct
+                 [("clear_window", P4Bit_ 16);
+                  ("clear_index_1", P4Bit_ 18);
+                  ("hash_index_1", P4Bit_ 18);
+                  ("hash_index_2", P4Bit_ 18);
+                  ("hash_index_3", P4Bit_ 18);
+                  ("win_1", P4New_bf2_win_md_t);
+                  ("win_2", P4New_bf2_win_md_t);
+                  ("win_3", P4New_bf2_win_md_t);
+                  ("win_4", P4New_bf2_win_md_t)])]
+        (EXT [])))
+      POST
+        (EX retv,
+        (ARG_RET [] retv
+        (MEM [(["query_res"], P4Bit_ 8)]
+        (EXT []))))%arg_ret_assr.
+
+Ltac hoare_func_table_nondet :=
+  lazymatch goal with
+  | |- hoare_func _ _ _ (FTable _ _ _ _ _) _ _ =>
+      eapply hoare_func_table_nondet;
+      [ eapply hoare_table_match_list_intro'; (* hoare_table_match_list *)
+        [ reflexivity (* eval_exprs *)
+        | simplify_lift_option_eval_sval_to_val; (* lift_option (.. keysvals) *)
+          reflexivity
+        | eapply hoare_table_entries_intros; (* hoare_table_entries *)
+          repeat econstructor
+        | hoare_extern_match_list (* hoare_extern_match_list *)
+        ]
+      | idtac (* hoare_table_action_cases' *)
+      ]
+  | _ => fail "The goal is not in the form of (hoare_func _ _ _ (FTable _ _ _ _ _) _ _)"
+  end.
+
+Ltac hoare_func_table ::= idtac.
+
+Lemma sval_to_val_P4Bit : forall w v y,
+  sval_to_val read_ndetbit (P4Bit w v) y ->
+  y = ValBaseBit (P4Arith.to_lbool w v).
+Proof.
+Admitted.
+
+Lemma sval_to_val_P4Bit_ : forall w y,
+  sval_to_val read_ndetbit (P4Bit_ w) y ->
+  exists v,
+    0 <= v < P4Arith.BitArith.upper_bound w
+    /\ y = ValBaseBit (P4Arith.to_lbool w v).
+Proof.
+Admitted.
+
+Ltac elim_trivial_cases :=
+  try lazymatch goal with
+  | H : is_true false |- _ => inv H
+  | H : is_true (~~true) |- _ => inv H
+  end.
+
+Lemma tbl_merge_wins_insert_body :
+  func_sound ge tbl_merge_wins_fd nil tbl_merge_wins_insert_spec.
+Proof.
+  start_function.
+  unfold P4New_bf2_win_md_t.
+  eapply hoare_func_table_middle'.
+  { apply eval_exprs_sound'.
+    reflexivity.
+  }
+  { apply hoare_table_entries_intros;
+    repeat econstructor.
+  }
+  { simplify_lift_option_eval_sval_to_val.
+    intros.
+
+Ltac simpl_sval_to_val :=
+  lazymatch goal with
+  | H : sval_to_val read_ndetbit (P4Bit _ _) _ |- _ =>
+      apply sval_to_val_P4Bit in H; rewrite H; clear H
+  | H : sval_to_val read_ndetbit (P4Bit_ _) _ |- _ =>
+      apply sval_to_val_P4Bit_ in H;
+      destruct H as [? [? H]];
+      rewrite H; clear H
+  end.
+
+    (* inversion is slow *)
+    repeat (pinv Forall2; try simpl_sval_to_val).
+    eexists; split. { hoare_extern_match_list. }
+    apply hoare_table_action_cases'_hoare_table_action_cases.
+    Time hoare_table_action_cases'; elim_trivial_cases.
+    table_action NoAction_body.
+    { entailer. }
+    { entailer. }
+  }
+Time Qed.
+
+(* Lemma tbl_merge_wins_body :
+  func_sound ge tbl_merge_wins_fd nil tbl_merge_wins_spec.
+Proof.
+  start_function.
+  unfold P4_bf2_win_md_t_rw.
+
+
+(* Ltac hoare_table_action_cases' ::=
+  first [
+    apply hoare_table_action_cases'_nil (* solver: contradiction*)
+  | refine (@id (hoare_table_action_cases' _ _ _ _ _ _ ((_, _) :: _)) _);
+    lazymatch goal with
+    | |- hoare_table_action_cases' _ _ _ _ _ _ ((?cond, _) :: _)  =>
+      let H_cond := fresh in
+      let cond_name := fresh "cond" in
+      remember cond as cond_name eqn:H_cond;
+      simpl_match_cond H_cond;
+      subst cond_name
+    end;
+    apply hoare_table_action_cases'_cons;
+    [ let H := fresh in intro H
+    | let H := fresh in intro H;
+      hoare_table_action_cases'
+    ]
+  ]. *)
+
+Ltac simpl_match_cond cond ::=
+  simpl in cond; unfold fold_andb, fold_left in cond(* ; simpl in cond *)(* ;
+  repeat lazymatch goal with
+  | cond : context [Tofino.values_match_range ?x ?lo ?hi] |- _ =>
+      erewrite (reduce_match_range _ x lo hi) in cond;
+      [ idtac
+      | solve_assert_int
+      | compute; reflexivity
+      | compute; reflexivity
+      ]
+  | cond : context [Tofino.values_match_singleton ?x ?y] |- _ =>
+      erewrite (reduce_match_singleton _ x y) in cond;
+      [ idtac
+      | repeat constructor
+      | solve_assert_int
+      | compute; reflexivity
+      ]
+  | cond : context [Tofino.values_match_mask ?x ?v ?m] |- _ =>
+      erewrite (reduce_match_mask _ x v m) in cond;
+      [ idtac
+      | solve_assert_int
+      | compute; reflexivity
+      | compute; reflexivity
+      ];
+      cbv - [Bool.eqb Z.odd Z.div] in cond
+  end *).
+
+  hoare_table_action_cases'.
+  admit.
+  rewrite !Bool.andb_true_r in H0.
+  simpl in H0.
+  Time cbn in H0.
+  simpl in H. unfold fold_andb, fold_left in H.
+  (* It will diverge here. *)
+  simpl in H.
+Abort. *)
+
+
+Definition filter_query := @filter_query num_frames num_rows num_slots ltac:(lia) ltac:(lia) ltac:(lia)
+  frame_tick_tocks.
+
+Definition Filter_query_spec : func_spec :=
+  WITH (* p *),
+    PATH p
+    MOD None [p]
+    WITH (key : Val) (tstamp : Z) (cf : filter num_frames num_rows num_slots),
+      PRE
+        (ARG [eval_val_to_sval key; P4Bit 8 QUERY; P4Bit 48 tstamp; P4Bit_ 8]
+        (MEM []
+        (EXT [filter_repr p 18 panes rows cf])))
+      POST
+        (ARG_RET [P4Bit 8 (Z.b2z (snd (filter_query cf (Z.odd (tstamp/2097152)) (hashes key))))] ValBaseNull
+        (MEM []
+        (EXT [filter_repr p 18 panes rows (fst (filter_query cf (Z.odd (tstamp/2097152)) (hashes key)))]))).
+
+Lemma Filter_query_body :
+  func_sound ge Filter_fd nil Filter_query_spec.
+Proof.
+  start_function.
+  destruct cf as [[ps ?H] ? ?].
+  unfold filter_repr.
+  cbn [proj1_sig] in *.
+  destruct_list ps.
+  normalize_EXT.
+  step.
+  step_call tbl_hash_index_1_body.
+  { entailer. }
+  Intros _.
+  step_call tbl_hash_index_2_body.
+  { entailer. }
+  Intros _.
+  step_call tbl_hash_index_3_body.
+  { entailer. }
+  Intros _.
+  set (is := (exist _ [hash1 key; hash2 key; hash3 key] eq_refl : listn Z 3)).
+  set (clear_is := (exist _ (Zrepeat fil_clear_index 3) eq_refl : listn Z 3)).
+  assert (Forall (fun i : Z => 0 <= i < num_slots) (`is)). {
+    repeat first [apply Forall_cons | apply Forall_nil].
+    all : unfold hash1, hash2, hash3;
+      apply Z.mod_pos_bound; lia.
+  }
+  P4assert (0 <= fil_clear_index < num_slots). {
+    unfold fil_clear_index_repr.
+    Intros i'.
+    normalize_EXT.
+    Intros_prop.
+    apply ext_implies_prop_intro.
+    subst.
+    apply Z.mod_pos_bound.
+    lia.
+  }
+  assert (Forall (fun i : Z => 0 <= i < num_slots) (`clear_is)). {
+    repeat first [
+      assumption
+    | constructor
+    ].
+  }
+  step_call tbl_clear_index_body.
+  { entailer. }
+  Intros _.
+  step_call tbl_clear_window_body.
+  { entailer. }
+  Intros _.
+  set (new_timer := update_timer fil_timer (Z.odd (tstamp / 2097152))).
+  P4assert (0 <= fst new_timer < num_frames * frame_tick_tocks).
+  { unfold timer_repr.
+    normalize_EXT.
+    Intros_prop.
+    apply ext_implies_prop_intro.
+    auto.
+  }
+  step_call tbl_set_win_query_body.
+  { entailer. }
+  { auto. }
+  Intros _.
+  (* unfold and fold in the post condition *)
+  unfold filter_query, ConFilter.filter_query.
+  (* cbn [proj1_sig fst snd]. *)
+  unfold proj1_sig. unfold fst. unfold snd.
+  fold new_timer.
+  replace (exist (fun i : list Z => Zlength i = num_rows) (Zrepeat fil_clear_index num_rows) _) with clear_is. 2 : {
+    apply subset_eq_compat. auto.
+  }
+  assert (0 <= get_clear_frame new_timer < num_frames). {
+    unfold ConFilter.get_clear_frame.
+    split.
+    - apply Z.div_le_lower_bound; lia.
+    - apply Z.div_lt_upper_bound; lia.
+  }
+  destruct (get_clear_frame new_timer =? 0) eqn:?.
+  { replace (get_clear_frame new_timer) with 0 by lia.
+    step_call verif_Win1.Win_body _ _ clear_is.
+    { entailer. }
+    { solve [repeat constructor]. }
+    { auto. }
+    step_call verif_Win2.Win_body _ _ is.
+    { entailer. }
+    { solve [repeat constructor]. }
+    { auto. }
+    step_call verif_Win3.Win_body _ _ is.
+    { entailer. }
+    { solve [repeat constructor]. }
+    { auto. }
+    step_call verif_Win4.Win_body _ _ is.
+    { entailer. }
+    { solve [repeat constructor]. }
+    { auto. }
+    simpl Z.eqb. cbn match.
+
+    step_into.
+    (* { hoare_func_table.
+    Ltac simpl_match_cond cond ::= simpl in cond; unfold fold_andb, fold_left in cond.
+      Time hoare_table_action_cases'. { inv H5. }
+      Time simpl in H6.
+      2 : { Time simpl in H7.
+      try lazymatch goal with
+      | H : is_true false |- _ => inv H
+      | H : is_true (~~true) |- _ => inv H
+      end.
+      assert (frame_query x0 [hash1 key; hash2 key; hash3 key]). {
+        clear -H6.
+        destruct x0 as [l H_l].
+        destruct_list l.
+        unfold frame_query. unfold fold_andb. simpl in *.
+        list_simplify.
+        repeat lazymatch goal with
+        | |- context [row_query ?r ?h] =>
+            destruct (row_query r h);
+            simpl in H6;
+            try lazymatch goal with
+            | H : is_true false |- _ => inv H
+            | H : is_true (~~true) |- _ => inv H
+            end
+        end.
+        auto.
+      }
+      table_action act_merge_wins_body.
+      { entailer. }
+      { 
+      table_action NoAction_body.
+      { entailer. }
+      { apply arg_ret_implies_refl. }
+    }
+    { reflexivity. }
+    { reflexivity. }
+    simpl_assertion.
+    entailer.
+  }
+  destruct (get_clear_frame new_timer =? 1) eqn:?.
+  { replace (get_clear_frame new_timer) with 1 by lia.
+    step_call verif_Win1.Win_body _ _ is.
+    { entailer. }
+    { solve [repeat constructor]. }
+    { auto. }
+    step_call verif_Win2.Win_body _ _ clear_is.
+    { entailer. }
+    { solve [repeat constructor]. }
+    { auto. }
+    step_call verif_Win3.Win_body _ _ is.
+    { entailer. }
+    { solve [repeat constructor]. }
+    { auto. }
+    step_call verif_Win4.Win_body _ _ is.
+    { entailer. }
+    { solve [repeat constructor]. }
+    { auto. }
+    simpl Z.eqb. cbn match.
+    step_into.
+    { hoare_func_table.
+      hoare_table_action_cases';
+      try lazymatch goal with
+      | H : is_true false |- _ => inv H
+      | H : is_true (~~true) |- _ => inv H
+      end.
+      table_action NoAction_body.
+      { entailer. }
+      { apply arg_ret_implies_refl. }
+    }
+    { reflexivity. }
+    { reflexivity. }
+    simpl_assertion.
+    entailer.
+  }
+  destruct (get_clear_frame new_timer =? 2) eqn:?.
+  { replace (get_clear_frame new_timer) with 2 by lia.
+    step_call verif_Win1.Win_body _ _ is.
+    { entailer. }
+    { solve [repeat constructor]. }
+    { auto. }
+    step_call verif_Win2.Win_body _ _ is.
+    { entailer. }
+    { solve [repeat constructor]. }
+    { auto. }
+    step_call verif_Win3.Win_body _ _ clear_is.
+    { entailer. }
+    { solve [repeat constructor]. }
+    { auto. }
+    step_call verif_Win4.Win_body _ _ is.
+    { entailer. }
+    { solve [repeat constructor]. }
+    { auto. }
+    simpl Z.eqb. cbn match.
+    step_into.
+    { hoare_func_table.
+      hoare_table_action_cases';
+      try lazymatch goal with
+      | H : is_true false |- _ => inv H
+      | H : is_true (~~true) |- _ => inv H
+      end.
+      table_action NoAction_body.
+      { entailer. }
+      { apply arg_ret_implies_refl. }
+    }
+    { reflexivity. }
+    { reflexivity. }
+    simpl_assertion.
+    entailer.
+  }
+  destruct (get_clear_frame new_timer =? 3) eqn:?.
+  { replace (get_clear_frame new_timer) with 3 by lia.
+    step_call verif_Win1.Win_body _ _ is.
+    { entailer. }
+    { solve [repeat constructor]. }
+    { auto. }
+    step_call verif_Win2.Win_body _ _ is.
+    { entailer. }
+    { solve [repeat constructor]. }
+    { auto. }
+    step_call verif_Win3.Win_body _ _ is.
+    { entailer. }
+    { solve [repeat constructor]. }
+    { auto. }
+    step_call verif_Win4.Win_body _ _ clear_is.
+    { entailer. }
+    { solve [repeat constructor]. }
+    { auto. }
+    simpl Z.eqb. cbn match.
+    step_into.
+    { hoare_func_table.
+      hoare_table_action_cases';
+      try lazymatch goal with
+      | H : is_true false |- _ => inv H
+      | H : is_true (~~true) |- _ => inv H
+      end.
+      table_action NoAction_body.
+      { entailer. }
+      { apply arg_ret_implies_refl. }
+    }
+    { reflexivity. }
+    { reflexivity. }
+    simpl_assertion.
+    entailer.
+  }
+  lia.
+Qed. *)
+Abort.
 (* Print Assumptions Filter_insert_body. *)
