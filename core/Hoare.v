@@ -1153,6 +1153,52 @@ Proof.
     + auto.
 Qed.
 
+Lemma hoare_func_table_action_middle : forall p (pre : assertion) st (keys : list (@TableKey tags_t)) actions default_action post matched_action entryvs keyvals
+    action retv st',
+  pre st ->
+  extern_match (combine keyvals (map table_key_matchkind keys)) entryvs = matched_action ->
+  hoare_table_action_case p pre actions default_action post matched_action ->
+  get_table_call actions default_action
+      (extern_match (combine keyvals (map table_key_matchkind keys)) entryvs) =
+    Some (action, retv) ->
+  exec_call ge read_ndetbit p st action st' SReturnNull ->
+  satisfies_arg_ret_assertion post [] (SReturn retv) st'.
+Proof.
+  intros.
+  inv H2.
+  rewrite H5 in H3. inv H3.
+  specialize_hoare_call.
+  auto.
+Qed.
+
+Lemma hoare_func_table_middle : forall p pre name keys actions default_action const_entries post entryvs keysvals,
+  let entries := const_entries in
+  let match_kinds := map table_key_matchkind keys in
+  hoare_exprs_det' p pre (map table_key_key keys) keysvals ->
+  hoare_table_entries p entries entryvs ->
+  (forall keyvals,
+    Forall2 (sval_to_val read_ndetbit) keysvals keyvals ->
+    exists cases,
+      hoare_extern_match_list (combine keyvals match_kinds) entryvs cases
+        /\ hoare_table_action_cases p pre actions default_action post cases) ->
+  hoare_func p (fun _ => pre) (FTable name keys actions (Some default_action) (Some const_entries))
+      [] post.
+Proof.
+  intros; red; intros.
+  inv H4.
+  inv H16.
+  specialize (H0 _ _ ltac:(eassumption) ltac:(eassumption)).
+  specialize (H1 _ ltac:(eassumption)); subst.
+  specialize (H2 _ ltac:(eassumption)). destruct H2 as [cases []].
+  (* subst match_kinds match_kinds0. *)
+  induction H2.
+  - eapply hoare_func_table_action_middle; eauto.
+  - simpl in H1.
+    destruct cond.
+    + eapply hoare_func_table_action_middle; eauto.
+    + auto.
+Qed.
+
 Definition hoare_extern_match_list_nondet (keys : list Sval) (match_kinds : list ident) (entryvs : list table_entry_valset)
       (cases : list (option bool * action_ref)) : Prop :=
   forall keyvals, Forall2 (sval_to_val read_ndetbit) keys keyvals ->
