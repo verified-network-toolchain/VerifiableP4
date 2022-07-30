@@ -809,7 +809,7 @@ Qed.
 Lemma hoare_func_table_middle' : forall p pre_mem pre_ext name keys actions default_action const_entries post entryvs keysvals,
   let entries := const_entries in
   let match_kinds := map table_key_matchkind keys in
-  hoare_exprs_det' ge p (MEM pre_mem (EXT pre_ext)) (map table_key_key keys) keysvals ->
+  eval_exprs ge p pre_mem (map table_key_key keys) = Some keysvals ->
   hoare_table_entries ge p entries entryvs ->
   (forall keyvals,
     Forall2 (sval_to_val read_ndetbit) keysvals keyvals ->
@@ -821,8 +821,10 @@ Lemma hoare_func_table_middle' : forall p pre_mem pre_ext name keys actions defa
 Proof.
   intros.
   eapply hoare_func_pre.
-  2 : { eapply hoare_func_table_middle; eauto. }
-  sfirstorder.
+  2 : { eapply hoare_func_table_middle; eauto.
+    eapply eval_exprs_sound'; eauto.
+  }
+  clear; sfirstorder.
 Qed.
 
 Inductive hoare_table_action_cases_nondet' (p : path) (pre : assertion) (actions : list Expression)

@@ -201,7 +201,7 @@ Definition Row_noop_case_spec : func_spec :=
         (MEM []
         (EXT [row_repr p r])))
       POST
-        (ARG_RET [P4Bit 8 0] ValBaseNull
+        (ARG_RET [P4Bit_ 8] ValBaseNull
         (MEM []
         (EXT [row_repr p r]))).
 
@@ -213,12 +213,12 @@ Definition Row_tbl_bloom_noop_spec : func_spec :=
       PRE
         (ARG []
         (MEM [(["api"], P4Bit 8 NOOP);
-              (["rw"], P4Bit 8 0)]
+              (["rw"], P4Bit_ 8)]
         (EXT [row_repr p r])))
       POST
         (EX retv,
         (ARG_RET [] retv
-        (MEM [(["rw"], P4Bit 8 0)]
+        (MEM [(["rw"], P4Bit_ 8)]
         (EXT [row_repr p r]))))%arg_ret_assr.
 
 Lemma Row_tbl_bloom_noop_body :
@@ -241,12 +241,11 @@ Proof.
   start_function.
   step.
   step_call Row_tbl_bloom_noop_body.
-  (* Admit this for now until we have AI for table. *)
-  { admit. (* entailer. *) }
+  { entailer. }
   Intros _.
   step.
   entailer.
-Admitted.
+Qed.
 
 #[export] Hint Extern 5 (func_modifies _ _ _ _ _) => (apply Row_noop_case_body) : func_specs.
 

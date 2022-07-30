@@ -1831,6 +1831,54 @@ Ltac simpl_assertion ::=
 
     ext_exclude eq_rect Result.Result.forallb Result.Result.andb].
 
+Lemma sval_to_val_P4Bit : forall w v y,
+  sval_to_val read_ndetbit (P4Bit w v) y ->
+  y = ValBaseBit (P4Arith.to_lbool w v).
+Proof.
+Admitted.
+
+Lemma sval_to_val_P4Bit_ : forall w y,
+  sval_to_val read_ndetbit (P4Bit_ w) y ->
+  exists v,
+    0 <= v < P4Arith.BitArith.upper_bound w
+    /\ y = ValBaseBit (P4Arith.to_lbool w v).
+Proof.
+Admitted.
+
+Ltac elim_trivial_cases :=
+  try lazymatch goal with
+  | H : is_true false |- _ => inv H
+  | H : is_true (~~true) |- _ => inv H
+  end.
+
+Ltac simpl_sval_to_val :=
+  lazymatch goal with
+  | H : sval_to_val read_ndetbit (P4Bit _ _) _ |- _ =>
+      apply sval_to_val_P4Bit in H; rewrite H; clear H
+  | H : sval_to_val read_ndetbit (P4Bit_ _) _ |- _ =>
+      apply sval_to_val_P4Bit_ in H;
+      destruct H as [? [? H]];
+      rewrite H; clear H
+  end.
+
+Ltac hoare_func_table_nondet :=
+  lazymatch goal with
+  | |- hoare_func _ _ _ (FTable _ _ _ _ _) _ _ =>
+      eapply hoare_func_table_middle';
+      [ reflexivity (* eval_exprs *)
+      | eapply hoare_table_entries_intros; (* hoare_table_entries *)
+        repeat econstructor
+      | simplify_lift_option_eval_sval_to_val;
+        intros;
+        (* inversion is slow *)
+        repeat (pinv Forall2; try simpl_sval_to_val);
+        eexists; split; only 1 : hoare_extern_match_list;
+        apply hoare_table_action_cases'_hoare_table_action_cases;
+        hoare_table_action_cases'; elim_trivial_cases
+      ]
+  | _ => fail "The goal is not in the form of (hoare_func _ _ _ (FTable _ _ _ _ _) _ _)"
+  end.
+
 Lemma Filter_insert_body :
   func_sound ge Filter_fd nil Filter_insert_spec.
 Proof.
@@ -1928,12 +1976,7 @@ Proof.
     { auto. }
     simpl Z.eqb. cbn match.
     step_into.
-    { hoare_func_table.
-      hoare_table_action_cases';
-      try lazymatch goal with
-      | H : is_true false |- _ => inv H
-      | H : is_true (~~true) |- _ => inv H
-      end.
+    { hoare_func_table_nondet.
       table_action NoAction_body.
       { entailer. }
       { apply arg_ret_implies_refl. }
@@ -1963,12 +2006,7 @@ Proof.
     { auto. }
     simpl Z.eqb. cbn match.
     step_into.
-    { hoare_func_table.
-      hoare_table_action_cases';
-      try lazymatch goal with
-      | H : is_true false |- _ => inv H
-      | H : is_true (~~true) |- _ => inv H
-      end.
+    { hoare_func_table_nondet.
       table_action NoAction_body.
       { entailer. }
       { apply arg_ret_implies_refl. }
@@ -1998,12 +2036,7 @@ Proof.
     { auto. }
     simpl Z.eqb. cbn match.
     step_into.
-    { hoare_func_table.
-      hoare_table_action_cases';
-      try lazymatch goal with
-      | H : is_true false |- _ => inv H
-      | H : is_true (~~true) |- _ => inv H
-      end.
+    { hoare_func_table_nondet.
       table_action NoAction_body.
       { entailer. }
       { apply arg_ret_implies_refl. }
@@ -2033,12 +2066,7 @@ Proof.
     { auto. }
     simpl Z.eqb. cbn match.
     step_into.
-    { hoare_func_table.
-      hoare_table_action_cases';
-      try lazymatch goal with
-      | H : is_true false |- _ => inv H
-      | H : is_true (~~true) |- _ => inv H
-      end.
+    { hoare_func_table_nondet.
       table_action NoAction_body.
       { entailer. }
       { apply arg_ret_implies_refl. }
@@ -2242,81 +2270,6 @@ Definition tbl_merge_wins_insert_spec : func_spec :=
         (ARG_RET [] retv
         (MEM [(["query_res"], P4Bit_ 8)]
         (EXT []))))%arg_ret_assr.
-
-Ltac hoare_func_table_nondet :=
-  lazymatch goal with
-  | |- hoare_func _ _ _ (FTable _ _ _ _ _) _ _ =>
-      eapply hoare_func_table_nondet;
-      [ eapply hoare_table_match_list_intro'; (* hoare_table_match_list *)
-        [ reflexivity (* eval_exprs *)
-        | simplify_lift_option_eval_sval_to_val; (* lift_option (.. keysvals) *)
-          reflexivity
-        | eapply hoare_table_entries_intros; (* hoare_table_entries *)
-          repeat econstructor
-        | hoare_extern_match_list (* hoare_extern_match_list *)
-        ]
-      | idtac (* hoare_table_action_cases' *)
-      ]
-  | _ => fail "The goal is not in the form of (hoare_func _ _ _ (FTable _ _ _ _ _) _ _)"
-  end.
-
-Ltac hoare_func_table ::= idtac.
-
-Lemma sval_to_val_P4Bit : forall w v y,
-  sval_to_val read_ndetbit (P4Bit w v) y ->
-  y = ValBaseBit (P4Arith.to_lbool w v).
-Proof.
-Admitted.
-
-Lemma sval_to_val_P4Bit_ : forall w y,
-  sval_to_val read_ndetbit (P4Bit_ w) y ->
-  exists v,
-    0 <= v < P4Arith.BitArith.upper_bound w
-    /\ y = ValBaseBit (P4Arith.to_lbool w v).
-Proof.
-Admitted.
-
-Ltac elim_trivial_cases :=
-  try lazymatch goal with
-  | H : is_true false |- _ => inv H
-  | H : is_true (~~true) |- _ => inv H
-  end.
-
-Lemma tbl_merge_wins_insert_body :
-  func_sound ge tbl_merge_wins_fd nil tbl_merge_wins_insert_spec.
-Proof.
-  start_function.
-  unfold P4New_bf2_win_md_t.
-  eapply hoare_func_table_middle'.
-  { apply eval_exprs_sound'.
-    reflexivity.
-  }
-  { apply hoare_table_entries_intros;
-    repeat econstructor.
-  }
-  { simplify_lift_option_eval_sval_to_val.
-    intros.
-
-Ltac simpl_sval_to_val :=
-  lazymatch goal with
-  | H : sval_to_val read_ndetbit (P4Bit _ _) _ |- _ =>
-      apply sval_to_val_P4Bit in H; rewrite H; clear H
-  | H : sval_to_val read_ndetbit (P4Bit_ _) _ |- _ =>
-      apply sval_to_val_P4Bit_ in H;
-      destruct H as [? [? H]];
-      rewrite H; clear H
-  end.
-
-    (* inversion is slow *)
-    repeat (pinv Forall2; try simpl_sval_to_val).
-    eexists; split. { hoare_extern_match_list. }
-    apply hoare_table_action_cases'_hoare_table_action_cases.
-    Time hoare_table_action_cases'; elim_trivial_cases.
-    table_action NoAction_body.
-    { entailer. }
-    { entailer. }
-  }
-Time Qed.
 
 (* Lemma tbl_merge_wins_body :
   func_sound ge tbl_merge_wins_fd nil tbl_merge_wins_spec.
