@@ -94,6 +94,13 @@ Proof.
   apply exec_val_refl. exact bit_refine_refl.
 Qed.
 
+Lemma sval_refine_refl' : forall sv sv',
+  sv = sv' ->
+  sval_refine sv sv'.
+Proof.
+  intros; subst; apply sval_refine_refl.
+Qed.
+
 (* exec_val_sym : forall {A B} (f : A -> B -> Prop) (g : B -> A -> Prop),
   (f x y -> g y x) -> (exec_val f x y -> exec_val g y x).
   This is more general than standard symmetricity. *)
