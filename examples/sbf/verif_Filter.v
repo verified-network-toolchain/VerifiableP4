@@ -850,7 +850,7 @@ Ltac get_update_simpl :=
   (* Then we need a update_update_diff rule and guide it nicely. *)
 Abort. *)
 
-Definition P4New_bf2_win_md_t :=
+Definition P4_bf2_win_md_t_ :=
   ValBaseStruct
     [("api", P4Bit_ 8);
      ("index_1", P4Bit_ 18);
@@ -887,10 +887,10 @@ Definition act_set_clear_win_1_spec : func_spec :=
                   ("hash_index_1", hash_index_1);
                   ("hash_index_2", hash_index_2);
                   ("hash_index_3", hash_index_3);
-                  ("win_1", P4New_bf2_win_md_t);
-                  ("win_2", P4New_bf2_win_md_t);
-                  ("win_3", P4New_bf2_win_md_t);
-                  ("win_4", P4New_bf2_win_md_t)])]
+                  ("win_1", P4_bf2_win_md_t_);
+                  ("win_2", P4_bf2_win_md_t_);
+                  ("win_3", P4_bf2_win_md_t_);
+                  ("win_4", P4_bf2_win_md_t_)])]
         (EXT [])))
       POST
         (ARG_RET [] ValBaseNull
@@ -910,7 +910,7 @@ Lemma act_set_clear_win_1_body :
   func_sound ge act_set_clear_win_1_fd nil act_set_clear_win_1_spec.
 Proof.
   start_function.
-  unfold P4New_bf2_win_md_t.
+  unfold P4_bf2_win_md_t_.
   step.
   step.
   step.
@@ -951,10 +951,10 @@ Definition act_set_clear_win_2_spec : func_spec :=
                   ("hash_index_1", hash_index_1);
                   ("hash_index_2", hash_index_2);
                   ("hash_index_3", hash_index_3);
-                  ("win_1", P4New_bf2_win_md_t);
-                  ("win_2", P4New_bf2_win_md_t);
-                  ("win_3", P4New_bf2_win_md_t);
-                  ("win_4", P4New_bf2_win_md_t)])]
+                  ("win_1", P4_bf2_win_md_t_);
+                  ("win_2", P4_bf2_win_md_t_);
+                  ("win_3", P4_bf2_win_md_t_);
+                  ("win_4", P4_bf2_win_md_t_)])]
         (EXT [])))
       POST
         (ARG_RET [] ValBaseNull
@@ -974,7 +974,7 @@ Lemma act_set_clear_win_2_body :
   func_sound ge act_set_clear_win_2_fd nil act_set_clear_win_2_spec.
 Proof.
   start_function.
-  unfold P4New_bf2_win_md_t.
+  unfold P4_bf2_win_md_t_.
   step.
   step.
   step.
@@ -1015,10 +1015,10 @@ Definition act_set_clear_win_3_spec : func_spec :=
                   ("hash_index_1", hash_index_1);
                   ("hash_index_2", hash_index_2);
                   ("hash_index_3", hash_index_3);
-                  ("win_1", P4New_bf2_win_md_t);
-                  ("win_2", P4New_bf2_win_md_t);
-                  ("win_3", P4New_bf2_win_md_t);
-                  ("win_4", P4New_bf2_win_md_t)])]
+                  ("win_1", P4_bf2_win_md_t_);
+                  ("win_2", P4_bf2_win_md_t_);
+                  ("win_3", P4_bf2_win_md_t_);
+                  ("win_4", P4_bf2_win_md_t_)])]
         (EXT [])))
       POST
         (ARG_RET [] ValBaseNull
@@ -1038,7 +1038,7 @@ Lemma act_set_clear_win_3_body :
   func_sound ge act_set_clear_win_3_fd nil act_set_clear_win_3_spec.
 Proof.
   start_function.
-  unfold P4New_bf2_win_md_t.
+  unfold P4_bf2_win_md_t_.
   step.
   step.
   step.
@@ -1079,10 +1079,10 @@ Definition act_set_clear_win_4_spec : func_spec :=
                   ("hash_index_1", hash_index_1);
                   ("hash_index_2", hash_index_2);
                   ("hash_index_3", hash_index_3);
-                  ("win_1", P4New_bf2_win_md_t);
-                  ("win_2", P4New_bf2_win_md_t);
-                  ("win_3", P4New_bf2_win_md_t);
-                  ("win_4", P4New_bf2_win_md_t)])]
+                  ("win_1", P4_bf2_win_md_t_);
+                  ("win_2", P4_bf2_win_md_t_);
+                  ("win_3", P4_bf2_win_md_t_);
+                  ("win_4", P4_bf2_win_md_t_)])]
         (EXT [])))
       POST
         (ARG_RET [] ValBaseNull
@@ -1102,7 +1102,7 @@ Lemma act_set_clear_win_4_body :
   func_sound ge act_set_clear_win_4_fd nil act_set_clear_win_4_spec.
 Proof.
   start_function.
-  unfold P4New_bf2_win_md_t.
+  unfold P4_bf2_win_md_t_.
   step.
   step.
   step.
@@ -1174,10 +1174,10 @@ Definition tbl_set_win_insert_spec : func_spec :=
                   ("hash_index_1", hash_index_1);
                   ("hash_index_2", hash_index_2);
                   ("hash_index_3", hash_index_3);
-                  ("win_1", P4New_bf2_win_md_t);
-                  ("win_2", P4New_bf2_win_md_t);
-                  ("win_3", P4New_bf2_win_md_t);
-                  ("win_4", P4New_bf2_win_md_t)])]
+                  ("win_1", P4_bf2_win_md_t_);
+                  ("win_2", P4_bf2_win_md_t_);
+                  ("win_3", P4_bf2_win_md_t_);
+                  ("win_4", P4_bf2_win_md_t_)])]
         (EXT [])))
       POST
         (EX retv,
@@ -1607,8 +1607,10 @@ Ltac solve_assert_int :=
   try rewrite Z.mod_small by (unfold P4Arith.BitArith.upper_bound; lia);
   reflexivity.
 
+#[export] Hint Rewrite Bool.andb_true_l Bool.andb_true_r Bool.andb_false_l Bool.andb_false_r : simpl_andb.
+
 Ltac simpl_match_cond cond :=
-  simpl in cond; unfold fold_andb, fold_left in cond; simpl in cond;
+  simpl in cond; unfold fold_andb, fold_left in cond; autorewrite with simpl_andb in cond;
   repeat lazymatch goal with
   | cond : context [Tofino.values_match_range ?x ?lo ?hi] |- _ =>
       erewrite (reduce_match_range _ x lo hi) in cond;
@@ -2117,10 +2119,10 @@ Definition tbl_set_win_query_spec : func_spec :=
                   ("hash_index_1", hash_index_1);
                   ("hash_index_2", hash_index_2);
                   ("hash_index_3", hash_index_3);
-                  ("win_1", P4New_bf2_win_md_t);
-                  ("win_2", P4New_bf2_win_md_t);
-                  ("win_3", P4New_bf2_win_md_t);
-                  ("win_4", P4New_bf2_win_md_t)])]
+                  ("win_1", P4_bf2_win_md_t_);
+                  ("win_2", P4_bf2_win_md_t_);
+                  ("win_3", P4_bf2_win_md_t_);
+                  ("win_4", P4_bf2_win_md_t_)])]
         (EXT [])))
       POST
         (EX retv,
@@ -2219,7 +2221,7 @@ Definition tbl_merge_wins_spec : func_spec :=
   WITH (* p *),
     PATH p
     MOD (Some [["query_res"]]) []
-    WITH (* rw11 rw12 rw13 *) rw21 rw22 rw23 rw31 rw32 rw33 rw41 rw42 rw43,
+    WITH rw11 rw12 rw13 rw21 rw22 rw23 rw31 rw32 rw33 rw41 rw42 rw43,
       PRE
         (ARG []
         (MEM [(["api"], P4Bit 8 QUERY);
@@ -2229,7 +2231,7 @@ Definition tbl_merge_wins_spec : func_spec :=
                   ("hash_index_1", P4Bit_ 18);
                   ("hash_index_2", P4Bit_ 18);
                   ("hash_index_3", P4Bit_ 18);
-                  ("win_1", P4_bf2_win_md_t_rw false false false (* rw11 rw12 rw13 *));
+                  ("win_1", P4_bf2_win_md_t_rw rw11 rw12 rw13);
                   ("win_2", P4_bf2_win_md_t_rw rw21 rw22 rw23);
                   ("win_3", P4_bf2_win_md_t_rw rw31 rw32 rw33);
                   ("win_4", P4_bf2_win_md_t_rw rw41 rw42 rw43)])]
@@ -2239,101 +2241,77 @@ Definition tbl_merge_wins_spec : func_spec :=
         (ARG_RET [] retv
         (MEM [(["query_res"], (P4Bit 8 (Z.b2z (
           fold_orb (map fold_andb
-            [(* [rw11; rw12; rw13]; *)
+            [[rw11; rw12; rw13];
              [rw21; rw22; rw23];
              [rw31; rw32; rw33];
              [rw41; rw42; rw43]])))))]
         (EXT []))))%arg_ret_assr.
 
-Definition tbl_merge_wins_insert_spec : func_spec :=
-  WITH (* p *),
-    PATH p
-    MOD (Some [["query_res"]]) []
-    WITH (* rw11 rw12 rw13 *) (* rw21 rw22 rw23 rw31 rw32 rw33 rw41 rw42 rw43 *),
-      PRE
-        (ARG []
-        (MEM [(["api"], P4Bit 8 INSERT);
-              (["query_res"], P4Bit_ 8);
-              (["ds_md"], ValBaseStruct
-                 [("clear_window", P4Bit_ 16);
-                  ("clear_index_1", P4Bit_ 18);
-                  ("hash_index_1", P4Bit_ 18);
-                  ("hash_index_2", P4Bit_ 18);
-                  ("hash_index_3", P4Bit_ 18);
-                  ("win_1", P4New_bf2_win_md_t);
-                  ("win_2", P4New_bf2_win_md_t);
-                  ("win_3", P4New_bf2_win_md_t);
-                  ("win_4", P4New_bf2_win_md_t)])]
-        (EXT [])))
-      POST
-        (EX retv,
-        (ARG_RET [] retv
-        (MEM [(["query_res"], P4Bit_ 8)]
-        (EXT []))))%arg_ret_assr.
+Lemma b2z_one : forall b,
+  Z.b2z b =? 1 = b.
+Proof.
+  destruct b; auto.
+Qed.
 
-(* Lemma tbl_merge_wins_body :
+Lemma tbl_merge_wins_body :
   func_sound ge tbl_merge_wins_fd nil tbl_merge_wins_spec.
 Proof.
   start_function.
   unfold P4_bf2_win_md_t_rw.
-
-
-(* Ltac hoare_table_action_cases' ::=
-  first [
-    apply hoare_table_action_cases'_nil (* solver: contradiction*)
-  | refine (@id (hoare_table_action_cases' _ _ _ _ _ _ ((_, _) :: _)) _);
-    lazymatch goal with
-    | |- hoare_table_action_cases' _ _ _ _ _ _ ((?cond, _) :: _)  =>
-      let H_cond := fresh in
-      let cond_name := fresh "cond" in
-      remember cond as cond_name eqn:H_cond;
-      simpl_match_cond H_cond;
-      subst cond_name
+  hoare_table_action_cases';
+    repeat rewrite b2z_one in *;
+    repeat lazymatch goal with
+    | H : is_true (_ && _) |- _ =>
+        apply Reflect.andE in H;
+        destruct H
     end;
-    apply hoare_table_action_cases'_cons;
-    [ let H := fresh in intro H
-    | let H := fresh in intro H;
-      hoare_table_action_cases'
-    ]
-  ]. *)
+    repeat match goal with
+    | H : is_true ?b |- _ =>
+        is_var b;
+        unfold is_true in H;
+        subst b
+    end.
+  - table_action act_merge_wins_body.
+    { entailer. }
+    { entailer. }
 
-Ltac simpl_match_cond cond ::=
-  simpl in cond; unfold fold_andb, fold_left in cond(* ; simpl in cond *)(* ;
-  repeat lazymatch goal with
-  | cond : context [Tofino.values_match_range ?x ?lo ?hi] |- _ =>
-      erewrite (reduce_match_range _ x lo hi) in cond;
-      [ idtac
-      | solve_assert_int
-      | compute; reflexivity
-      | compute; reflexivity
-      ]
-  | cond : context [Tofino.values_match_singleton ?x ?y] |- _ =>
-      erewrite (reduce_match_singleton _ x y) in cond;
-      [ idtac
-      | repeat constructor
-      | solve_assert_int
-      | compute; reflexivity
-      ]
-  | cond : context [Tofino.values_match_mask ?x ?v ?m] |- _ =>
-      erewrite (reduce_match_mask _ x v m) in cond;
-      [ idtac
-      | solve_assert_int
-      | compute; reflexivity
-      | compute; reflexivity
-      ];
-      cbv - [Bool.eqb Z.odd Z.div] in cond
-  end *).
+#[export] Hint Rewrite Bool.orb_true_l Bool.orb_true_r Bool.orb_false_l Bool.orb_false_r : simpl_orb.
 
-  hoare_table_action_cases'.
-  admit.
-  rewrite !Bool.andb_true_r in H0.
-  simpl in H0.
-  Time cbn in H0.
-  simpl in H. unfold fold_andb, fold_left in H.
-  (* It will diverge here. *)
-  simpl in H.
-Abort. *)
-
+  - table_action act_merge_wins_body.
+    { entailer. }
+    { entailer.
+      unfold map, fold_andb, fold_orb, fold_left.
+      autorewrite with simpl_andb simpl_orb.
+      apply sval_refine_refl.
+    }
+  - table_action act_merge_wins_body.
+    { entailer. }
+    { entailer.
+      unfold map, fold_andb, fold_orb, fold_left.
+      autorewrite with simpl_andb simpl_orb.
+      apply sval_refine_refl.
+    }
+  - table_action act_merge_wins_body.
+    { entailer. }
+    { entailer.
+      unfold map, fold_andb, fold_orb, fold_left.
+      autorewrite with simpl_andb simpl_orb.
+      apply sval_refine_refl.
+    }
+  - table_action act_merge_default_body.
+    { entailer. }
+    { entailer.
+      unfold map, fold_andb, fold_orb, fold_left.
+      autorewrite with simpl_andb simpl_orb.
+      replace (rw11 && rw12 && rw13) with false by (destruct (rw11 && rw12 && rw13); auto).
+      replace (rw21 && rw22 && rw23) with false by (destruct (rw21 && rw22 && rw23); auto).
+      replace (rw31 && rw32 && rw33) with false by (destruct (rw31 && rw32 && rw33); auto).
+      replace (rw41 && rw42 && rw43) with false by (destruct (rw41 && rw42 && rw43); auto).
+      apply sval_refine_refl.
+    }
+  - elim_trivial_cases.
+  - elim_trivial_cases.
+Qed.
 
 Definition filter_query := @filter_query num_frames num_rows num_slots ltac:(lia) ltac:(lia) ltac:(lia)
   frame_tick_tocks.
@@ -2351,6 +2329,10 @@ Definition Filter_query_spec : func_spec :=
         (ARG_RET [P4Bit 8 (Z.b2z (snd (filter_query cf (Z.odd (tstamp/2097152)) (hashes key))))] ValBaseNull
         (MEM []
         (EXT [filter_repr p 18 panes rows (fst (filter_query cf (Z.odd (tstamp/2097152)) (hashes key)))]))).
+
+Ltac destruct_listn l :=
+  destruct l as [l ?H];
+  destruct_list l.
 
 Lemma Filter_query_body :
   func_sound ge Filter_fd nil Filter_query_spec.
@@ -2445,45 +2427,25 @@ Proof.
     { solve [repeat constructor]. }
     { auto. }
     simpl Z.eqb. cbn match.
-
-    step_into.
-    (* { hoare_func_table.
-    Ltac simpl_match_cond cond ::= simpl in cond; unfold fold_andb, fold_left in cond.
-      Time hoare_table_action_cases'. { inv H5. }
-      Time simpl in H6.
-      2 : { Time simpl in H7.
-      try lazymatch goal with
-      | H : is_true false |- _ => inv H
-      | H : is_true (~~true) |- _ => inv H
-      end.
-      assert (frame_query x0 [hash1 key; hash2 key; hash3 key]). {
-        clear -H6.
-        destruct x0 as [l H_l].
-        destruct_list l.
-        unfold frame_query. unfold fold_andb. simpl in *.
-        list_simplify.
-        repeat lazymatch goal with
-        | |- context [row_query ?r ?h] =>
-            destruct (row_query r h);
-            simpl in H6;
-            try lazymatch goal with
-            | H : is_true false |- _ => inv H
-            | H : is_true (~~true) |- _ => inv H
-            end
-        end.
-        auto.
-      }
-      table_action act_merge_wins_body.
-      { entailer. }
-      { 
-      table_action NoAction_body.
-      { entailer. }
-      { apply arg_ret_implies_refl. }
+    step_call_wrapper tbl_merge_wins_body
+      ltac:(fun func_body func_body1 func_body2 =>
+        epose proof (func_body := conj (func_body1 _ _ _ _ _ _ _ _ _ _ _ _) func_body2)).
+    { unfold P4_bf2_win_md_t_rw.
+      entailer.
+      replace (P4Bit 8 0) with (P4Bit 8 (Z.b2z false)) by auto.
+      repeat first [
+        apply sval_refine_refl
+      | constructor
+      ].
     }
-    { reflexivity. }
-    { reflexivity. }
-    simpl_assertion.
+    Intros _.
+    step.
     entailer.
+    destruct_listn x.
+    destruct_listn x0.
+    destruct_listn x1.
+    destruct_listn x2.
+    apply sval_refine_refl.
   }
   destruct (get_clear_frame new_timer =? 1) eqn:?.
   { replace (get_clear_frame new_timer) with 1 by lia.
@@ -2504,21 +2466,25 @@ Proof.
     { solve [repeat constructor]. }
     { auto. }
     simpl Z.eqb. cbn match.
-    step_into.
-    { hoare_func_table.
-      hoare_table_action_cases';
-      try lazymatch goal with
-      | H : is_true false |- _ => inv H
-      | H : is_true (~~true) |- _ => inv H
-      end.
-      table_action NoAction_body.
-      { entailer. }
-      { apply arg_ret_implies_refl. }
+    step_call_wrapper tbl_merge_wins_body
+      ltac:(fun func_body func_body1 func_body2 =>
+        epose proof (func_body := conj (func_body1 _ _ _ _ _ _ _ _ _ _ _ _) func_body2)).
+    { unfold P4_bf2_win_md_t_rw.
+      entailer.
+      replace (P4Bit 8 0) with (P4Bit 8 (Z.b2z false)) by auto.
+      repeat first [
+        apply sval_refine_refl
+      | constructor
+      ].
     }
-    { reflexivity. }
-    { reflexivity. }
-    simpl_assertion.
+    Intros _.
+    step.
     entailer.
+    destruct_listn x.
+    destruct_listn x0.
+    destruct_listn x1.
+    destruct_listn x2.
+    apply sval_refine_refl.
   }
   destruct (get_clear_frame new_timer =? 2) eqn:?.
   { replace (get_clear_frame new_timer) with 2 by lia.
@@ -2539,21 +2505,25 @@ Proof.
     { solve [repeat constructor]. }
     { auto. }
     simpl Z.eqb. cbn match.
-    step_into.
-    { hoare_func_table.
-      hoare_table_action_cases';
-      try lazymatch goal with
-      | H : is_true false |- _ => inv H
-      | H : is_true (~~true) |- _ => inv H
-      end.
-      table_action NoAction_body.
-      { entailer. }
-      { apply arg_ret_implies_refl. }
+    step_call_wrapper tbl_merge_wins_body
+      ltac:(fun func_body func_body1 func_body2 =>
+        epose proof (func_body := conj (func_body1 _ _ _ _ _ _ _ _ _ _ _ _) func_body2)).
+    { unfold P4_bf2_win_md_t_rw.
+      entailer.
+      replace (P4Bit 8 0) with (P4Bit 8 (Z.b2z false)) by auto.
+      repeat first [
+        apply sval_refine_refl
+      | constructor
+      ].
     }
-    { reflexivity. }
-    { reflexivity. }
-    simpl_assertion.
+    Intros _.
+    step.
     entailer.
+    destruct_listn x.
+    destruct_listn x0.
+    destruct_listn x1.
+    destruct_listn x2.
+    apply sval_refine_refl.
   }
   destruct (get_clear_frame new_timer =? 3) eqn:?.
   { replace (get_clear_frame new_timer) with 3 by lia.
@@ -2574,23 +2544,28 @@ Proof.
     { solve [repeat constructor]. }
     { auto. }
     simpl Z.eqb. cbn match.
-    step_into.
-    { hoare_func_table.
-      hoare_table_action_cases';
-      try lazymatch goal with
-      | H : is_true false |- _ => inv H
-      | H : is_true (~~true) |- _ => inv H
-      end.
-      table_action NoAction_body.
-      { entailer. }
-      { apply arg_ret_implies_refl. }
+    step_call_wrapper tbl_merge_wins_body
+      ltac:(fun func_body func_body1 func_body2 =>
+        epose proof (func_body := conj (func_body1 _ _ _ _ _ _ _ _ _ _ _ _) func_body2)).
+    { unfold P4_bf2_win_md_t_rw.
+      entailer.
+      replace (P4Bit 8 0) with (P4Bit 8 (Z.b2z false)) by auto.
+      repeat first [
+        apply sval_refine_refl
+      | constructor
+      ].
     }
-    { reflexivity. }
-    { reflexivity. }
-    simpl_assertion.
+    Intros _.
+    step.
     entailer.
+    destruct_listn x.
+    destruct_listn x0.
+    destruct_listn x1.
+    destruct_listn x2.
+    apply sval_refine_refl.
   }
   lia.
-Qed. *)
-Abort.
-(* Print Assumptions Filter_insert_body. *)
+(* This is slow. I can understand it but I don't know the direct reason. *)
+Time Qed.
+(* Print Assumptions Filter_insert_body.
+Print Assumptions Filter_query_body. *)

@@ -29,10 +29,28 @@ Definition num_rows := 3.
 Definition num_frames := 4.
 Definition frame_tick_tocks := 7034.
 
+Lemma b2z_range : forall b,
+  0 <= Z.b2z b < 2.
+Proof.
+  destruct b; simpl; lia.
+Qed.
+
+Ltac add_b2z_range b :=
+  assert_fails (assert (0 <= Z.b2z b < 2) by assumption);
+  pose proof (b2z_range b).
+
+Ltac saturate_b2z :=
+  repeat match goal with
+  | H : context [Z.b2z ?b] |- _ =>
+      add_b2z_range b
+  | |- context [Z.b2z ?b] =>
+      add_b2z_range b
+  end.
+
 Ltac Zify.zify_pre_hook ::=
   unfold is_true, num_slots, num_rows, num_frames, frame_tick_tocks,
-  NOOP, CLEAR, INSERT, QUERY, INSQUERY
-  in *.
+    NOOP, CLEAR, INSERT, QUERY, INSQUERY in *;
+  saturate_b2z.
 
 Definition rows := ["row_1"; "row_2"; "row_3"].
 Definition panes := ["win_1"; "win_2"; "win_3"; "win_4"].
