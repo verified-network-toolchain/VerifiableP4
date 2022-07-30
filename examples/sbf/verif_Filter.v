@@ -2427,9 +2427,7 @@ Proof.
     { solve [repeat constructor]. }
     { auto. }
     simpl Z.eqb. cbn match.
-    step_call_wrapper tbl_merge_wins_body
-      ltac:(fun func_body func_body1 func_body2 =>
-        epose proof (func_body := conj (func_body1 _ _ _ _ _ _ _ _ _ _ _ _) func_body2)).
+    step_call tbl_merge_wins_body.
     { unfold P4_bf2_win_md_t_rw.
       entailer.
       replace (P4Bit 8 0) with (P4Bit 8 (Z.b2z false)) by auto.
@@ -2466,9 +2464,7 @@ Proof.
     { solve [repeat constructor]. }
     { auto. }
     simpl Z.eqb. cbn match.
-    step_call_wrapper tbl_merge_wins_body
-      ltac:(fun func_body func_body1 func_body2 =>
-        epose proof (func_body := conj (func_body1 _ _ _ _ _ _ _ _ _ _ _ _) func_body2)).
+    step_call tbl_merge_wins_body.
     { unfold P4_bf2_win_md_t_rw.
       entailer.
       replace (P4Bit 8 0) with (P4Bit 8 (Z.b2z false)) by auto.
@@ -2505,9 +2501,7 @@ Proof.
     { solve [repeat constructor]. }
     { auto. }
     simpl Z.eqb. cbn match.
-    step_call_wrapper tbl_merge_wins_body
-      ltac:(fun func_body func_body1 func_body2 =>
-        epose proof (func_body := conj (func_body1 _ _ _ _ _ _ _ _ _ _ _ _) func_body2)).
+    step_call tbl_merge_wins_body.
     { unfold P4_bf2_win_md_t_rw.
       entailer.
       replace (P4Bit 8 0) with (P4Bit 8 (Z.b2z false)) by auto.
@@ -2544,9 +2538,7 @@ Proof.
     { solve [repeat constructor]. }
     { auto. }
     simpl Z.eqb. cbn match.
-    step_call_wrapper tbl_merge_wins_body
-      ltac:(fun func_body func_body1 func_body2 =>
-        epose proof (func_body := conj (func_body1 _ _ _ _ _ _ _ _ _ _ _ _) func_body2)).
+    step_call tbl_merge_wins_body.
     { unfold P4_bf2_win_md_t_rw.
       entailer.
       replace (P4Bit 8 0) with (P4Bit 8 (Z.b2z false)) by auto.

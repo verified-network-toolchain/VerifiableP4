@@ -507,12 +507,23 @@ Ltac process_func_body func_spec callback1 callback2 :=
   [ .. |
     unshelve(
       callback1 func_body func_body1 func_body2;
+      try clear func_body1;
+      try clear func_body2;
       (* Examine the type of func_body *)
-      lazymatch type of func_body with
+      repeat lazymatch type of func_body with
       | hoare_func _ _ _ _ _ _ /\ func_modifies _ _ _ _ _ =>
           idtac
-      | fundef_satisfies_hoare _ _ _ _ _ /\ func_modifies _ _ _ _ _ =>
+      | fundef_satisfies_hoare _ _ _ _ (fsh_base _ _) /\ func_modifies _ _ _ _ _ =>
           idtac
+      | _ =>
+          first [
+            let func_body1 := fresh "func_body1" in
+            let func_body2 := fresh "func_body2" in
+            destruct func_body as [func_body1 func_body2];
+            epose proof (func_body := conj (func_body1 _) func_body2);
+            clear func_body1 func_body2
+          | fail 2 "Cannot process the body proof"
+          ]
       end;
       callback2 func_body;
       (* Put the entailment goal last *)
@@ -521,9 +532,7 @@ Ltac process_func_body func_spec callback1 callback2 :=
   shelve_unifiable;
   (* Put the entailment goal first *)
   cycle -1;
-  try clear func_body;
-  try clear func_body1;
-  try clear func_body2.
+  try clear func_body.
 
 Ltac step_call_wrapper func_spec callback1 :=
   process_func_body func_spec callback1 step_call_tac.
@@ -531,62 +540,52 @@ Ltac step_call_wrapper func_spec callback1 :=
 Tactic Notation "step_call" uconstr(func_spec) uconstr(x1) uconstr(x2) uconstr(x3) uconstr(x4) uconstr(x5) uconstr(x6) uconstr(x7) uconstr(x8) uconstr(x9) :=
   step_call_wrapper func_spec
     ltac:(fun func_body func_body1 func_body2 =>
-      epose proof (func_body := conj (func_body1 x1 x2 x3 x4 x5 x6 x7 x8 x9) func_body2))
-  || (* step_call func_spec x1 x2 x3 x4 x5 x6 x7 x8 x9 _. *) fail "Too many arguments".
+      epose proof (func_body := conj (func_body1 x1 x2 x3 x4 x5 x6 x7 x8 x9) func_body2)).
 
 Tactic Notation "step_call" uconstr(func_spec) uconstr(x1) uconstr(x2) uconstr(x3) uconstr(x4) uconstr(x5) uconstr(x6) uconstr(x7) uconstr(x8) :=
   step_call_wrapper func_spec
     ltac:(fun func_body func_body1 func_body2 =>
-      epose proof (func_body := conj (func_body1 x1 x2 x3 x4 x5 x6 x7 x8) func_body2))
-  || step_call func_spec x1 x2 x3 x4 x5 x6 x7 x8 _.
+      epose proof (func_body := conj (func_body1 x1 x2 x3 x4 x5 x6 x7 x8) func_body2)).
 
 Tactic Notation "step_call" uconstr(func_spec) uconstr(x1) uconstr(x2) uconstr(x3) uconstr(x4) uconstr(x5) uconstr(x6) uconstr(x7) :=
   step_call_wrapper func_spec
     ltac:(fun func_body func_body1 func_body2 =>
-      epose proof (func_body := conj (func_body1 x1 x2 x3 x4 x5 x6 x7) func_body2))
-  || step_call func_spec x1 x2 x3 x4 x5 x6 x7 _.
+      epose proof (func_body := conj (func_body1 x1 x2 x3 x4 x5 x6 x7) func_body2)).
 
 Tactic Notation "step_call" uconstr(func_spec) uconstr(x1) uconstr(x2) uconstr(x3) uconstr(x4) uconstr(x5) uconstr(x6) :=
   step_call_wrapper func_spec
     ltac:(fun func_body func_body1 func_body2 =>
-      epose proof (func_body := conj (func_body1 x1 x2 x3 x4 x5 x6) func_body2))
-  || step_call func_spec x1 x2 x3 x4 x5 x6 _.
+      epose proof (func_body := conj (func_body1 x1 x2 x3 x4 x5 x6) func_body2)).
 
 Tactic Notation "step_call" uconstr(func_spec) uconstr(x1) uconstr(x2) uconstr(x3) uconstr(x4) uconstr(x5) :=
   step_call_wrapper func_spec
     ltac:(fun func_body func_body1 func_body2 =>
-      epose proof (func_body := conj (func_body1 x1 x2 x3 x4 x5) func_body2))
-  || step_call func_spec x1 x2 x3 x4 x5 _.
+      epose proof (func_body := conj (func_body1 x1 x2 x3 x4 x5) func_body2)).
 
 Tactic Notation "step_call" uconstr(func_spec) uconstr(x1) uconstr(x2) uconstr(x3) uconstr(x4) :=
   step_call_wrapper func_spec
     ltac:(fun func_body func_body1 func_body2 =>
-      epose proof (func_body := conj (func_body1 x1 x2 x3 x4) func_body2))
-  || step_call func_spec x1 x2 x3 x4 _.
+      epose proof (func_body := conj (func_body1 x1 x2 x3 x4) func_body2)).
 
 Tactic Notation "step_call" uconstr(func_spec) uconstr(x1) uconstr(x2) uconstr(x3) :=
   step_call_wrapper func_spec
     ltac:(fun func_body func_body1 func_body2 =>
-      epose proof (func_body := conj (func_body1 x1 x2 x3) func_body2))
-  || step_call func_spec x1 x2 x3 _.
+      epose proof (func_body := conj (func_body1 x1 x2 x3) func_body2)).
 
 Tactic Notation "step_call" uconstr(func_spec) uconstr(x1) uconstr(x2) :=
   step_call_wrapper func_spec
     ltac:(fun func_body func_body1 func_body2 =>
-      epose proof (func_body := conj (func_body1 x1 x2) func_body2))
-  || step_call func_spec x1 x2 _.
+      epose proof (func_body := conj (func_body1 x1 x2) func_body2)).
 
 Tactic Notation "step_call" uconstr(func_spec) uconstr(x1) :=
   step_call_wrapper func_spec
     ltac:(fun func_body func_body1 func_body2 =>
-      epose proof (func_body := conj (func_body1 x1) func_body2))
-  || step_call func_spec x1 _.
+      epose proof (func_body := conj (func_body1 x1) func_body2)).
 
 Tactic Notation "step_call" uconstr(func_spec) :=
   step_call_wrapper func_spec
     ltac:(fun func_body func_body1 func_body2 =>
-      epose proof (func_body := conj func_body1 func_body2))
-  || step_call func_spec _.
+      epose proof (func_body := conj func_body1 func_body2)).
 
 (* This is very experimental. It reduces hoare_table_action_case'. *)
 Ltac table_action spec :=
