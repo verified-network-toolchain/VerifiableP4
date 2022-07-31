@@ -97,6 +97,173 @@ Admitted.
 
 #[local] Hint Extern 5 (func_modifies _ _ _ _ _) => (apply tbl_set_win_insert_body) : func_specs.
 
+Definition tbl_merge_wins_fd :=
+  ltac:(get_fd ["Bf2BloomFilter"; "tbl_merge_wins"; "apply"] ge).
+
+Definition tbl_merge_wins_spec : func_spec :=
+  WITH (* p *),
+    PATH p
+    MOD (Some [["query_res"]]) []
+    WITH,
+      PRE
+        (ARG []
+        (MEM [(["api"], P4Bit 8 INSERT);
+              (["query_res"], (P4Bit_ 8));
+              (["ds_md"], ValBaseStruct
+                 [("clear_window", P4Bit_ 16);
+                  ("clear_index_1", P4Bit_ 18);
+                  ("hash_index_1", P4Bit_ 18);
+                  ("hash_index_2", P4Bit_ 18);
+                  ("hash_index_3", P4Bit_ 18);
+                  ("win_1", P4_bf2_win_md_t_);
+                  ("win_2", P4_bf2_win_md_t_);
+                  ("win_3", P4_bf2_win_md_t_);
+                  ("win_4", P4_bf2_win_md_t_)])]
+        (EXT [])))
+      POST
+        (EX retv,
+        (ARG_RET [] retv
+        (MEM [(["query_res"], (P4Bit_ 8))]
+        (EXT []))))%arg_ret_assr.
+
+Ltac hoare_func_table ::= idtac.
+
+Lemma Forall2_inv_cons {A} {B} : forall (P : A -> B -> Prop) a al bl,
+  Forall2 P (a :: al) bl ->
+  exists b bl', P a b /\ Forall2 P al bl' /\ bl = b :: bl'.
+Proof.
+  inversion 1; eauto.
+Qed.
+
+Lemma Forall2_inv_nil {A} {B} : forall (P : A -> B -> Prop) bl,
+  Forall2 P nil bl ->
+  bl = nil.
+Proof.
+  inversion 1; eauto.
+Qed.
+
+Lemma Forall2_inv_cons' {A} {B} : forall (P : A -> B -> Prop) a al b bl,
+  Forall2 P (a :: al) (b :: bl) ->
+  P a b /\ Forall2 P al bl.
+Proof.
+  inversion 1; eauto.
+Qed.
+
+Lemma tbl_merge_wins_body :
+  func_sound ge tbl_merge_wins_fd nil tbl_merge_wins_spec.
+Proof.
+  start_function.
+
+Ltac hoare_func_table_nondet ::=
+  lazymatch goal with
+  | |- hoare_func _ _ _ (FTable _ _ _ _ _) _ _ =>
+      eapply hoare_func_table_middle';
+      [ reflexivity (* eval_exprs *)
+      | eapply hoare_table_entries_intros; (* hoare_table_entries *)
+        repeat econstructor
+      | simplify_lift_option_eval_sval_to_val;
+        intros(* ;
+        (* inversion is slow *)
+        (* pinv is also fragile, we don't know if there are other Forall2 conditions. *)
+        repeat (pinv Forall2; try simpl_sval_to_val);
+        eexists; split; only 1 : hoare_extern_match_list;
+        apply hoare_table_action_cases'_hoare_table_action_cases;
+        hoare_table_action_cases'; elim_trivial_cases *)
+      ]
+  | _ => fail "The goal is not in the form of (hoare_func _ _ _ (FTable _ _ _ _ _) _ _)"
+  end.
+  
+
+  Time hoare_func_table_nondet.
+
+  
+Ltac simpl1 := repeat (pinv Forall2; try simpl_sval_to_val).
+
+Ltac simpl2 :=
+  repeat lazymatch goal with
+  | H : Forall2 (sval_to_val read_ndetbit) (_ :: _) _ |- _ =>
+      apply Forall2_inv_cons in H;
+      destruct H as [?x [?l [? [? ?]]]]; subst(* ;
+      try simpl_sval_to_val *)
+  | H : Forall2 (sval_to_val read_ndetbit) nil _ |- _ =>
+      apply Forall2_inv_nil in H;
+      subst
+  end.
+  (* Time simpl2. *)
+
+Ltac destruct_list xs :=
+  lazymatch goal with
+  | H : Zlength xs = ?n |- _ =>
+      let n' := eval compute in n in
+      lazymatch n' with
+      | Z0 => apply Zlength_0_nil in H; subst xs
+      | Zpos _ =>
+          first [ (* in case of H is used somewhere else *)
+            apply Zlength_gt_0_destruct in H; only 2 : reflexivity;
+            let xs' := fresh "xs" in
+            destruct H as [?x [xs' []]]; subst xs; destruct_list xs'
+          | let H' := fresh in
+            pose proof H as H';
+            apply Zlength_gt_0_destruct in H'; only 2 : reflexivity;
+            let xs' := fresh "xs" in
+            destruct H' as [?x [xs' []]]; subst xs; destruct_list xs'
+          ]
+      | Zneg _ =>
+          first [ (* in case of H is used somewhere else *)
+            apply Zlength_lt_0_False in H; only 2 : reflexivity;
+            inversion H
+          | let H' := fresh in
+            pose proof H as H';
+            apply Zlength_lt_0_False in H'; only 2 : reflexivity;
+            inversion H'
+          ]
+      end
+  | _ =>
+      idtac "Length of" xs "is not found"
+  end.
+
+
+  assert (Zlength keyvals = 13) by (apply eq_sym, (Forall2_Zlength H)).
+  Time assert (exists x x0 x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 x11,
+    keyvals = [x; x0; x1; x2; x3; x4; x5; x6; x7; x8; x9; x10; x11]) by
+      (destruct_list keyvals; eauto 100).
+  Time do 13 destruct H1. Time subst.
+  Time repeat lazymatch goal with
+  | H : Forall2 (sval_to_val read_ndetbit) (_ :: _) (_ :: _) |- _ =>
+      apply Forall2_inv_cons' in H;
+      destruct H
+  end.
+  Time repeat simpl_sval_to_val.
+  eexists; split; only 1 : hoare_extern_match_list;
+        apply hoare_table_action_cases'_hoare_table_action_cases;
+        hoare_table_action_cases'; elim_trivial_cases.
+  (* repeat lz
+  Forall2_inv_cons'
+  Time inv H.
+  
+  Set Ltac Profiling.
+  Time simpl2.
+  Show Ltac Profile. *)
+  
+  (* Time apply Forall2_inv_cons in H.
+  Time destruct H as [? [? [? [? ?]]]]; subst.
+  Time apply Forall2_inv_cons in H0.
+  Time destruct H0 as [? [? [? [? ?]]]]; subst.
+  Time destruct H as [? [? [? [? ?]]]]; subst.
+  Time apply Forall2_inv_cons in H0.
+  Time destruct H as [x [l' [? [? ?]]]]; subst.
+  Time inversion H. Time clear H; subst.
+  Time inversion H4. Time clear H4; subst.
+  Time subst. *)
+  (* Time repeat pinv Forall2. *)
+  
+  
+  
+  table_action NoAction_body.
+  { entailer. }
+  { entailer. }
+Time Qed.
+
 Definition filter_insert := @filter_insert num_frames num_rows num_slots ltac:(lia) ltac:(lia) ltac:(lia)
   frame_tick_tocks.
 
@@ -210,15 +377,12 @@ Proof.
     { solve [repeat constructor]. }
     { auto. }
     simpl Z.eqb. cbn match.
-    step_into.
-    { hoare_func_table_nondet.
-      table_action NoAction_body.
-      { entailer. }
-      { apply arg_ret_implies_refl. }
+    step_call tbl_merge_wins_body.
+    { entailer.
+      repeat constructor.
     }
-    { reflexivity. }
-    { reflexivity. }
-    simpl_assertion.
+    Intros _.
+    step.
     entailer.
   }
   destruct (get_clear_frame new_timer =? 1) eqn:?.
@@ -240,15 +404,12 @@ Proof.
     { solve [repeat constructor]. }
     { auto. }
     simpl Z.eqb. cbn match.
-    step_into.
-    { hoare_func_table_nondet.
-      table_action NoAction_body.
-      { entailer. }
-      { apply arg_ret_implies_refl. }
+    step_call tbl_merge_wins_body.
+    { entailer.
+      repeat constructor.
     }
-    { reflexivity. }
-    { reflexivity. }
-    simpl_assertion.
+    Intros _.
+    step.
     entailer.
   }
   destruct (get_clear_frame new_timer =? 2) eqn:?.
@@ -270,15 +431,12 @@ Proof.
     { solve [repeat constructor]. }
     { auto. }
     simpl Z.eqb. cbn match.
-    step_into.
-    { hoare_func_table_nondet.
-      table_action NoAction_body.
-      { entailer. }
-      { apply arg_ret_implies_refl. }
+    step_call tbl_merge_wins_body.
+    { entailer.
+      repeat constructor.
     }
-    { reflexivity. }
-    { reflexivity. }
-    simpl_assertion.
+    Intros _.
+    step.
     entailer.
   }
   destruct (get_clear_frame new_timer =? 3) eqn:?.
@@ -300,15 +458,12 @@ Proof.
     { solve [repeat constructor]. }
     { auto. }
     simpl Z.eqb. cbn match.
-    step_into.
-    { hoare_func_table_nondet.
-      table_action NoAction_body.
-      { entailer. }
-      { apply arg_ret_implies_refl. }
+    step_call tbl_merge_wins_body.
+    { entailer.
+      repeat constructor.
     }
-    { reflexivity. }
-    { reflexivity. }
-    simpl_assertion.
+    Intros _.
+    step.
     entailer.
   }
   lia.
