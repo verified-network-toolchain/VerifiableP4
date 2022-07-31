@@ -584,7 +584,8 @@ Definition Hash_get_fundef : (@fundef tags_t) := FExternal "Hash" "get".
 
 Definition Hash_get_spec : func_spec :=
   WITH p (* path *) hash_w poly
-      (H_p : PathMap.get p (ge_ext ge) = Some (EnvHash (hash_w, poly))),
+      (H_p : PathMap.get p (ge_ext ge) = Some (EnvHash (hash_w, poly)))
+      (H_width : (CRCP_width poly > 0)%N),
     PATH p
     MOD None []
     WITH (v : Val),
@@ -596,6 +597,26 @@ Definition Hash_get_spec : func_spec :=
         (ARG_RET [] (P4Bit hash_w (hash_Z hash_w poly v))
         (MEM []
         (EXT []))).
+
+Lemma Zlength_repeat_concat_list : forall {A} num (l : list A),
+  Zlength (repeat_concat_list num l) = Z.of_nat num * Zlength l.
+Proof.
+  intros. unfold repeat_concat_list.
+  assert (forall l',
+    Zlength
+      ((fix repeat_concat_list' (num0 : nat) (l0 res : list A) {struct num0} : list A :=
+          match num0 with
+          | 0%nat => res
+          | S num' => repeat_concat_list' num' l0 (l0 ++ res)
+          end) num l l') = Z.of_nat num * Zlength l + Zlength l'). {
+    induction num; intros.
+    - list_solve.
+    - rewrite IHnum.
+      list_solve.
+  }
+  specialize (H []).
+  list_solve.
+Qed.
 
 Lemma Hash_get_body targs :
   func_sound ge Hash_get_fundef targs Hash_get_spec.
@@ -617,9 +638,12 @@ Proof.
   unfold hash_Z.
   destruct H as [? []].
   hnf in H. inv H. inv H8.
-  assert (y = eval_val_to_sval v) by (clear; admit).
-  subst y.
   inv H3. clear H9.
+  assert (sval_to_val read_ndetbit (eval_val_to_sval v) v0). {
+    eapply exec_val_trans. 2, 3 : eassumption.
+    red; clear; sauto lq: on.
+  }
+  clear H7. rename H into H7.
   apply sval_to_val_eval_val_to_sval_iff in H7. 2 : {
     clear; sauto lq: on.
   }
@@ -633,7 +657,14 @@ Proof.
     unfold P4Bit.
     unfold to_loptbool.
     rewrite to_lbool_lbool_to_val'. 2 : {
-      clear.
+      clear -H_width.
+      assert (Datatypes.length
+                 (Hash.compute_crc (N.to_nat (CRCP_width poly)) (lbool_to_hex (CRCP_coeff poly))
+                    (lbool_to_hex (CRCP_init poly)) (lbool_to_hex (CRCP_xor poly))
+                    (CRCP_reversed poly) (CRCP_reversed poly) input) = N.to_nat (CRCP_width poly)). {
+        apply Hash.length_compute_crc.
+      }
+      revert H.
       generalize (Hash.compute_crc (N.to_nat (CRCP_width poly)) (lbool_to_hex (CRCP_coeff poly))
                     (lbool_to_hex (CRCP_init poly)) (lbool_to_hex (CRCP_xor poly))
                     (CRCP_reversed poly) (CRCP_reversed poly) input).
@@ -641,14 +672,30 @@ Proof.
       replace (N.of_nat (Datatypes.length b)) with (Z.to_N (Zlength b)). 2 : {
         rewrite Zlength_correct. lia.
       }
-      clear; admit.
+      assert (Zlength b > 0). {
+        rewrite Zlength_correct. lia.
+      }
+      clear -H0.
+      assert (0 <= Z.of_N (hash_w mod Z.to_N (Zlength b)) < (Zlength b)). {
+        assert (0 <= hash_w mod Z.to_N (Zlength b) < Z.to_N (Zlength b))%N. {
+          apply N.mod_bound_pos; lia.
+        }
+        lia.
+      }
+      list_simplify.
+      rewrite Zlength_repeat_concat_list.
+      replace (Z.of_N (Z.to_N (Zlength b))) with (Zlength b) by list_solve.
+      replace (Z.of_nat (N.to_nat (hash_w / Z.to_N (Zlength b))) * Zlength b) with
+        (Z.of_N (hash_w / Z.to_N (Zlength b) * Z.to_N (Zlength b))) by lia.
+      pose proof (N.div_mod hash_w (Z.to_N (Zlength b))).
+      lia.
     }
     reflexivity.
   }
   repeat constructor.
-Admitted.
+Qed.
 
 End TofinoSpec.
 
 #[export] Hint Extern 5 (func_modifies _ _ _ _ _) =>
-  (refine (proj2 (Hash_get_body _ _ _ _ _ _)); try exact (@nil _); compute; reflexivity) : func_specs.
+  (refine (proj2 (Hash_get_body _ _ _ _ _ _ _)); try exact (@nil _); compute; reflexivity) : func_specs.

@@ -130,6 +130,7 @@ Proof.
   step_call @Hash_get_body.
   { entailer. }
   { compute. reflexivity. }
+  { compute. reflexivity. }
   step.
   step.
   simpl sval_to_bits_width.
@@ -220,6 +221,7 @@ Proof.
   step_call @Hash_get_body.
   { entailer. }
   { compute. reflexivity. }
+  { compute. reflexivity. }
   step.
   step.
   simpl sval_to_bits_width.
@@ -309,6 +311,7 @@ Proof.
   start_function.
   step_call @Hash_get_body.
   { entailer. }
+  { compute. reflexivity. }
   { compute. reflexivity. }
   step.
   step.
