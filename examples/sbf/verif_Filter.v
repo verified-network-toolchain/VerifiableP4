@@ -180,6 +180,7 @@ Proof.
   { compute. reflexivity. }
   step.
   step.
+  (* We want to have some more automatic proof here. Maybe define operator like abs op? *)
   simpl sval_to_bits_width.
   cbv match.
   rewrite bit_bitstring_slice with (w' := 18%N) by lia.
@@ -1524,31 +1525,6 @@ Proof.
   auto.
 Qed.
 
-(*
-  rewrite <- !Z.leb_le.
-  rewrite Reflect.andE.
-  tauto.
-*)
-
-Ltac Tactics.hoare_func_table ::=
-  lazymatch goal with
-  | |- hoare_func _ _ _ (FTable _ _ _ _ _) _ _ =>
-       eapply hoare_func_table';
-       [ eapply hoare_table_match_list_intro';
-          [ reflexivity
-          | simplify_lift_option_eval_sval_to_val; reflexivity
-          | eapply hoare_table_entries_intros;
-            repeat first [
-              simple apply sval_to_val_eval_p4int_sval
-            | econstructor
-            ]
-          | hoare_extern_match_list ]
-       |  ]
-  | _ =>
-      fail
-       "The goal is not in the form of (hoare_func _ _ _ (FTable _ _ _ _ _) _ _)"
-  end.
-
 Ltac solve_assert_int :=
   simpl; rewrite P4Arith.bit_from_to_bool;
   unfold P4Arith.BitArith.mod_bound;
@@ -1752,9 +1728,9 @@ Ltac hoare_func_table_nondet :=
   | |- hoare_func _ _ _ (FTable _ _ _ _ _) _ _ =>
       eapply hoare_func_table_middle';
       [ reflexivity (* eval_exprs *)
-      | eapply hoare_table_entries_intros; (* hoare_table_entries *)
-        repeat econstructor
-      | simplify_lift_option_eval_sval_to_val;
+      | hoare_table_entries (* hoare_table_entries *)
+      | simpl_table_key_matchkind;
+        simplify_lift_option_eval_sval_to_val;
         intros;
         (* inversion is slow *)
         repeat (pinv Forall2; try simpl_sval_to_val);

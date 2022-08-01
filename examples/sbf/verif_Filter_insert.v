@@ -154,76 +154,55 @@ Lemma tbl_merge_wins_body :
 Proof.
   start_function.
 
-Ltac hoare_func_table_nondet ::=
-  lazymatch goal with
-  | |- hoare_func _ _ _ (FTable _ _ _ _ _) _ _ =>
-      eapply hoare_func_table_middle';
-      [ reflexivity (* eval_exprs *)
-      | eapply hoare_table_entries_intros; (* hoare_table_entries *)
-        repeat econstructor
-      | simplify_lift_option_eval_sval_to_val;
-        intros(* ;
-        (* inversion is slow *)
-        (* pinv is also fragile, we don't know if there are other Forall2 conditions. *)
-        repeat (pinv Forall2; try simpl_sval_to_val);
-        eexists; split; only 1 : hoare_extern_match_list;
-        apply hoare_table_action_cases'_hoare_table_action_cases;
-        hoare_table_action_cases'; elim_trivial_cases *)
-      ]
-  | _ => fail "The goal is not in the form of (hoare_func _ _ _ (FTable _ _ _ _ _) _ _)"
-  end.
-  
-
   Time hoare_func_table_nondet.
-
   
-Ltac simpl1 := repeat (pinv Forall2; try simpl_sval_to_val).
+(* Ltac simpl1 := repeat (pinv Forall2; try simpl_sval_to_val).
 
 Ltac simpl2 :=
   repeat lazymatch goal with
   | H : Forall2 (sval_to_val read_ndetbit) (_ :: _) _ |- _ =>
       apply Forall2_inv_cons in H;
-      destruct H as [?x [?l [? [? ?]]]]; subst(* ;
-      try simpl_sval_to_val *)
+      destruct H as [?x [?l [? [? ?]]]]; subst;
+      try simpl_sval_to_val
   | H : Forall2 (sval_to_val read_ndetbit) nil _ |- _ =>
       apply Forall2_inv_nil in H;
       subst
   end.
-  (* Time simpl2. *)
 
-Ltac destruct_list xs :=
+Ltac simpl3 :=
   lazymatch goal with
-  | H : Zlength xs = ?n |- _ =>
-      let n' := eval compute in n in
-      lazymatch n' with
-      | Z0 => apply Zlength_0_nil in H; subst xs
-      | Zpos _ =>
-          first [ (* in case of H is used somewhere else *)
-            apply Zlength_gt_0_destruct in H; only 2 : reflexivity;
-            let xs' := fresh "xs" in
-            destruct H as [?x [xs' []]]; subst xs; destruct_list xs'
-          | let H' := fresh in
-            pose proof H as H';
-            apply Zlength_gt_0_destruct in H'; only 2 : reflexivity;
-            let xs' := fresh "xs" in
-            destruct H' as [?x [xs' []]]; subst xs; destruct_list xs'
-          ]
-      | Zneg _ =>
-          first [ (* in case of H is used somewhere else *)
-            apply Zlength_lt_0_False in H; only 2 : reflexivity;
-            inversion H
-          | let H' := fresh in
-            pose proof H as H';
-            apply Zlength_lt_0_False in H'; only 2 : reflexivity;
-            inversion H'
-          ]
-      end
-  | _ =>
-      idtac "Length of" xs "is not found"
-  end.
+  | H : Forall2 (sval_to_val read_ndetbit) ?keysvals ?keyvals |- _ =>
+      eassert (Zlength keyvals = Zlength keysvals) by (apply eq_sym, (Forall2_Zlength H))(* ;
+      destruct_list keyvals;
+      repeat lazymatch goal with
+      | H : Forall2 (sval_to_val read_ndetbit) (_ :: _) (_ :: _) |- _ =>
+          apply Forall2_inv_cons' in H;
+          destruct H
+      | H : Forall2 (sval_to_val read_ndetbit) [] [] |- _ =>
+          clear H
+      end;
+      repeat simpl_sval_to_val *)
+  end. *)
 
+  (* Time simpl3.
+  Time assert (exists x x0 x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 x11,
+    keyvals = [x; x0; x1; x2; x3; x4; x5; x6; x7; x8; x9; x10; x11]) by
+      (destruct_list keyvals; eauto 100);
+    do 13 destruct H1; subst.
+  repeat simpl_sval_to_val.
+  eexists; split; only 1 : hoare_extern_match_list;
+        apply hoare_table_action_cases'_hoare_table_action_cases;
+        hoare_table_action_cases'; elim_trivial_cases.
+  Time destruct_list' keyvals.
 
   assert (Zlength keyvals = 13) by (apply eq_sym, (Forall2_Zlength H)).
+  Time assert (exists x x0 x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 x11,
+    keyvals = [x; x0; x1; x2; x3; x4; x5; x6; x7; x8; x9; x10; x11]) by
+      (destruct_list keyvals; eauto 100).
+
+  Time simpl3. *)
+
+  (* assert (Zlength keyvals = 13) by (apply eq_sym, (Forall2_Zlength H)).
   Time assert (exists x x0 x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 x11,
     keyvals = [x; x0; x1; x2; x3; x4; x5; x6; x7; x8; x9; x10; x11]) by
       (destruct_list keyvals; eauto 100).
@@ -236,29 +215,8 @@ Ltac destruct_list xs :=
   Time repeat simpl_sval_to_val.
   eexists; split; only 1 : hoare_extern_match_list;
         apply hoare_table_action_cases'_hoare_table_action_cases;
-        hoare_table_action_cases'; elim_trivial_cases.
-  (* repeat lz
-  Forall2_inv_cons'
-  Time inv H.
-  
-  Set Ltac Profiling.
-  Time simpl2.
-  Show Ltac Profile. *)
-  
-  (* Time apply Forall2_inv_cons in H.
-  Time destruct H as [? [? [? [? ?]]]]; subst.
-  Time apply Forall2_inv_cons in H0.
-  Time destruct H0 as [? [? [? [? ?]]]]; subst.
-  Time destruct H as [? [? [? [? ?]]]]; subst.
-  Time apply Forall2_inv_cons in H0.
-  Time destruct H as [x [l' [? [? ?]]]]; subst.
-  Time inversion H. Time clear H; subst.
-  Time inversion H4. Time clear H4; subst.
-  Time subst. *)
-  (* Time repeat pinv Forall2. *)
-  
-  
-  
+        hoare_table_action_cases'; elim_trivial_cases. *)
+
   table_action NoAction_body.
   { entailer. }
   { entailer. }

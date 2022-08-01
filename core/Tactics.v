@@ -309,6 +309,13 @@ Ltac simplify_lift_option_eval_sval_to_val :=
   cbn [map];
   repeat rewrite eval_sval_to_val_P4Bit.
 
+Ltac hoare_table_entries :=
+  eapply hoare_table_entries_intros;
+  repeat first [
+    simple apply sval_to_val_eval_p4int_sval
+  | econstructor
+  ].
+
 (* Handles table when we have a particular case. *)
 Ltac hoare_func_table_case :=
   lazymatch goal with
@@ -318,8 +325,7 @@ Ltac hoare_func_table_case :=
         [ reflexivity (* eval_exprs *)
         | simplify_lift_option_eval_sval_to_val; (* lift_option (.. keysvals) *)
           reflexivity
-        | eapply hoare_table_entries_intros; (* hoare_table_entries *)
-          repeat econstructor
+        | hoare_table_entries (* hoare_table_entries *)
         | reflexivity (* extern_match *)
         ]
       | reflexivity (* get_table_call *)
@@ -332,6 +338,17 @@ Ltac hoare_func_table_case :=
 Ltac hoare_extern_match_list :=
   idtac.
 
+Ltac simpl_table_key_matchkind :=
+  lazymatch goal with
+  | |- context outer [
+      (* hoare_extern_match_list (combine ?keyvals (map table_key_matchkind ?exprs)) *)
+      map table_key_matchkind ?exprs
+    ] =>
+      let matchkinds := eval compute in (map table_key_matchkind exprs) in
+      let new_goal := context outer [matchkinds] in
+      change new_goal
+  end.
+
 (* Handles table with constant entries. *)
 Ltac hoare_func_table :=
   lazymatch goal with
@@ -341,9 +358,8 @@ Ltac hoare_func_table :=
         [ reflexivity (* eval_exprs *)
         | simplify_lift_option_eval_sval_to_val; (* lift_option (.. keysvals) *)
           reflexivity
-        | eapply hoare_table_entries_intros; (* hoare_table_entries *)
-          repeat econstructor
-        | hoare_extern_match_list (* hoare_extern_match_list *)
+        | hoare_table_entries (* hoare_table_entries *)
+        | simpl_table_key_matchkind; hoare_extern_match_list (* hoare_extern_match_list *)
         ]
       | idtac (* hoare_table_action_cases' *)
       ]

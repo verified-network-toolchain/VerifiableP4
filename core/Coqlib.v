@@ -104,5 +104,5 @@ Ltac destruct_list xs :=
           ]
       end
   | _ =>
-      idtac "Length of" xs "is not found"
+      fail "Length of" xs "is not found"
   end.
