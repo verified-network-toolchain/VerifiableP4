@@ -57,9 +57,52 @@ Definition act_hash_index_1_spec : func_spec :=
     }
 *)
 
-(* Lemma bitstring_slice_sublist {A} lo hi
+Lemma bitstring_slice'_spec : forall {A} (l : list A) lo hi l',
+  Ops.bitstring_slice' l lo hi l' = rev (sublist (Z.of_nat lo) (Z.of_nat hi + 1) l) ++ l'.
+Proof.
+  induction l; intros.
+  - rewrite sublist_of_nil.
+    auto.
+  - simpl.
+    destruct lo.
+    + destruct hi.
+      * list_solve.
+      * rewrite IHl.
+        rewrite sublist_0_cons by lia.
+        replace (sublist 0 (Z.of_nat (S hi) + 1 - 1) l)
+          with (sublist (Z.of_nat 0) (Z.of_nat hi + 1) l) by (f_equal; lia).
+        remember (sublist (Z.of_nat 0) (Z.of_nat hi + 1) l) as l''.
+        simpl.
+        rewrite <- app_assoc.
+        auto.
+    + destruct hi.
+      * rewrite sublist_nil_gen by lia.
+        auto.
+      * rewrite IHl.
+        rewrite sublist_S_cons by lia.
+        do 3 f_equal; lia.
+Qed.
 
-Ops.bitstring_slice *)
+Lemma bitstring_slice_spec : forall {A} (l : list A) lo hi,
+  Ops.bitstring_slice l lo hi = sublist (Z.of_nat lo) (Z.of_nat hi + 1) l.
+Proof.
+  intros.
+  unfold Ops.bitstring_slice.
+  rewrite bitstring_slice'_spec.
+  rewrite rev_app_distr.
+  rewrite rev_involutive.
+  auto.
+Qed.
+
+Lemma Zlength_to_lbool'' : forall width value,
+  Zlength (to_lbool'' width value) = Z.of_nat width.
+Proof.
+  induction width; intros.
+  - auto.
+  - simpl.
+    rewrite Zlength_cons, IHwidth.
+    lia.
+Qed.
 
 (* Need a better name. *)
 Lemma bit_bitstring_slice : forall (w w' : N) v,
@@ -68,25 +111,29 @@ Lemma bit_bitstring_slice : forall (w w' : N) v,
   ValBaseBit (Ops.bitstring_slice (P4Arith.to_loptbool w v) (N.to_nat 0) (N.to_nat (w' - 1)))
     = P4Bit w' v.
 Proof.
-  (* intros.
+  intros.
+  rewrite bitstring_slice_spec.
   unfold P4Bit, P4Arith.to_loptbool, P4Arith.to_lbool.
   rewrite <- !to_lbool''_to_lbool'.
+  f_equal.
   replace w with (N.of_nat (N.to_nat w)) in * by lia.
-  revert H. generalize (N.to_nat w). clear w; intro w; intros.
-  induction w.
+  revert w' H H0 v. generalize (N.to_nat w). clear w; intro w.
+  induction w; intros.
   - lia.
-  - destruct (w' =? N.of_nat (S w))%N eqn:?H.
-    + admit.
-    + rewrite <- IHw. 2 : {
-        rewrite N.eqb_neq in *.
-        lia.
-      }
-      simpl.
-        assert (N.of_nat (S w) <> w') by lia.
-    destruct ((N.of_nat w >=? w')%N) eqn:?H.
-    intros.
-  intros. *)
-Admitted.
+  - replace (N.to_nat (N.of_nat (S w))) with (S (N.to_nat (N.of_nat w))) by lia.
+    unfold to_lbool'' at 1. fold to_lbool''.
+    destruct (w' =? 1)%N eqn:?H.
+    + rewrite N.eqb_eq in *.
+      subst w'.
+      auto.
+    + rewrite N.eqb_neq in *.
+      replace (N.to_nat w') with (S (N.to_nat (w' - 1))) by lia.
+      unfold to_lbool'' at 2. fold to_lbool''.
+      rewrite (map_cons _ _ (to_lbool'' (N.to_nat (w' - 1)) (v / 2))).
+      rewrite <- IHw by lia.
+      pose proof (Zlength_to_lbool''  (N.to_nat (N.of_nat w)) (v / 2)).
+      list_solve.
+Qed.
 
 Lemma P4Bit_trunc : forall w v v',
   v mod 2 ^ Z.of_N w = v' mod 2 ^ Z.of_N w ->
@@ -1644,11 +1691,24 @@ Ltac simpl_assertion ::=
 
     ext_exclude eq_rect Result.Result.forallb Result.Result.andb].
 
+
+Lemma Forall2_read_ndetbit_map_Some : forall l l',
+  Forall2 read_ndetbit (map Some l) l' ->
+  l' = l.
+Proof.
+  induction l; intros.
+  - inv H; auto.
+  - inv H. inv H2. f_equal; eauto.
+Qed.
+
 Lemma sval_to_val_P4Bit : forall w v y,
   sval_to_val read_ndetbit (P4Bit w v) y ->
   y = ValBaseBit (P4Arith.to_lbool w v).
 Proof.
-Admitted.
+  inversion 1; subst.
+  f_equal.
+  apply Forall2_read_ndetbit_map_Some; auto.
+Qed.
 
 Lemma sval_to_val_P4Bit_ : forall w y,
   sval_to_val read_ndetbit (P4Bit_ w) y ->
@@ -1656,7 +1716,20 @@ Lemma sval_to_val_P4Bit_ : forall w y,
     0 <= v < P4Arith.BitArith.upper_bound w
     /\ y = ValBaseBit (P4Arith.to_lbool w v).
 Proof.
-Admitted.
+  inversion 1; subst.
+  apply Forall2_Zlength in H1.
+  exists (P4Arith.BitArith.lbool_to_val lb' 1 0).
+  assert (P4Arith.to_lbool w (P4Arith.BitArith.lbool_to_val lb' 1 0) = lb'). {
+    replace w with (Z.to_N (Zlength lb')) by list_solve.
+    apply to_lbool_lbool_to_val.
+  }
+  split.
+  - rewrite <- H0.
+    rewrite P4Arith.bit_to_lbool_back.
+    apply Z.mod_pos_bound.
+    pose proof (P4Arith.BitArith.upper_bound_ge_1 w); lia.
+  - congruence.
+Qed.
 
 Ltac elim_trivial_cases :=
   try lazymatch goal with
