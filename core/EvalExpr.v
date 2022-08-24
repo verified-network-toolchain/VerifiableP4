@@ -841,18 +841,23 @@ Proof.
                          end
                      end
                  end) as of_tuple. rename Heqof_tuple into Htlp.
-    remember (fix fields_of_val_record (l1 : AList tags_t P4Type) (l0 : Ops.Fields Val)
-                  {struct l1} : option (Ops.Fields Val) :=
+    remember (fix fields_of_val_record
+                  (l1 : AList tags_t P4Type) (l0 : Ops.Fields Val) {struct l1} :
+                    option (Ops.Fields Val) :=
                   match l1 with
                   | [] => Some []
                   | (k, t) :: l1' =>
                       match AList.get l0 (str k) with
                       | Some oldv =>
                           match Ops.eval_cast t oldv with
-                          | Some newv => match fields_of_val_record l1' l0 with
-                                         | Some l3 => Some ((str k, newv) :: l3)
-                                         | None => None
-                                         end
+                          | Some newv =>
+                              match
+                                fields_of_val_record l1'
+                                  (AListUtil.remove_first (str k) l0)
+                              with
+                              | Some l3 => Some ((str k, newv) :: l3)
+                              | None => None
+                              end
                           | None => None
                           end
                       | None => None
@@ -889,8 +894,11 @@ Proof.
         solve_ex_sim; auto. constructor.
       * rewrite Hrcd, <- Hrcd in H3. destruct a as [k t]. do 2 (destruct_match H3; [|inv H3]).
         destruct_match H3; inversion H3. subst f. clear H3. rewrite Hrcd, <- Hrcd.
-        inversion H0. subst x l. clear H0. specialize (IHxts H8 _ _ H4 _ H6). clear H4 H8.
-        simpl in *. eapply all_values_get_some_exists_rel in H1; eauto. destruct H1 as [v' [? ?]].
+        inversion H0. subst x l. clear H0. pose proof H6 as Hallv.
+        apply AListUtil.all_values_remove_first with
+          (HKR := EquivUtil.StringEqDec) (key := (str k)) in H6.
+        specialize (IHxts H8 _ _ H4 _ H6). clear H4 H8. simpl in *.
+        eapply all_values_get_some_exists_rel in H1; eauto. destruct H1 as [v' [? ?]].
         rewrite H0. specialize (H7 _ _ _ H2 H1). destruct H7 as [v0' [? ?]]. rewrite H3.
         destruct IHxts as [? [? ?]]. destruct_match H5; inversion H5. subst x. clear H5.
         solve_ex_sim; auto.  inversion H7. subst kvs b kvs'0 b'.
@@ -912,7 +920,10 @@ Proof.
         solve_ex_sim; auto. constructor.
       * rewrite Hrcd, <- Hrcd in H3. destruct a as [k t]. do 2 (destruct_match H3; [|inv H3]).
         destruct_match H3; inversion H3. subst f. clear H3. rewrite Hrcd, <- Hrcd.
-        inversion H0. subst x l. clear H0. specialize (IHxts H8 _ _ H4 _ H6). clear H4 H8.
+        inversion H0. subst x l. clear H0. pose proof H6 as Hallv.
+        apply AListUtil.all_values_remove_first with
+          (HKR := EquivUtil.StringEqDec) (key := (str k)) in H6.
+        specialize (IHxts H8 _ _ H4 _ H6). clear H4 H8.
         simpl in *. eapply all_values_get_some_exists_rel in H1; eauto. destruct H1 as [v' [? ?]].
         rewrite H0. specialize (H7 _ _ _ H2 H1). destruct H7 as [v0' [? ?]]. rewrite H3.
         destruct IHxts as [? [? ?]]. destruct_match H5; inversion H5. subst x. clear H5.
@@ -938,18 +949,23 @@ Proof.
                          end
                      end
                  end) as of_tuple. rename Heqof_tuple into Htlp.
-    remember (fix fields_of_val_record (l1 : AList tags_t P4Type) (l0 : Ops.Fields Val)
-                  {struct l1} : option (Ops.Fields Val) :=
+    remember (fix fields_of_val_record
+                  (l1 : AList tags_t P4Type) (l0 : Ops.Fields Val) {struct l1} :
+                    option (Ops.Fields Val) :=
                   match l1 with
                   | [] => Some []
                   | (k, t) :: l1' =>
                       match AList.get l0 (str k) with
                       | Some oldv =>
                           match Ops.eval_cast t oldv with
-                          | Some newv => match fields_of_val_record l1' l0 with
-                                         | Some l3 => Some ((str k, newv) :: l3)
-                                         | None => None
-                                         end
+                          | Some newv =>
+                              match
+                                fields_of_val_record l1'
+                                  (AListUtil.remove_first (str k) l0)
+                              with
+                              | Some l3 => Some ((str k, newv) :: l3)
+                              | None => None
+                              end
                           | None => None
                           end
                       | None => None
@@ -986,7 +1002,10 @@ Proof.
         solve_ex_sim; auto. constructor.
       * rewrite Hrcd, <- Hrcd in H3. destruct a as [k t]. do 2 (destruct_match H3; [|inv H3]).
         destruct_match H3; inversion H3. subst f. clear H3. rewrite Hrcd, <- Hrcd.
-        inversion H0. subst x l. clear H0. specialize (IHxts H8 _ _ H4 _ H6). clear H4 H8.
+        inversion H0. subst x l. clear H0. pose proof H6 as Hallv.
+        apply AListUtil.all_values_remove_first with
+          (HKR := EquivUtil.StringEqDec) (key := (str k)) in H6.
+        specialize (IHxts H8 _ _ H4 _ H6). clear H4 H8.
         simpl in *. eapply all_values_get_some_exists_rel in H1; eauto. destruct H1 as [v' [? ?]].
         rewrite H0. specialize (H7 _ _ _ H2 H1). destruct H7 as [v0' [? ?]]. rewrite H3.
         destruct IHxts as [? [? ?]]. destruct_match H5; inversion H5. subst x. clear H5.
@@ -1008,7 +1027,10 @@ Proof.
         solve_ex_sim; auto. constructor.
       * rewrite Hrcd, <- Hrcd in H3. destruct a as [k t]. do 2 (destruct_match H3; [|inv H3]).
         destruct_match H3; inversion H3. subst f. clear H3. rewrite Hrcd, <- Hrcd.
-        inversion H0. subst x l. clear H0. specialize (IHxts H8 _ _ H4 _ H6). clear H4 H8.
+        inversion H0. subst x l. clear H0. pose proof H6 as Hallv.
+        apply AListUtil.all_values_remove_first with
+          (HKR := EquivUtil.StringEqDec) (key := (str k)) in H6.
+        specialize (IHxts H8 _ _ H4 _ H6). clear H4 H8.
         simpl in *. eapply all_values_get_some_exists_rel in H1; eauto. destruct H1 as [v' [? ?]].
         rewrite H0. specialize (H7 _ _ _ H2 H1). destruct H7 as [v0' [? ?]]. rewrite H3.
         destruct IHxts as [? [? ?]]. destruct_match H5; inversion H5. subst x. clear H5.
