@@ -1333,7 +1333,7 @@ Proof.
   - eapply IHx; eauto.
 Qed. *)
 
-Lemma vmm_help_eq : forall xb vb mb w x',
+(* Lemma vmm_help_eq : forall xb vb mb w x',
   Z.to_N (Zlength vb) = w ->
   Z.to_N (Zlength mb) = w ->
   P4Arith.to_lbool w x' = xb ->
@@ -1364,7 +1364,7 @@ Proof.
     { eapply IHxb with (w := (w - 1)%N); list_solve. }
     { auto. } (* exact eq_refl *)
   - eapply IHxb with (w := (w - 1)%N); list_solve.
-Qed.
+Qed. *)
 
 Lemma to_lbool''_to_lbool : forall (width : N) (value : Z),
   to_lbool'' (N.to_nat width) value = P4Arith.to_lbool width value.
@@ -1587,6 +1587,7 @@ Ltac simpl_match_cond cond :=
 Ltac hoare_table_action_cases' :=
   first [
     apply hoare_table_action_cases'_nil (* solver: contradiction*)
+    
   | refine (@id (hoare_table_action_cases' _ _ _ _ _ _ ((_, _) :: _)) _);
     lazymatch goal with
     | |- hoare_table_action_cases' _ _ _ _ _ _ ((?cond, _) :: _)  =>
