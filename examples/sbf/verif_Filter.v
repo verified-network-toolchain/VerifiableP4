@@ -36,7 +36,7 @@ Definition poly1 : Tofino.CRC_polynomial :=
   |}.
 
 Definition hash1 (v : Val) :=
-  hash_Z 32 poly1 v mod 2 ^ 18.
+  hash_Z 32 poly1 v mod 2 ^ (Z.of_N index_w).
 
 Definition act_hash_index_1_spec : func_spec :=
   WITH (* p *),
@@ -49,126 +49,13 @@ Definition act_hash_index_1_spec : func_spec :=
         (EXT [])))
       POST
         (ARG_RET [] ValBaseNull
-        (MEM [(["ds_md"], update "hash_index_1" (P4Bit 18 (hash1 key)) ds_md)]
+        (MEM [(["ds_md"], update "hash_index_1" (P4Bit index_w (hash1 key)) ds_md)]
         (EXT []))).
 
 (*  action act_hash_index_1() {
         ds_md.hash_index_1 = hash_idx_1.get(ds_key)[17:0];
     }
 *)
-
-Lemma bitstring_slice'_spec : forall {A} (l : list A) lo hi l',
-  Ops.bitstring_slice' l lo hi l' = rev (sublist (Z.of_nat lo) (Z.of_nat hi + 1) l) ++ l'.
-Proof.
-  induction l; intros.
-  - rewrite sublist_of_nil.
-    auto.
-  - simpl.
-    destruct lo.
-    + destruct hi.
-      * list_solve.
-      * rewrite IHl.
-        rewrite sublist_0_cons by lia.
-        replace (sublist 0 (Z.of_nat (S hi) + 1 - 1) l)
-          with (sublist (Z.of_nat 0) (Z.of_nat hi + 1) l) by (f_equal; lia).
-        remember (sublist (Z.of_nat 0) (Z.of_nat hi + 1) l) as l''.
-        simpl.
-        rewrite <- app_assoc.
-        auto.
-    + destruct hi.
-      * rewrite sublist_nil_gen by lia.
-        auto.
-      * rewrite IHl.
-        rewrite sublist_S_cons by lia.
-        do 3 f_equal; lia.
-Qed.
-
-Lemma bitstring_slice_spec : forall {A} (l : list A) lo hi,
-  Ops.bitstring_slice l lo hi = sublist (Z.of_nat lo) (Z.of_nat hi + 1) l.
-Proof.
-  intros.
-  unfold Ops.bitstring_slice.
-  rewrite bitstring_slice'_spec.
-  rewrite rev_app_distr.
-  rewrite rev_involutive.
-  auto.
-Qed.
-
-Lemma Zlength_to_lbool'' : forall width value,
-  Zlength (to_lbool'' width value) = Z.of_nat width.
-Proof.
-  induction width; intros.
-  - auto.
-  - simpl.
-    rewrite Zlength_cons, IHwidth.
-    lia.
-Qed.
-
-(* Need a better name. *)
-Lemma bit_bitstring_slice : forall (w w' : N) v,
-  (w >= w')%N ->
-  (w' > 0)%N ->
-  ValBaseBit (Ops.bitstring_slice (P4Arith.to_loptbool w v) (N.to_nat 0) (N.to_nat (w' - 1)))
-    = P4Bit w' v.
-Proof.
-  intros.
-  rewrite bitstring_slice_spec.
-  unfold P4Bit, P4Arith.to_loptbool, P4Arith.to_lbool.
-  rewrite <- !to_lbool''_to_lbool'.
-  f_equal.
-  replace w with (N.of_nat (N.to_nat w)) in * by lia.
-  revert w' H H0 v. generalize (N.to_nat w). clear w; intro w.
-  induction w; intros.
-  - lia.
-  - replace (N.to_nat (N.of_nat (S w))) with (S (N.to_nat (N.of_nat w))) by lia.
-    unfold to_lbool'' at 1. fold to_lbool''.
-    destruct (w' =? 1)%N eqn:?H.
-    + rewrite N.eqb_eq in *.
-      subst w'.
-      auto.
-    + rewrite N.eqb_neq in *.
-      replace (N.to_nat w') with (S (N.to_nat (w' - 1))) by lia.
-      unfold to_lbool'' at 2. fold to_lbool''.
-      rewrite (map_cons _ _ (to_lbool'' (N.to_nat (w' - 1)) (v / 2))).
-      rewrite <- IHw by lia.
-      pose proof (Zlength_to_lbool''  (N.to_nat (N.of_nat w)) (v / 2)).
-      list_solve.
-Qed.
-
-Lemma P4Bit_trunc : forall w v v',
-  v mod 2 ^ Z.of_N w = v' mod 2 ^ Z.of_N w ->
-  P4Bit w v = P4Bit w v'.
-Proof.
-  intros.
-  unfold P4Bit. f_equal.
-  replace w with (N.of_nat (N.to_nat w)) in * by lia.
-  revert H.
-  revert v v'.
-  generalize (N.to_nat w). clear w; intros w.
-  induction w; intros.
-  - reflexivity.
-  - specialize (IHw (v / 2) (v' / 2)).
-    unfold P4Bit in *.
-    unfold P4Arith.to_loptbool, P4Arith.to_lbool in *.
-    rewrite <- !to_lbool''_to_lbool' in *.
-    replace (N.to_nat (N.of_nat w)) with w in * by lia.
-    replace (N.to_nat (N.of_nat (S w))) with (S w) in * by lia.
-    simpl.
-    assert (Z.odd v = Z.odd v'). {
-      rewrite <- P4Arith.Z_odd_pow_2_S with (n := w) (v := v).
-      rewrite <- P4Arith.Z_odd_pow_2_S with (n := w) (v := v').
-      f_equal. lia.
-    }
-    replace (2 ^ Z.of_N (N.of_nat (S w))) with (2 * 2 ^ Z.of_N (N.of_nat w)) in *. 2 : {
-      replace (Z.of_N (N.of_nat (S w))) with (1 + Z.of_N (N.of_nat w)) by lia.
-      rewrite Z.pow_add_r; lia.
-    }
-    rewrite <- !P4Arith.div_2_mod_2_pow in H by lia.
-    rewrite H0 in *.
-    f_equal.
-    apply IHw.
-    lia.
-Qed.
 
 Lemma act_hash_index_1_body :
   func_sound ge act_hash_index_1_fd nil act_hash_index_1_spec.
@@ -182,11 +69,11 @@ Proof.
   step.
   simpl sval_to_bits_width.
   cbv match.
-  rewrite bit_bitstring_slice with (w' := 18%N) by lia.
+  rewrite bitstring_slice_lower_bit with (w' := index_w) by lia.
   entailer.
   { apply sval_refine_refl'.
     f_equal.
-    apply P4Bit_trunc.
+    apply P4Bit_mod_eq.
     unfold hash1.
     rewrite Z.mod_mod by lia.
     auto.
@@ -210,7 +97,7 @@ Definition tbl_hash_index_1_spec : func_spec :=
       POST
         (EX retv,
         (ARG_RET [] retv
-        (MEM [(["ds_md"], update "hash_index_1" (P4Bit 18 (hash1 key)) ds_md)]
+        (MEM [(["ds_md"], update "hash_index_1" (P4Bit index_w (hash1 key)) ds_md)]
         (EXT []))))%arg_ret_assr.
 
 Lemma tbl_hash_index_1_body :
@@ -240,7 +127,7 @@ Definition poly2 : Tofino.CRC_polynomial :=
   |}.
 
 Definition hash2 (v : Val) :=
-  hash_Z 32 poly2 v mod 2 ^ 18.
+  hash_Z 32 poly2 v mod 2 ^ Z.of_N index_w.
 
 Definition act_hash_index_2_spec : func_spec :=
   WITH (* p *),
@@ -253,7 +140,7 @@ Definition act_hash_index_2_spec : func_spec :=
         (EXT [])))
       POST
         (ARG_RET [] ValBaseNull
-        (MEM [(["ds_md"], update "hash_index_2" (P4Bit 18 (hash2 key)) ds_md)]
+        (MEM [(["ds_md"], update "hash_index_2" (P4Bit index_w (hash2 key)) ds_md)]
         (EXT []))).
 
 (*  action act_hash_index_2() {
@@ -273,11 +160,11 @@ Proof.
   step.
   simpl sval_to_bits_width.
   cbv match.
-  rewrite bit_bitstring_slice with (w' := 18%N) by lia.
+  rewrite bitstring_slice_lower_bit with (w' := index_w) by lia.
   entailer.
   { apply sval_refine_refl'.
     f_equal.
-    apply P4Bit_trunc.
+    apply P4Bit_mod_eq.
     unfold hash2.
     rewrite Z.mod_mod by lia.
     auto.
@@ -301,7 +188,7 @@ Definition tbl_hash_index_2_spec : func_spec :=
       POST
         (EX retv,
         (ARG_RET [] retv
-        (MEM [(["ds_md"], update "hash_index_2" (P4Bit 18 (hash2 key)) ds_md)]
+        (MEM [(["ds_md"], update "hash_index_2" (P4Bit index_w (hash2 key)) ds_md)]
         (EXT []))))%arg_ret_assr.
 
 Lemma tbl_hash_index_2_body :
@@ -331,7 +218,7 @@ Definition poly3 : Tofino.CRC_polynomial :=
   |}.
 
 Definition hash3 (v : Val) :=
-  hash_Z 32 poly3 v mod 2 ^ 18.
+  hash_Z 32 poly3 v mod 2 ^ Z.of_N index_w.
 
 Definition act_hash_index_3_spec : func_spec :=
   WITH (* p *),
@@ -344,7 +231,7 @@ Definition act_hash_index_3_spec : func_spec :=
         (EXT [])))
       POST
         (ARG_RET [] ValBaseNull
-        (MEM [(["ds_md"], update "hash_index_3" (P4Bit 18 (hash3 key)) ds_md)]
+        (MEM [(["ds_md"], update "hash_index_3" (P4Bit index_w (hash3 key)) ds_md)]
         (EXT []))).
 
 (*  action act_hash_index_3() {
@@ -364,11 +251,11 @@ Proof.
   step.
   simpl sval_to_bits_width.
   cbv match.
-  rewrite bit_bitstring_slice with (w' := 18%N) by lia.
+  rewrite bitstring_slice_lower_bit with (w' := index_w) by lia.
   entailer.
   { apply sval_refine_refl'.
     f_equal.
-    apply P4Bit_trunc.
+    apply P4Bit_mod_eq.
     unfold hash3.
     rewrite Z.mod_mod by lia.
     auto.
@@ -392,7 +279,7 @@ Definition tbl_hash_index_3_spec : func_spec :=
       POST
         (EX retv,
         (ARG_RET [] retv
-        (MEM [(["ds_md"], update "hash_index_3" (P4Bit 18 (hash3 key)) ds_md)]
+        (MEM [(["ds_md"], update "hash_index_3" (P4Bit index_w (hash3 key)) ds_md)]
         (EXT []))))%arg_ret_assr.
 
 Lemma tbl_hash_index_3_body :
@@ -426,11 +313,11 @@ Definition act_clear_index_spec : func_spec :=
       PRE
         (ARG []
         (MEM [(["ds_md"], ds_md)]
-        (EXT [fil_clear_index_repr p 18 i])))
+        (EXT [fil_clear_index_repr p index_w i])))
       POST
         (ARG_RET [] ValBaseNull
-        (MEM [(["ds_md"], update "clear_index_1" (P4Bit 18 i) ds_md)]
-        (EXT [fil_clear_index_repr p 18 (update_clear_index (num_slots := num_slots) i)]))).
+        (MEM [(["ds_md"], update "clear_index_1" (P4Bit index_w i) ds_md)]
+        (EXT [fil_clear_index_repr p index_w (update_clear_index (num_slots := num_slots) i)]))).
 
 Lemma act_clear_index_body :
   func_sound ge act_clear_index_fd nil act_clear_index_spec.
@@ -451,10 +338,10 @@ Proof.
   { apply sval_refine_refl'.
     f_equal.
     cbn [sval_to_bits_width P4Bit].
-    rewrite bit_bitstring_slice with (w' := 18%N). 2, 3 : lia.
-    apply P4Bit_trunc.
-    pose proof (Z.mod_pos_bound i' (2 ^ Z.of_N 18) ltac:(lia)).
-    replace (i mod 2 ^ Z.of_N 18) with i. 2 : {
+    rewrite bitstring_slice_lower_bit with (w' := index_w). 2, 3 : lia.
+    apply P4Bit_mod_eq.
+    pose proof (Z.mod_pos_bound i' (2 ^ Z.of_N index_w) ltac:(lia)).
+    replace (i mod 2 ^ Z.of_N index_w) with i. 2 : {
       symmetry; apply Z.mod_small; lia.
     }
     auto.
@@ -465,7 +352,7 @@ Proof.
     entailer.
     apply ext_implies_prop_intro.
     unfold update_clear_index.
-    change (Z.pow_pos 2 18) with (2 ^ Z.of_N 18).
+    change (Z.pow_pos 2 _) with (2 ^ Z.of_N index_w).
     assert (0 <= i < num_slots) by (subst; apply Z.mod_pos_bound; reflexivity).
     rewrite Zplus_mod, H. clear H.
     destruct (i + 1 =? num_slots) eqn:?H.
@@ -489,12 +376,12 @@ Definition tbl_clear_index_spec : func_spec :=
       PRE
         (ARG []
         (MEM [(["ds_md"], ds_md)]
-        (EXT [fil_clear_index_repr p 18 i])))
+        (EXT [fil_clear_index_repr p index_w i])))
       POST
         (EX retv,
         (ARG_RET [] retv
-        (MEM [(["ds_md"], update "clear_index_1" (P4Bit 18 i) ds_md)]
-        (EXT [fil_clear_index_repr p 18 (update_clear_index (num_slots := num_slots) i)]))))%arg_ret_assr.
+        (MEM [(["ds_md"], update "clear_index_1" (P4Bit index_w i) ds_md)]
+        (EXT [fil_clear_index_repr p index_w (update_clear_index (num_slots := num_slots) i)]))))%arg_ret_assr.
 
 Lemma tbl_clear_index_body :
   func_sound ge tbl_clear_index_fd nil tbl_clear_index_spec.
@@ -797,6 +684,7 @@ Proof.
     { entailer. }
     { entailer. }
   }
+  simpl in H0.
   (* This case should be impossible. *)
   admit.
 Admitted.
@@ -894,9 +782,9 @@ Abort. *)
 Definition P4_bf2_win_md_t_ :=
   ValBaseStruct
     [("api", P4Bit_ 8);
-     ("index_1", P4Bit_ 18);
-     ("index_2", P4Bit_ 18);
-     ("index_3", P4Bit_ 18);
+     ("index_1", P4Bit_ index_w);
+     ("index_2", P4Bit_ index_w);
+     ("index_3", P4Bit_ index_w);
      ("rw_1", P4Bit_ 8);
      ("rw_2", P4Bit_ 8);
      ("rw_3", P4Bit_ 8)].

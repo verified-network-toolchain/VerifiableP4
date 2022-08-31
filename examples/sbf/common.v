@@ -24,7 +24,8 @@ Definition INSERT := 2.
 Definition QUERY := 3.
 Definition INSQUERY := 4.
 
-Definition num_slots := 262144.
+Definition index_w := 18%N.
+Definition num_slots := Eval compute in 2 ^ (Z.of_N index_w).
 Definition num_rows := 3.
 Definition num_frames := 4.
 Definition frame_tick_tocks := 7034.
@@ -48,7 +49,7 @@ Ltac saturate_b2z :=
   end.
 
 Ltac Zify.zify_pre_hook ::=
-  unfold is_true, num_slots, num_rows, num_frames, frame_tick_tocks,
+  unfold is_true, index_w, num_slots, num_rows, num_frames, frame_tick_tocks,
     NOOP, CLEAR, INSERT, QUERY, INSQUERY in *;
   saturate_b2z.
 

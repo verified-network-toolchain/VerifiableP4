@@ -13,8 +13,8 @@ Require Import ProD3.examples.sbf.verif_Win4.
 Require Import ProD3.examples.sbf.verif_Filter.
 
 #[local] Hint Extern 5 (func_modifies _ _ _ _ _) => (apply tbl_hash_index_1_body) : func_specs.
-#[local] Hint Extern 5 (func_modifies _ _ _ _ _) => (apply tbl_hash_index_1_body) : func_specs.
-#[local] Hint Extern 5 (func_modifies _ _ _ _ _) => (apply tbl_hash_index_1_body) : func_specs.
+#[local] Hint Extern 5 (func_modifies _ _ _ _ _) => (apply tbl_hash_index_2_body) : func_specs.
+#[local] Hint Extern 5 (func_modifies _ _ _ _ _) => (apply tbl_hash_index_3_body) : func_specs.
 #[local] Hint Extern 5 (func_modifies _ _ _ _ _) => (apply tbl_clear_index_body) : func_specs.
 #[local] Hint Extern 5 (func_modifies _ _ _ _ _) => (apply tbl_clear_window_body) : func_specs.
 #[local] Hint Extern 5 (func_modifies _ _ _ _ _) => (apply act_set_clear_win_1_body) : func_specs.
@@ -108,11 +108,11 @@ Definition Filter_insert_spec : func_spec :=
       PRE
         (ARG [eval_val_to_sval key; P4Bit 8 INSERT; P4Bit 48 tstamp; P4Bit_ 8]
         (MEM []
-        (EXT [filter_repr p 18 panes rows cf])))
+        (EXT [filter_repr p index_w panes rows cf])))
       POST
         (ARG_RET [P4Bit_ 8] ValBaseNull
         (MEM []
-        (EXT [filter_repr p 18 panes rows (filter_insert cf (Z.odd (tstamp/2097152)) (hashes key))]))).
+        (EXT [filter_repr p index_w panes rows (filter_insert cf (Z.odd (tstamp/2097152)) (hashes key))]))).
 
 Lemma Filter_insert_body :
   func_sound ge Filter_fd nil Filter_insert_spec.

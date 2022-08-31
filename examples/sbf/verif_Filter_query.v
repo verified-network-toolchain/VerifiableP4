@@ -13,8 +13,8 @@ Require Import ProD3.examples.sbf.verif_Win4.
 Require Import ProD3.examples.sbf.verif_Filter.
 
 #[local] Hint Extern 5 (func_modifies _ _ _ _ _) => (apply tbl_hash_index_1_body) : func_specs.
-#[local] Hint Extern 5 (func_modifies _ _ _ _ _) => (apply tbl_hash_index_1_body) : func_specs.
-#[local] Hint Extern 5 (func_modifies _ _ _ _ _) => (apply tbl_hash_index_1_body) : func_specs.
+#[local] Hint Extern 5 (func_modifies _ _ _ _ _) => (apply tbl_hash_index_2_body) : func_specs.
+#[local] Hint Extern 5 (func_modifies _ _ _ _ _) => (apply tbl_hash_index_3_body) : func_specs.
 #[local] Hint Extern 5 (func_modifies _ _ _ _ _) => (apply tbl_clear_index_body) : func_specs.
 #[local] Hint Extern 5 (func_modifies _ _ _ _ _) => (apply tbl_clear_window_body) : func_specs.
 #[local] Hint Extern 5 (func_modifies _ _ _ _ _) => (apply act_set_clear_win_1_body) : func_specs.
@@ -148,9 +148,9 @@ Definition tbl_merge_wins_fd :=
 Definition P4_bf2_win_md_t_rw rw1 rw2 rw3 :=
   ValBaseStruct
     [("api", P4Bit_ 8);
-     ("index_1", P4Bit_ 18);
-     ("index_2", P4Bit_ 18);
-     ("index_3", P4Bit_ 18);
+     ("index_1", P4Bit_ index_w);
+     ("index_2", P4Bit_ index_w);
+     ("index_3", P4Bit_ index_w);
      ("rw_1", P4Bit 8 (Z.b2z rw1));
      ("rw_2", P4Bit 8 (Z.b2z rw2));
      ("rw_3", P4Bit 8 (Z.b2z rw3))].
@@ -168,10 +168,10 @@ Definition tbl_merge_wins_spec : func_spec :=
         (MEM [(["api"], P4Bit 8 QUERY);
               (["ds_md"], ValBaseStruct
                  [("clear_window", P4Bit_ 16);
-                  ("clear_index_1", P4Bit_ 18);
-                  ("hash_index_1", P4Bit_ 18);
-                  ("hash_index_2", P4Bit_ 18);
-                  ("hash_index_3", P4Bit_ 18);
+                  ("clear_index_1", P4Bit_ index_w);
+                  ("hash_index_1", P4Bit_ index_w);
+                  ("hash_index_2", P4Bit_ index_w);
+                  ("hash_index_3", P4Bit_ index_w);
                   ("win_1", P4_bf2_win_md_t_rw rw11 rw12 rw13);
                   ("win_2", P4_bf2_win_md_t_rw rw21 rw22 rw23);
                   ("win_3", P4_bf2_win_md_t_rw rw31 rw32 rw33);
@@ -265,11 +265,11 @@ Definition Filter_query_spec : func_spec :=
       PRE
         (ARG [eval_val_to_sval key; P4Bit 8 QUERY; P4Bit 48 tstamp; P4Bit_ 8]
         (MEM []
-        (EXT [filter_repr p 18 panes rows cf])))
+        (EXT [filter_repr p index_w panes rows cf])))
       POST
         (ARG_RET [P4Bit 8 (Z.b2z (snd (filter_query cf (Z.odd (tstamp/2097152)) (hashes key))))] ValBaseNull
         (MEM []
-        (EXT [filter_repr p 18 panes rows (fst (filter_query cf (Z.odd (tstamp/2097152)) (hashes key)))]))).
+        (EXT [filter_repr p index_w panes rows (fst (filter_query cf (Z.odd (tstamp/2097152)) (hashes key)))]))).
 
 Ltac destruct_listn l :=
   destruct l as [l ?H];

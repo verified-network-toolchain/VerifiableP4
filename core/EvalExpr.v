@@ -12,6 +12,7 @@ Require Import ProD3.core.AssertionLang.
 Require Import ProD3.core.AssertionNotations.
 Require Import ProD3.core.Hoare.
 Require Import Coq.ZArith.BinInt.
+Require Import Coq.NArith.BinNat.
 Require Import Hammer.Tactics.Tactics.
 Require Import Hammer.Plugin.Hammer.
 
@@ -2280,6 +2281,147 @@ Proof.
   unfold to_loptbool.
   rewrite lift_option_map_some.
   reflexivity.
+Qed.
+
+Lemma bitstring_slice'_spec : forall {A} (l : list A) lo hi l',
+  Ops.bitstring_slice' l lo hi l' = (rev (sublist (Z.of_nat lo) (Z.of_nat hi + 1) l) ++ l')%list.
+Proof.
+  induction l; intros.
+  - rewrite sublist_of_nil.
+    auto.
+  - simpl.
+    destruct lo.
+    + destruct hi.
+      * list_solve.
+      * rewrite IHl.
+        rewrite sublist_0_cons by lia.
+        replace (sublist 0 (Z.of_nat (S hi) + 1 - 1) l)
+          with (sublist (Z.of_nat 0) (Z.of_nat hi + 1) l) by (f_equal; lia).
+        remember (sublist (Z.of_nat 0) (Z.of_nat hi + 1) l) as l''.
+        simpl.
+        rewrite <- app_assoc.
+        auto.
+    + destruct hi.
+      * rewrite sublist_nil_gen by lia.
+        auto.
+      * rewrite IHl.
+        rewrite sublist_S_cons by lia.
+        do 3 f_equal; lia.
+Qed.
+
+Lemma bitstring_slice_spec : forall {A} (l : list A) lo hi,
+  Ops.bitstring_slice l lo hi = sublist (Z.of_nat lo) (Z.of_nat hi + 1) l.
+Proof.
+  intros.
+  unfold Ops.bitstring_slice.
+  rewrite bitstring_slice'_spec.
+  rewrite rev_app_distr.
+  rewrite rev_involutive.
+  auto.
+Qed.
+
+Fixpoint to_lbool'' (width : nat) (value : Z) : list bool :=
+  match width with
+  | 0%nat => []
+  | S n => Z.odd value :: to_lbool'' n (value / 2)
+  end.
+
+Lemma to_lbool'_app : forall width value res,
+  P4Arith.to_lbool' width value res = (P4Arith.to_lbool' width value [] ++ res)%list.
+Proof.
+  induction width; intros.
+  - auto.
+  - simpl.
+    rewrite IHwidth.
+    rewrite IHwidth with (res := [Z.odd value]).
+    list_solve.
+Qed.
+
+Lemma to_lbool''_to_lbool' : forall width value,
+  to_lbool'' width value = rev (P4Arith.to_lbool' width value []).
+Proof.
+  induction width; intros.
+  - auto.
+  - simpl.
+    rewrite to_lbool'_app.
+    rewrite rev_app_distr.
+    rewrite IHwidth.
+    auto.
+Qed.
+
+Lemma Zlength_to_lbool'' : forall width value,
+  Zlength (to_lbool'' width value) = Z.of_nat width.
+Proof.
+  induction width; intros.
+  - auto.
+  - simpl.
+    rewrite Zlength_cons, IHwidth.
+    lia.
+Qed.
+
+Lemma bitstring_slice_lower_bit : forall (w w' : N) v,
+  (w >= w')%N ->
+  (w' > 0)%N ->
+  ValBaseBit (Ops.bitstring_slice (P4Arith.to_loptbool w v) (N.to_nat 0) (N.to_nat (w' - 1)))
+    = P4Bit w' v.
+Proof.
+  intros.
+  rewrite bitstring_slice_spec.
+  unfold P4Bit, P4Arith.to_loptbool, P4Arith.to_lbool.
+  rewrite <- !to_lbool''_to_lbool'.
+  f_equal.
+  replace w with (N.of_nat (N.to_nat w)) in * by lia.
+  revert w' H0 H1 v. generalize (N.to_nat w). clear w; intro w.
+  induction w; intros.
+  - lia.
+  - replace (N.to_nat (N.of_nat (S w))) with (S (N.to_nat (N.of_nat w))) by lia.
+    unfold to_lbool'' at 1. fold to_lbool''.
+    destruct (w' =? 1)%N eqn:?H.
+    + rewrite N.eqb_eq in *.
+      subst w'.
+      auto.
+    + rewrite N.eqb_neq in *.
+      replace (N.to_nat w') with (S (N.to_nat (w' - 1))) by lia.
+      unfold to_lbool'' at 2. fold to_lbool''.
+      rewrite (map_cons _ _ (to_lbool'' (N.to_nat (w' - 1)) (v / 2))).
+      rewrite <- IHw by lia.
+      pose proof (Zlength_to_lbool''  (N.to_nat (N.of_nat w)) (v / 2)).
+      list_solve.
+Qed.
+
+Lemma P4Bit_mod_eq : forall w v v',
+  v mod 2 ^ Z.of_N w = v' mod 2 ^ Z.of_N w ->
+  P4Bit w v = P4Bit w v'.
+Proof.
+  intros.
+  unfold P4Bit. f_equal.
+  replace w with (N.of_nat (N.to_nat w)) in * by lia.
+  revert H0.
+  revert v v'.
+  generalize (N.to_nat w). clear w; intros w.
+  induction w; intros.
+  - reflexivity.
+  - specialize (IHw (v / 2) (v' / 2)).
+    unfold P4Bit in *.
+    unfold P4Arith.to_loptbool, P4Arith.to_lbool in *.
+    rewrite <- !to_lbool''_to_lbool' in *.
+    replace (N.to_nat (N.of_nat w)) with w in * by lia.
+    replace (N.to_nat (N.of_nat (S w))) with (S w) in * by lia.
+    simpl.
+    assert (Z.odd v = Z.odd v'). {
+      rewrite <- P4Arith.Z_odd_pow_2_S with (n := w) (v := v).
+      rewrite <- P4Arith.Z_odd_pow_2_S with (n := w) (v := v').
+      f_equal. lia.
+    }
+    replace (2 ^ Z.of_N (N.of_nat (S w))) with (2 * 2 ^ Z.of_N (N.of_nat w))%Z in *. 2 : {
+      replace (Z.of_N (N.of_nat (S w))) with (1 + Z.of_N (N.of_nat w))%Z by lia.
+      rewrite Z.pow_add_r; lia.
+    }
+    rewrite <- !P4Arith.div_2_mod_2_pow in H0 by lia.
+    rewrite H1 in *.
+    f_equal.
+    apply IHw.
+    lia.
 Qed.
 
 End EvalExpr.

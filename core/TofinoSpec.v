@@ -295,35 +295,6 @@ Definition RegisterAction_execute_spec' : func_spec :=
 
 Definition execute_fundef : (@fundef tags_t) := FExternal "RegisterAction" "execute".
 
-Fixpoint to_lbool'' (width : nat) (value : Z) : list bool :=
-  match width with
-  | 0%nat => []
-  | S n => Z.odd value :: to_lbool'' n (value / 2)
-  end.
-
-Lemma to_lbool'_app : forall width value res,
-  P4Arith.to_lbool' width value res = P4Arith.to_lbool' width value [] ++ res.
-Proof.
-  induction width; intros.
-  - auto.
-  - simpl.
-    rewrite IHwidth.
-    rewrite IHwidth with (res := [Z.odd value]).
-    list_solve.
-Qed.
-
-Lemma to_lbool''_to_lbool' : forall width value,
-  to_lbool'' width value = rev (P4Arith.to_lbool' width value []).
-Proof.
-  induction width; intros.
-  - auto.
-  - simpl.
-    rewrite to_lbool'_app.
-    rewrite rev_app_distr.
-    rewrite IHwidth.
-    auto.
-Qed.
-
 Lemma to_lbool_lbool_to_val : forall bs,
   P4Arith.to_lbool (Z.to_N (Zlength bs))
       (P4Arith.BitArith.lbool_to_val bs 1 0)
