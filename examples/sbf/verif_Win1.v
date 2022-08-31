@@ -56,18 +56,6 @@ Definition Win_noop_spec : func_spec :=
         (MEM []
         (EXT [frame_repr p rows f]))).
 
-Lemma destruct_Zlength_3 : forall {A} (l : list A),
-  Zlength l = 3 ->
-  exists x1 x2 x3, l = [x1; x2; x3].
-Proof.
-  intros.
-  destruct l as [ | x1 l]; only 1 : list_solve.
-  destruct l as [ | x2 l]; only 1 : list_solve.
-  destruct l as [ | x3 l]; only 1 : list_solve.
-  destruct l as [ | x4 l]; only 2 : list_solve.
-  eauto.
-Qed.
-
 Lemma Win_noop_body :
   func_sound ge Win_fundef nil Win_noop_spec.
 Proof.
@@ -76,10 +64,8 @@ Proof.
   normalize_EXT.
   destruct f as [f ?H]. destruct is as [is ?H].
   cbn [proj1_sig] in *.
-  apply destruct_Zlength_3 in H0.
-  destruct H0 as [r1 [r2 [r3 ?]]]; subst.
-  apply destruct_Zlength_3 in H1.
-  destruct H1 as [i1 [i2 [i3 ?]]]; subst.
+  destruct_list f.
+  destruct_list is.
   repeat lazymatch goal with
   | H : Forall _ _ |- _ => inv H
   end.
@@ -137,10 +123,8 @@ Proof.
   normalize_EXT.
   destruct f as [f ?H]. destruct is as [is ?H].
   cbn [proj1_sig frame_insert] in *.
-  apply destruct_Zlength_3 in H0.
-  destruct H0 as [r1 [r2 [r3 ?]]]; subst.
-  apply destruct_Zlength_3 in H1.
-  destruct H1 as [i1 [i2 [i3 ?]]]; subst.
+  destruct_list f.
+  destruct_list is.
   repeat lazymatch goal with
   | H : Forall _ _ |- _ => inv H
   end.
@@ -198,10 +182,8 @@ Proof.
   normalize_EXT.
   destruct f as [f ?H]. destruct is as [is ?H].
   cbn [proj1_sig] in *.
-  apply destruct_Zlength_3 in H0.
-  destruct H0 as [r1 [r2 [r3 ?]]]; subst.
-  apply destruct_Zlength_3 in H1.
-  destruct H1 as [i1 [i2 [i3 ?]]]; subst.
+  destruct_list f.
+  destruct_list is.
   repeat lazymatch goal with
   | H : Forall _ _ |- _ => inv H
   end.
@@ -261,10 +243,8 @@ Proof.
   entailer.
   destruct f as [f ?H]. destruct is as [is ?H].
   unfold frame_query. cbn [proj1_sig] in *.
-  apply destruct_Zlength_3 in H0.
-  destruct H0 as [r1 [r2 [r3 ?]]]; subst.
-  apply destruct_Zlength_3 in H1.
-  destruct H1 as [i1 [i2 [i3 ?]]]; subst.
+  destruct_list f.
+  destruct_list is.
   repeat lazymatch goal with
   | H : Forall _ _ |- _ => inv H
   end.
@@ -312,10 +292,8 @@ Proof.
   normalize_EXT.
   destruct f as [f ?H]. destruct is as [is ?H].
   cbn [proj1_sig frame_clear] in *.
-  apply destruct_Zlength_3 in H0.
-  destruct H0 as [r1 [r2 [r3 ?]]]; subst.
-  apply destruct_Zlength_3 in H1.
-  destruct H1 as [i1 [i2 [i3 ?]]]; subst.
+  destruct_list f.
+  destruct_list is.
   repeat lazymatch goal with
   | H : Forall _ _ |- _ => inv H
   end.
