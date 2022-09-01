@@ -666,6 +666,151 @@ Proof.
   repeat constructor.
 Qed.
 
+(* Lemmas for table matching simplifcation. *)
+
+Lemma reduce_match_range: forall w x lo hi x' lo' hi' xb lob hib,
+  Tofino.assert_int x = Some (w, x', xb) ->
+  Tofino.assert_int lo = Some (w, lo', lob) ->
+  Tofino.assert_int hi = Some (w, hi', hib) ->
+  Tofino.values_match_range x lo hi = (lo' <=? x') && (x' <=? hi').
+Proof.
+  intros.
+  unfold Tofino.values_match_range.
+  rewrite H, H0, H1. rewrite N.eqb_refl. simpl.
+  reflexivity.
+Qed.
+
+Lemma reduce_match_singleton: forall w x y x' y' xb yb,
+  val_sim x y ->
+  Tofino.assert_int x = Some (w, x', xb) ->
+  Tofino.assert_int y = Some (w, y', yb) ->
+  Tofino.values_match_singleton x y = (x' =? y').
+Proof.
+  intros. revert y H H1.
+  induction x;
+  induction y; intros;
+  simpl in H0; simpl in H1; unfold val_sim in H; try discriminate; try inv H.
+  { unfold Tofino.values_match_singleton, Ops.eval_binary_op_eq.
+    remember (P4Arith.BitArith.from_lbool value0) as n0_name. inv H1.
+    remember (P4Arith.BitArith.from_lbool value) as n_name. inv H0.
+    rewrite N.eqb_refl. trivial. }
+  { unfold Tofino.values_match_singleton, Ops.eval_binary_op_eq.
+    remember (P4Arith.IntArith.from_lbool value0) as z0_name. inv H1.
+    remember (P4Arith.IntArith.from_lbool value) as z_name. inv H0.
+    rewrite N.eqb_refl. trivial. }
+  unfold Tofino.values_match_singleton in IHx |- *. simpl in IHx |- *. rewrite String.eqb_refl.
+  eapply IHx; assumption.
+Qed.
+
+Lemma assert_int_len : forall x w x' xb,
+  Tofino.assert_int x = Some (w, x', xb) -> Z.to_N (Zlength xb) = w.
+Proof.
+  induction x; intros; simpl in H; try discriminate.
+  - unfold P4Arith.BitArith.from_lbool in H; inv H; trivial.
+  - unfold P4Arith.IntArith.from_lbool in H; inv H; trivial.
+  - eapply IHx; eauto.
+Qed.
+
+(* This lemma is unused. *)
+Lemma to_lbool''_to_lbool : forall (width : N) (value : Z),
+  to_lbool'' (N.to_nat width) value = P4Arith.to_lbool width value.
+Proof.
+  intros.
+  apply to_lbool''_to_lbool'.
+Qed.
+
+(* This lemma is unused. *)
+Lemma bit_to_from_bool : forall bl,
+  P4Arith.to_lbool (fst (P4Arith.BitArith.from_lbool bl)) (snd (P4Arith.BitArith.from_lbool bl)) = bl.
+Proof.
+  intros.
+  rewrite <- to_lbool''_to_lbool.
+  induction bl; auto.
+  simpl.
+  replace (N.to_nat (Z.to_N (Zlength (a :: bl)))) with (S (N.to_nat (Z.to_N (Zlength bl)))) by list_solve.
+  simpl to_lbool''.
+  destruct a; rewrite P4Arith.BitArith.lbool_to_val_1_0.
+  - f_equal.
+    { replace (P4Arith.BitArith.lbool_to_val bl 1 0 * 2 + 1) with
+        (1 + 2 * P4Arith.BitArith.lbool_to_val bl 1 0) by lia.
+      rewrite Z.odd_add_mul_2; auto.
+    }
+    rewrite Z.div_add_l by lia.
+    replace (1 / 2) with 0 by auto.
+    rewrite Z.add_0_r.
+    apply IHbl.
+  - f_equal.
+    { replace (P4Arith.BitArith.lbool_to_val bl 1 0 * 2 + 0) with
+        (0 + 2 * P4Arith.BitArith.lbool_to_val bl 1 0) by lia.
+      rewrite Z.odd_add_mul_2; auto.
+    }
+    rewrite Z.div_add_l by lia.
+    replace (0 / 2) with 0 by auto.
+    rewrite Z.add_0_r.
+    apply IHbl.
+Qed.
+
+(* This lemma is unused. *)
+Lemma int_to_from_bool : forall bl,
+  P4Arith.to_lbool (fst (P4Arith.IntArith.from_lbool bl)) (snd (P4Arith.IntArith.from_lbool bl)) = bl.
+Proof.
+  intros.
+  rewrite <- to_lbool''_to_lbool.
+  induction bl; auto.
+  simpl.
+  replace (N.to_nat (Z.to_N (Zlength (a :: bl)))) with (S (N.to_nat (Z.to_N (Zlength bl)))) by list_solve.
+  simpl to_lbool''.
+  destruct a; rewrite P4Arith.IntArith.lbool_to_val_1_0.
+  - f_equal.
+    { destruct bl as [ | b bl']; auto.
+      set (bl := b :: bl') in *.
+      replace (P4Arith.IntArith.lbool_to_val bl 1 0 * 2 + 1) with
+        (1 + 2 * P4Arith.IntArith.lbool_to_val bl 1 0) by lia.
+      rewrite Z.odd_add_mul_2; auto.
+    }
+    destruct bl as [ | b bl']; auto.
+    set (bl := b :: bl') in *.
+    rewrite Z.div_add_l by lia.
+    replace (1 / 2) with 0 by auto.
+    rewrite Z.add_0_r.
+    apply IHbl.
+  - f_equal.
+    { destruct bl as [ | b bl']; auto.
+      set (bl := b :: bl') in *.
+      replace (P4Arith.IntArith.lbool_to_val bl 1 0 * 2 + 0) with
+        (0 + 2 * P4Arith.IntArith.lbool_to_val bl 1 0) by lia.
+      rewrite Z.odd_add_mul_2; auto.
+    }
+    destruct bl as [ | b bl']; auto.
+    set (bl := b :: bl') in *.
+    rewrite Z.div_add_l by lia.
+    replace (0 / 2) with 0 by auto.
+    rewrite Z.add_0_r.
+    apply IHbl.
+Qed.
+
+(* This lemma is unused. *)
+Lemma assert_int_conv : forall w x x' xb,
+  Tofino.assert_int x = Some (w, x', xb) ->
+  P4Arith.to_lbool w x' = xb.
+Proof.
+  induction x; intros; simpl in H; try discriminate; inv H.
+  - apply bit_to_from_bool.
+  - apply int_to_from_bool.
+  - auto.
+Qed.
+
+Lemma reduce_match_mask: forall w x v m x' v' m' xb vb mb,
+  Tofino.assert_int x = Some (w, x', xb) ->
+  Tofino.assert_int v = Some (w, v', vb) ->
+  Tofino.assert_int m = Some (w, m', mb) ->
+  Tofino.values_match_mask x v m = Tofino.vmm_help xb vb mb.
+Proof.
+  intros.
+  unfold Tofino.values_match_mask; rewrite H, H0, H1; rewrite N.eqb_refl; simpl.
+  auto.
+Qed.
+
 End TofinoSpec.
 
 #[export] Hint Extern 5 (func_modifies _ _ _ _ _) =>

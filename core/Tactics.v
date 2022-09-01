@@ -342,7 +342,10 @@ Ltac hoare_func_table :=
         | simplify_lift_option_eval_sval_to_val; (* lift_option (.. keysvals) *)
           reflexivity
         | eapply hoare_table_entries_intros; (* hoare_table_entries *)
-          repeat econstructor
+          repeat first [
+            simple apply sval_to_val_eval_p4int_sval
+          | econstructor
+          ]
         | hoare_extern_match_list (* hoare_extern_match_list *)
         ]
       | idtac (* hoare_table_action_cases' *)
