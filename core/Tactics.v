@@ -46,6 +46,7 @@ Ltac simpl_assertion :=
     (* First, most basic definitions for comparison. *)
     bool_rect bool_rec Bool.bool_dec Ascii.ascii_rect Ascii.ascii_rec Ascii.ascii_dec sumbool_rect
     sumbool_rec string_rect string_rec string_dec EquivUtil.StringEqDec EquivDec.equiv_dec EquivDec.list_eqdec
+    in_dec path_eq_dec list_eq_dec Datatypes.list_rec list_rect negb is_left id
 
     is_some isSome
 
@@ -55,7 +56,7 @@ Ltac simpl_assertion :=
 
     fst snd force map lift_option
 
-    lift_option_kv kv_map
+    lift_option_kv kv_map option_map List.filter
 
     AList.set AList.set_some AList.get
 
@@ -63,7 +64,11 @@ Ltac simpl_assertion :=
 
     eval_write_vars fold_left eval_write_var AList.set_some combine
 
-    Members.update Members.get].
+    Members.update Members.get
+
+    exclude
+
+    ext_exclude eq_rect Result.Result.forallb Result.Result.andb].
 
 Ltac simpl_abs_ops :=
   autorewrite with abs_ops.
@@ -299,7 +304,7 @@ Ltac intros_fsh_bind :=
 
 Ltac solve_modifies :=
   first [
-    solve [eauto 100 with nocore modifies]
+    solve [eauto 300 with nocore modifies]
   | idtac "The modifies clause cannot be solved automatically."
   ].
 
@@ -332,8 +337,12 @@ Ltac hoare_func_table_case :=
 Ltac hoare_extern_match_list :=
   idtac.
 
-(* Handles table with constant entries. *)
-Ltac hoare_func_table :=
+(* Provided by the target. *)
+Ltac hoare_table_action_cases' :=
+  idtac.
+
+(* Handles table with constant entries and keys are deterministic values. *)
+Ltac hoare_func_table_det :=
   lazymatch goal with
   | |- hoare_func _ _ _ (FTable _ _ _ _ _) _ _ =>
       eapply hoare_func_table';
@@ -348,10 +357,48 @@ Ltac hoare_func_table :=
           ]
         | hoare_extern_match_list (* hoare_extern_match_list *)
         ]
-      | idtac (* hoare_table_action_cases' *)
+      | hoare_table_action_cases' (* hoare_table_action_cases' *)
       ]
   | _ => fail "The goal is not in the form of (hoare_func _ _ _ (FTable _ _ _ _ _) _ _)"
   end.
+
+Ltac simpl_sval_to_val :=
+  lazymatch goal with
+  | H : sval_to_val read_ndetbit (P4Bit _ _) _ |- _ =>
+      apply sval_to_val_P4Bit in H; rewrite H; clear H
+  | H : sval_to_val read_ndetbit (P4Bit_ _) _ |- _ =>
+      apply sval_to_val_P4Bit_ in H;
+      destruct H as [? [? H]];
+      rewrite H; clear H
+  end.
+
+(* Handles table with constant entries and keys are NON-deterministic values. *)
+Ltac hoare_func_table_nondet :=
+  lazymatch goal with
+  | |- hoare_func _ _ _ (FTable _ _ _ _ _) _ _ =>
+      eapply hoare_func_table_middle';
+      [ reflexivity (* eval_exprs *)
+      | eapply hoare_table_entries_intros; (* hoare_table_entries *)
+        repeat econstructor
+      | simplify_lift_option_eval_sval_to_val;
+        intros;
+        (* inversion is slow *)
+        repeat (pinv Forall2; try simpl_sval_to_val);
+        eexists; split; only 1 : hoare_extern_match_list;
+        apply hoare_table_action_cases'_hoare_table_action_cases;
+        hoare_table_action_cases'
+      ]
+  | _ => fail "The goal is not in the form of (hoare_func _ _ _ (FTable _ _ _ _ _) _ _)"
+  end.
+
+Ltac hoare_func_table :=
+  tryif first [
+    hoare_func_table_det
+  | hoare_func_table_nondet
+  ] then
+    idtac
+  else
+    fail "No hoare_func_table tactics succeeded".
 
 Ltac init_function :=
   intros_fsh_bind;
@@ -386,6 +433,13 @@ Ltac start_function :=
       intros_fs_bind;
       split; [init_function | solve_modifies]
   | _ => fail "The goal is not in the form of (func_sound _ _ _)"
+  end.
+
+(* A more conservative tactic of removing trivial impossible cases. *)
+Ltac elim_trivial_cases :=
+  try lazymatch goal with
+  | H : is_true false |- _ => inv H
+  | H : is_true (~~true) |- _ => inv H
   end.
 
 (* This is very experimental. It gets the next case from hoare_table_action_cases'. *)

@@ -224,12 +224,7 @@ Definition Row_tbl_bloom_noop_spec : func_spec :=
 Lemma Row_tbl_bloom_noop_body :
   func_sound ge Row_tbl_bloom_fundef nil Row_tbl_bloom_noop_spec.
 Proof.
-  start_function.
-  simpl.
-  next_case.
-  next_case.
-  next_case.
-  next_case.
+  start_function; elim_trivial_cases; try lia.
   table_action NoAction_body.
   { entailer. }
   { entailer. }
@@ -285,8 +280,7 @@ Definition Row_tbl_bloom_insert_spec : func_spec :=
 Lemma Row_tbl_bloom_insert_body :
   func_sound ge Row_tbl_bloom_fundef nil Row_tbl_bloom_insert_spec.
 Proof.
-  start_function.
-  next_case.
+  start_function; elim_trivial_cases; try lia.
   table_action Row_insert_body.
   { entailer. }
   { auto. }
@@ -342,9 +336,7 @@ Definition Row_tbl_bloom_query_spec : func_spec :=
 Lemma Row_tbl_bloom_query_body :
   func_sound ge Row_tbl_bloom_fundef nil Row_tbl_bloom_query_spec.
 Proof.
-  start_function.
-  next_case.
-  next_case.
+  start_function; elim_trivial_cases; try lia.
   table_action Row_query_body.
   { entailer. }
   { auto. }
@@ -400,10 +392,7 @@ Definition Row_tbl_bloom_clear_spec : func_spec :=
 Lemma Row_tbl_bloom_clear_body :
   func_sound ge Row_tbl_bloom_fundef nil Row_tbl_bloom_clear_spec.
 Proof.
-  start_function.
-  next_case.
-  next_case.
-  next_case.
+  start_function; elim_trivial_cases; try lia.
   table_action Row_clear_body.
   { entailer. }
   { auto. }

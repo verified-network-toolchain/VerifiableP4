@@ -295,44 +295,6 @@ Definition RegisterAction_execute_spec' : func_spec :=
 
 Definition execute_fundef : (@fundef tags_t) := FExternal "RegisterAction" "execute".
 
-Lemma to_lbool_lbool_to_val : forall bs,
-  P4Arith.to_lbool (Z.to_N (Zlength bs))
-      (P4Arith.BitArith.lbool_to_val bs 1 0)
-  = bs.
-Proof.
-  intros.
-  unfold P4Arith.to_lbool.
-  rewrite <- to_lbool''_to_lbool'.
-  induction bs.
-  - auto.
-  - replace (N.to_nat (Z.to_N (Zlength (a :: bs))))
-      with (S (N.to_nat (Z.to_N (Zlength bs)))) by list_solve.
-    simpl.
-    rewrite P4Arith.BitArith.lbool_to_val_1_0.
-    rewrite P4Arith.BitArith.lbool_to_val_1_0 with (o := 2).
-    destruct a.
-    + replace (Z.odd (P4Arith.BitArith.lbool_to_val bs 1 0 * 2 + 1)) with true. 2 : {
-        rewrite Z.add_comm.
-        rewrite Z.mul_comm.
-        rewrite Z.odd_add_mul_2.
-        auto.
-      }
-      rewrite Z.div_add_l by lia.
-      replace (1 / 2) with 0 by auto.
-      rewrite Z.add_0_r.
-      f_equal; auto.
-    + replace (Z.odd (P4Arith.BitArith.lbool_to_val bs 1 0 * 2 + 0)) with false. 2 : {
-        rewrite Z.add_comm.
-        rewrite Z.mul_comm.
-        rewrite Z.odd_add_mul_2.
-        auto.
-      }
-      rewrite Z.div_add_l by lia.
-      replace (1 / 2) with 0 by auto.
-      rewrite Z.add_0_r.
-      f_equal; auto.
-Qed.
-
 Lemma to_lbool_lbool_to_val' : forall bs w,
   w = Z.to_N (Zlength bs) ->
   P4Arith.to_lbool w

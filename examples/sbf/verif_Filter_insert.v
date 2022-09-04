@@ -210,7 +210,7 @@ Proof.
     { auto. }
     simpl Z.eqb. cbn match.
     step_into.
-    { hoare_func_table_nondet.
+    { hoare_func_table_nondet; elim_trivial_cases.
       table_action NoAction_body.
       { entailer. }
       { apply arg_ret_implies_refl. }
@@ -240,7 +240,7 @@ Proof.
     { auto. }
     simpl Z.eqb. cbn match.
     step_into.
-    { hoare_func_table_nondet.
+    { hoare_func_table_nondet; elim_trivial_cases.
       table_action NoAction_body.
       { entailer. }
       { apply arg_ret_implies_refl. }
@@ -270,7 +270,7 @@ Proof.
     { auto. }
     simpl Z.eqb. cbn match.
     step_into.
-    { hoare_func_table_nondet.
+    { hoare_func_table_nondet; elim_trivial_cases.
       table_action NoAction_body.
       { entailer. }
       { apply arg_ret_implies_refl. }
@@ -300,7 +300,7 @@ Proof.
     { auto. }
     simpl Z.eqb. cbn match.
     step_into.
-    { hoare_func_table_nondet.
+    { hoare_func_table_nondet; elim_trivial_cases.
       table_action NoAction_body.
       { entailer. }
       { apply arg_ret_implies_refl. }

@@ -113,3 +113,70 @@ Ltac build_execute_body ge body :=
 
 Ltac hoare_extern_match_list ::=
   apply hoare_extern_match_list_intro.
+
+Ltac solve_assert_int :=
+  simpl; rewrite P4Arith.bit_from_to_bool;
+  unfold P4Arith.BitArith.mod_bound;
+  try rewrite Z.mod_small by (unfold P4Arith.BitArith.upper_bound; lia);
+  reflexivity.
+
+#[export] Hint Rewrite Bool.andb_true_l Bool.andb_true_r Bool.andb_false_l Bool.andb_false_r : simpl_andb.
+
+(* simpl in H with a easy-to-check proof term. *)
+Ltac simpl_in H :=
+  let type_of_H := type of H in
+  let type_of_H' := eval simpl in type_of_H in
+  lazymatch goal with
+  | |- ?Goal =>
+      revert H;
+      refine ((_ : type_of_H' -> Goal) : type_of_H -> Goal);
+      intros H
+  end.
+
+Ltac simpl_match_cond cond :=
+  simpl_in cond; unfold fold_andb, fold_left in cond; autorewrite with simpl_andb in cond;
+  repeat lazymatch goal with
+  | cond : context [Tofino.values_match_range ?x ?lo ?hi] |- _ =>
+      erewrite (reduce_match_range _ x lo hi) in cond;
+      [ idtac
+      | solve_assert_int
+      | compute; reflexivity
+      | compute; reflexivity
+      ]
+  | cond : context [Tofino.values_match_singleton ?x ?y] |- _ =>
+      erewrite (reduce_match_singleton _ x y) in cond;
+      [ idtac
+      | repeat constructor
+      | solve_assert_int
+      | compute; reflexivity
+      ]
+  | cond : context [Tofino.values_match_mask ?x ?v ?m] |- _ =>
+      erewrite (reduce_match_mask _ x v m) in cond;
+      [ idtac
+      | solve_assert_int (* In this case, we only need the bit form,
+                            so the simplification in the integer form is unnecessary and maybe inefficient. *)
+      | compute; reflexivity
+      | compute; reflexivity
+      ];
+      cbv - [Bool.eqb Z.odd Z.div] in cond
+  end.
+
+Ltac hoare_table_action_cases' ::=
+  first [
+    apply hoare_table_action_cases'_nil
+  | refine (@id (hoare_table_action_cases' _ _ _ _ _ _ ((_, _) :: _)) _);
+    lazymatch goal with
+    | |- hoare_table_action_cases' _ _ _ _ _ _ ((?cond, _) :: _)  =>
+      let H_cond := fresh in
+      let cond_name := fresh "cond" in
+      remember cond as cond_name eqn:H_cond;
+      simpl_match_cond H_cond;
+      subst cond_name;
+      idtac
+    end;
+    apply hoare_table_action_cases'_cons;
+    [ let H := fresh in intro H
+    | let H := fresh in intro H;
+      hoare_table_action_cases'
+    ]
+  ].

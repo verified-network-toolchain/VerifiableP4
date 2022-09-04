@@ -2424,6 +2424,85 @@ Proof.
     lia.
 Qed.
 
+Lemma Forall2_read_ndetbit_map_Some : forall l l',
+  Forall2 read_ndetbit (map Some l) l' ->
+  l' = l.
+Proof.
+  rename H into target.
+  induction l; intros.
+  - inv H; auto.
+  - inv H. inv H2. f_equal; eauto.
+Qed.
+
+Lemma sval_to_val_P4Bit : forall w v y,
+  sval_to_val read_ndetbit (P4Bit w v) y ->
+  y = ValBaseBit (P4Arith.to_lbool w v).
+Proof.
+  inversion 1; subst.
+  f_equal.
+  apply Forall2_read_ndetbit_map_Some; auto.
+Qed.
+
+Lemma to_lbool_lbool_to_val : forall bs,
+  P4Arith.to_lbool (Z.to_N (Zlength bs))
+      (P4Arith.BitArith.lbool_to_val bs 1 0)
+  = bs.
+Proof.
+  intros.
+  unfold P4Arith.to_lbool.
+  rewrite <- to_lbool''_to_lbool'.
+  induction bs.
+  - auto.
+  - replace (N.to_nat (Z.to_N (Zlength (a :: bs))))
+      with (S (N.to_nat (Z.to_N (Zlength bs)))) by list_solve.
+    simpl.
+    rewrite P4Arith.BitArith.lbool_to_val_1_0.
+    rewrite P4Arith.BitArith.lbool_to_val_1_0 with (o := 2).
+    destruct a.
+    + replace (Z.odd (P4Arith.BitArith.lbool_to_val bs 1 0 * 2 + 1)) with true. 2 : {
+        rewrite Z.add_comm.
+        rewrite Z.mul_comm.
+        rewrite Z.odd_add_mul_2.
+        auto.
+      }
+      rewrite Z.div_add_l by lia.
+      replace (1 / 2) with 0 by auto.
+      rewrite Z.add_0_r.
+      f_equal; auto.
+    + replace (Z.odd (P4Arith.BitArith.lbool_to_val bs 1 0 * 2 + 0)) with false. 2 : {
+        rewrite Z.add_comm.
+        rewrite Z.mul_comm.
+        rewrite Z.odd_add_mul_2.
+        auto.
+      }
+      rewrite Z.div_add_l by lia.
+      replace (1 / 2) with 0 by auto.
+      rewrite Z.add_0_r.
+      f_equal; auto.
+Qed.
+
+Lemma sval_to_val_P4Bit_ : forall w y,
+  sval_to_val read_ndetbit (P4Bit_ w) y ->
+  exists v,
+    0 <= v < P4Arith.BitArith.upper_bound w
+    /\ y = ValBaseBit (P4Arith.to_lbool w v).
+Proof.
+  rename H into target.
+  inversion 1; subst.
+  apply Forall2_Zlength in H1.
+  exists (P4Arith.BitArith.lbool_to_val lb' 1 0).
+  assert (P4Arith.to_lbool w (P4Arith.BitArith.lbool_to_val lb' 1 0) = lb'). {
+    replace w with (Z.to_N (Zlength lb')) by list_solve.
+    apply to_lbool_lbool_to_val.
+  }
+  split.
+  - rewrite <- H0.
+    rewrite P4Arith.bit_to_lbool_back.
+    apply Z.mod_pos_bound.
+    pose proof (P4Arith.BitArith.upper_bound_ge_1 w); lia.
+  - congruence.
+Qed.
+
 End EvalExpr.
 
 #[export] Hint Resolve eval_expr_sound eval_lexpr_sound eval_write_sound eval_arg_sound eval_args_sound : hoare.
