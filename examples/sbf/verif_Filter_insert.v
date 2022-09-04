@@ -92,7 +92,6 @@ Lemma tbl_set_win_insert_body :
   func_sound ge tbl_set_win_fd nil tbl_set_win_insert_spec.
 Proof.
   start_function.
-  hoare_table_action_cases'.
 Admitted.
 
 #[local] Hint Extern 5 (func_modifies _ _ _ _ _) => (apply tbl_set_win_insert_body) : func_specs.

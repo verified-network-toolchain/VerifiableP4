@@ -197,9 +197,8 @@ Qed.
 Lemma tbl_merge_wins_body :
   func_sound ge tbl_merge_wins_fd nil tbl_merge_wins_spec.
 Proof.
-  start_function.
-  unfold P4_bf2_win_md_t_rw.
-  hoare_table_action_cases';
+  unfold tbl_merge_wins_spec, P4_bf2_win_md_t_rw.
+  start_function;
     repeat rewrite b2z_one in *;
     repeat lazymatch goal with
     | H : is_true (_ && _) |- _ =>

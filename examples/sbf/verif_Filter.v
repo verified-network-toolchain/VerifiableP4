@@ -19,6 +19,205 @@ Notation path := (list ident).
 Notation Val := (@ValueBase bool).
 Notation Sval := (@ValueBase (option bool)).
 
+Ltac solve_assert_int :=
+  simpl; rewrite P4Arith.bit_from_to_bool;
+  unfold P4Arith.BitArith.mod_bound;
+  try rewrite Z.mod_small by (unfold P4Arith.BitArith.upper_bound; lia);
+  reflexivity.
+
+#[export] Hint Rewrite Bool.andb_true_l Bool.andb_true_r Bool.andb_false_l Bool.andb_false_r : simpl_andb.
+
+(* simpl in H with a easy-to-check proof term. *)
+Ltac simpl_in H :=
+  let type_of_H := type of H in
+  let type_of_H' := eval simpl in type_of_H in
+  lazymatch goal with
+  | |- ?Goal =>
+      revert H;
+      refine ((_ : type_of_H' -> Goal) : type_of_H -> Goal);
+      intros H
+  end.
+
+Ltac simpl_match_cond cond :=
+  simpl_in cond; unfold fold_andb, fold_left in cond; autorewrite with simpl_andb in cond;
+  repeat lazymatch goal with
+  | cond : context [Tofino.values_match_range ?x ?lo ?hi] |- _ =>
+      erewrite (reduce_match_range _ x lo hi) in cond;
+      [ idtac
+      | solve_assert_int
+      | compute; reflexivity
+      | compute; reflexivity
+      ]
+  | cond : context [Tofino.values_match_singleton ?x ?y] |- _ =>
+      erewrite (reduce_match_singleton _ x y) in cond;
+      [ idtac
+      | repeat constructor
+      | solve_assert_int
+      | compute; reflexivity
+      ]
+  | cond : context [Tofino.values_match_mask ?x ?v ?m] |- _ =>
+      erewrite (reduce_match_mask _ x v m) in cond;
+      [ idtac
+      | solve_assert_int (* In this case, we only need the bit form,
+                            so the simplification in the integer form is unnecessary and maybe inefficient. *)
+      | compute; reflexivity
+      | compute; reflexivity
+      ];
+      cbv - [Bool.eqb Z.odd Z.div] in cond
+  end.
+
+Ltac elim_trivial_cases :=
+  try lazymatch goal with
+  | H : is_true false |- _ => inv H
+  | H : is_true (~~true) |- _ => inv H
+  end.
+
+Ltac hoare_table_action_cases' :=
+  first [
+    apply hoare_table_action_cases'_nil
+  | refine (@id (hoare_table_action_cases' _ _ _ _ _ _ ((_, _) :: _)) _);
+    lazymatch goal with
+    | |- hoare_table_action_cases' _ _ _ _ _ _ ((?cond, _) :: _)  =>
+      let H_cond := fresh in
+      let cond_name := fresh "cond" in
+      remember cond as cond_name eqn:H_cond;
+      simpl_match_cond H_cond;
+      subst cond_name;
+      idtac
+    end;
+    apply hoare_table_action_cases'_cons;
+    [ let H := fresh in intro H
+    | let H := fresh in intro H;
+      hoare_table_action_cases'
+    ]
+  ].
+
+Ltac hoare_func_table_det :=
+  lazymatch goal with
+  | |- hoare_func _ _ _ (FTable _ _ _ _ _) _ _ =>
+      eapply hoare_func_table';
+      [ eapply hoare_table_match_list_intro'; (* hoare_table_match_list *)
+        [ reflexivity (* eval_exprs *)
+        | simplify_lift_option_eval_sval_to_val; (* lift_option (.. keysvals) *)
+          reflexivity
+        | eapply hoare_table_entries_intros; (* hoare_table_entries *)
+          repeat first [
+            simple apply sval_to_val_eval_p4int_sval
+          | econstructor
+          ]
+        | hoare_extern_match_list (* hoare_extern_match_list *)
+        ]
+      | hoare_table_action_cases' (* hoare_table_action_cases' *)
+      ]
+  | _ => fail "The goal is not in the form of (hoare_func _ _ _ (FTable _ _ _ _ _) _ _)"
+  end.
+
+Ltac simpl_assertion ::=
+  cbn [
+    (* First, most basic definitions for comparison. *)
+    bool_rect bool_rec Bool.bool_dec Ascii.ascii_rect Ascii.ascii_rec Ascii.ascii_dec sumbool_rect
+    sumbool_rec string_rect string_rec string_dec EquivUtil.StringEqDec EquivDec.equiv_dec EquivDec.list_eqdec
+    in_dec path_eq_dec list_eq_dec Datatypes.list_rec list_rect negb is_left id
+
+    is_some isSome
+
+    P4String.str
+
+    app find find
+
+    fst snd force map lift_option
+
+    lift_option_kv kv_map option_map List.filter
+
+    AList.set AList.set_some AList.get
+
+    filter_in Semantics.is_in flat_map
+
+    eval_write_vars fold_left eval_write_var AList.set_some combine
+
+    Members.update Members.get
+
+    exclude
+
+    ext_exclude eq_rect Result.Result.forallb Result.Result.andb].
+
+
+Lemma Forall2_read_ndetbit_map_Some : forall l l',
+  Forall2 read_ndetbit (map Some l) l' ->
+  l' = l.
+Proof.
+  induction l; intros.
+  - inv H; auto.
+  - inv H. inv H2. f_equal; eauto.
+Qed.
+
+Lemma sval_to_val_P4Bit : forall w v y,
+  sval_to_val read_ndetbit (P4Bit w v) y ->
+  y = ValBaseBit (P4Arith.to_lbool w v).
+Proof.
+  inversion 1; subst.
+  f_equal.
+  apply Forall2_read_ndetbit_map_Some; auto.
+Qed.
+
+Lemma sval_to_val_P4Bit_ : forall w y,
+  sval_to_val read_ndetbit (P4Bit_ w) y ->
+  exists v,
+    0 <= v < P4Arith.BitArith.upper_bound w
+    /\ y = ValBaseBit (P4Arith.to_lbool w v).
+Proof.
+  inversion 1; subst.
+  apply Forall2_Zlength in H1.
+  exists (P4Arith.BitArith.lbool_to_val lb' 1 0).
+  assert (P4Arith.to_lbool w (P4Arith.BitArith.lbool_to_val lb' 1 0) = lb'). {
+    replace w with (Z.to_N (Zlength lb')) by list_solve.
+    apply to_lbool_lbool_to_val.
+  }
+  split.
+  - rewrite <- H0.
+    rewrite P4Arith.bit_to_lbool_back.
+    apply Z.mod_pos_bound.
+    pose proof (P4Arith.BitArith.upper_bound_ge_1 w); lia.
+  - congruence.
+Qed.
+
+Ltac simpl_sval_to_val :=
+  lazymatch goal with
+  | H : sval_to_val read_ndetbit (P4Bit _ _) _ |- _ =>
+      apply sval_to_val_P4Bit in H; rewrite H; clear H
+  | H : sval_to_val read_ndetbit (P4Bit_ _) _ |- _ =>
+      apply sval_to_val_P4Bit_ in H;
+      destruct H as [? [? H]];
+      rewrite H; clear H
+  end.
+
+Ltac hoare_func_table_nondet :=
+  lazymatch goal with
+  | |- hoare_func _ _ _ (FTable _ _ _ _ _) _ _ =>
+      eapply hoare_func_table_middle';
+      [ reflexivity (* eval_exprs *)
+      | eapply hoare_table_entries_intros; (* hoare_table_entries *)
+        repeat econstructor
+      | simplify_lift_option_eval_sval_to_val;
+        intros;
+        (* inversion is slow *)
+        repeat (pinv Forall2; try simpl_sval_to_val);
+        eexists; split; only 1 : hoare_extern_match_list;
+        apply hoare_table_action_cases'_hoare_table_action_cases;
+        hoare_table_action_cases'; elim_trivial_cases
+      ]
+  | _ => fail "The goal is not in the form of (hoare_func _ _ _ (FTable _ _ _ _ _) _ _)"
+  end.
+
+Ltac hoare_func_table ::=
+  tryif first [
+    hoare_func_table_det
+  | hoare_func_table_nondet
+  ] then
+    idtac
+  else
+    fail "No hoare_func_table tactics succeeded".
+
 Definition p := ["pipe"; "ingress"; "bf2_ds"].
 
 Definition act_hash_index_1_fd :=
@@ -104,7 +303,6 @@ Lemma tbl_hash_index_1_body :
   func_sound ge tbl_hash_index_1_fd nil tbl_hash_index_1_spec.
 Proof.
   start_function.
-  next_case.
   table_action act_hash_index_1_body.
   { entailer. }
   { entailer. }
@@ -195,7 +393,6 @@ Lemma tbl_hash_index_2_body :
   func_sound ge tbl_hash_index_2_fd nil tbl_hash_index_2_spec.
 Proof.
   start_function.
-  next_case.
   table_action act_hash_index_2_body.
   { entailer. }
   { entailer. }
@@ -286,7 +483,6 @@ Lemma tbl_hash_index_3_body :
   func_sound ge tbl_hash_index_3_fd nil tbl_hash_index_3_spec.
 Proof.
   start_function.
-  next_case.
   table_action act_hash_index_3_body.
   { entailer. }
   { entailer. }
@@ -387,7 +583,6 @@ Lemma tbl_clear_index_body :
   func_sound ge tbl_clear_index_fd nil tbl_clear_index_spec.
 Proof.
   start_function.
-  next_case.
   table_action act_clear_index_body.
   { entailer. }
   { entailer. }
@@ -663,85 +858,10 @@ Definition tbl_clear_window_spec : func_spec :=
     }
 *)
 
-Ltac solve_assert_int :=
-  simpl; rewrite P4Arith.bit_from_to_bool;
-  unfold P4Arith.BitArith.mod_bound;
-  try rewrite Z.mod_small by (unfold P4Arith.BitArith.upper_bound; lia);
-  reflexivity.
-
-#[export] Hint Rewrite Bool.andb_true_l Bool.andb_true_r Bool.andb_false_l Bool.andb_false_r : simpl_andb.
-
-(* simpl in H with a easy-to-check proof term. *)
-Ltac simpl_in H :=
-  let type_of_H := type of H in
-  let type_of_H' := eval simpl in type_of_H in
-  lazymatch goal with
-  | |- ?Goal =>
-      revert H;
-      refine ((_ : type_of_H' -> Goal) : type_of_H -> Goal);
-      intros H
-  end.
-
-Ltac simpl_match_cond cond :=
-  simpl_in cond; unfold fold_andb, fold_left in cond; autorewrite with simpl_andb in cond;
-  repeat lazymatch goal with
-  | cond : context [Tofino.values_match_range ?x ?lo ?hi] |- _ =>
-      erewrite (reduce_match_range _ x lo hi) in cond;
-      [ idtac
-      | solve_assert_int
-      | compute; reflexivity
-      | compute; reflexivity
-      ]
-  | cond : context [Tofino.values_match_singleton ?x ?y] |- _ =>
-      erewrite (reduce_match_singleton _ x y) in cond;
-      [ idtac
-      | repeat constructor
-      | solve_assert_int
-      | compute; reflexivity
-      ]
-  | cond : context [Tofino.values_match_mask ?x ?v ?m] |- _ =>
-      erewrite (reduce_match_mask _ x v m) in cond;
-      [ idtac
-      | solve_assert_int (* In this case, we only need the bit form,
-                            so the simplification in the integer form is unnecessary and maybe inefficient. *)
-      | compute; reflexivity
-      | compute; reflexivity
-      ];
-      cbv - [Bool.eqb Z.odd Z.div] in cond
-  end.
-
-Ltac elim_trivial_cases :=
-  try lazymatch goal with
-  | H : is_true false |- _ => inv H
-  | H : is_true (~~true) |- _ => inv H
-  end.
-
-Ltac hoare_table_action_cases' :=
-  first [
-    apply hoare_table_action_cases'_nil
-  | refine (@id (hoare_table_action_cases' _ _ _ _ _ _ ((_, _) :: _)) _);
-    lazymatch goal with
-    | |- hoare_table_action_cases' _ _ _ _ _ _ ((?cond, _) :: _)  =>
-      let H_cond := fresh in
-      let cond_name := fresh "cond" in
-      remember cond as cond_name eqn:H_cond;
-      simpl_match_cond H_cond;
-      subst cond_name;
-      idtac
-    end;
-    apply hoare_table_action_cases'_cons;
-    [ let H := fresh in intro H
-    | let H := fresh in intro H;
-      hoare_table_action_cases'
-    ]
-  ].
-
 Lemma tbl_clear_window_body :
   func_sound ge tbl_clear_window_fd nil tbl_clear_window_spec.
 Proof.
-  start_function.
-  simpl Tofino.extern_matches.
-  hoare_table_action_cases'; elim_trivial_cases.
+  start_function; elim_trivial_cases.
   { repeat rewrite Z.div_div in H by lia.
     simpl in H.
     destruct (Z.odd (tstamp / 2097152)); try solve [inv H].
@@ -1174,103 +1294,6 @@ Definition Filter_fd :=
 Program Definition hashes (key : Val) : listn Z num_rows := (exist _ [hash1 key; hash2 key; hash3 key] _).
 
 Notation filter_repr := (filter_repr (frame_tick_tocks := frame_tick_tocks)).
-
-Ltac simpl_assertion ::=
-  cbn [
-    (* First, most basic definitions for comparison. *)
-    bool_rect bool_rec Bool.bool_dec Ascii.ascii_rect Ascii.ascii_rec Ascii.ascii_dec sumbool_rect
-    sumbool_rec string_rect string_rec string_dec EquivUtil.StringEqDec EquivDec.equiv_dec EquivDec.list_eqdec
-    in_dec path_eq_dec list_eq_dec Datatypes.list_rec list_rect negb is_left id
-
-    is_some isSome
-
-    P4String.str
-
-    app find find
-
-    fst snd force map lift_option
-
-    lift_option_kv kv_map option_map List.filter
-
-    AList.set AList.set_some AList.get
-
-    filter_in Semantics.is_in flat_map
-
-    eval_write_vars fold_left eval_write_var AList.set_some combine
-
-    Members.update Members.get
-
-    exclude
-
-    ext_exclude eq_rect Result.Result.forallb Result.Result.andb].
-
-
-Lemma Forall2_read_ndetbit_map_Some : forall l l',
-  Forall2 read_ndetbit (map Some l) l' ->
-  l' = l.
-Proof.
-  induction l; intros.
-  - inv H; auto.
-  - inv H. inv H2. f_equal; eauto.
-Qed.
-
-Lemma sval_to_val_P4Bit : forall w v y,
-  sval_to_val read_ndetbit (P4Bit w v) y ->
-  y = ValBaseBit (P4Arith.to_lbool w v).
-Proof.
-  inversion 1; subst.
-  f_equal.
-  apply Forall2_read_ndetbit_map_Some; auto.
-Qed.
-
-Lemma sval_to_val_P4Bit_ : forall w y,
-  sval_to_val read_ndetbit (P4Bit_ w) y ->
-  exists v,
-    0 <= v < P4Arith.BitArith.upper_bound w
-    /\ y = ValBaseBit (P4Arith.to_lbool w v).
-Proof.
-  inversion 1; subst.
-  apply Forall2_Zlength in H1.
-  exists (P4Arith.BitArith.lbool_to_val lb' 1 0).
-  assert (P4Arith.to_lbool w (P4Arith.BitArith.lbool_to_val lb' 1 0) = lb'). {
-    replace w with (Z.to_N (Zlength lb')) by list_solve.
-    apply to_lbool_lbool_to_val.
-  }
-  split.
-  - rewrite <- H0.
-    rewrite P4Arith.bit_to_lbool_back.
-    apply Z.mod_pos_bound.
-    pose proof (P4Arith.BitArith.upper_bound_ge_1 w); lia.
-  - congruence.
-Qed.
-
-Ltac simpl_sval_to_val :=
-  lazymatch goal with
-  | H : sval_to_val read_ndetbit (P4Bit _ _) _ |- _ =>
-      apply sval_to_val_P4Bit in H; rewrite H; clear H
-  | H : sval_to_val read_ndetbit (P4Bit_ _) _ |- _ =>
-      apply sval_to_val_P4Bit_ in H;
-      destruct H as [? [? H]];
-      rewrite H; clear H
-  end.
-
-Ltac hoare_func_table_nondet :=
-  lazymatch goal with
-  | |- hoare_func _ _ _ (FTable _ _ _ _ _) _ _ =>
-      eapply hoare_func_table_middle';
-      [ reflexivity (* eval_exprs *)
-      | eapply hoare_table_entries_intros; (* hoare_table_entries *)
-        repeat econstructor
-      | simplify_lift_option_eval_sval_to_val;
-        intros;
-        (* inversion is slow *)
-        repeat (pinv Forall2; try simpl_sval_to_val);
-        eexists; split; only 1 : hoare_extern_match_list;
-        apply hoare_table_action_cases'_hoare_table_action_cases;
-        hoare_table_action_cases'; elim_trivial_cases
-      ]
-  | _ => fail "The goal is not in the form of (hoare_func _ _ _ (FTable _ _ _ _ _) _ _)"
-  end.
 
 (* Print Assumptions Filter_insert_body.
 Print Assumptions Filter_query_body.
