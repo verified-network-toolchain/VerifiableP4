@@ -136,6 +136,7 @@ Definition out_port_to_Z (p : option port) :=
 Definition out_port_to_sval (p : option port) :=
   ValBaseBit (P4Arith.to_loptbool 9 (out_port_to_Z p)). *)
 
+Definition timestamp_t := Z.
 Definition ipv4_header : Type := Z * Z.
 Definition payload_t := list bool.
 
@@ -147,8 +148,8 @@ Definition get_drop_ctl (v : Sval) : bool :=
   | _ => false
   end.
 
-Inductive process_packet : extern_state -> (ipv4_header * payload_t) -> extern_state -> option (ipv4_header * payload_t) -> Prop :=
-  | process_packet_intro : forall es ipv4 payload es' ipv4'
+Inductive process_packet : extern_state -> (timestamp_t * ipv4_header * payload_t) -> extern_state -> option (ipv4_header * payload_t) -> Prop :=
+  | process_packet_intro : forall es timestamp ipv4 payload es' ipv4'
             pipe_class_name pipe_inst_path class_name inst_path fd
             m' hdr' meta' ingress_intrinsic_metadata_for_deparser' ingress_intrinsic_metadata_for_tm',
       PathMap.get ["main"; "pipe0"] (ge_inst ge) = Some {|iclass:=pipe_class_name; ipath:=pipe_inst_path|} ->
@@ -161,7 +162,9 @@ Inductive process_packet : extern_state -> (ipv4_header * payload_t) -> extern_s
         (force ValBaseNull (uninit_sval_of_typ None header_t)) in
       (* 0 <= data < Z.pow 2 16 -> *)
       let meta := force ValBaseNull (uninit_sval_of_typ None M) in
-      let ingress_intrinsic_metadata := force ValBaseNull (uninit_sval_of_typ None ingress_intrinsic_metadata_t) in
+      let ingress_intrinsic_metadata :=
+        update "ingress_mac_tstamp" (P4Bit 48 timestamp)
+          (force ValBaseNull (uninit_sval_of_typ None ingress_intrinsic_metadata_t)) in
       let ingress_intrinsic_metadata_from_parser := force ValBaseNull (uninit_sval_of_typ None ingress_intrinsic_metadata_from_parser_t) in
       let ingress_intrinsic_metadata_for_deparser := force ValBaseNull (uninit_sval_of_typ None ingress_intrinsic_metadata_for_deparser_t) in
       let ingress_intrinsic_metadata_for_tm := force ValBaseNull (uninit_sval_of_typ None ingress_intrinsic_metadata_for_tm_t) in
@@ -177,9 +180,9 @@ Inductive process_packet : extern_state -> (ipv4_header * payload_t) -> extern_s
       0 <=  snd ipv4' < Z.pow 2 32 ->
       get "dst_addr" (get "ipv4" hdr') = P4Bit ipv4_addr_w (snd ipv4') ->
       let drop_ctl := get_drop_ctl (get "drop_ctl" ingress_intrinsic_metadata_for_deparser') in
-      process_packet es (ipv4, payload) es' (if drop_ctl then None else Some (ipv4', payload)).
+      process_packet es (timestamp, ipv4, payload) es' (if drop_ctl then None else Some (ipv4', payload)).
 
-Inductive process_packets : extern_state -> list (ipv4_header * payload_t) -> extern_state -> list (option (ipv4_header * payload_t)) -> Prop :=
+Inductive process_packets : extern_state -> list (timestamp_t * ipv4_header * payload_t) -> extern_state -> list (option (ipv4_header * payload_t)) -> Prop :=
   | process_packets_nil : forall es,
       process_packets es [] es []
   | process_packets_cons : forall es1 p p' es2 ps ps' es3,
