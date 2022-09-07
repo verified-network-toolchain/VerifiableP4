@@ -517,7 +517,7 @@ control SwitchIngress(inout header_t hdr,
     }
     table bf2_tbl_set_key {
         key = {
-            ig_intr_md.ingress_port : ternary;
+            hdr.ipv4.src_addr : ternary;
         }
         actions = {
             bf2_act_set_insert_key();
@@ -525,7 +525,7 @@ control SwitchIngress(inout header_t hdr,
             bf2_act_set_clear_key();
         }
         const entries = {
-            0 : bf2_act_set_insert_key(INSERT);
+            2154823680 &&& 4294901760 : bf2_act_set_insert_key(INSERT);
             _ : bf2_act_set_query_key(QUERY);
         }
         default_action = bf2_act_set_query_key(QUERY);
@@ -535,19 +535,22 @@ control SwitchIngress(inout header_t hdr,
     action act_for_tbl_3_action_0() {
         ig_intr_dprsr_md.drop_ctl = 1;
     }
+    action act_for_tbl_3_action_1() {
+        ig_intr_dprsr_md.drop_ctl = 0;
+    }
     table tbl_for_stmt_3 {
         key = {
             ig_md.solicited : ternary;
         }
         actions = {
             act_for_tbl_3_action_0();
-            .NoAction();
+            act_for_tbl_3_action_1();
         }
         const entries = {
             0 : act_for_tbl_3_action_0();
-            _ : .NoAction();
+            _ : act_for_tbl_3_action_1();
         }
-        default_action = .NoAction();
+        default_action = act_for_tbl_3_action_1();
         size = 2;
     }
     apply {
