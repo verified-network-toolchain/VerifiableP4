@@ -103,7 +103,7 @@ Record filter := mk_filter {
   fil_frames : listn frame num_frames;
   fil_clear_index : Z;
   fil_timer : Z * bool;
-  }.
+}.
 
 Definition clear_index_wf (i: Z) := 0 <= i < num_slots.
 
