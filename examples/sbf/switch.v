@@ -22,9 +22,7 @@ Notation ident := string.
 Notation path := (list ident).
 Notation Val := (@ValueBase bool).
 Notation Sval := (@ValueBase (option bool)).
-(* Notation Expression := (@Expression tags_t). *)
 Notation P4Type := (@P4Type Info).
-(* Notation extern_state := (@extern_state tags_t Expression). *)
 
 Variable ge : genv.
 Variable H : P4Type.
@@ -112,29 +110,6 @@ Definition header_t : P4Type :=
   (!"udp", TypHeader
     [(!"src_port", TypBit 16); (!"dst_port", TypBit 16);
     (!"hdr_length", TypBit 16); (!"checksum", TypBit 16)])].
-
-
-(* Inductive port :=
-  | port_int
-  | port_ext.
-
-Definition port_to_Z (p : port) :=
-  match p with
-  | port_int => 0
-  | port_ext => 1
-  end.
-
-Definition port_to_sval (p : port) :=
-  ValBaseBit (P4Arith.to_loptbool 9 (port_to_Z p)).
-
-Definition out_port_to_Z (p : option port) :=
-  match p with
-  | Some p => port_to_Z p
-  | None => 511
-  end.
-
-Definition out_port_to_sval (p : option port) :=
-  ValBaseBit (P4Arith.to_loptbool 9 (out_port_to_Z p)). *)
 
 Definition timestamp_t := Z.
 Definition ipv4_header : Type := Z * Z.
