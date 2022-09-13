@@ -29,6 +29,8 @@ Definition num_slots := Eval compute in 2 ^ (Z.of_N index_w).
 Definition num_rows := 3.
 Definition num_frames := 4.
 Definition frame_tick_tocks := 7034.
+Definition tick_time := 2097152.
+Definition frame_time := frame_tick_tocks * tick_time * 2.
 
 Lemma b2z_range : forall b,
   0 <= Z.b2z b < 2.
