@@ -284,7 +284,7 @@ Next Obligation.
   list_solve.
 Qed.
 
-Program Definition filter_clear (f : filter) (tick : bool) (is : listn Z num_rows) : filter :=
+Program Definition filter_clear (f : filter) (tick : bool) : filter :=
   let '(mk_filter (exist _ frames H) clear_index timer) := f in
   let new_clear_index := update_clear_index clear_index in
   let timer := update_timer timer tick in

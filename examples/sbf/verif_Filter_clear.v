@@ -105,7 +105,7 @@ Definition Filter_clear_spec : func_spec :=
       POST
         (ARG_RET [P4Bit_ 8] ValBaseNull
         (MEM []
-        (EXT [filter_repr p index_w panes rows (filter_clear cf (Z.odd (tstamp/2097152)) (hashes key))]))).
+        (EXT [filter_repr p index_w panes rows (filter_clear cf (Z.odd (tstamp/2097152)))]))).
 
 Lemma Filter_clear_body :
   func_sound ge Filter_fd nil Filter_clear_spec.

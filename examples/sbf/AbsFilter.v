@@ -460,7 +460,7 @@ Definition filter_query (f : filter) '((timestamp, h) : Z * header_type) : optio
   | _ => None
   end.
 
-Definition filter_clear (f : filter) '((timestamp, h) : Z * header_type) : option filter :=
+Definition filter_clear (f : filter) (timestamp : Z) : option filter :=
   match filter_refresh f timestamp with
   | Some (mk_filter window_hi last_timestamp num_clears normal_frames) =>
       Some (mk_filter window_hi timestamp (num_clears + 1) normal_frames)
@@ -872,13 +872,13 @@ Proof.
     clear -H H0 H1 H3. list_solve.
 Qed.
 
-Lemma filter_clear_sound: forall f cf th f',
+Lemma filter_clear_sound: forall f cf t f',
     filter_sim f cf ->
-    filter_clear f th = Some f' ->
-    filter_sim f' (ConFilter.filter_clear H_num_frames0 H_num_rows H_num_slots frame_tick_tocks cf (Z.odd (fst th / tick_time)) (map_hashes (snd th))).
+    filter_clear f t = Some f' ->
+    filter_sim f' (ConFilter.filter_clear H_num_frames0 H_num_rows H_num_slots frame_tick_tocks cf (Z.odd (t / tick_time))).
 Proof.
   intros.
-  unfold filter_clear in H0. destruct th as [timestamp h].
+  unfold filter_clear in H0. rename t into timestamp.
   destruct (filter_refresh f timestamp) eqn:?H. 2: inv H0.
   destruct f0 as [win_hi last_stamp num_clrs normal_frs].
   epose proof (filter_refresh'_sound _ _ timestamp _ ltac:(eauto)).
