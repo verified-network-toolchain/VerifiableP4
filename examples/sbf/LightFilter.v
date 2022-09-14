@@ -38,16 +38,21 @@ Notation abs_refresh := (@filter_refresh header_type num_frames num_slots frame_
 Definition T := frame_time * (num_frames - 2).
 
 (* The maximum time interval between consecutive packets, e.g. 112us. *)
-Definition Tc := (frame_time - 1) / num_slots + 1.
+Definition Tc := frame_time / num_slots.
 
 (* This should be provable *)
-Axiom Tc_mul_num_slots_ge_frame_time : Tc * num_slots >= frame_time.
+Lemma Tc_mul_num_slots_le_frame_time : Tc * num_slots <= frame_time.
+Proof. unfold Tc. rewrite Z.mul_comm. apply Z.mul_div_le. assumption. Qed.
 (* This seems NOT provable. *)
 Axiom Tc_le_tick_time : Tc <= tick_time.
+
 Lemma Tc_le_frame_time : Tc <= frame_time.
-Admitted.
-Lemma Tc_nonneg : 0 < Tc.
-Admitted.
+Proof.
+  unfold Tc. apply Z.div_le_upper_bound; auto.
+  rewrite Z.mul_comm. apply Z.le_mul_diag_r; lia.
+Qed.
+
+Axiom Tc_nonneg : 0 < Tc.
 (* Lemma Tc_le_T : Tc <= T.
 Admitted. *)
 
@@ -150,10 +155,13 @@ Proof.
   destruct (t >=? window_hi) eqn:?H.
   - destruct (num_clears >=? num_slots); only 2 : auto.
     split.
-    { assert (tick_time <= frame_time) by admit. lia. }
-    list_solve.
+    + assert (tick_time <= frame_time). {
+        destruct H_tick_time_div as [z ?]. subst.
+        replace (z * (tick_time * 2)) with (tick_time * (2 * z)) by lia.
+        apply Z.le_mul_diag_r; lia. } lia.
+    + list_solve.
   - lia.
-Admitted.
+Qed.
 
 (* This lemma shows filter_query (filter_clear ..) is equal to abs_query. *)
 Lemma abs_query_pattern_ok : forall f t h f' res,
@@ -196,12 +204,16 @@ Proof.
     split; only 1 : lia.
     split; only 1 : (pose Tc_le_frame_time; lia).
     split; only 2 : list_solve.
-    pose proof Tc_mul_num_slots_ge_frame_time.
-    (* apply Zorder.Zmult_ge_reg_r with (p := Tc). 1 : { pose proof Tc_nonneg; lia. }
-    rewrite Z.mul_add_distr_r.
-    rewrite (Z.mul_comm num_slots).
-    Search (_ / _ * _). *)
-    admit.
+    pose proof Tc_mul_num_slots_le_frame_time.
+    assert (window_hi - t >= 1 - Tc) by lia.
+    assert ((window_hi + frame_time - 1 - t) / Tc + 1 >= frame_time / Tc). {
+      replace (frame_time / Tc) with ((frame_time - Tc) / Tc + 1).
+      - apply Z.le_ge, Z.add_le_mono_r, Z.ge_le, Zdiv.Z_div_ge; lia.
+      - rewrite <- Z.add_opp_r. change (- Tc) with ((- 1) * Tc).
+        rewrite Z.div_add; lia. }
+    apply Zorder.Zge_trans with (frame_time / Tc); auto.
+    apply Z.div_le_mono with (c := Tc) in H1. 2: lia.
+    rewrite Z.mul_comm, Z.div_mul in H1; lia.
   - simpl.
     split; only 1 : lia.
     split; only 1 : lia.
@@ -212,7 +224,7 @@ Proof.
     }
     rewrite Zdiv.Z_div_plus in * by (pose proof Tc_nonneg; lia).
     lia.
-Admitted.
+Qed.
 
 Lemma existsb_Znth_true : forall {A} {d : Inhabitant A} (f : A -> bool) l i,
   0 <= i < Zlength l ->
