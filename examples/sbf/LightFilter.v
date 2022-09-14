@@ -46,8 +46,10 @@ Axiom Tc_mul_num_slots_ge_frame_time : Tc * num_slots >= frame_time.
 Axiom Tc_le_tick_time : Tc <= tick_time.
 Lemma Tc_le_frame_time : Tc <= frame_time.
 Admitted.
-Lemma Tc_le_T : Tc <= frame_time.
+Lemma Tc_nonneg : 0 < Tc.
 Admitted.
+(* Lemma Tc_le_T : Tc <= T.
+Admitted. *)
 
 Definition filter_insert (f : filter) (th : Z * header_type) : filter :=
   match f with
@@ -130,14 +132,6 @@ Definition ok_until1 (f : filter) (new_timestamp : Z) (t : Z) : Prop :=
   | None => False
   end.
 
-Lemma inv_refresh : forall f t,
-  ok_until (Some f) t ->
-  filter_inv1 (abs_refresh f t) t.
-Proof.
-Admitted.
-
-(* Definition low_inv (f : filter) : forall  *)
-
 Lemma weak_filter_inv1_abs_refresh : forall f t,
   weak_filter_inv (Some f) ->
   match abs_refresh f t with
@@ -145,9 +139,23 @@ Lemma weak_filter_inv1_abs_refresh : forall f t,
       weak_filter_inv1 (Some f) t
   | None => True
   end.
+Proof.
+  intros.
+  unfold weak_filter_inv, weak_filter_inv1 in *.
+  destruct f.
+  unfold abs_refresh.
+  destruct (last_timestamp <=? t) eqn:?H; only 2 : simpl; auto.
+  destruct (t <=? last_timestamp + tick_time) eqn:?H; only 2 : simpl; auto.
+  simpl andb. cbn match.
+  destruct (t >=? window_hi) eqn:?H.
+  - destruct (num_clears >=? num_slots); only 2 : auto.
+    split.
+    { assert (tick_time <= frame_time) by admit. lia. }
+    list_solve.
+  - lia.
 Admitted.
 
-(* filter_inv (abs_refresh f t) t. *)
+(* This lemma shows filter_query (filter_clear ..) is equal to abs_query. *)
 Lemma abs_query_pattern_ok : forall f t h f' res,
   weak_filter_inv (Some f) ->
   abs_query f (t, h) = Some (f', res) ->
@@ -175,7 +183,7 @@ Lemma ok_refresh : forall f t t',
   ok_until (Some f) t ->
   ok_until1 (abs_refresh f t) t t'.
 Proof.
-  (* intros * H_t' H_ok_until.
+  intros * H_t' H_ok_until.
   destruct f as [window_hi last_timestamp num_clears normal_frames].
   simpl in *.
   replace (last_timestamp <=? t) with true by lia.
@@ -187,26 +195,23 @@ Proof.
     simpl.
     split; only 1 : lia.
     split; only 1 : (pose Tc_le_frame_time; lia).
-    pose Tc_mul_num_slots_ge_frame_time.
+    split; only 2 : list_solve.
+    pose proof Tc_mul_num_slots_ge_frame_time.
+    (* apply Zorder.Zmult_ge_reg_r with (p := Tc). 1 : { pose proof Tc_nonneg; lia. }
+    rewrite Z.mul_add_distr_r.
+    rewrite (Z.mul_comm num_slots).
+    Search (_ / _ * _). *)
     admit.
   - simpl.
     split; only 1 : lia.
     split; only 1 : lia.
+    split; only 2 : lia.
     assert ((window_hi - 1 - last_timestamp + (-1) * Tc) / Tc <= (window_hi - 1 - t) / Tc). {
       apply Z.div_le_mono. 2 : lia.
-      admit.
+      apply Tc_nonneg.
     }
-    rewrite Zdiv.Z_div_plus in * by admit.
-    lia. *)
-Admitted.
-
-Lemma query_clear : forall f t t' h b,
-  t <= t' ->
-  ok_until f t ->
-  filter_query f (t', h) = Some b ->
-  filter_query (filter_clear f t) (t', h) = Some b.
-Proof.
-  intros.
+    rewrite Zdiv.Z_div_plus in * by (pose proof Tc_nonneg; lia).
+    lia.
 Admitted.
 
 Lemma existsb_Znth_true : forall {A} {d : Inhabitant A} (f : A -> bool) l i,
@@ -226,6 +231,102 @@ Proof.
       destruct (f a); auto.
 Qed.
 
+Lemma existsb_true_Znth : forall {A} {d : Inhabitant A} (f : A -> bool) l,
+  existsb f l = true ->
+  exists i, 0 <= i < Zlength l /\
+    f (Znth i l) = true.
+Proof.
+  induction l; intros.
+  - inv H.
+  - simpl in H. destruct (f a) eqn:?H.
+    + exists 0. list_solve.
+    + specialize (IHl ltac:(sfirstorder)).
+      destruct IHl as [i []].
+      exists (i + 1).
+      list_solve.
+Qed.
+
+Lemma forallb_Znth_true : forall {A} {d : Inhabitant A} (f : A -> bool) l,
+  forall_range 0 (Zlength l) l (fun x => f x = true) ->
+  forallb f l = true.
+Proof.
+  induction l; intros.
+  - list_solve.
+  - simpl.
+    replace (f a) with true by (specialize (H 0 ltac:(list_solve)); list_solve).
+    apply IHl. list_solve.
+Qed.
+
+Lemma forallb_true_Znth : forall {A} {d : Inhabitant A} (f : A -> bool) l,
+  forallb f l = true ->
+  forall_range 0 (Zlength l) l (fun x => f x = true).
+Proof.
+  induction l; intros.
+  - list_solve.
+  - simpl in H.
+    destruct (f a) eqn:?H; only 2 : inv H.
+    specialize (IHl ltac:(auto)).
+    list_solve.
+Qed.
+
+Lemma query_clear : forall f t t' h,
+  t <= t' ->
+  ok_until f t ->
+  filter_query f (t', h) = filter_query (filter_clear f t) (t', h).
+Proof.
+  intros * H_t' H_ok_until.
+  destruct f. 2 : inv H_ok_until.
+  destruct f as [window_hi last_timestamp num_clears normal_frames].
+  unfold filter_clear, abs_clear, abs_refresh, ok_until, filter_inv in *.
+  replace (last_timestamp <=? t) with true by lia.
+  replace (t <=? last_timestamp + tick_time) with true by (pose Tc_le_tick_time; lia).
+  destruct (t >=? window_hi) eqn:?H.
+  - assert (0 <= window_hi - 1 - last_timestamp < Tc) by (pose Tc_le_tick_time; lia).
+    rewrite Z.div_small in H_ok_until by lia.
+    replace (num_clears >=? num_slots) with true by lia.
+    cbn -[filter_query sublist].
+    unfold filter_query.
+    replace (last_timestamp <=? t') with true by lia.
+    replace (t <=? t') with true by lia.
+    remember (Z.max ((t' - window_hi) / frame_time + 1) 0) as k eqn:?H.
+    assert ((t' - window_hi) / frame_time >= 0). {
+      apply Zdiv.Z_div_ge0; lia.
+    }
+    replace (Z.max ((t' - (window_hi + frame_time)) / frame_time + 1) 0) with (k - 1). 2 : {
+      replace (t' - (window_hi + frame_time)) with (t' - window_hi + (-1) * frame_time) by lia.
+      rewrite Z.div_add by lia.
+      lia.
+    }
+    destruct (k - 1 >=? (num_frames - 1)) eqn:?H.
+    { replace (sublist (Z.min k (num_frames - 1)) (num_frames - 1) _)
+        with (@nil (list header_type)) by list_solve.
+      replace (sublist (Z.min (k - 1) (num_frames - 1)) (num_frames - 1) _)
+        with (@nil (list header_type)) by list_solve.
+      auto.
+    }
+    destruct (k >=? (num_frames - 1)) eqn:?H.
+    { replace (sublist (Z.min k (num_frames - 1)) (num_frames - 1) _)
+        with (@nil (list header_type)) by list_solve.
+      replace (sublist (Z.min (k - 1) (num_frames - 1)) (num_frames - 1) _)
+        with ([@nil header_type]) by list_solve.
+      destruct hashes as [ | hash0 hashes']. 1 : list_solve.
+      auto.
+    }
+    replace (sublist (Z.min k (num_frames - 1)) (num_frames - 1) _)
+        with (sublist k (num_frames - 1) normal_frames) by list_solve.
+    replace (sublist (Z.min (k - 1) (num_frames - 1)) (num_frames - 1) _)
+        with (sublist k (num_frames - 1) normal_frames ++ [[]]) by list_solve.
+    rewrite existsb_app.
+    destruct hashes as [ | hash0 hashes']. 1 : list_solve.
+    simpl.
+    rewrite orbF.
+    auto.
+  - simpl.
+    replace (last_timestamp <=? t') with true by lia.
+    replace (t <=? t') with true by lia.
+    auto.
+Qed.
+
 Lemma query_insert_same : forall f t t' h,
   t <= t' <= t+T ->
   ok_until f t ->
@@ -234,10 +335,10 @@ Proof.
   intros * H_t' H_ok_until.
   destruct f. 2 : inv H_ok_until.
   unfold filter_insert, abs_insert.
-  pose proof (H_filter_inv1 := inv_refresh f t ltac:(auto)).
-  destruct (abs_refresh f t) as [f' | ] in *. 2 : inv H_filter_inv1.
+  pose proof (H_ok_refresh := ok_refresh f t t ltac:(pose proof Tc_nonneg; lia) ltac:(auto)).
+  destruct (abs_refresh f t) as [f' | ] in *. 2 : inv H_ok_refresh.
   destruct f'.
-  unfold filter_query, filter_inv1 in *.
+  unfold filter_query, ok_until1, filter_inv1 in *.
   replace (t <=? t') with true by lia.
   assert ((t' - window_hi) / frame_time < num_frames - 2). {
     apply Z.div_lt_upper_bound. 1 : lia.
@@ -265,7 +366,37 @@ Lemma query_insert_other : forall f t t' h h',
   ok_until f t ->
   filter_query f (t', h') = Some true ->
   filter_query (filter_insert f (t, h)) (t', h') = Some true.
-Admitted.
+Proof.
+  intros * H_t' H_ok_until H_filter_query.
+  assert (H_query_clear : filter_query (filter_clear f t) (t', h') = Some true). {
+    erewrite <- query_clear; eauto.
+  }
+  clear H_filter_query.
+  unfold filter_clear, abs_clear, filter_insert, abs_insert in *.
+  destruct f. 2 : inv H_ok_until.
+  pose proof (H_ok_refresh := ok_refresh f t t ltac:(pose proof Tc_nonneg; lia) ltac:(auto)).
+  destruct (abs_refresh f t) as [f' | ] eqn:?H. 2 : inv H_query_clear.
+  destruct f' as [window_hi last_timestamp num_clears normal_frames].
+  unfold filter_query in *.
+  destruct (t <=? t') eqn:?H. 2 : inv H_query_clear.
+  injection H_query_clear; clear H_query_clear; intros H_query_clear. f_equal.
+  apply existsb_true_Znth in H_query_clear.
+  destruct H_query_clear as [i []].
+  assert (Zlength normal_frames = num_frames - 1). {
+    apply H_ok_refresh.
+  }
+  apply existsb_Znth_true with (i := i).
+  { list_solve. }
+  list_simplify.
+  rewrite e in H2.
+  clear -H2.
+  apply forallb_true_Znth in H2.
+  apply forallb_Znth_true.
+  list_simplify.
+  rewrite <- existsb_fold_orb in *.
+  rewrite existsb_app.
+  clear -H5; hauto lq: on.
+Qed.
 
 Lemma ok_insert : forall f t t' h,
   t <= t' <= t + Tc ->
