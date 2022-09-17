@@ -22,7 +22,7 @@ Qed.
 Section ConFilter.
 
 Context {num_frames num_rows num_slots : Z}.
-Hypothesis H_num_frames : 0 < num_frames.
+Hypothesis H_num_frames : 1 < num_frames.
 Hypothesis H_num_rows : 0 < num_rows.
 Hypothesis H_num_slots : 0 < num_slots.
 
@@ -167,7 +167,7 @@ Proof.
 Qed.
 
 Lemma get_clear_frame_update_neq : forall timer b,
-    timer_wf timer -> 2 <= num_frames ->
+    timer_wf timer -> 1 < num_frames ->
     (b = false /\ snd timer = true /\ (frame_tick_tocks | fst timer + 1)) <->
       (get_clear_frame timer + 1 = num_frames /\ get_clear_frame (update_timer timer b) = 0 \/
          get_clear_frame timer + 1 < num_frames /\ get_clear_frame (update_timer timer b) = get_clear_frame timer + 1).
@@ -209,7 +209,7 @@ Proof.
 Qed.
 
 Lemma get_clear_frame_update_eq : forall timer b,
-    timer_wf timer -> 2 <= num_frames ->
+    timer_wf timer -> 1 < num_frames ->
     (b = true \/ snd timer = false \/ ~ (frame_tick_tocks | fst timer + 1)) <->
       get_clear_frame (update_timer timer b) = get_clear_frame timer.
 Proof.

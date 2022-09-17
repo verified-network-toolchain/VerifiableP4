@@ -31,6 +31,20 @@ Context `{@Target tags_t Expression}.
 
 Variable ge : (@genv tags_t _).
 
+(* Pre and post ex rules. *)
+
+(* This lemma is defined like this in order to reuse the extract_ex_in_EXT tactic. *)
+Lemma hoare_func_pre_ex : forall {A} p pre_arg (pre_mem_ext : A -> _) func targs post,
+  (forall x, hoare_func ge p (ARG pre_arg (pre_mem_ext x)) func targs post) ->
+  hoare_func ge p (ARG pre_arg (assr_exists pre_mem_ext)) func targs post.
+Proof.
+  intros.
+  unfold hoare_func; intros.
+  destruct H1 as [? []].
+  eapply H0; only 2 : eauto.
+  split; eauto.
+Qed.
+
 Lemma hoare_stmt_assign' : forall p pre_mem pre_ext tags lhs rhs typ post_mem ret_post lv sv,
   is_call_expression rhs = false ->
   is_no_dup (map fst pre_mem) ->

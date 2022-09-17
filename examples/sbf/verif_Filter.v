@@ -24,20 +24,6 @@ Definition p := ["pipe"; "ingress"; "bf2_ds"].
 Definition act_hash_index_1_fd :=
   ltac:(get_fd ["Bf2BloomFilter"; "act_hash_index_1"] ge).
 
-Definition poly1 : Tofino.CRC_polynomial :=
-  {|
-    Tofino.CRCP_width := 32;
-    Tofino.CRCP_coeff := P4Arith.to_lbool 32 79764919;
-    Tofino.CRCP_reversed := true;
-    Tofino.CRCP_msb := false;
-    Tofino.CRCP_extended := false;
-    Tofino.CRCP_init := P4Arith.to_lbool 32 0;
-    Tofino.CRCP_xor := P4Arith.to_lbool 32 4294967295
-  |}.
-
-Definition hash1 (v : Val) :=
-  hash_Z 32 poly1 v mod 2 ^ (Z.of_N index_w).
-
 Definition act_hash_index_1_spec : func_spec :=
   WITH (* p *),
     PATH p
@@ -114,20 +100,6 @@ Qed.
 Definition act_hash_index_2_fd :=
   ltac:(get_fd ["Bf2BloomFilter"; "act_hash_index_2"] ge).
 
-Definition poly2 : Tofino.CRC_polynomial :=
-  {|
-    Tofino.CRCP_width := 32;
-    Tofino.CRCP_coeff := P4Arith.to_lbool 32 517762881;
-    Tofino.CRCP_reversed := true;
-    Tofino.CRCP_msb := false;
-    Tofino.CRCP_extended := false;
-    Tofino.CRCP_init := P4Arith.to_lbool 32 0;
-    Tofino.CRCP_xor := P4Arith.to_lbool 32 4294967295
-  |}.
-
-Definition hash2 (v : Val) :=
-  hash_Z 32 poly2 v mod 2 ^ Z.of_N index_w.
-
 Definition act_hash_index_2_spec : func_spec :=
   WITH (* p *),
     PATH p
@@ -203,20 +175,6 @@ Qed.
 
 Definition act_hash_index_3_fd :=
   ltac:(get_fd ["Bf2BloomFilter"; "act_hash_index_3"] ge).
-
-Definition poly3 : Tofino.CRC_polynomial :=
-  {|
-    Tofino.CRCP_width := 32;
-    Tofino.CRCP_coeff := P4Arith.to_lbool 32 2821953579;
-    Tofino.CRCP_reversed := true;
-    Tofino.CRCP_msb := false;
-    Tofino.CRCP_extended := false;
-    Tofino.CRCP_init := P4Arith.to_lbool 32 0;
-    Tofino.CRCP_xor := P4Arith.to_lbool 32 4294967295
-  |}.
-
-Definition hash3 (v : Val) :=
-  hash_Z 32 poly3 v mod 2 ^ Z.of_N index_w.
 
 Definition act_hash_index_3_spec : func_spec :=
   WITH (* p *),
@@ -1083,7 +1041,7 @@ Qed.
 Definition Filter_fd :=
   ltac:(get_fd ["Bf2BloomFilter"; "apply"] ge).
 
-Program Definition hashes (key : Val) : listn Z num_rows := (exist _ [hash1 key; hash2 key; hash3 key] _).
+Program Definition hashes (key : Val) : listn Z num_rows := (exist _ [hash1 key; hash2 key; hash3 key] eq_refl).
 
 Notation filter_repr := (filter_repr (frame_tick_tocks := frame_tick_tocks)).
 

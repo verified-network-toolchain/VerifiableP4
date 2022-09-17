@@ -90,7 +90,7 @@ Lemma tbl_set_win_clear_body :
   func_sound ge tbl_set_win_fd nil tbl_set_win_clear_spec.
 Admitted.
 
-Definition filter_clear := @filter_clear num_frames num_rows num_slots ltac:(lia) ltac:(lia) ltac:(lia)
+Definition filter_clear := @filter_clear num_frames num_rows num_slots H_num_frames H_num_rows H_num_slots
   frame_tick_tocks.
 
 Definition Filter_clear_spec : func_spec :=

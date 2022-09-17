@@ -875,6 +875,10 @@ Ltac extract_nth_ext_ex_ext_implies_pre a :=
 
 Tactic Notation "Intros" simple_intropattern(x) :=
   lazymatch goal with
+  | |- hoare_func _ _ (ARG _ ?pre) _ _ _ =>
+      extract_ex_in_EXT pre;
+      eapply hoare_func_pre_ex;
+      intros x
   | |- hoare_block _ _ (assr_exists _) _ _ =>
       eapply hoare_block_pre_ex;
       intros x
@@ -917,6 +921,10 @@ Ltac extract_prop_in_EXT a_ext :=
 
 Ltac Intros_prop :=
   lazymatch goal with
+  | |- hoare_func _ _ (ARG _ (MEM _ (EXT ?pre))) _ _ _ =>
+      extract_prop_in_EXT pre;
+      eapply hoare_func_pre_ext_prop;
+      intros ?H
   | |- hoare_block _ _ (MEM _ (EXT ?pre)) _ _ =>
       extract_prop_in_EXT pre;
       eapply hoare_block_pre_ext_prop;

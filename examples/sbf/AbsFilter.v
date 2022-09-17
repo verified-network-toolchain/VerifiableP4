@@ -276,7 +276,7 @@ Qed.
 #[global] Instance frame_Inhabitant: Inhabitant frame := Normal [].
 
 (* We might need it to be at least 2. *)
-Hypothesis H_num_frames : 2 <= num_frames.
+Hypothesis H_num_frames : 1 < num_frames.
 
 (* I would like to define it like this, but it looks hard to prove. *)
 (* Inductive filter : Type :=
@@ -466,8 +466,6 @@ Definition filter_clear (f : filter) (timestamp : Z) : option filter :=
       Some (mk_filter window_hi timestamp (num_clears + 1) normal_frames)
   | _ => None
   end.
-
-Lemma H_num_frames0 : 0 < num_frames. Proof. lia. Qed.
 
 Definition filter_refresh' (f : filter) (timestamp : Z) : option filter :=
   match filter_refresh f timestamp with
@@ -675,7 +673,7 @@ Qed.
 Lemma filter_insert_sound: forall f cf th f',
     filter_sim f cf ->
     filter_insert f th = Some f' ->
-    filter_sim f' (ConFilter.filter_insert H_num_frames0 H_num_rows H_num_slots
+    filter_sim f' (ConFilter.filter_insert H_num_frames H_num_rows H_num_slots
                      frame_tick_tocks cf (Z.odd (fst th / tick_time)) (map_hashes (snd th))).
 Proof.
   intros.
@@ -698,7 +696,7 @@ Proof.
     eapply get_clear_frame_range; eauto. apply H_frame_tick_tocks0.
   }
   assert (0 <= if' < num_frames). {
-    eapply get_insert_frame_range; eauto. lia.
+    eapply get_insert_frame_range; eauto.
   }
   assert (if' <> cf). {
     unfold if', get_insert_frame.
@@ -712,7 +710,7 @@ Proof.
     set (cleared_cf := (ConFilter.frame_clear (Znth cf cframes)
               (exist (fun i : list Z => Zlength i = num_rows)
                  (Zrepeat cfil_clear_idx num_rows)
-                 (ConFilter.filter_insert_obligation_1 H_num_frames0 H_num_rows
+                 (ConFilter.filter_insert_obligation_1 H_num_frames H_num_rows
                     frame_tick_tocks
                     {|
                       fil_frames :=
@@ -798,7 +796,7 @@ Qed.
 Lemma filter_query_sound: forall f cf th f' res,
     filter_sim f cf ->
     filter_query f th = Some (f', res) ->
-    let '(cf', cres) := (ConFilter.filter_query H_num_frames0 H_num_rows H_num_slots
+    let '(cf', cres) := (ConFilter.filter_query H_num_frames H_num_rows H_num_slots
                            frame_tick_tocks cf (Z.odd (fst th / tick_time)) (map_hashes (snd th))) in
     filter_sim f' cf' /\ res = cres.
 Proof.
@@ -821,7 +819,7 @@ Proof.
     eapply get_clear_frame_range; eauto. apply H_frame_tick_tocks0. }
   set (cleared_cf := (ConFilter.frame_clear (Znth cf cframes)
                         (exist (fun i : list Z => Zlength i = num_rows) (Zrepeat cfil_clear_idx num_rows)
-                           (ConFilter.filter_query_obligation_1 H_num_frames0 H_num_rows frame_tick_tocks
+                           (ConFilter.filter_query_obligation_1 H_num_frames H_num_rows frame_tick_tocks
 
                               {|
                                 fil_frames :=
@@ -875,7 +873,7 @@ Qed.
 Lemma filter_clear_sound: forall f cf t f',
     filter_sim f cf ->
     filter_clear f t = Some f' ->
-    filter_sim f' (ConFilter.filter_clear H_num_frames0 H_num_rows H_num_slots frame_tick_tocks cf (Z.odd (t / tick_time))).
+    filter_sim f' (ConFilter.filter_clear H_num_frames H_num_rows H_num_slots frame_tick_tocks cf (Z.odd (t / tick_time))).
 Proof.
   intros.
   unfold filter_clear in H0. rename t into timestamp.
@@ -896,7 +894,7 @@ Proof.
     eapply get_clear_frame_range; eauto. apply H_frame_tick_tocks0. }
   set (cleared_cf := ConFilter.frame_clear (Znth cf cframes)
                        (exist (fun i : list Z => Zlength i = num_rows) (Zrepeat cfil_clear_idx num_rows)
-                          (ConFilter.filter_clear_obligation_1 H_num_frames0 H_num_rows frame_tick_tocks
+                          (ConFilter.filter_clear_obligation_1 H_num_frames H_num_rows frame_tick_tocks
                              {|
                                fil_frames :=
                                  exist

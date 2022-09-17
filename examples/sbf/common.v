@@ -32,6 +32,49 @@ Definition frame_tick_tocks := 7034.
 Definition tick_time := 2097152.
 Definition frame_time := frame_tick_tocks * tick_time * 2.
 
+Definition poly1 : Tofino.CRC_polynomial :=
+  {|
+    Tofino.CRCP_width := 32;
+    Tofino.CRCP_coeff := P4Arith.to_lbool 32 79764919;
+    Tofino.CRCP_reversed := true;
+    Tofino.CRCP_msb := false;
+    Tofino.CRCP_extended := false;
+    Tofino.CRCP_init := P4Arith.to_lbool 32 0;
+    Tofino.CRCP_xor := P4Arith.to_lbool 32 4294967295
+  |}.
+
+Definition hash1 (v : Val) :=
+  hash_Z 32 poly1 v mod 2 ^ (Z.of_N index_w).
+
+Definition poly2 : Tofino.CRC_polynomial :=
+  {|
+    Tofino.CRCP_width := 32;
+    Tofino.CRCP_coeff := P4Arith.to_lbool 32 517762881;
+    Tofino.CRCP_reversed := true;
+    Tofino.CRCP_msb := false;
+    Tofino.CRCP_extended := false;
+    Tofino.CRCP_init := P4Arith.to_lbool 32 0;
+    Tofino.CRCP_xor := P4Arith.to_lbool 32 4294967295
+  |}.
+
+Definition hash2 (v : Val) :=
+  hash_Z 32 poly2 v mod 2 ^ Z.of_N index_w.
+
+
+Definition poly3 : Tofino.CRC_polynomial :=
+  {|
+    Tofino.CRCP_width := 32;
+    Tofino.CRCP_coeff := P4Arith.to_lbool 32 2821953579;
+    Tofino.CRCP_reversed := true;
+    Tofino.CRCP_msb := false;
+    Tofino.CRCP_extended := false;
+    Tofino.CRCP_init := P4Arith.to_lbool 32 0;
+    Tofino.CRCP_xor := P4Arith.to_lbool 32 4294967295
+  |}.
+
+Definition hash3 (v : Val) :=
+  hash_Z 32 poly3 v mod 2 ^ Z.of_N index_w.
+
 Lemma b2z_range : forall b,
   0 <= Z.b2z b < 2.
 Proof.

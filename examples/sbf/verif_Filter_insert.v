@@ -96,7 +96,7 @@ Admitted.
 
 #[local] Hint Extern 5 (func_modifies _ _ _ _ _) => (apply tbl_set_win_insert_body) : func_specs.
 
-Definition filter_insert := @filter_insert num_frames num_rows num_slots ltac:(lia) ltac:(lia) ltac:(lia)
+Definition filter_insert := @filter_insert num_frames num_rows num_slots H_num_frames H_num_rows H_num_slots
   frame_tick_tocks.
 
 Definition Filter_insert_spec : func_spec :=

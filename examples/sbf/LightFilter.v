@@ -15,14 +15,13 @@ Context {header_type : Set}.
 Context (num_frames num_rows num_slots frame_time : Z).
 Hypothesis H_num_slots : 0 < num_slots.
 Hypothesis H_num_rows : 0 < num_rows.
-Hypothesis H_num_frames : 2 <= num_frames.
+Hypothesis H_num_frames : 1 < num_frames.
 Context (hashes : list (header_type -> Z)).
 Hypothesis H_Zlength_hashes : Zlength hashes = num_rows.
 Hypothesis H_hashes : Forall (fun hash => forall h, 0 <= hash h < num_slots) hashes.
 
 Context (tick_time : Z).
 Hypothesis (H_tick_time : 0 < tick_time).
-Context (round_time : Z -> Z).
 
 Hypothesis (H_frame_time : 0 < frame_time).
 Hypothesis (H_tick_time_div : (tick_time * 2 | frame_time)).
@@ -52,7 +51,7 @@ Proof.
   rewrite Z.mul_comm. apply Z.le_mul_diag_r; lia.
 Qed.
 
-Axiom Tc_nonneg : 0 < Tc.
+Axiom H_Tc : 0 < Tc.
 (* Lemma Tc_le_T : Tc <= T.
 Admitted. *)
 
@@ -164,26 +163,26 @@ Proof.
 Qed.
 
 (* This lemma shows filter_query (filter_clear ..) is equal to abs_query. *)
-Lemma abs_query_pattern_ok : forall f t h f' res,
+Lemma abs_query_pattern_ok : forall f t h res,
   weak_filter_inv (Some f) ->
-  abs_query f (t, h) = Some (f', res) ->
-  filter_clear (Some f) t = Some f' /\ filter_query (filter_clear (Some f) t) (t, h) = Some res.
+  filter_query (filter_clear (Some f) t) (t, h) = Some res ->
+  exists f', abs_query f (t, h) = Some (f', res).
 Proof.
-  intros * ?H H_abs_query.
+  intros * ?H H_filter_query.
   unfold filter_clear, filter_query, abs_clear, abs_query in *.
   pose proof (weak_filter_inv1_abs_refresh f t ltac:(auto)).
   destruct (abs_refresh f t) as [[window_hi last_timestamp num_clears normal_frames] | ].
-    2 : inv H_abs_query.
+    2 : inv H_filter_query.
   unfold weak_filter_inv1 in *.
   assert ((t - window_hi) / frame_time + 1 = 0). {
     rewrite <- Zdiv.Z_div_plus by lia.
     apply Z.div_small; lia.
   }
-  inv H_abs_query.
-  split; only 1 : auto.
-  replace (t <=? t) with true by lia.
-  f_equal. f_equal.
-  list_solve.
+  destruct (t <=? t) eqn:?H.
+    2 : inv H_filter_query.
+  eexists. f_equal. f_equal.
+  inv H_filter_query.
+  f_equal. list_solve.
 Qed.
 
 Lemma ok_refresh : forall f t t',
@@ -220,9 +219,9 @@ Proof.
     split; only 2 : lia.
     assert ((window_hi - 1 - last_timestamp + (-1) * Tc) / Tc <= (window_hi - 1 - t) / Tc). {
       apply Z.div_le_mono. 2 : lia.
-      apply Tc_nonneg.
+      apply H_Tc.
     }
-    rewrite Zdiv.Z_div_plus in * by (pose proof Tc_nonneg; lia).
+    rewrite Zdiv.Z_div_plus in * by (pose proof H_Tc; lia).
     lia.
 Qed.
 
@@ -347,7 +346,7 @@ Proof.
   intros * H_t' H_ok_until.
   destruct f. 2 : inv H_ok_until.
   unfold filter_insert, abs_insert.
-  pose proof (H_ok_refresh := ok_refresh f t t ltac:(pose proof Tc_nonneg; lia) ltac:(auto)).
+  pose proof (H_ok_refresh := ok_refresh f t t ltac:(pose proof H_Tc; lia) ltac:(auto)).
   destruct (abs_refresh f t) as [f' | ] in *. 2 : inv H_ok_refresh.
   destruct f'.
   unfold filter_query, ok_until1, filter_inv1 in *.
@@ -386,7 +385,7 @@ Proof.
   clear H_filter_query.
   unfold filter_clear, abs_clear, filter_insert, abs_insert in *.
   destruct f. 2 : inv H_ok_until.
-  pose proof (H_ok_refresh := ok_refresh f t t ltac:(pose proof Tc_nonneg; lia) ltac:(auto)).
+  pose proof (H_ok_refresh := ok_refresh f t t ltac:(pose proof H_Tc; lia) ltac:(auto)).
   destruct (abs_refresh f t) as [f' | ] eqn:?H. 2 : inv H_query_clear.
   destruct f' as [window_hi last_timestamp num_clears normal_frames].
   unfold filter_query in *.

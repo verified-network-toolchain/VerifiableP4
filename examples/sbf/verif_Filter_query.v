@@ -253,7 +253,7 @@ Proof.
   - elim_trivial_cases.
 Qed.
 
-Definition filter_query := @filter_query num_frames num_rows num_slots ltac:(lia) ltac:(lia) ltac:(lia)
+Definition filter_query := @filter_query num_frames num_rows num_slots H_num_frames H_num_rows H_num_slots
   frame_tick_tocks.
 
 Definition Filter_query_spec : func_spec :=

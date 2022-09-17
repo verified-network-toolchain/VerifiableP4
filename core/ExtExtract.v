@@ -195,6 +195,17 @@ Proof.
   split; eassumption.
 Qed.
 
+Lemma hoare_func_pre_ext_prop : forall ge p (P : Prop) pre_arg pre_mem pre_ext func targs post,
+  (P -> hoare_func ge p (ARG pre_arg (MEM pre_mem (EXT pre_ext))) func targs post) ->
+  hoare_func ge p (ARG pre_arg (MEM pre_mem (EXT (ExtPred.prop P :: pre_ext)))) func targs post.
+Proof.
+  unfold hoare_func; intros.
+  destruct st.
+  destruct H0, H2, H3.
+  eapply H; try eassumption.
+  split; only 2 : split; eassumption.
+Qed.
+
 Lemma hoare_block_assert_Prop : forall ge p pre_mem pre_ext stmt post P,
   ext_implies pre_ext [ExtPred.prop P] ->
   (P -> hoare_block ge p (MEM pre_mem (EXT pre_ext)) stmt post) ->
