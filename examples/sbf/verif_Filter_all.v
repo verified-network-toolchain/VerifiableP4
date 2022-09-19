@@ -14,15 +14,7 @@ Require Import ProD3.examples.sbf.verif_Filter_clear.
 Require Import ProD3.examples.sbf.LightFilter.
 Require Import ProD3.examples.sbf.LightRepr.
 
-Definition header_type : Set := Z * Z.
-
-Definition header_to_val '((x, y) : header_type) : Val :=
-  ValBaseBit ((P4Arith.to_lbool 32 x) ++ (P4Arith.to_lbool 32 y)).
-
-Definition hashes := [hash1 ∘ header_to_val; hash2 ∘ header_to_val; hash3 ∘ header_to_val].
-
-Lemma H_Zlength_hashes : Zlength hashes = num_rows.
-Proof. auto. Qed.
+Definition hashes := common.hashes.
 
 Lemma H_hashes : Forall (fun hash => forall h, 0 <= hash h < num_slots) hashes.
 Proof.
@@ -303,3 +295,5 @@ Proof.
     - eexists frame_tick_tocks. apply eq_refl.
   }
 Qed.
+
+#[export] Hint Extern 5 (func_modifies _ _ _ _ _) => (apply Filter_insert_body) : func_specs.

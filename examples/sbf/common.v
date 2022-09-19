@@ -1,5 +1,6 @@
 Require Import Poulet4.P4light.Syntax.P4defs.
 Require Import Poulet4.P4light.Semantics.Semantics.
+Require Import Coq.Program.Program.
 Require Import ProD3.core.Core.
 Require Import ProD3.core.Tofino.
 Require Import ProD3.examples.sbf.p4ast.
@@ -74,6 +75,16 @@ Definition poly3 : Tofino.CRC_polynomial :=
 
 Definition hash3 (v : Val) :=
   hash_Z 32 poly3 v mod 2 ^ Z.of_N index_w.
+
+Definition header_type : Set := Z * Z.
+
+Definition header_to_val '((x, y) : header_type) : Val :=
+  ValBaseBit ((P4Arith.to_lbool 32 x) ++ (P4Arith.to_lbool 32 y)).
+
+Definition hashes := [hash1 ∘ header_to_val; hash2 ∘ header_to_val; hash3 ∘ header_to_val].
+
+Lemma H_Zlength_hashes : Zlength hashes = num_rows.
+Proof. auto. Qed.
 
 Lemma b2z_range : forall b,
   0 <= Z.b2z b < 2.
