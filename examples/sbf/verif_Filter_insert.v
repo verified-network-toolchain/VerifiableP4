@@ -105,11 +105,11 @@ Definition Filter_insert_spec : func_spec :=
     MOD None [p]
     WITH (key : Val) (tstamp : Z) (cf : filter num_frames num_rows num_slots),
       PRE
-        (ARG [eval_val_to_sval key; P4Bit 8 INSERT; P4Bit 48 tstamp; P4Bit_ 8]
+        (ARG [eval_val_to_sval key; P4Bit 8 INSERT; P4Bit 48 tstamp; P4Bit 8 0]
         (MEM []
         (EXT [filter_repr p index_w panes rows cf])))
       POST
-        (ARG_RET [P4Bit_ 8] ValBaseNull
+        (ARG_RET [P4Bit 8 0] ValBaseNull
         (MEM []
         (EXT [filter_repr p index_w panes rows (filter_insert cf (Z.odd (tstamp/2097152)) (hashes key))]))).
 

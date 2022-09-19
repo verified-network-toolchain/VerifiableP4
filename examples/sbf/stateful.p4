@@ -528,7 +528,7 @@ control SwitchIngress(inout header_t hdr,
             2154823680 &&& 4294901760 : bf2_act_set_insert_key(INSERT);
             _ : bf2_act_set_query_key(QUERY);
         }
-        default_action = bf2_act_set_query_key(QUERY);
+        default_action = bf2_act_set_clear_key();
         size = 2;
     }
     Bf2BloomFilter() bf2_ds;

@@ -32,18 +32,17 @@ Notation filter_query := (@filter_query header_type num_frames frame_time hashes
 Notation filter_clear := (@filter_clear header_type num_frames num_slots
   frame_time tick_time).
 
-
 Definition Filter_insert_spec : func_spec :=
   WITH (* p *),
     PATH p
     MOD None [p]
     WITH (h : header_type) (tstamp : Z) (f : filter),
       PRE
-        (ARG [eval_val_to_sval (header_to_val h); P4Bit 8 INSERT; P4Bit 48 tstamp; P4Bit_ 8]
+        (ARG [eval_val_to_sval (header_to_val h); P4Bit 8 INSERT; P4Bit 48 tstamp; P4Bit 8 0]
         (MEM []
         (EXT [filter_repr p f])))
       POST
-        (ARG_RET [P4Bit_ 8] ValBaseNull
+        (ARG_RET [P4Bit 8 0] ValBaseNull
         (MEM []
         (EXT [filter_repr p (filter_insert f (tstamp, h))]))).
 

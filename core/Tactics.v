@@ -727,7 +727,7 @@ Ltac step_into_no_post :=
       ]
   | |- hoare_stmt _ _ (MEM _ (EXT _)) ?stmt _ =>
       step_stmt_into
-  | _ => fail "The goal is not in the form of (hoare_block _ _ (MEM _ (EXT _)) (BlockCons _ _) _)"
+  | _ => fail "The goal is not in the form of (hoare_block _ _ (MEM _ (EXT _)) (BlockCons ?stmt (BlockEmpty _)))"
               "or (hoare_stmt _ _ (MEM _ (EXT _)) _ _)"
   end.
 

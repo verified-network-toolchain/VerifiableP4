@@ -1,7 +1,7 @@
 #!/bin/bash
 
-example_dir="../ProD3/examples"
-include_dir="../ProD3/includes"
+example_dir="./examples"
+include_dir="./includes"
 
 if [ $1 == "all" ]; then
     for entry in `find "$example_dir" -d 1 -type d`; do

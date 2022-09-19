@@ -12,10 +12,6 @@ Import ListNotations.
 Open Scope list_scope.
 Open Scope string_scope.
 
-(* A simplified switch model to demonstrate bloom filter application. *)
-
-Section Switch.
-
 (* Context {tags_t: Type} {tags_t_inhabitant : Inhabitant tags_t}. *)
 
 Notation ident := string.
@@ -23,10 +19,6 @@ Notation path := (list ident).
 Notation Val := (@ValueBase bool).
 Notation Sval := (@ValueBase (option bool)).
 Notation P4Type := (@P4Type Info).
-
-Variable ge : genv.
-Variable H : P4Type.
-Variable M : P4Type.
 
 Definition ingress_intrinsic_metadata_t : P4Type :=
   TypHeader
@@ -111,58 +103,8 @@ Definition header_t : P4Type :=
     [(!"src_port", TypBit 16); (!"dst_port", TypBit 16);
     (!"hdr_length", TypBit 16); (!"checksum", TypBit 16)])].
 
-Definition timestamp_t := Z.
-Definition ipv4_header : Type := Z * Z.
-Definition payload_t := list bool.
-
-Definition ipv4_addr_w := 32%N.
-
-Definition get_drop_ctl (v : Sval) : bool :=
-  match v with
-  | ValBaseBit [ob; _; _] => force false ob
-  | _ => false
-  end.
-
-Inductive process_packet : extern_state -> (timestamp_t * ipv4_header * payload_t) -> extern_state -> option (ipv4_header * payload_t) -> Prop :=
-  | process_packet_intro : forall es timestamp ipv4 payload es' ipv4'
-            pipe_class_name pipe_inst_path class_name inst_path fd
-            m' hdr' meta' ingress_intrinsic_metadata_for_deparser' ingress_intrinsic_metadata_for_tm',
-      PathMap.get ["main"; "pipe0"] (ge_inst ge) = Some {|iclass:=pipe_class_name; ipath:=pipe_inst_path|} ->
-      PathMap.get (pipe_inst_path ++ ["ingress"]) (ge_inst ge) = Some {|iclass:=class_name; ipath:=inst_path|} ->
-      PathMap.get ([class_name; "apply"]) (ge_func ge) = Some fd ->
-      let hdr := update "ipv4"
-        (update "src_addr" (P4Bit ipv4_addr_w (fst ipv4))
-          (update "dst_addr" (P4Bit ipv4_addr_w (snd ipv4))
-            (force ValBaseNull (uninit_sval_of_typ (Some true) ipv4_h))))
-        (force ValBaseNull (uninit_sval_of_typ None header_t)) in
-      (* 0 <= data < Z.pow 2 16 -> *)
-      let meta := force ValBaseNull (uninit_sval_of_typ None M) in
-      let ingress_intrinsic_metadata :=
-        update "ingress_mac_tstamp" (P4Bit 48 timestamp)
-          (force ValBaseNull (uninit_sval_of_typ (Some true) ingress_intrinsic_metadata_t)) in
-      let ingress_intrinsic_metadata_from_parser := force ValBaseNull (uninit_sval_of_typ None ingress_intrinsic_metadata_from_parser_t) in
-      let ingress_intrinsic_metadata_for_deparser := force ValBaseNull (uninit_sval_of_typ None ingress_intrinsic_metadata_for_deparser_t) in
-      let ingress_intrinsic_metadata_for_tm := force ValBaseNull (uninit_sval_of_typ None ingress_intrinsic_metadata_for_tm_t) in
-      (* 0 <= data' < Z.pow 2 16 -> *)
-      exec_func ge read_ndetbit inst_path (PathMap.empty, es) fd nil
-          [hdr; meta; ingress_intrinsic_metadata; ingress_intrinsic_metadata_from_parser; ingress_intrinsic_metadata_for_deparser; ingress_intrinsic_metadata_for_tm]
-          (m', es')
-          [hdr'; meta'; ingress_intrinsic_metadata_for_deparser'; ingress_intrinsic_metadata_for_tm']
-          (SReturn ValBaseNull) ->
-      (* Construct ipv4' from hdr'. *)
-      0 <=  fst ipv4' < Z.pow 2 32 ->
-      get "src_addr" (get "ipv4" hdr') = P4Bit ipv4_addr_w (fst ipv4') ->
-      0 <=  snd ipv4' < Z.pow 2 32 ->
-      get "dst_addr" (get "ipv4" hdr') = P4Bit ipv4_addr_w (snd ipv4') ->
-      let drop_ctl := get_drop_ctl (get "drop_ctl" ingress_intrinsic_metadata_for_deparser') in
-      process_packet es (timestamp, ipv4, payload) es' (if drop_ctl then None else Some (ipv4', payload)).
-
-Inductive process_packets : extern_state -> list (timestamp_t * ipv4_header * payload_t) -> extern_state -> list (option (ipv4_header * payload_t)) -> Prop :=
-  | process_packets_nil : forall es,
-      process_packets es [] es []
-  | process_packets_cons : forall es1 p p' es2 ps ps' es3,
-      process_packet es1 p es2 p' ->
-      process_packets es2 ps es3 ps' ->
-      process_packets es1 (p :: ps) es3 (p' :: ps').
-
-End Switch.
+Definition metadata_t : P4Type :=
+  TypStruct
+    [(!"bf2_key", TypBit 64);
+    (!"bf2_api", TypBit 8);
+    (!"solicited", TypBit 8)].

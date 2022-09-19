@@ -14384,16 +14384,8 @@ Definition SwitchIngress := DeclControl NoInfo
            (MkTableActionRef NoInfo
                 (MkTablePreActionRef
                      (BareName
-                      {| stags := NoInfo; str := "bf2_act_set_query_key" |})
-                     [(Some
-                       (MkExpression NoInfo
-                            (ExpCast (TypBit 8%N)
-                                 (MkExpression NoInfo
-                                      (ExpInt
-                                       {| itags := NoInfo; value := 3;
-                                          width_signed := None |}) TypInteger
-                                      Directionless)) (TypBit 8%N)
-                            Directionless))]) TypVoid)) (Some 2%N) nil);
+                      {| stags := NoInfo; str := "bf2_act_set_clear_key" |})
+                     nil) TypVoid)) (Some 2%N) nil);
      (DeclInstantiation NoInfo
           (TypSpecializedType
                (TypTypeName {| stags := NoInfo; str := "Bf2BloomFilter" |})
