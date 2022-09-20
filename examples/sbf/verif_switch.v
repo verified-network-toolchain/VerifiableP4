@@ -23,25 +23,42 @@ Lemma inv_Forall2 : forall A B (P : A -> B -> Prop) a al b bl,
 Proof.
   inversion 1; auto.
 Qed.
-(* sval_refine_to_loptbool_eq *)
+
 Lemma sval_refine_P4Bit_eq : forall w v v',
   sval_refine (P4Bit w v) v' ->
   (P4Bit w v) = v'.
-Admitted.
+Proof.
+  intros.
+  symmetry.
+  apply sval_refine_bit_to_loptbool; auto.
+Qed.
+
+Lemma eq_P4Bit_eq : forall (w : N) (n1 n2 : Z),
+  0 <= n1 < 2 ^ Z.of_N w ->
+  0 <= n2 < 2 ^ Z.of_N w ->
+  P4Bit w n1 = P4Bit w n2 ->
+  n1 = n2.
+Proof.
+  intros.
+  eapply sval_refine_to_loptbool_eq; eauto.
+  apply sval_refine_refl'; auto.
+Qed.
 
 Lemma process_packet_fw_process_packet : forall es f p es' r,
+  0 <=  fst (snd (fst p)) < Z.pow 2 32 ->
+  0 <=  snd (snd (fst p)) < Z.pow 2 32 ->
   filter_repr f es ->
   process_packet ge P4_types.metadata_t es p es' r ->
   exists f',
     filter_repr f' es' /\ fw_process_packet f p f' r.
 Proof.
-  intros * H_filter_repr H_process_packet.
+  intros * ?H ?H H_filter_repr H_process_packet.
   destruct p as [[tstamp h] payload].
   exists (fst (process f (tstamp, h))).
   inversion H_process_packet.
   (* deal with function lookup *)
-  inv H2. inv H3. inv H4.
-  eapply (proj1 Ingress_body h) in H5.
+  inv H4. inv H5. inv H6.
+  eapply (proj1 Ingress_body h) in H7.
   2 : {
     split.
     { (* ARG *)
@@ -69,7 +86,7 @@ Proof.
       constructor.
     }
   }
-  destruct H5 as [H_ARG [H_RET [H_MEM H_EXT]]].
+  destruct H7 as [H_ARG [H_RET [H_MEM H_EXT]]].
   split.
   { inv H_EXT.
     assumption.
@@ -100,7 +117,14 @@ Proof.
     auto.
   }
   replace ipv4' with h in *. 2 : {
-    admit.
+    clear - H H0 H8 H10 H13 H14.
+    assert (fst h = fst ipv4'). {
+      eapply eq_P4Bit_eq; eauto; auto.
+    }
+    assert (snd h = snd ipv4'). {
+      eapply eq_P4Bit_eq; eauto; auto.
+    }
+    destruct h; destruct ipv4'; f_equal; auto.
   }
   assert (H_drop_ctl : bit_refine (snd (process f (tstamp, h))) (Some drop_ctl)). {
     clear -H_ig_intr_dprsr_md.
@@ -114,7 +138,41 @@ Proof.
       subst drop_ctl. rewrite <- H. constructor.
     - constructor.
   }
-  unfold process in H_drop_ctl.
+  unfold process in H_drop_ctl |- *.
   destruct (is_internal (fst h)) eqn:H_is_internal.
   - inv H_drop_ctl.
+    (* This is not provable, because the P4 program drops outgoing packets. *)
+    admit.
+  - change (option_map ~~
+      (filter_query (filter_clear f tstamp) (tstamp, (snd h, fst h))))
+    with (option_map ~~
+      (filter_query (filter_clear f tstamp) (tstamp, (snd h, fst h)))) in *.
+    destruct (filter_query (filter_clear f tstamp) (tstamp, (snd h, fst h))) as [[] | ] eqn:H_filter_query.
+    3 : destruct drop_ctl.
+    + inv H_drop_ctl.
+      constructor.
+      { assumption. }
+      { change (query (clear f tstamp) (tstamp, Build_Header (DstAddr h) (SrcAddr h)))
+          with (filter_query (filter_clear f tstamp) (tstamp, (snd h, fst h))).
+        rewrite H_filter_query. solve [repeat constructor].
+      }
+    + inv H_drop_ctl.
+      constructor.
+      { assumption. }
+      { change (query (clear f tstamp) (tstamp, Build_Header (DstAddr h) (SrcAddr h)))
+          with (filter_query (filter_clear f tstamp) (tstamp, (snd h, fst h))).
+        rewrite H_filter_query. solve [repeat constructor].
+      }
+    + constructor.
+      { assumption. }
+      { change (query (clear f tstamp) (tstamp, Build_Header (DstAddr h) (SrcAddr h)))
+          with (filter_query (filter_clear f tstamp) (tstamp, (snd h, fst h))).
+        rewrite H_filter_query. solve [repeat constructor].
+      }
+    + constructor.
+      { assumption. }
+      { change (query (clear f tstamp) (tstamp, Build_Header (DstAddr h) (SrcAddr h)))
+          with (filter_query (filter_clear f tstamp) (tstamp, (snd h, fst h))).
+        rewrite H_filter_query. solve [repeat constructor].
+      }
 Admitted.

@@ -1038,6 +1038,16 @@ Proof.
     eapply Z_div_squeeze_pos with (-hi) (-lo); lia.
 Qed.
 
+Lemma Z_div_squeeze' : forall a b lo hi res,
+  (lo <=? a) && (a <=? hi) ->
+  lo / b = res ->
+  hi / b = res ->
+  a / b = res.
+Proof.
+  intros.
+  apply Z_div_squeeze with lo hi; lia.
+Qed.
+
 Definition Filter_fd :=
   ltac:(get_fd ["Bf2BloomFilter"; "apply"] ge).
 

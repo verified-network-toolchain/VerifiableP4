@@ -88,7 +88,34 @@ Definition tbl_set_win_clear_spec : func_spec :=
 
 Lemma tbl_set_win_clear_body :
   func_sound ge tbl_set_win_fd nil tbl_set_win_clear_spec.
-Admitted.
+Proof.
+  start_function; elim_trivial_cases.
+  - replace (get_clear_frame timer) with 0. 2 : {
+      symmetry; eapply Z_div_squeeze'; eauto.
+    }
+    table_action act_set_clear_win_1_body.
+    { entailer. }
+    { entailer. }
+  - replace (get_clear_frame timer) with 1. 2 : {
+      symmetry; eapply Z_div_squeeze'; eauto.
+    }
+    table_action act_set_clear_win_2_body.
+    { entailer. }
+    { entailer. }
+  - replace (get_clear_frame timer) with 2. 2 : {
+      symmetry; eapply Z_div_squeeze'; eauto.
+    }
+    table_action act_set_clear_win_3_body.
+    { entailer. }
+    { entailer. }
+  - replace (get_clear_frame timer) with 3. 2 : {
+      symmetry; eapply Z_div_squeeze'; eauto.
+    }
+    table_action act_set_clear_win_4_body.
+    { entailer. }
+    { entailer. }
+  - lia.
+Qed.
 
 Definition filter_clear := @filter_clear num_frames num_rows num_slots H_num_frames H_num_rows H_num_slots
   frame_tick_tocks.

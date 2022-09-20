@@ -88,7 +88,34 @@ Definition tbl_set_win_query_spec : func_spec :=
 
 Lemma tbl_set_win_query_body :
   func_sound ge tbl_set_win_fd nil tbl_set_win_query_spec.
-Admitted.
+Proof.
+  start_function; elim_trivial_cases.
+  - replace (get_clear_frame timer) with 0. 2 : {
+      symmetry; eapply Z_div_squeeze'; eauto.
+    }
+    table_action act_set_clear_win_1_body.
+    { entailer. }
+    { entailer. }
+  - replace (get_clear_frame timer) with 1. 2 : {
+      symmetry; eapply Z_div_squeeze'; eauto.
+    }
+    table_action act_set_clear_win_2_body.
+    { entailer. }
+    { entailer. }
+  - replace (get_clear_frame timer) with 2. 2 : {
+      symmetry; eapply Z_div_squeeze'; eauto.
+    }
+    table_action act_set_clear_win_3_body.
+    { entailer. }
+    { entailer. }
+  - replace (get_clear_frame timer) with 3. 2 : {
+      symmetry; eapply Z_div_squeeze'; eauto.
+    }
+    table_action act_set_clear_win_4_body.
+    { entailer. }
+    { entailer. }
+  - lia.
+Qed.
 
 Definition act_merge_wins_fd :=
   ltac:(get_fd ["Bf2BloomFilter"; "act_merge_wins"] ge).
