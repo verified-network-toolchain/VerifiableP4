@@ -33,7 +33,7 @@ Definition ge := ltac:(get_ge am_ge prog).
 (* Initial extern state *)
 Definition instantiation := ltac:(let t := eval compute in (instantiate_prog ge (ge_typ ge) prog) in
                                     force_res t).
-Definition init_es := force_res (eval compute in snd instantiation).
+Definition init_es := snd instantiation.
 
 Transparent IdentMap.empty IdentMap.set PathMap.empty PathMap.set.
 
