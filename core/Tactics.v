@@ -955,11 +955,15 @@ Ltac P4assert Q :=
 (* We need to specify the type of ge to prevent target from being unfolded in the type of ge. *)
 Ltac get_am_ge prog :=
   let ge := eval compute -[PathMap.empty PathMap.set] in (gen_am_ge prog) in
-  exact (ge : (@genv _ ltac:(typeclasses eauto))).
+    match ge with
+    | Result.Ok ?gev => exact (gev : (@genv _ ltac:(typeclasses eauto)))
+    end.
 
 Ltac get_ge am_ge prog :=
   let ge := eval compute -[am_ge PathMap.empty PathMap.set] in (gen_ge' am_ge prog) in
-  exact (ge : (@genv _ ltac:(typeclasses eauto))).
+    match ge with
+    | Result.Ok ?gev => exact (gev : (@genv _ ltac:(typeclasses eauto)))
+    end.
 
 Definition dummy_fundef {tags_t} : @fundef tags_t := FExternal "" "".
 Opaque dummy_fundef.

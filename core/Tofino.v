@@ -10,15 +10,21 @@ Require Export ProD3.core.TofinoSpec.
 
 Ltac get_am_ge prog ::=
   let ge := eval compute -[PathMap.empty PathMap.set extern_match] in (gen_am_ge prog) in
-  exact (ge : (@genv _ target)).
+    match ge with
+    | Result.Ok ?gev => exact (gev : (@genv _ target))
+    end.
 
 Ltac get_ge am_ge prog ::=
   let ge := eval compute -[am_ge PathMap.empty PathMap.set extern_match] in (gen_ge' am_ge prog) in
-  exact (ge : (@genv _ target)).
+    match ge with
+    | Result.Ok ?gev => exact (gev : (@genv _ target))
+    end.
 
 Ltac get_init_es am_ge prog :=
   let init_es := eval compute -[am_ge PathMap.empty PathMap.set extern_match] in (gen_init_es' am_ge prog) in
-  exact (init_es : (@Target.extern_state _ _ (@extern_sem _ _ target))).
+    match init_es with
+    | Result.Ok ?init_esv => exact (init_esv : (@Target.extern_state _ _ (@extern_sem _ _ target)))
+    end.
 
 Ltac get_am_fd ge am_ge p :=
   let am_sem := eval compute -[am_ge extern_match] in

@@ -1438,7 +1438,7 @@ Proof.
   - destruct_match H0.
     + destruct l. 1: inversion H0. inversion H2; subst.
       * simpl in H13. unfold eval_read_var in H0. destruct st. simpl in *.
-        eapply mem_denote_get in H1; eauto. red in H1. rewrite H13 in H1. auto.
+        eapply mem_denote_get in H1; eauto. red in H1. Result.simpl_result_all. rewrite H13 in H1. auto.
       * rewrite H3 in H12; inversion H12.
     + inversion H2; subst. 1: rewrite H3 in H12; inversion H12.
       unfold loc_to_sval_const in H13. rewrite H0 in H13. inversion H13.
@@ -1794,6 +1794,7 @@ Proof.
   induction lv; unfold hoare_read; intros.
   - destruct loc; only 1 : inv H0.
     inv H2.
+    simpl; Result.simpl_result_all.
     eapply eval_read_var_sound; eauto.
   - simpl in H0.
     destruct (eval_read a_mem lv) eqn:?. 2 : inv H0.
