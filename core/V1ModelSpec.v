@@ -4,7 +4,7 @@ Require Import Poulet4.P4light.Syntax.Typed.
 Require Import Poulet4.P4light.Syntax.Syntax.
 Require Import Poulet4.P4light.Syntax.Value.
 Require Import Poulet4.P4light.Semantics.Semantics.
-Require Import Poulet4.P4light.Architecture.V1Model.
+Require Import Poulet4.P4light.Architecture.V1ModelTarget.
 Require Import Poulet4.P4light.Syntax.P4Notations.
 Require Import Poulet4.Utils.P4Arith.
 Require Import ProD3.core.Coqlib.

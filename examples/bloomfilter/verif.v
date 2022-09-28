@@ -7,11 +7,12 @@ Import ListNotations.
 Require Import Poulet4.Utils.Maps.
 Require Import Poulet4.P4light.Semantics.Semantics.
 Require Import Poulet4.P4light.Transformations.SimplExpr.
-Require Import Poulet4.P4light.Architecture.V1Model.
+Require Import Poulet4.P4light.Architecture.V1ModelTarget.
 Require Import Poulet4.Utils.P4Arith.
 
 Require Import ProD3.core.Core.
 Require Import ProD3.core.V1ModelSpec.
+Require Import ProD3.core.Tactics.
 Require Import ProD3.examples.bloomfilter.p4ast.
 Require Import ProD3.examples.sbf.ConFilter.
 Require Import ProD3.examples.sbf.general_bf.
@@ -26,11 +27,13 @@ Notation Sval := (@ValueBase (option bool)).
 Opaque PathMap.empty PathMap.set.
 
 (* Global environment *)
-Definition ge : genv := Eval compute in gen_ge prog.
+Definition am_ge := ltac:(get_am_ge prog).
+Definition ge := ltac:(get_ge am_ge prog).
 
 (* Initial extern state *)
-Definition instantiation := Eval compute in instantiate_prog ge (ge_typ ge) prog.
-Definition init_es := Eval compute in snd instantiation.
+Definition instantiation := ltac:(let t := eval compute in (instantiate_prog ge (ge_typ ge) prog) in
+                                    force_res t).
+Definition init_es := force_res (eval compute in snd instantiation).
 
 Transparent IdentMap.empty IdentMap.set PathMap.empty PathMap.set.
 
