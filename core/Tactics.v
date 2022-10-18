@@ -952,14 +952,19 @@ Ltac P4assert Q :=
 
 (* Term-generating tactics *)
 
+Ltac force_res thunkv :=
+  match thunkv with
+  | Result.Ok ?v => exact v
+  end.
+
 (* We need to specify the type of ge to prevent target from being unfolded in the type of ge. *)
 Ltac get_am_ge prog :=
   let ge := eval compute -[PathMap.empty PathMap.set] in (gen_am_ge prog) in
-  exact (ge : (@genv _ ltac:(typeclasses eauto))).
+    force_res ge.
 
 Ltac get_ge am_ge prog :=
   let ge := eval compute -[am_ge PathMap.empty PathMap.set] in (gen_ge' am_ge prog) in
-  exact (ge : (@genv _ ltac:(typeclasses eauto))).
+    force_res ge.
 
 Definition dummy_fundef {tags_t} : @fundef tags_t := FExternal "" "".
 Opaque dummy_fundef.
