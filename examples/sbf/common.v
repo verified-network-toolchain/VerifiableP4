@@ -13,9 +13,28 @@ Notation path := (list ident).
 Notation Val := (@ValueBase bool).
 Notation Sval := (@ValueBase (option bool)).
 
-Definition am_ge := ltac:(get_am_ge prog).
+Definition empty_genv {tags_t: Type} {target: Target} : @genv tags_t target :=
+  MkGenv PathMap.empty IdentMap.empty IdentMap.empty
+    PathMap.empty PathMap.empty PathMap.empty.
+Opaque empty_genv.
+
+Definition force_genv (r: Monads.Result.result Exn.t genv) :=
+  match r with
+  | Result.Ok x => x
+  | Result.Error _ => empty_genv
+  end.
+
+Definition am_ge: genv :=
+  ltac:(let ge := eval compute -[PathMap.empty PathMap.set] in
+        (force_genv (gen_am_ge prog)) in
+          exact (ge : (@genv _ ltac:(typeclasses eauto)))).
+
 (* Finished transaction in 4.375 secs (4.218u,0.156s) (successful) *)
-Definition ge := ltac:(get_ge am_ge prog).
+Definition ge :=
+  ltac:( let ge := eval compute -[am_ge PathMap.empty PathMap.set] in
+         (force_genv (gen_ge' am_ge prog)) in
+  exact (ge : (@genv _ ltac:(typeclasses eauto)))).
+
 
 (* Constants *)
 

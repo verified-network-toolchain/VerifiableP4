@@ -7,7 +7,7 @@ Import ListNotations.
 Require Import Poulet4.Utils.Maps.
 Require Import Poulet4.P4light.Semantics.Semantics.
 Require Import Poulet4.P4light.Transformations.SimplExpr.
-Require Import Poulet4.P4light.Architecture.V1Model.
+Require Import Poulet4.P4light.Architecture.V1ModelTarget.
 Require Import Poulet4.Utils.P4Arith.
 
 Require Import ProD3.core.Core.
@@ -26,11 +26,23 @@ Notation Sval := (@ValueBase (option bool)).
 Opaque PathMap.empty PathMap.set.
 
 (* Global environment *)
-Definition ge : genv := Eval compute in gen_ge prog.
+Definition empty_genv: genv := MkGenv PathMap.empty IdentMap.empty IdentMap.empty
+                                 PathMap.empty PathMap.empty PathMap.empty.
+
+Definition ge: genv := Eval compute in
+    match gen_ge prog with
+    | Result.Ok x => x
+    | Result.Error _ => empty_genv
+    end.
 
 (* Initial extern state *)
-Definition instantiation := Eval compute in instantiate_prog ge (ge_typ ge) prog.
-Definition init_es := Eval compute in snd instantiation.
+Definition instantiation: (inst_mem * Target.extern_state) := Eval compute in
+    match instantiate_prog ge (ge_typ ge) prog with
+    | Result.Ok x => x
+    | Result.Error _ => (PathMap.empty, PathMap.empty, PathMap.empty, PathMap.empty)
+    end.
+
+Definition init_es: Target.extern_state := Eval compute in snd instantiation.
 
 Transparent IdentMap.empty IdentMap.set PathMap.empty PathMap.set.
 

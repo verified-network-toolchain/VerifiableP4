@@ -30,7 +30,7 @@ Definition process' (bf : bloomfilter_state) (p : Z * port) :=
         (bf, None)
   end.
 
-Definition bf_encode (es : V1Model.extern_state) (bf : bloomfilter_state) :=
+Definition bf_encode (es : V1ModelTarget.extern_state) (bf : bloomfilter_state) :=
   PathMap.get ["bloom0"] es = Some (reg_encode (Znth 0 (` (blooms bf))))
   /\ PathMap.get ["bloom1"] es = Some (reg_encode (Znth 1 (` (blooms bf))))
   /\ PathMap.get ["bloom2"] es = Some (reg_encode (Znth 2 (` (blooms bf)))).
