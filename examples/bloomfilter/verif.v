@@ -26,23 +26,26 @@ Notation Sval := (@ValueBase (option bool)).
 Opaque PathMap.empty PathMap.set.
 
 (* Global environment *)
-Definition empty_genv: genv := MkGenv PathMap.empty IdentMap.empty IdentMap.empty
-                                 PathMap.empty PathMap.empty PathMap.empty.
-
-Definition ge: genv := Eval compute in
-    match gen_ge prog with
-    | Result.Ok x => x
-    | Result.Error _ => empty_genv
-    end.
+Definition ge : genv := ltac:(
+  let ge := eval compute in (gen_ge prog) in
+  lazymatch ge with
+  | Result.Ok ?ge =>
+      exact (ge : (@genv _ ltac:(typeclasses eauto)))
+  | Result.Error ?msg =>
+      fail 0 "Global environment evaluation failed with message:" msg
+  end).
 
 (* Initial extern state *)
-Definition instantiation: (inst_mem * Target.extern_state) := Eval compute in
-    match instantiate_prog ge (ge_typ ge) prog with
-    | Result.Ok x => x
-    | Result.Error _ => (PathMap.empty, PathMap.empty, PathMap.empty, PathMap.empty)
-    end.
+Definition instantiation := ltac:(
+  let instantiation := eval compute in (instantiate_prog ge (ge_typ ge) prog) in
+  lazymatch instantiation with
+  | Result.Ok ?instantiation =>
+      exact instantiation
+  | Result.Error ?msg =>
+      fail 0 "Global environment evaluation failed with message:" msg
+  end).
 
-Definition init_es: Target.extern_state := Eval compute in snd instantiation.
+Definition init_es := Eval compute in snd instantiation.
 
 Transparent IdentMap.empty IdentMap.set PathMap.empty PathMap.set.
 

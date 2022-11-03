@@ -953,13 +953,24 @@ Ltac P4assert Q :=
 (* Term-generating tactics *)
 
 (* We need to specify the type of ge to prevent target from being unfolded in the type of ge. *)
+
 Ltac get_am_ge prog :=
   let ge := eval compute -[PathMap.empty PathMap.set] in (gen_am_ge prog) in
-  exact (ge : (@genv _ ltac:(typeclasses eauto))).
+  lazymatch ge with
+  | Result.Ok ?ge =>
+      exact (ge : (@genv _ ltac:(typeclasses eauto)))
+  | Result.Error ?msg =>
+      fail 0 "Global environment evaluation failed with message:" msg
+  end.
 
 Ltac get_ge am_ge prog :=
   let ge := eval compute -[am_ge PathMap.empty PathMap.set] in (gen_ge' am_ge prog) in
-  exact (ge : (@genv _ ltac:(typeclasses eauto))).
+  lazymatch ge with
+  | Result.Ok ?ge =>
+      exact (ge : (@genv _ ltac:(typeclasses eauto)))
+  | Result.Error ?msg =>
+      fail 0 "Global environment evaluation failed with message:" msg
+  end.
 
 Definition dummy_fundef {tags_t} : @fundef tags_t := FExternal "" "".
 Opaque dummy_fundef.
