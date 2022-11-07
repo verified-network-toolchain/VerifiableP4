@@ -225,7 +225,7 @@ Section CMS.
     - intro. apply Hn. rewrite in_app_iff. right. subst. intuition.
   Qed.
 
-  Lemma not_in_hash: forall k1 k2 n l, 
+  Lemma not_in_hash: forall k1 k2 n l,
       ~ In n l -> ~ In (n, hash n k1) (map (fun idx : nat => (idx, hash idx k2)) l).
   Proof.
     intros k1 k2 n. induction l; intros; simpl; auto. simpl in H.
@@ -357,10 +357,10 @@ Section CMS.
       + remember (fun idx : nat * Z => z2lookup_default idx m + a) as f1.
         remember ((fun idx : nat * Z => z2lookup_default idx m)) as f2.
         rewrite map_cons. intros. simpl in *.
-        assert (length (map f1 l) > 0)%nat. 
+        assert (length (map f1 l) > 0)%nat.
         { rewrite map_length. lia. }
         rewrite (get_min_cons_nonempty (f1 a0) (map f1 l) _ H).
-        assert (length (map f2 l) > 0)%nat. 
+        assert (length (map f2 l) > 0)%nat.
         { rewrite map_length. lia. }
         rewrite (get_min_cons_nonempty (f2 a0) (map f2 l) _ H4).
         rewrite (IHl H H4 H H4).
@@ -381,16 +381,24 @@ Section CMS.
     apply z2lookup_cms_insert_eq; auto.
   Qed.
 
+  Lemma get_min_same: forall l1 l2 H1 H2, l1 = l2 -> get_min l1 H1 = get_min l2 H2.
+  Proof.
+    destruct l1; intros.
+    - subst. simpl in H1. lia.
+    - destruct l2. 1: simpl in H2; lia. unfold get_min.
+      inversion H. subst. simpl. reflexivity.
+  Qed.
+
   Lemma cms_lookup_insert: forall k m, cms_lookup k (cms_insert k m) = cms_lookup k m + 1.
   Proof.
     intros. unfold cms_lookup.
     intros.
-    assert (length (map (fun idx => (z2lookup_default idx m + 1)%Z) (gen_indexes k)) > 0)%nat. 
+    assert (length (map (fun idx => (z2lookup_default idx m + 1)%Z) (gen_indexes k)) > 0)%nat.
     { unfold gen_indexes. repeat rewrite map_length. rewrite seq_length. auto. }
     rewrite <- (get_min_add_const _ _ _ H _).
     pose proof (z2lookup_cms_insert_same k m).
-    apply map_ext_in_iff in H0.
-  Abort.
+    apply map_ext_in_iff in H0. apply get_min_same. assumption.
+  Qed.
 
   Lemma cms_insert_comm: forall k1 k2 m,
       cms_insert k1 (cms_insert k2 m) = cms_insert k2 (cms_insert k1 m).
