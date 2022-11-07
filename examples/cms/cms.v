@@ -95,7 +95,7 @@ Section CMS.
     | Some v => v
     end.
 
-  Lemma lookup_insert_diff_default: forall k1 k2 v m,
+  Lemma lookupdef_insert_diff: forall k1 k2 v m,
       k1 <> k2 -> z2lookup_default k1 (insert k2 v m) = z2lookup_default k1 m.
   Proof.
     intros.
@@ -103,7 +103,7 @@ Section CMS.
     rewrite lookup_insert_diff; auto.
   Qed.
 
-  Lemma lookup_insert_same_default: forall k v m,
+  Lemma lookupdef_insert_same: forall k v m,
       z2lookup_default k (insert k v m) = v.
   Proof.
     intros.
@@ -119,12 +119,12 @@ Section CMS.
   Definition get_hd {A: Type} (l: list A) (H: (length l > 0)%nat): A.
   Proof.
     refine ((
-               match l as k return ((length k > 0)%nat -> A) with
+               match l return ((length l > 0)%nat -> A) with
                | nil => fun s => _
                | a :: _ => fun _ => a
                end) H).
     simpl in s. exfalso. apply (gt_irrefl 0). assumption.
-    (* simpl in s. apply gt_irrefl in s. exfalso. assumption. *)
+  (* simpl in s. apply gt_irrefl in s. exfalso. assumption. *)
   (* trick: define a commplex lemma and then apply to shorten
               the definition printed out. *)
   Defined.
@@ -213,19 +213,7 @@ Section CMS.
     intros. rewrite lookup_empty. reflexivity.
   Qed.
 
-  Lemma fold_left_Zmin_add: forall l a i,
-      fold_left Z.min (map (fun x => Z.add x a) l) (i + a) =
-        fold_left Z.min l i + a.
-  Proof.
-    induction l; intros b i; simpl; auto.
-    rewrite Z.add_min_distr_r. apply IHl.
-  Qed.
-
-  Lemma cms_lookup_insert: forall k m, cms_lookup k (cms_insert k m) = cms_lookup k m + 1.
-  Proof.
-  Abort.
-
-  Lemma lookup_fold_left_ignore: forall idx f indexes m,
+  Lemma lookupdef_fold_left_ignore: forall idx f indexes m,
       ~ In idx indexes ->
       (forall j1 j2 m', j1 <> j2 -> z2lookup_default j1 (f m' j2) = z2lookup_default j1 m') ->
       z2lookup_default idx (fold_left f indexes m) = z2lookup_default idx m.
@@ -237,7 +225,8 @@ Section CMS.
     - intro. apply Hn. rewrite in_app_iff. right. subst. intuition.
   Qed.
 
-  Lemma not_in_hash_seq: forall k1 k2 n l, ~ In n l -> ~ In (n, hash n k1) (map (fun idx : nat => (idx, hash idx k2)) l).
+  Lemma not_in_hash: forall k1 k2 n l, 
+      ~ In n l -> ~ In (n, hash n k1) (map (fun idx : nat => (idx, hash idx k2)) l).
   Proof.
     intros k1 k2 n. induction l; intros; simpl; auto. simpl in H.
     apply Decidable.not_or in H. destruct H. specialize (IHl H0). intro. destruct H1.
@@ -245,42 +234,52 @@ Section CMS.
     - contradiction.
   Qed.
 
+  Lemma z2lookup_cms_insert_eq: forall n k1 k2 m,
+      (n < num_rows)%nat ->
+      hash n k1 = hash n k2 ->
+      z2lookup_default (n, hash n k1) (cms_insert k2 m) =
+          z2lookup_default (n, hash n k1) m + 1.
+  Proof.
+    intros.
+    unfold cms_insert. unfold gen_indexes.
+    replace num_rows with (n + (num_rows - n))%nat by lia.
+    rewrite seq_app, map_app, fold_left_app. simpl.
+    replace (num_rows - n)%nat with (1 + (num_rows - n - 1))%nat by lia.
+    rewrite seq_app, map_app, fold_left_app. simpl.
+    rewrite lookupdef_fold_left_ignore.
+    3: intros; apply lookupdef_insert_diff; auto.
+    2: apply not_in_hash; rewrite in_seq; lia.
+    rewrite H0. rewrite lookupdef_insert_same.
+    rewrite lookupdef_fold_left_ignore; auto.
+    * apply not_in_hash; rewrite in_seq; lia.
+    * intros; apply lookupdef_insert_diff; auto.
+  Qed.
+
   Lemma z2lookup_cms_insert: forall n k1 k2 m,
       z2lookup_default (n, hash n k1) (cms_insert k2 m) =
         z2lookup_default (n, hash n k1) m \/
-        z2lookup_default (n, hash n k1) (cms_insert k2 m) =
+      z2lookup_default (n, hash n k1) (cms_insert k2 m) =
           z2lookup_default (n, hash n k1) m + 1.
   Proof.
     intros. destruct (le_lt_dec num_rows n).
     - left. unfold cms_insert. unfold gen_indexes. clear num_rows_pos.
-      rewrite lookup_fold_left_ignore; auto.
-      + apply not_in_hash_seq. rewrite in_seq. lia.
-      + intros. apply lookup_insert_diff_default. auto.
+      rewrite lookupdef_fold_left_ignore. auto.
+      + apply not_in_hash. rewrite in_seq. lia.
+      + intros. apply lookupdef_insert_diff. auto.
     - destruct (Z.eq_dec (hash n k1) (hash n k2)); [right | left].
+      + apply z2lookup_cms_insert_eq; assumption.
       + unfold cms_insert. unfold gen_indexes.
         replace num_rows with (n + (num_rows - n))%nat by lia.
         rewrite seq_app, map_app, fold_left_app. simpl.
         replace (num_rows - n)%nat with (1 + (num_rows - n - 1))%nat by lia.
         rewrite seq_app, map_app, fold_left_app. simpl.
-        rewrite lookup_fold_left_ignore.
-        3: intros; apply lookup_insert_diff_default; auto.
-        2: apply not_in_hash_seq; rewrite in_seq; lia.
-        rewrite e. rewrite lookup_insert_same_default.
-        rewrite lookup_fold_left_ignore; auto.
-        * apply not_in_hash_seq; rewrite in_seq; lia.
-        * intros; apply lookup_insert_diff_default; auto.
-      + unfold cms_insert. unfold gen_indexes.
-        replace num_rows with (n + (num_rows - n))%nat by lia.
-        rewrite seq_app, map_app, fold_left_app. simpl.
-        replace (num_rows - n)%nat with (1 + (num_rows - n - 1))%nat by lia.
-        rewrite seq_app, map_app, fold_left_app. simpl.
-        rewrite lookup_fold_left_ignore.
-        3: intros; apply lookup_insert_diff_default; auto.
-        2: apply not_in_hash_seq; rewrite in_seq; lia.
-        rewrite lookup_insert_diff_default. 2: intro Hs; inversion Hs; contradiction.
-        rewrite lookup_fold_left_ignore; auto.
-        * apply not_in_hash_seq; rewrite in_seq; lia.
-        * intros; apply lookup_insert_diff_default; auto.
+        rewrite lookupdef_fold_left_ignore.
+        3: intros; apply lookupdef_insert_diff; auto.
+        2: apply not_in_hash; rewrite in_seq; lia.
+        rewrite lookupdef_insert_diff. 2: intro Hs; inversion Hs; contradiction.
+        rewrite lookupdef_fold_left_ignore; auto.
+        * apply not_in_hash; rewrite in_seq; lia.
+        * intros; apply lookupdef_insert_diff; auto.
   Qed.
 
   Definition min_in_list (l: list Z) (a: Z) : Prop := In a l /\ (forall v, In v l -> a <= v).
@@ -335,9 +334,9 @@ Section CMS.
     unfold cms_lookup. apply list_diff_at_most_one.
     - rewrite !map_length. easy.
     - rewrite map_length. intros.
-      rewrite !nth_map' with (d' := (O, 0)); try lia.
+      rewrite !nth_map' with (d' := (0%nat, 0)); try lia.
       assert (nth i (gen_indexes k2) (0%nat, 0) = (i, hash i k2)). {
-        unfold gen_indexes. rewrite nth_map' with (d' := O).
+        unfold gen_indexes. rewrite nth_map' with (d' := 0%nat).
         - rewrite seq_nth. reflexivity. unfold gen_indexes in H.
           rewrite map_length, seq_length in H. lia.
         - rewrite seq_length. rewrite gen_indexes_length in H. lia.
@@ -346,10 +345,58 @@ Section CMS.
       apply z2lookup_cms_insert.
   Qed.
 
+  Lemma get_min_add_const: forall m a l H1 H2,
+    get_min (map (fun idx => z2lookup_default idx m + a) l) H1 =
+      get_min (map (fun idx => z2lookup_default idx m) l) H2 + a.
+  Proof.
+    intros. generalize H1 H2. induction l.
+    - simpl in H1. lia.
+    - destruct (zerop (length l)).
+      + intros. unfold get_min. simpl. rewrite length_zero_iff_nil in e.
+        subst. simpl. apply Z.add_min_distr_r.
+      + remember (fun idx : nat * Z => z2lookup_default idx m + a) as f1.
+        remember ((fun idx : nat * Z => z2lookup_default idx m)) as f2.
+        rewrite map_cons. intros. simpl in *.
+        assert (length (map f1 l) > 0)%nat. 
+        { rewrite map_length. lia. }
+        rewrite (get_min_cons_nonempty (f1 a0) (map f1 l) _ H).
+        assert (length (map f2 l) > 0)%nat. 
+        { rewrite map_length. lia. }
+        rewrite (get_min_cons_nonempty (f2 a0) (map f2 l) _ H4).
+        rewrite (IHl H H4 H H4).
+        subst.
+        apply Z.add_min_distr_r.
+  Qed.
+
+  Lemma z2lookup_cms_insert_same: forall k m idx,
+      In idx (gen_indexes k) ->
+      z2lookup_default idx (cms_insert k m) = z2lookup_default idx m + 1.
+  Proof.
+    unfold gen_indexes.
+    intros.
+    apply in_map_iff in H. destruct H; destruct H; destruct idx.
+    apply pair_equal_spec in H. destruct H. subst.
+    apply in_seq in H0; simpl in H0.
+    destruct H0.
+    apply z2lookup_cms_insert_eq; auto.
+  Qed.
+
+  Lemma cms_lookup_insert: forall k m, cms_lookup k (cms_insert k m) = cms_lookup k m + 1.
+  Proof.
+    intros. unfold cms_lookup.
+    intros.
+    assert (length (map (fun idx => (z2lookup_default idx m + 1)%Z) (gen_indexes k)) > 0)%nat. 
+    { unfold gen_indexes. repeat rewrite map_length. rewrite seq_length. auto. }
+    rewrite <- (get_min_add_const _ _ _ H _).
+    pose proof (z2lookup_cms_insert_same k m).
+    apply map_ext_in_iff in H0.
+  Abort.
+
   Lemma cms_insert_comm: forall k1 k2 m,
       cms_insert k1 (cms_insert k2 m) = cms_insert k2 (cms_insert k1 m).
   Proof.
-    intros.
+    unfold cms_insert.
+    Search fold_left.
   Abort.
 
 End CMS.
