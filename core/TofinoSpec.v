@@ -506,8 +506,8 @@ Proof. exact 0. Qed.
 Definition hash_Z (hash_w : N) (poly : CRC_polynomial) (v : Val) : Z :=
   match convert_to_bits v with
   | Some input =>
-      extend_hash_output_Z hash_w (Hash.compute_crc (N.to_nat (CRCP_width poly)) (lbool_to_hex (CRCP_coeff poly))
-          (lbool_to_hex (CRCP_init poly)) (lbool_to_hex (CRCP_xor poly))
+      extend_hash_output_Z hash_w (Hash.compute_crc (N.to_nat (CRCP_width poly)) (lbool_to_N (CRCP_coeff poly))
+          (lbool_to_N (CRCP_init poly)) (lbool_to_N (CRCP_xor poly))
           (CRCP_reversed poly) (CRCP_reversed poly) input)
   | None =>
       dummy_Z
@@ -592,14 +592,14 @@ Proof.
     rewrite to_lbool_lbool_to_val'. 2 : {
       clear -H_width.
       assert (Datatypes.length
-                 (Hash.compute_crc (N.to_nat (CRCP_width poly)) (lbool_to_hex (CRCP_coeff poly))
-                    (lbool_to_hex (CRCP_init poly)) (lbool_to_hex (CRCP_xor poly))
+                 (Hash.compute_crc (N.to_nat (CRCP_width poly)) (lbool_to_N (CRCP_coeff poly))
+                    (lbool_to_N (CRCP_init poly)) (lbool_to_N (CRCP_xor poly))
                     (CRCP_reversed poly) (CRCP_reversed poly) input) = N.to_nat (CRCP_width poly)). {
         apply Hash.length_compute_crc.
       }
       revert H.
-      generalize (Hash.compute_crc (N.to_nat (CRCP_width poly)) (lbool_to_hex (CRCP_coeff poly))
-                    (lbool_to_hex (CRCP_init poly)) (lbool_to_hex (CRCP_xor poly))
+      generalize (Hash.compute_crc (N.to_nat (CRCP_width poly)) (lbool_to_N (CRCP_coeff poly))
+                    (lbool_to_N (CRCP_init poly)) (lbool_to_N (CRCP_xor poly))
                     (CRCP_reversed poly) (CRCP_reversed poly) input).
       intros.
       replace (N.of_nat (Datatypes.length b)) with (Z.to_N (Zlength b)). 2 : {

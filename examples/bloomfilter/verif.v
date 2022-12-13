@@ -145,9 +145,8 @@ Definition Add_fundef := Eval compute in
 Definition havoc := uninit_sval_of_sval.
 
 Section CRC.
-Import Hexadecimal.
 
-Definition CRC : list bool -> list bool := Hash.compute_crc 16%nat (D8 (D0 (D0 (D5 Nil)))) zero zero true true.
+Definition CRC : list bool -> list bool := Hash.compute_crc 16%nat 0x8005 0 0 true true.
 
 End CRC.
 
@@ -247,9 +246,6 @@ Proof.
       apply Forall2_bit_refine_eval_val_eq in H3. subst lv'.
       apply Forall2_ndetbit_eval_val_eq in H2. subst vs. rewrite x1 in H9. inv H9.
       unfold CRC_Z, CRC.
-      remember (Hexadecimal.D8
-                  (Hexadecimal.D0 (Hexadecimal.D0 (Hexadecimal.D5 Hexadecimal.Nil))))
-        as D8005. remember (Hexadecimal.D0 Hexadecimal.Nil) as D00.
       replace (BitArith.mod_bound 32 BASE) with BASE in *
           by (unfold BASE; now vm_compute).
       replace (BitArith.mod_bound 32 MAX) with MAX in *
@@ -263,7 +259,7 @@ Proof.
       generalize (to_lbool 32
                          (BASE +
                             BitArith.lbool_to_val
-                              (Hash.compute_crc 16 D8005 D00 D00 true true input) 1 0
+                              (Hash.compute_crc 16 0x8005 0 0 true true input) 1 0
                               mod MAX)). intros. inv H4. constructor.
       rewrite ForallMap.Forall2_forall in H0. destruct H0.
       rewrite <- ForallMap.Forall2_map_l, ForallMap.Forall2_forall. split; auto.
