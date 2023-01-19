@@ -2328,7 +2328,7 @@ Fixpoint to_lbool'' (width : nat) (value : Z) : list bool :=
   end.
 
 Lemma to_lbool'_app : forall width value res,
-  P4Arith.to_lbool' width value res = (P4Arith.to_lbool' width value [] ++ res)%list.
+  P4Arith.le_to_lbool' width value res = (P4Arith.le_to_lbool' width value [] ++ res)%list.
 Proof.
   induction width; intros.
   - auto.
@@ -2339,13 +2339,12 @@ Proof.
 Qed.
 
 Lemma to_lbool''_to_lbool' : forall width value,
-  to_lbool'' width value = rev (P4Arith.to_lbool' width value []).
+  rev (to_lbool'' width value) = P4Arith.le_to_lbool' width value [].
 Proof.
   induction width; intros.
   - auto.
   - simpl.
-    rewrite to_lbool'_app.
-    rewrite rev_app_distr.
+    rewrite to_lbool'_app. f_equal.
     rewrite IHwidth.
     auto.
 Qed.
@@ -2376,19 +2375,19 @@ Proof.
   induction w; intros.
   - lia.
   - replace (N.to_nat (N.of_nat (S w))) with (S (N.to_nat (N.of_nat w))) by lia.
-    unfold to_lbool'' at 1. fold to_lbool''.
+    simpl.
     destruct (w' =? 1)%N eqn:?H.
     + rewrite N.eqb_eq in *.
-      subst w'.
+      subst w'. simpl.
       auto.
-    + rewrite N.eqb_neq in *.
+(*    + rewrite N.eqb_neq in *.
       replace (N.to_nat w') with (S (N.to_nat (w' - 1))) by lia.
       unfold to_lbool'' at 2. fold to_lbool''.
       rewrite (map_cons _ _ (to_lbool'' (N.to_nat (w' - 1)) (v / 2))).
       rewrite <- IHw by lia.
       pose proof (Zlength_to_lbool''  (N.to_nat (N.of_nat w)) (v / 2)).
-      list_solve.
-Qed.
+      list_solve. *)
+Abort.
 
 Lemma P4Bit_mod_eq : forall w v v',
   v mod 2 ^ Z.of_N w = v' mod 2 ^ Z.of_N w ->
@@ -2419,7 +2418,7 @@ Proof.
       rewrite Z.pow_add_r; lia.
     }
     rewrite <- !P4Arith.div_2_mod_2_pow in H0 by lia.
-    rewrite H1 in *.
+    rewrite H1 in *. rewrite !map_app. simpl.
     f_equal.
     apply IHw.
     lia.
@@ -2450,17 +2449,19 @@ Lemma to_lbool_lbool_to_val : forall bs,
   = bs.
 Proof.
   intros.
-  unfold P4Arith.to_lbool.
-  rewrite <- to_lbool''_to_lbool'.
+  unfold P4Arith.to_lbool, BitArith.lbool_to_val.
+  rewrite <- to_lbool''_to_lbool', <- Zlength_rev.
+  rewrite <- (rev_involutive bs) at 3.
+  generalize (rev bs). clear bs. intro bs. f_equal.
   induction bs.
   - auto.
   - replace (N.to_nat (Z.to_N (Zlength (a :: bs))))
       with (S (N.to_nat (Z.to_N (Zlength bs)))) by list_solve.
     simpl.
-    rewrite P4Arith.BitArith.lbool_to_val_1_0.
-    rewrite P4Arith.BitArith.lbool_to_val_1_0 with (o := 2).
+    rewrite P4Arith.BitArith.le_lbool_to_val_1_0.
+    rewrite P4Arith.BitArith.le_lbool_to_val_1_0 with (o := 2).
     destruct a.
-    + replace (Z.odd (P4Arith.BitArith.lbool_to_val bs 1 0 * 2 + 1)) with true. 2 : {
+    + replace (Z.odd (P4Arith.BitArith.le_lbool_to_val bs 1 0 * 2 + 1)) with true. 2 : {
         rewrite Z.add_comm.
         rewrite Z.mul_comm.
         rewrite Z.odd_add_mul_2.
@@ -2470,7 +2471,7 @@ Proof.
       replace (1 / 2) with 0 by auto.
       rewrite Z.add_0_r.
       f_equal; auto.
-    + replace (Z.odd (P4Arith.BitArith.lbool_to_val bs 1 0 * 2 + 0)) with false. 2 : {
+    + replace (Z.odd (P4Arith.BitArith.le_lbool_to_val bs 1 0 * 2 + 0)) with false. 2 : {
         rewrite Z.add_comm.
         rewrite Z.mul_comm.
         rewrite Z.odd_add_mul_2.

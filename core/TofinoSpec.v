@@ -675,7 +675,7 @@ Qed.
 
 (* This lemma is unused. *)
 Lemma to_lbool''_to_lbool : forall (width : N) (value : Z),
-  to_lbool'' (N.to_nat width) value = P4Arith.to_lbool width value.
+  rev (to_lbool'' (N.to_nat width) value) = P4Arith.to_lbool width value.
 Proof.
   intros.
   apply to_lbool''_to_lbool'.
@@ -687,14 +687,17 @@ Lemma bit_to_from_bool : forall bl,
 Proof.
   intros.
   rewrite <- to_lbool''_to_lbool.
+  unfold BitArith.from_lbool, BitArith.lbool_to_val. simpl.
+  rewrite <- Zlength_rev. rewrite <- (rev_involutive bl) at 3. f_equal.
+  generalize (rev bl). clear bl. intro bl.
   induction bl; auto.
   simpl.
   replace (N.to_nat (Z.to_N (Zlength (a :: bl)))) with (S (N.to_nat (Z.to_N (Zlength bl)))) by list_solve.
   simpl to_lbool''.
-  destruct a; rewrite P4Arith.BitArith.lbool_to_val_1_0.
+  destruct a; rewrite P4Arith.BitArith.le_lbool_to_val_1_0.
   - f_equal.
-    { replace (P4Arith.BitArith.lbool_to_val bl 1 0 * 2 + 1) with
-        (1 + 2 * P4Arith.BitArith.lbool_to_val bl 1 0) by lia.
+    { replace (P4Arith.BitArith.le_lbool_to_val bl 1 0 * 2 + 1) with
+        (1 + 2 * P4Arith.BitArith.le_lbool_to_val bl 1 0) by lia.
       rewrite Z.odd_add_mul_2; auto.
     }
     rewrite Z.div_add_l by lia.
@@ -702,8 +705,8 @@ Proof.
     rewrite Z.add_0_r.
     apply IHbl.
   - f_equal.
-    { replace (P4Arith.BitArith.lbool_to_val bl 1 0 * 2 + 0) with
-        (0 + 2 * P4Arith.BitArith.lbool_to_val bl 1 0) by lia.
+    { replace (P4Arith.BitArith.le_lbool_to_val bl 1 0 * 2 + 0) with
+        (0 + 2 * P4Arith.BitArith.le_lbool_to_val bl 1 0) by lia.
       rewrite Z.odd_add_mul_2; auto.
     }
     rewrite Z.div_add_l by lia.
@@ -718,16 +721,19 @@ Lemma int_to_from_bool : forall bl,
 Proof.
   intros.
   rewrite <- to_lbool''_to_lbool.
+  unfold IntArith.from_lbool, IntArith.lbool_to_val. simpl.
+  rewrite <- Zlength_rev. rewrite <- (rev_involutive bl) at 3. f_equal.
+  generalize (rev bl). clear bl. intro bl.
   induction bl; auto.
   simpl.
   replace (N.to_nat (Z.to_N (Zlength (a :: bl)))) with (S (N.to_nat (Z.to_N (Zlength bl)))) by list_solve.
   simpl to_lbool''.
-  destruct a; rewrite P4Arith.IntArith.lbool_to_val_1_0.
+  destruct a; rewrite P4Arith.IntArith.le_lbool_to_val_1_0.
   - f_equal.
     { destruct bl as [ | b bl']; auto.
       set (bl := b :: bl') in *.
-      replace (P4Arith.IntArith.lbool_to_val bl 1 0 * 2 + 1) with
-        (1 + 2 * P4Arith.IntArith.lbool_to_val bl 1 0) by lia.
+      replace (P4Arith.IntArith.le_lbool_to_val bl 1 0 * 2 + 1) with
+        (1 + 2 * P4Arith.IntArith.le_lbool_to_val bl 1 0) by lia.
       rewrite Z.odd_add_mul_2; auto.
     }
     destruct bl as [ | b bl']; auto.
@@ -739,8 +745,8 @@ Proof.
   - f_equal.
     { destruct bl as [ | b bl']; auto.
       set (bl := b :: bl') in *.
-      replace (P4Arith.IntArith.lbool_to_val bl 1 0 * 2 + 0) with
-        (0 + 2 * P4Arith.IntArith.lbool_to_val bl 1 0) by lia.
+      replace (P4Arith.IntArith.le_lbool_to_val bl 1 0 * 2 + 0) with
+        (0 + 2 * P4Arith.IntArith.le_lbool_to_val bl 1 0) by lia.
       rewrite Z.odd_add_mul_2; auto.
     }
     destruct bl as [ | b bl']; auto.
