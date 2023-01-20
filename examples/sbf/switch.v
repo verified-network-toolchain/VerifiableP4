@@ -58,7 +58,7 @@ Definition ingress_intrinsic_metadata_for_tm_t : P4Type :=
     (!"level1_mcast_hash", TypBit 13);
     (!"level2_mcast_hash", TypBit 13);
     (!"level1_exclusion_id", TypBit 16);
-    (!"level2_exclusion_id", TypBit 9); 
+    (!"level2_exclusion_id", TypBit 9);
     (!"rid", TypBit 16)].
 
 
@@ -119,7 +119,7 @@ Definition ipv4_addr_w := 32%N.
 
 Definition get_drop_ctl (v : Sval) : bool :=
   match v with
-  | ValBaseBit [ob; _; _] => force false ob
+  | ValBaseBit [_ ; _; ob] => force false ob
   | _ => false
   end.
 

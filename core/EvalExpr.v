@@ -2311,14 +2311,17 @@ Proof.
 Qed.
 
 Lemma bitstring_slice_spec : forall {A} (l : list A) lo hi,
-  Ops.bitstring_slice l lo hi = sublist (Z.of_nat lo) (Z.of_nat hi + 1) l.
+    (0 <= lo <= hi)%nat ->
+    Z.of_nat hi < Zlength l ->
+    Ops.bitstring_slice l lo hi =
+      sublist (Zlength l - (Z.of_nat hi + 1)) (Zlength l - Z.of_nat lo) l.
 Proof.
   intros.
   unfold Ops.bitstring_slice.
   rewrite bitstring_slice'_spec.
-  rewrite rev_app_distr.
-  rewrite rev_involutive.
-  auto.
+  rewrite app_nil_r.
+  rewrite sublist_rev by lia.
+  rewrite rev_involutive. reflexivity.
 Qed.
 
 Fixpoint to_lbool'' (width : nat) (value : Z) : list bool :=
@@ -2365,29 +2368,30 @@ Lemma bitstring_slice_lower_bit : forall (w w' : N) v,
   ValBaseBit (Ops.bitstring_slice (P4Arith.to_loptbool w v) (N.to_nat 0) (N.to_nat (w' - 1)))
     = P4Bit w' v.
 Proof.
-  intros.
-  rewrite bitstring_slice_spec.
-  unfold P4Bit, P4Arith.to_loptbool, P4Arith.to_lbool.
-  rewrite <- !to_lbool''_to_lbool'.
-  f_equal.
-  replace w with (N.of_nat (N.to_nat w)) in * by lia.
+  intros. rewrite bitstring_slice_spec. 2: lia.
+  2: unfold to_loptbool; rewrite Zlength_map, Zlength_to_lbool; lia.
+  unfold P4Bit. f_equal. unfold to_loptbool.
+  rewrite Zlength_map, Zlength_to_lbool, !Znat.N_nat_Z. simpl. rewrite Z.sub_0_r.
+  unfold to_lbool. rewrite <- !to_lbool''_to_lbool', !map_rev.
+  rewrite sublist_rev; [| lia | rewrite Zlength_map, Zlength_to_lbool''; lia].
+  f_equal. rewrite Zlength_map, Zlength_to_lbool''.
+  replace (Z.of_nat (N.to_nat w) - Z.of_N w) with 0 by lia.
+  replace (Z.of_nat (N.to_nat w) - (Z.of_N w - (Z.of_N (w' - 1) + 1))) with
+    (Z.of_N w') by lia.
+  replace w with (N.of_nat (N.to_nat w)) in H0 by lia.
   revert w' H0 H1 v. generalize (N.to_nat w). clear w; intro w.
   induction w; intros.
   - lia.
-  - replace (N.to_nat (N.of_nat (S w))) with (S (N.to_nat (N.of_nat w))) by lia.
-    simpl.
+  - simpl.
     destruct (w' =? 1)%N eqn:?H.
     + rewrite N.eqb_eq in *.
-      subst w'. simpl.
-      auto.
-(*    + rewrite N.eqb_neq in *.
+      subst w'. simpl. list_solve.
+    + rewrite N.eqb_neq in *.
       replace (N.to_nat w') with (S (N.to_nat (w' - 1))) by lia.
-      unfold to_lbool'' at 2. fold to_lbool''.
-      rewrite (map_cons _ _ (to_lbool'' (N.to_nat (w' - 1)) (v / 2))).
-      rewrite <- IHw by lia.
-      pose proof (Zlength_to_lbool''  (N.to_nat (N.of_nat w)) (v / 2)).
-      list_solve. *)
-Abort.
+      simpl. rewrite <- IHw by lia.
+      pose proof (Zlength_to_lbool'' w (v / 2)).
+      list_solve.
+Qed.
 
 Lemma P4Bit_mod_eq : forall w v v',
   v mod 2 ^ Z.of_N w = v' mod 2 ^ Z.of_N w ->
