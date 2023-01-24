@@ -118,7 +118,7 @@ Definition bf2_act_set_insert_key_spec :=
       POST
         (ARG_RET [] ValBaseNull
         (MEM [(["ig_md"], update "bf2_key" (eval_val_to_sval (ValBaseBit
-                (P4Arith.to_lbool ipv4_addr_w (fst h) ++ P4Arith.to_lbool ipv4_addr_w (snd h))))
+                (P4Arith.to_lbool ipv4_addr_w (snd h) ++ P4Arith.to_lbool ipv4_addr_w (fst h))))
           (update "bf2_api" (P4Bit 8 INSERT)
             (update "solicited" (P4Bit 8 0)
               (force ValBaseNull (uninit_sval_of_typ None metadata_t)))))]
@@ -157,7 +157,7 @@ Definition bf2_act_set_query_key_spec :=
       POST
         (ARG_RET [] ValBaseNull
         (MEM [(["ig_md"], update "bf2_key" (eval_val_to_sval (ValBaseBit
-                (P4Arith.to_lbool ipv4_addr_w (snd h) ++ P4Arith.to_lbool ipv4_addr_w (fst h))))
+                (P4Arith.to_lbool ipv4_addr_w (fst h) ++ P4Arith.to_lbool ipv4_addr_w (snd h))))
           (update "bf2_api" (P4Bit 8 QUERY)
             (update "solicited" (P4Bit 8 0)
               (force ValBaseNull (uninit_sval_of_typ None metadata_t)))))]
@@ -198,9 +198,9 @@ Definition bf2_tbl_set_key_spec :=
         (ARG_RET [] retv
         (MEM [(["ig_md"], update "bf2_key" (eval_val_to_sval (ValBaseBit
               (if is_internal (fst h) then
-                P4Arith.to_lbool ipv4_addr_w (fst h) ++ P4Arith.to_lbool ipv4_addr_w (snd h)
+                P4Arith.to_lbool ipv4_addr_w (snd h) ++ P4Arith.to_lbool ipv4_addr_w (fst h)
                else
-                P4Arith.to_lbool ipv4_addr_w (snd h) ++ P4Arith.to_lbool ipv4_addr_w (fst h))))
+                P4Arith.to_lbool ipv4_addr_w (fst h) ++ P4Arith.to_lbool ipv4_addr_w (snd h))))
           (update "bf2_api" (P4Bit 8 (if is_internal (fst h) then INSERT else QUERY))
             (update "solicited" (P4Bit 8 0)
               (force ValBaseNull (uninit_sval_of_typ None metadata_t)))))]

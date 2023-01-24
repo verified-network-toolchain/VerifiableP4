@@ -79,7 +79,7 @@ Definition hash3 (v : Val) :=
 Definition header_type : Set := Z * Z.
 
 Definition header_to_val '((x, y) : header_type) : Val :=
-  ValBaseBit ((P4Arith.to_lbool 32 x) ++ (P4Arith.to_lbool 32 y)).
+  ValBaseBit ((P4Arith.to_lbool 32 y) ++ (P4Arith.to_lbool 32 x)).
 
 Definition hashes := [hash1 ∘ header_to_val; hash2 ∘ header_to_val; hash3 ∘ header_to_val].
 
