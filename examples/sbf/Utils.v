@@ -127,3 +127,12 @@ Proof.
   replace (len - Zlength l) with 0 by lia. replace (i + len - Zlength l) with i by lia.
   now rewrite and_comm, <- Forall_app, sublist_rejoin, sublist_same by lia.
 Qed.
+
+Definition sumup (l: list Z) := fold_left Z.add l 0.
+
+Lemma sumup_cons: forall l b, sumup (b :: l) = b + sumup l.
+Proof.
+Admitted.
+
+Lemma sumup_perm: forall l1 l2, Permutation l1 l2 -> sumup l1 = sumup l2.
+Proof. intros. induction H; simpl; auto; try rewrite !sumup_cons; lia. Qed.

@@ -19,7 +19,7 @@ Next Obligation.
   list_solve.
 Qed.
 
-Section ConFilter.
+Section ConCountMinSketch.
 
 Context {num_frames num_rows num_slots : Z}.
 Hypothesis H_num_frames : 1 < num_frames.
@@ -96,10 +96,10 @@ Definition list_min (l : list Z) : Z :=
 Program Definition frame_query (f : frame) (is : list Z) : Z :=
   list_min (map2 row_query f is).
 
-Record filter := mk_filter {
-  fil_frames : listn frame num_frames;
-  fil_clear_index : Z;
-  fil_timer : Z * bool;
+Record cms := mk_cms {
+  cms_frames : listn frame num_frames;
+  cms_clear_index : Z;
+  cms_timer : Z * bool;
 }.
 
 Definition clear_index_wf (i: Z) := 0 <= i < num_slots.
@@ -250,15 +250,15 @@ Definition get_insert_frame (cf : Z) : Z :=
 Lemma get_insert_frame_range: forall cf, 0 <= cf < num_frames -> 0 <= get_insert_frame cf < num_frames.
 Proof. intros. unfold get_insert_frame. destruct (cf =? 0) eqn: ?H; lia. Qed.
 
-Program Definition filter_insert (f : filter) (tick : bool) (is : listn Z num_rows) : filter :=
-  let '(mk_filter (exist _ frames H) clear_index timer) := f in
+Program Definition cms_insert (f : cms) (tick : bool) (is : listn Z num_rows) : cms :=
+  let '(mk_cms (exist _ frames H) clear_index timer) := f in
   let new_clear_index := update_clear_index clear_index in
   let timer := update_timer timer tick in
   let cf := get_clear_frame timer in
   let if' := get_insert_frame cf in
   let frames := upd_Znth cf frames (frame_clear (Znth cf frames) (Zrepeat clear_index num_rows)) in
   let frames := upd_Znth if' frames (frame_insert (Znth if' frames) is) in
-  mk_filter frames new_clear_index timer.
+  mk_cms frames new_clear_index timer.
 Next Obligation.
   list_solve.
 Qed.
@@ -266,14 +266,14 @@ Next Obligation.
   list_solve.
 Qed.
 
-(* Program Definition filter_query (f : filter) (tick : bool) (is : listn Z num_rows) : filter * bool :=
-  let '(mk_filter (exist _ frames H) clear_index timer) := f in
+Program Definition cms_query (f : cms) (tick : bool) (is : listn Z num_rows) : cms * Z :=
+  let '(mk_cms (exist _ frames H) clear_index timer) := f in
   let new_clear_index := update_clear_index clear_index in
   let timer := update_timer timer tick in
   let cf := get_clear_frame timer in
   let frames := upd_Znth cf frames (frame_clear (Znth cf frames) (Zrepeat clear_index num_rows)) in
-  (mk_filter frames new_clear_index timer,
-    fold_orb (upd_Znth cf (map (fun f => frame_query f is) frames) false)).
+  (mk_cms frames new_clear_index timer,
+    sumup (upd_Znth cf (map (fun f => frame_query f is) frames) 0)).
 Next Obligation.
   list_solve.
 Qed.
@@ -281,25 +281,25 @@ Next Obligation.
   list_solve.
 Qed.
 
-Program Definition filter_clear (f : filter) (tick : bool) : filter :=
-  let '(mk_filter (exist _ frames H) clear_index timer) := f in
+Program Definition cms_clear (f : cms) (tick : bool) : cms :=
+  let '(mk_cms (exist _ frames H) clear_index timer) := f in
   let new_clear_index := update_clear_index clear_index in
   let timer := update_timer timer tick in
   let cf := get_clear_frame timer in
   let frames := upd_Znth cf frames (frame_clear (Znth cf frames) (Zrepeat clear_index num_rows)) in
-  mk_filter frames new_clear_index timer.
+  mk_cms frames new_clear_index timer.
 Next Obligation.
   list_solve.
 Qed.
 Next Obligation.
   list_solve.
-Qed. *)
+Qed.
 
-End ConFilter.
+End ConCountMinSketch.
 
 Arguments row : clear implicits.
 Arguments frame : clear implicits.
-Arguments filter : clear implicits.
+Arguments cms : clear implicits.
 Arguments timer_wf : clear implicits.
 Arguments clear_index_wf : clear implicits.
 Arguments get_clear_frame : clear implicits.
