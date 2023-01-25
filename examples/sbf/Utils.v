@@ -128,13 +128,13 @@ Proof.
   now rewrite and_comm, <- Forall_app, sublist_rejoin, sublist_same by lia.
 Qed.
 
-Definition sumup (l: list Z) := fold_left Z.add l 0.
+Definition Zsum (l: list Z) := fold_left Z.add l 0.
 
-Lemma sumup_cons: forall l b, sumup (b :: l) = b + sumup l.
+Lemma Zsum_cons: forall l b, Zsum (b :: l) = b + Zsum l.
 Proof.
-  unfold sumup. simpl. induction l; intros; simpl; try lia.
+  unfold Zsum. simpl. induction l; intros; simpl; try lia.
   rewrite IHl, (IHl a). lia.
 Qed.
 
-Lemma sumup_perm: forall l1 l2, Permutation l1 l2 -> sumup l1 = sumup l2.
-Proof. intros. induction H; simpl; auto; try rewrite !sumup_cons; lia. Qed.
+Lemma Zsum_perm: forall l1 l2, Permutation l1 l2 -> Zsum l1 = Zsum l2.
+Proof. intros. induction H; simpl; auto; try rewrite !Zsum_cons; lia. Qed.

@@ -273,7 +273,7 @@ Program Definition cms_query (f : cms) (tick : bool) (is : listn Z num_rows) : c
   let cf := get_clear_frame timer in
   let frames := upd_Znth cf frames (frame_clear (Znth cf frames) (Zrepeat clear_index num_rows)) in
   (mk_cms frames new_clear_index timer,
-    sumup (upd_Znth cf (map (fun f => frame_query f is) frames) 0)).
+    Zsum (upd_Znth cf (map (fun f => frame_query f is) frames) 0)).
 Next Obligation.
   list_solve.
 Qed.

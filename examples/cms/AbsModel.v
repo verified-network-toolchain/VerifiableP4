@@ -117,7 +117,7 @@ Definition row_query (r : row) (h : header_type) : option Z :=
   match r with
   | Clear _ => None
   | Normal hs =>
-      Some (sumup (map (Z.b2z ∘ Z.eqb (hash h) ∘ hash) hs))
+      Some (Zsum (map (Z.b2z ∘ Z.eqb (hash h) ∘ hash) hs))
   end.
 
 Lemma row_query_sound : forall r cr h res,
@@ -128,7 +128,7 @@ Proof.
   intros.
   destruct r; inv H0.
   inv H.
-  unfold sumup.
+  unfold Zsum.
   rewrite <- !fold_left_rev_right in *.
   rewrite <- !map_rev in *. destruct cr as [cr ?H].  simpl in *. subst cr.
   unfold ConModel.row_query. simpl. clear H.
@@ -255,7 +255,7 @@ Proof.
   inv_option_map H0.
   apply Utils.lift_option_inv in H0.
   rewrite <- H1.
-  unfold ConModel.frame_query, sumup. f_equal.
+  unfold ConModel.frame_query, Zsum. f_equal.
   unfold frame_sim in H.
   destruct cf as [cf ?H]. simpl in *.
   assert (Zlength (map2 ConModel.row_query cf (map (fun hash : header_type -> Z => hash h) hashes))
@@ -457,7 +457,7 @@ Definition cms_insert (f : cms) '(timestamp, h) : option cms :=
 Definition cms_query (f : cms) '((timestamp, h) : Z * header_type) : option (cms * Z) :=
   match cms_refresh f timestamp with
   | Some (mk_cms window_hi last_timestamp num_clears normal_frames) =>
-      let res := sumup (map (fun hs => list_min (map (fun hash => sumup (map (Z.b2z ∘ Z.eqb (hash h) ∘ hash) hs)) hashes)) normal_frames) in
+      let res := Zsum (map (fun hs => list_min (map (fun hash => Zsum (map (Z.b2z ∘ Z.eqb (hash h) ∘ hash) hs)) hashes)) normal_frames) in
       Some (mk_cms window_hi timestamp (num_clears + 1) normal_frames, res)
   | _ => None
   end.
@@ -787,14 +787,14 @@ Qed.
 Lemma frame_query_normal_unfold:
   forall f h, frame_query (Normal f) h =
            Some (list_min (map (fun hash : header_type -> Z =>
-                                  sumup (map (Z.b2z ∘ Z.eqb (hash h) ∘ hash) f)) hashes)).
+                                  Zsum (map (Z.b2z ∘ Z.eqb (hash h) ∘ hash) f)) hashes)).
 Proof.
   intros. unfold frame_query. simpl.
   generalize hashes. intros l.
   replace (map (fun hash : header_type -> Z =>
-                  Some (sumup (map (Z.b2z ∘ Z.eqb (hash h) ∘ hash) f))) l) with
+                  Some (Zsum (map (Z.b2z ∘ Z.eqb (hash h) ∘ hash) f))) l) with
     (map Some (map (fun hash : header_type -> Z =>
-                      sumup (map (Z.b2z ∘ Z.eqb (hash h) ∘ hash) f)) l)) by
+                      Zsum (map (Z.b2z ∘ Z.eqb (hash h) ∘ hash) f)) l)) by
     (rewrite map_map; auto).
   rewrite lift_option_map_some. simpl. reflexivity.
 Qed.
@@ -863,11 +863,11 @@ Proof.
                    ConModel.frame_query f (map (fun hash : header_type -> Z => hash h) hashes))
                 cframes).
     rewrite upd_Znth_unfold by list_solve.
-    rewrite <- (sumup_perm (0 :: sublist (cf + 1) (Zlength l) l ++ sublist 0 cf l)
+    rewrite <- (Zsum_perm (0 :: sublist (cf + 1) (Zlength l) l ++ sublist 0 cf l)
                  (sublist 0 cf l ++ [0] ++ sublist (cf + 1) (Zlength l) l)).
     2 : { transitivity (0 :: sublist 0 cf l ++ sublist (cf + 1) (Zlength l) l).
           2: apply Permutation_middle. constructor. apply Permutation_app_comm. }
-    rewrite sumup_cons. rewrite Z.add_0_l. f_equal. apply Znth_eq_ext.
+    rewrite Zsum_cons. rewrite Z.add_0_l. f_equal. apply Znth_eq_ext.
     1: rewrite Zlength_map in *; list_solve. intros. rewrite Zlength_map in *.
     rewrite Znth_map; auto. specialize (H2 i H3). rewrite Znth_sublist in H2 by list_solve.
     pose proof (frame_query_normal_unfold (Znth i normal_frs) h).
