@@ -863,20 +863,17 @@ Proof.
                    ConModel.frame_query f (map (fun hash : header_type -> Z => hash h) hashes))
                 cframes).
     rewrite upd_Znth_unfold by list_solve.
-    (*
-    rewrite <- (fold_orb_perm (false :: sublist (cf + 1) (Zlength l) l ++ sublist 0 cf l)
-                 (sublist 0 cf l ++ [false] ++ sublist (cf + 1) (Zlength l) l)).
-    2 : { transitivity (false :: sublist 0 cf l ++ sublist (cf + 1) (Zlength l) l).
+    rewrite <- (sumup_perm (0 :: sublist (cf + 1) (Zlength l) l ++ sublist 0 cf l)
+                 (sublist 0 cf l ++ [0] ++ sublist (cf + 1) (Zlength l) l)).
+    2 : { transitivity (0 :: sublist 0 cf l ++ sublist (cf + 1) (Zlength l) l).
           2: apply Permutation_middle. constructor. apply Permutation_app_comm. }
-    rewrite fold_orb_false. f_equal. apply Znth_eq_ext.
+    rewrite sumup_cons. rewrite Z.add_0_l. f_equal. apply Znth_eq_ext.
     1: rewrite Zlength_map in *; list_solve. intros. rewrite Zlength_map in *.
     rewrite Znth_map; auto. specialize (H2 i H3). rewrite Znth_sublist in H2 by list_solve.
     pose proof (frame_query_normal_unfold (Znth i normal_frs) h).
     rewrite Znth_map in H2 by list_solve. eapply frame_query_sound in H4; eauto. rewrite <- H4, Heql.
     clear -H H0 H1 H3. list_solve.
-Qed. *)
-
-Abort.
+Qed.
 
 Lemma cms_clear_sound: forall f cf t f',
     cms_sim f cf ->

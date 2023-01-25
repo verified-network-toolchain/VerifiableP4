@@ -132,7 +132,9 @@ Definition sumup (l: list Z) := fold_left Z.add l 0.
 
 Lemma sumup_cons: forall l b, sumup (b :: l) = b + sumup l.
 Proof.
-Admitted.
+  unfold sumup. simpl. induction l; intros; simpl; try lia.
+  rewrite IHl, (IHl a). lia.
+Qed.
 
 Lemma sumup_perm: forall l1 l2, Permutation l1 l2 -> sumup l1 = sumup l2.
 Proof. intros. induction H; simpl; auto; try rewrite !sumup_cons; lia. Qed.
