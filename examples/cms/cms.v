@@ -126,7 +126,7 @@ Section CMS.
                | nil => fun s => _
                | a :: _ => fun _ => a
                end) H).
-    simpl in s. exfalso. apply (gt_irrefl 0). assumption.
+    simpl in s. exfalso. apply (Nat.lt_irrefl 0). assumption.
   (* simpl in s. apply gt_irrefl in s. exfalso. assumption. *)
   (* trick: define a commplex lemma and then apply to shorten
               the definition printed out. *)

@@ -91,8 +91,8 @@ Proof.
       apply IHal; list_solve.
 Qed.
 
-Hint Rewrite @Zlength_map2 using Zlength_solve : Zlength.
-Hint Rewrite @Znth_map2 using Zlength_solve : Znth.
+#[export] Hint Rewrite @Zlength_map2 using Zlength_solve : Zlength.
+#[export] Hint Rewrite @Znth_map2 using Zlength_solve : Znth.
 
 Lemma Forall2_forall_range2 : forall {A B} {da : Inhabitant A} {db : Inhabitant B}
     (P : A -> B -> Prop) al bl,

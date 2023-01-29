@@ -16,7 +16,7 @@ Require Import ProD3.examples.bloomfilter.p4ast.
 Require Import ProD3.examples.sbf.ConFilter.
 Require Import ProD3.examples.sbf.general_bf.
 
-Instance target : @Target Info (@Expression Info) := V1Model.
+#[local] Instance target : @Target Info (@Expression Info) := V1Model.
 
 Notation ident := string.
 Notation path := (list ident).
@@ -91,7 +91,7 @@ Proof.
   rewrite Zlength_length; eauto.
 Qed.
 
-Hint Rewrite Zlength_seq using lia : Zlength.
+#[local] Hint Rewrite Zlength_seq using lia : Zlength.
 
 Lemma Znth_seq : forall n i start,
   0 <= i < n ->
@@ -102,7 +102,7 @@ Proof.
   rewrite seq_nth; lia.
 Qed.
 
-Hint Rewrite Znth_seq using lia : Znth.
+#[local] Hint Rewrite Znth_seq using lia : Znth.
 
 Lemma Znth_list_of_filter : forall filter i,
   0 <= i < NUM_ENTRY ->
@@ -113,7 +113,7 @@ Proof.
   list_simplify.
 Qed.
 
-Hint Rewrite Znth_list_of_filter using lia : Znth.
+#[local] Hint Rewrite Znth_list_of_filter using lia : Znth.
 
 Lemma update_bit : forall filter hash,
     reg_encode (list_of_filter (row_insert filter hash)) =
