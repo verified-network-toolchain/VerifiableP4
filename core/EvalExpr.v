@@ -122,6 +122,9 @@ Definition abs_eq: Sval -> Sval -> Sval :=
 Definition abs_neq: Sval -> Sval -> Sval :=
   build_abs_binary_op (Ops.eval_binary_op NotEq).
 
+Definition abs_plus_sat : Sval -> Sval -> Sval :=
+  build_abs_binary_op (Ops.eval_binary_op PlusSat).
+
 Lemma abs_bin_op_bit: forall op w i1 i2,
     ~ In op [Shl; Shr; Eq; NotEq; PlusPlus] ->
     build_abs_binary_op (Ops.eval_binary_op op)
@@ -208,6 +211,16 @@ Proof.
   rewrite !lift_option_map_some. unfold Ops.eval_binary_op. simpl.
   rewrite !Zlength_to_lbool. rewrite BinNat.N.eqb_refl. simpl.
   now rewrite !bit_to_lbool_back.
+Qed.
+
+Lemma abs_plus_sat_bit : forall w i1 i2,
+  abs_plus_sat (P4Bit w i1) (P4Bit w i2)
+    = P4Bit w (BitArith.sat_bound w (BitArith.mod_bound w i1 + BitArith.mod_bound w i2)).
+Proof.
+  intros. unfold abs_plus_sat. rewrite abs_bin_op_bit.
+  - reflexivity.
+  - intro. inversion H0; inversion H1; inversion H2; inversion H3;
+      inversion H4; inversion H5.
 Qed.
 
 Lemma abs_bin_op_int: forall op w i1 i2,
@@ -304,6 +317,16 @@ Proof.
   rewrite !lift_option_map_some. unfold Ops.eval_binary_op. simpl.
   rewrite !Zlength_to_lbool. rewrite BinNat.N.eqb_refl. simpl.
   rewrite !int_to_lbool_back. destruct (BinNat.N.eqb w N0); auto.
+Qed.
+
+Lemma abs_cast_bit_integer : forall w i,
+  build_abs_unary_op (@Ops.eval_cast tags_t (TypBit w)) (ValBaseInteger i)
+    = P4Bit w i.
+Proof.
+  intros.
+  unfold build_abs_unary_op. simpl.
+  rewrite P4Arith.to_lbool_bit_mod.
+  reflexivity.
 Qed.
 
 Definition eval_read_var (a : mem_assertion) (p : path) : option Sval :=
@@ -404,6 +427,8 @@ Fixpoint eval_expr (ge : genv) (p : path) (a : mem_assertion) (expr : Expression
                     Some (abs_neq largv rargv)
                 | BitAnd =>
                     Some (abs_bitand largv rargv)
+                | PlusSat =>
+                    Some (abs_plus_sat largv rargv)
                 | _ =>
                     Some (build_abs_binary_op (Ops.eval_binary_op op) largv rargv)
                 end
@@ -2512,5 +2537,6 @@ Qed.
 End EvalExpr.
 
 #[export] Hint Resolve eval_expr_sound eval_lexpr_sound eval_write_sound eval_arg_sound eval_args_sound : hoare.
-#[export] Hint Rewrite abs_plus_bit abs_minus_bit abs_mul_bit abs_eq_bit abs_neq_bit
-                       abs_plus_int abs_minus_int abs_mul_int abs_eq_int abs_neq_int : abs_ops.
+#[export] Hint Rewrite abs_plus_bit abs_minus_bit abs_mul_bit abs_eq_bit abs_neq_bit abs_plus_sat_bit
+                       abs_plus_int abs_minus_int abs_mul_int abs_eq_int abs_neq_int
+                       @abs_cast_bit_integer : abs_ops.

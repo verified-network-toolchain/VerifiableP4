@@ -29,7 +29,7 @@ Ltac simpl_eval_p4int_sval1 :=
       | Some (?w, false) =>
           change (eval_p4int_sval i) with (P4Bit w v)
       | None =>
-          change (eval_p4int_sval i) with (ValBaseInteger v)
+          change (eval_p4int_sval i) with (@ValBaseInteger (option bool) v)
       end
   | H : context [eval_p4int_sval ?i] |- _ =>
       revert H;

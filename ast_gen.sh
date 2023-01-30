@@ -16,9 +16,9 @@ if [ $1 == "all" ]; then
         fi
     done
 else
-    petr4 typecheck -json \
+    petr4 check \
         $1 \
-        -I "$include_dir" -exportp4 \
-        -export-file ${1%basic.p4}p4ast.v \
+        -I "$include_dir" -I "." \
+        -output-p4light $(dirname $1)/p4ast.v \
         -normalize -gen-loc
 fi

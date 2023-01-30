@@ -103,10 +103,10 @@ parser SwitchIngressParser(packet_in pkt,
 control Cm2CountMinSketchRow(in api_t api,
                              in cm2_index_t index,
                              out cm2_value_t rw)  {
-    Register<cm2_value_t, cm2_index_t>(32w32768) reg_row;
+    Register<cm2_value_t, cm2_index_t>(32w32768, 32w0) reg_row;
     RegisterAction<cm2_value_t, cm2_index_t, cm2_value_t>(reg_row) regact_insert = {
         void apply(inout cm2_value_t value, out cm2_value_t rv) {
-            value = (value |+| api);
+            value = (value |+| 1);
             rv = value;
         }
     };
@@ -160,11 +160,11 @@ control Cm2CountMinSketchWin(inout cm2_win_md_t win_md)  {
     Cm2CountMinSketchRow() row_3;
     Cm2CountMinSketchRow() row_4;
     action act_merge_rows_1() {
-        win_md.rw_1 = (win_md.rw_1 |+| win_md.rw_3);
-        win_md.rw_2 = (win_md.rw_2 |+| win_md.rw_4);
+        win_md.rw_1 = min(win_md.rw_1, win_md.rw_3);
+        win_md.rw_2 = min(win_md.rw_2, win_md.rw_4);
     }
     action act_merge_rows_2() {
-        win_md.rw_1 = (win_md.rw_1 |+| win_md.rw_2);
+        win_md.rw_1 = min(win_md.rw_1, win_md.rw_2);
     }
     table tbl_merge_rows_1 {
         key = { }
