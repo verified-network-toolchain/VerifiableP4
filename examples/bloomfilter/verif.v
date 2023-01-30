@@ -329,15 +329,15 @@ Proof.
   unfold encode_bloomfilter_state.
   normalize_EXT.
   step_call register_write_body.
-  { entailer. }
+  { entailer. Unshelve. 3: exact (ValBaseBit (to_lbool 1 1)). repeat constructor. shelve. }
   reflexivity. 2: simpl; lia.
   { apply CRC_range. }
   step_call register_write_body.
-  { entailer. }
+  { entailer. Unshelve. 3: exact (ValBaseBit (to_lbool 1 1)). repeat constructor. shelve. }
   reflexivity. 2: simpl; lia.
   { apply CRC_range. }
   step_call register_write_body.
-  { entailer. }
+  { entailer. Unshelve. 3: exact (ValBaseBit (to_lbool 1 1)). repeat constructor. shelve. }
   reflexivity. 2: simpl; lia.
   { apply CRC_range. }
   step.
