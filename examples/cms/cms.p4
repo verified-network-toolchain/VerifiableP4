@@ -167,14 +167,14 @@ control Cm2CountMinSketchWin(inout cm2_win_md_t win_md)  {
     Cm2CountMinSketchRow() row_4;
     Cm2CountMinSketchRow() row_5;
     action act_merge_rows_1() {
-        win_md.rw_1 = (win_md.rw_1 |+| win_md.rw_4);
-        win_md.rw_2 = (win_md.rw_2 |+| win_md.rw_5);
+        win_md.rw_1 = min(win_md.rw_1, win_md.rw_4);
+        win_md.rw_2 = min(win_md.rw_2, win_md.rw_5);
     }
     action act_merge_rows_2() {
-        win_md.rw_1 = (win_md.rw_1 |+| win_md.rw_3);
+        win_md.rw_1 = min(win_md.rw_1, win_md.rw_3);
     }
     action act_merge_rows_3() {
-        win_md.rw_1 = (win_md.rw_1 |+| win_md.rw_2);
+        win_md.rw_1 = min(win_md.rw_1, win_md.rw_2);
     }
     table tbl_merge_rows_1 {
         actions = {

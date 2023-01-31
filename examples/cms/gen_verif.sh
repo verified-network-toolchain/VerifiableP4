@@ -14,6 +14,10 @@ cp verif_Row11.v verif_Row14.v
 sed -i.bak 's/\["pipe"; "ingress"; "cm2_ds"; "win_1"; "row_1"\]/\["pipe"; "ingress"; "cm2_ds"; "win_1"; "row_4"\]/' verif_Row14.v
 rm verif_Row14.v.bak
 
+cp verif_Row11.v verif_Row15.v
+sed -i.bak 's/\["pipe"; "ingress"; "cm2_ds"; "win_1"; "row_1"\]/\["pipe"; "ingress"; "cm2_ds"; "win_1"; "row_5"\]/' verif_Row15.v
+rm verif_Row15.v.bak
+
 cp verif_Win_lazy.v verif_Win2.v
 sed -i.bak 's/\["pipe"; "ingress"; "cm2_ds"; "win_1"\]/\["pipe"; "ingress"; "cm2_ds"; "win_2"\]/' verif_Win2.v
 sed -i.bak 's/verif_Row1/verif_Row2/' verif_Win2.v
@@ -23,8 +27,3 @@ cp verif_Win_lazy.v verif_Win3.v
 sed -i.bak 's/\["pipe"; "ingress"; "cm2_ds"; "win_1"\]/\["pipe"; "ingress"; "cm2_ds"; "win_3"\]/' verif_Win3.v
 sed -i.bak 's/verif_Row1/verif_Row3/' verif_Win3.v
 rm verif_Win3.v.bak
-
-cp verif_Win_lazy.v verif_Win4.v
-sed -i.bak 's/\["pipe"; "ingress"; "cm2_ds"; "win_1"\]/\["pipe"; "ingress"; "cm2_ds"; "win_4"\]/' verif_Win4.v
-sed -i.bak 's/verif_Row1/verif_Row4/' verif_Win4.v
-rm verif_Win4.v.bak

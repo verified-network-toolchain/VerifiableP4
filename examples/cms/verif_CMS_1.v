@@ -2,14 +2,12 @@ Require Import Poulet4.P4light.Syntax.P4defs.
 Require Import Poulet4.P4light.Semantics.Semantics.
 Require Import ProD3.core.Core.
 Require Import ProD3.core.Tofino.
-Require Import ProD3.examples.sbf.p4ast.
-Require Import ProD3.examples.sbf.ConFilter.
-Require Import ProD3.examples.sbf.common.
-Require Import ProD3.examples.sbf.FilterRepr.
-Require Import ProD3.examples.sbf.verif_Win1.
-Require Import ProD3.examples.sbf.verif_Win2.
-Require Import ProD3.examples.sbf.verif_Win3.
-Require Import ProD3.examples.sbf.verif_Win4.
+Require Import ProD3.examples.cms.ConModel.
+Require Import ProD3.examples.cms.common.
+Require Import ProD3.examples.cms.ModelRepr.
+Require Import ProD3.examples.cms.verif_Win1.
+Require Import ProD3.examples.cms.verif_Win2.
+Require Import ProD3.examples.cms.verif_Win3.
 Require Import Hammer.Plugin.Hammer.
 Require Export Coq.Program.Program.
 Import ListNotations.
@@ -19,10 +17,10 @@ Notation path := (list ident).
 Notation Val := (@ValueBase bool).
 Notation Sval := (@ValueBase (option bool)).
 
-Definition p := ["pipe"; "ingress"; "bf2_ds"].
+Definition p := ["pipe"; "ingress"; "cm2_ds"].
 
 Definition act_hash_index_1_fd :=
-  ltac:(get_fd ["Bf2BloomFilter"; "act_hash_index_1"] ge).
+  ltac:(get_fd ["Cm2CountMinSketch"; "act_hash_index_1"] ge).
 
 Definition act_hash_index_1_spec : func_spec :=
   WITH (* p *),
@@ -69,7 +67,7 @@ Qed.
 #[local] Hint Extern 5 (func_modifies _ _ _ _ _) => (apply act_hash_index_1_body) : func_specs.
 
 Definition tbl_hash_index_1_fd :=
-  ltac:(get_fd ["Bf2BloomFilter"; "tbl_hash_index_1"; "apply"] ge).
+  ltac:(get_fd ["Cm2CountMinSketch"; "tbl_hash_index_1"; "apply"] ge).
 
 Definition tbl_hash_index_1_spec : func_spec :=
   WITH (* p *),
@@ -98,7 +96,7 @@ Qed.
 #[local] Hint Extern 5 (func_modifies _ _ _ _ _) => (apply tbl_hash_index_1_body) : func_specs.
 
 Definition act_hash_index_2_fd :=
-  ltac:(get_fd ["Bf2BloomFilter"; "act_hash_index_2"] ge).
+  ltac:(get_fd ["Cm2CountMinSketch"; "act_hash_index_2"] ge).
 
 Definition act_hash_index_2_spec : func_spec :=
   WITH (* p *),
@@ -145,7 +143,7 @@ Qed.
 #[local] Hint Extern 5 (func_modifies _ _ _ _ _) => (apply act_hash_index_2_body) : func_specs.
 
 Definition tbl_hash_index_2_fd :=
-  ltac:(get_fd ["Bf2BloomFilter"; "tbl_hash_index_2"; "apply"] ge).
+  ltac:(get_fd ["Cm2CountMinSketch"; "tbl_hash_index_2"; "apply"] ge).
 
 Definition tbl_hash_index_2_spec : func_spec :=
   WITH (* p *),
@@ -174,7 +172,7 @@ Qed.
 #[local] Hint Extern 5 (func_modifies _ _ _ _ _) => (apply tbl_hash_index_2_body) : func_specs.
 
 Definition act_hash_index_3_fd :=
-  ltac:(get_fd ["Bf2BloomFilter"; "act_hash_index_3"] ge).
+  ltac:(get_fd ["Cm2CountMinSketch"; "act_hash_index_3"] ge).
 
 Definition act_hash_index_3_spec : func_spec :=
   WITH (* p *),
@@ -221,7 +219,7 @@ Qed.
 #[local] Hint Extern 5 (func_modifies _ _ _ _ _) => (apply act_hash_index_3_body) : func_specs.
 
 Definition tbl_hash_index_3_fd :=
-  ltac:(get_fd ["Bf2BloomFilter"; "tbl_hash_index_3"; "apply"] ge).
+  ltac:(get_fd ["Cm2CountMinSketch"; "tbl_hash_index_3"; "apply"] ge).
 
 Definition tbl_hash_index_3_spec : func_spec :=
   WITH (* p *),
@@ -249,6 +247,159 @@ Qed.
 
 #[local] Hint Extern 5 (func_modifies _ _ _ _ _) => (apply tbl_hash_index_3_body) : func_specs.
 
+Definition act_hash_index_4_fd :=
+  ltac:(get_fd ["Cm2CountMinSketch"; "act_hash_index_4"] ge).
+
+Definition act_hash_index_4_spec : func_spec :=
+  WITH (* p *),
+    PATH p
+    MOD (Some [["ds_md"]; ["act_hash_index_4"; "t'3"]]) []
+    WITH (key : Val) (ds_md : Sval),
+      PRE
+        (ARG []
+        (MEM [(["ds_key"], eval_val_to_sval key); (["ds_md"], ds_md)]
+        (EXT [])))
+      POST
+        (ARG_RET [] ValBaseNull
+        (MEM [(["ds_md"], update "hash_index_4" (P4Bit index_w (hash4 key)) ds_md)]
+        (EXT []))).
+
+(*  action act_hash_index_4() {
+        ds_md.hash_index_4 = hash_idx_4.get(ds_key)[17:0];
+    }
+*)
+
+Lemma act_hash_index_4_body :
+  func_sound ge act_hash_index_4_fd nil act_hash_index_4_spec.
+Proof.
+  start_function.
+  step_call @Hash_get_body.
+  { entailer. }
+  { compute. reflexivity. }
+  { compute. reflexivity. }
+  step.
+  step.
+  simpl sval_to_bits_width.
+  cbv match.
+  rewrite bitstring_slice_lower_bit with (w' := index_w) by lia.
+  entailer.
+  { apply sval_refine_refl'.
+    f_equal.
+    apply P4Bit_mod_eq.
+    unfold hash4.
+    rewrite Z.mod_mod by lia.
+    auto.
+  }
+Qed.
+
+#[local] Hint Extern 5 (func_modifies _ _ _ _ _) => (apply act_hash_index_4_body) : func_specs.
+
+Definition tbl_hash_index_4_fd :=
+  ltac:(get_fd ["Cm2CountMinSketch"; "tbl_hash_index_4"; "apply"] ge).
+
+Definition tbl_hash_index_4_spec : func_spec :=
+  WITH (* p *),
+    PATH p
+    MOD (Some [["ds_md"]; ["act_hash_index_4"; "t'3"]]) []
+    WITH (key : Val) (ds_md : Sval),
+      PRE
+        (ARG []
+        (MEM [(["ds_key"], eval_val_to_sval key); (["ds_md"], ds_md)]
+        (EXT [])))
+      POST
+        (EX retv,
+        (ARG_RET [] retv
+        (MEM [(["ds_md"], update "hash_index_4" (P4Bit index_w (hash4 key)) ds_md)]
+        (EXT []))))%arg_ret_assr.
+
+Lemma tbl_hash_index_4_body :
+  func_sound ge tbl_hash_index_4_fd nil tbl_hash_index_4_spec.
+Proof.
+  start_function.
+  table_action act_hash_index_4_body.
+  { entailer. }
+  { entailer. }
+Qed.
+
+#[local] Hint Extern 5 (func_modifies _ _ _ _ _) => (apply tbl_hash_index_4_body) : func_specs.
+
+Definition act_hash_index_5_fd :=
+  ltac:(get_fd ["Cm2CountMinSketch"; "act_hash_index_5"] ge).
+
+Definition act_hash_index_5_spec : func_spec :=
+  WITH (* p *),
+    PATH p
+    MOD (Some [["ds_md"]; ["act_hash_index_5"; "t'4"]]) []
+    WITH (key : Val) (ds_md : Sval),
+      PRE
+        (ARG []
+        (MEM [(["ds_key"], eval_val_to_sval key); (["ds_md"], ds_md)]
+        (EXT [])))
+      POST
+        (ARG_RET [] ValBaseNull
+        (MEM [(["ds_md"], update "hash_index_5" (P4Bit index_w (hash5 key)) ds_md)]
+        (EXT []))).
+
+(*  action act_hash_index_5() {
+        ds_md.hash_index_5 = hash_idx_5.get(ds_key)[17:0];
+    }
+*)
+
+Lemma act_hash_index_5_body :
+  func_sound ge act_hash_index_5_fd nil act_hash_index_5_spec.
+Proof.
+  start_function.
+  step_call @Hash_get_body.
+  { entailer. }
+  { compute. reflexivity. }
+  { compute. reflexivity. }
+  step.
+  step.
+  simpl sval_to_bits_width.
+  cbv match.
+  rewrite bitstring_slice_lower_bit with (w' := index_w) by lia.
+  entailer.
+  { apply sval_refine_refl'.
+    f_equal.
+    apply P4Bit_mod_eq.
+    unfold hash5.
+    rewrite Z.mod_mod by lia.
+    auto.
+  }
+Qed.
+
+#[local] Hint Extern 5 (func_modifies _ _ _ _ _) => (apply act_hash_index_5_body) : func_specs.
+
+Definition tbl_hash_index_5_fd :=
+  ltac:(get_fd ["Cm2CountMinSketch"; "tbl_hash_index_5"; "apply"] ge).
+
+Definition tbl_hash_index_5_spec : func_spec :=
+  WITH (* p *),
+    PATH p
+    MOD (Some [["ds_md"]; ["act_hash_index_5"; "t'4"]]) []
+    WITH (key : Val) (ds_md : Sval),
+      PRE
+        (ARG []
+        (MEM [(["ds_key"], eval_val_to_sval key); (["ds_md"], ds_md)]
+        (EXT [])))
+      POST
+        (EX retv,
+        (ARG_RET [] retv
+        (MEM [(["ds_md"], update "hash_index_5" (P4Bit index_w (hash5 key)) ds_md)]
+        (EXT []))))%arg_ret_assr.
+
+Lemma tbl_hash_index_5_body :
+  func_sound ge tbl_hash_index_5_fd nil tbl_hash_index_5_spec.
+Proof.
+  start_function.
+  table_action act_hash_index_5_body.
+  { entailer. }
+  { entailer. }
+Qed.
+
+#[local] Hint Extern 5 (func_modifies _ _ _ _ _) => (apply tbl_hash_index_5_body) : func_specs.
+
+
 Definition regact_clear_index_apply_body :=
   ltac:(auto_regact ge am_ge (p ++ ["regact_clear_index"])).
 
@@ -258,12 +409,12 @@ Definition regact_clear_index_execute_body :=
 #[local] Hint Extern 5 (func_modifies _ _ _ _ _) => (apply regact_clear_index_execute_body) : func_specs.
 
 Definition act_clear_index_fd :=
-  ltac:(get_fd ["Bf2BloomFilter"; "act_clear_index"] ge).
+  ltac:(get_fd ["Cm2CountMinSketch"; "act_clear_index"] ge).
 
 Definition act_clear_index_spec : func_spec :=
   WITH (* p *),
     PATH p
-    MOD (Some [["ds_md"]; ["act_clear_index"; "t'3"]]) [p ++ ["reg_clear_index"]]
+    MOD (Some [["ds_md"]; ["act_clear_index"; "t'5"]]) [p ++ ["reg_clear_index"]]
     WITH (i : Z) (ds_md : Sval),
       PRE
         (ARG []
@@ -321,12 +472,12 @@ Qed.
 #[local] Hint Extern 5 (func_modifies _ _ _ _ _) => (apply act_clear_index_body) : func_specs.
 
 Definition tbl_clear_index_fd :=
-  ltac:(get_fd ["Bf2BloomFilter"; "tbl_clear_index"; "apply"] ge).
+  ltac:(get_fd ["Cm2CountMinSketch"; "tbl_clear_index"; "apply"] ge).
 
 Definition tbl_clear_index_spec : func_spec :=
   WITH (* p *),
     PATH p
-    MOD (Some [["ds_md"]; ["act_clear_index"; "t'3"]]) [p ++ ["reg_clear_index"]]
+    MOD (Some [["ds_md"]; ["act_clear_index"; "t'5"]]) [p ++ ["reg_clear_index"]]
     WITH (i : Z) (ds_md : Sval),
       PRE
         (ARG []
@@ -355,7 +506,7 @@ Definition regact_clear_window_signal_0_apply_fd :=
 Notation update_timer := (@update_timer num_frames frame_tick_tocks).
 
 Definition regact_clear_window_signal_0_apply_spec : func_spec :=
-  RegisterAction_apply_spec' (p ++ ["regact_clear_window_signal_0"]) (fun t => 0 <= fst t < 28136) timer_repr_val
+  RegisterAction_apply_spec' (p ++ ["regact_clear_window_signal_0"]) (fun t => 0 <= fst t < 21102) timer_repr_val
     (fun t => update_timer t false) (fun t => P4Bit 16 (fst (update_timer t false))).
 
 (*  RegisterAction<window_pair_t, bit<1>, window_t>(reg_clear_window) regact_clear_window_signal_0 = {
@@ -395,7 +546,7 @@ Proof.
       step.
       destruct t as [? []]; inv H.
       simpl fst in *.
-      change (P4Arith.BitArith.mod_bound 16 28135) with 28135 in H0.
+      change (P4Arith.BitArith.mod_bound 16 21101) with 21101 in H0.
       replace (P4Arith.BitArith.mod_bound 16 z) with z in H0. 2 : {
         unfold P4Arith.BitArith.mod_bound.
         rewrite Z.mod_small; auto.
@@ -404,7 +555,7 @@ Proof.
       }
       unfold update_timer.
       simpl.
-      destruct (z =? 28135); inv H0.
+      destruct (z =? 21101); inv H0.
       entailer.
     }
     { step.
@@ -413,7 +564,7 @@ Proof.
       step.
       destruct t as [? []]; inv H.
       simpl fst in *.
-      change (P4Arith.BitArith.mod_bound 16 28135) with 28135 in H0.
+      change (P4Arith.BitArith.mod_bound 16 21101) with 21101 in H0.
       replace (P4Arith.BitArith.mod_bound 16 z) with z in H0. 2 : {
         unfold P4Arith.BitArith.mod_bound.
         rewrite Z.mod_small; auto.
@@ -422,7 +573,7 @@ Proof.
       }
       unfold update_timer.
       simpl.
-      destruct (z =? 28135); inv H0.
+      destruct (z =? 21101); inv H0.
       entailer.
     }
   }
@@ -448,21 +599,6 @@ Definition regact_clear_window_signal_1_apply_fd :=
 Definition regact_clear_window_signal_1_apply_spec : func_spec :=
   RegisterAction_apply_spec (p ++ ["regact_clear_window_signal_1"]) timer_repr_val
     (fun t => update_timer t true) (fun t => P4Bit 16 (fst (update_timer t true))).
-
-(*  RegisterAction<window_pair_t, bit<1>, window_t>(reg_clear_window) regact_clear_window_signal_1 = {
-        void apply(inout window_pair_t val, out window_t rv) {
-            if ((val.hi == 16w28136))
-            {
-                val.hi = 16w0;
-            }
-            if ((val.lo != 16w1))
-            {
-                val.lo = 16w1;
-            }
-            rv = val.hi;
-        }
-    };
-*)
 
 Lemma regact_clear_window_signal_1_apply_body :
   func_sound am_ge regact_clear_window_signal_1_apply_fd nil regact_clear_window_signal_1_apply_spec.
@@ -496,7 +632,7 @@ Definition regact_clear_window_signal_1_execute_body :=
 #[local] Hint Extern 5 (func_modifies _ _ _ _ _) => (apply regact_clear_window_signal_1_execute_body) : func_specs.
 
 Definition act_clear_window_signal_0_fd :=
-  ltac:(get_fd ["Bf2BloomFilter"; "act_clear_window_signal_0"] ge).
+  ltac:(get_fd ["Cm2CountMinSketch"; "act_clear_window_signal_0"] ge).
 
 Notation timer_repr := (@timer_repr num_frames frame_tick_tocks).
 
@@ -540,7 +676,7 @@ Proof.
 Qed.
 
 Definition act_clear_window_signal_1_fd :=
-  ltac:(get_fd ["Bf2BloomFilter"; "act_clear_window_signal_1"] ge).
+  ltac:(get_fd ["Cm2CountMinSketch"; "act_clear_window_signal_1"] ge).
 
 Definition act_clear_window_signal_1_spec : func_spec :=
   WITH (* p *),
@@ -583,7 +719,7 @@ Qed.
 #[local] Hint Extern 5 (func_modifies _ _ _ _ _) => (apply act_clear_window_signal_1_body) : func_specs.
 
 Definition tbl_clear_window_fd :=
-  ltac:(get_fd ["Bf2BloomFilter"; "tbl_clear_window"; "apply"] ge).
+  ltac:(get_fd ["Cm2CountMinSketch"; "tbl_clear_window"; "apply"] ge).
 
 Definition tbl_clear_window_spec : func_spec :=
   WITH (* p *),
@@ -597,25 +733,8 @@ Definition tbl_clear_window_spec : func_spec :=
       POST
         (EX retv,
         (ARG_RET [] retv
-        (MEM [(["ds_md"], update "clear_window" (P4Bit 16 (fst (update_timer t (Z.odd (tstamp / 2097152))))) ds_md)]
-        (EXT [timer_repr p (update_timer t (Z.odd (tstamp / 2097152)))]))))%arg_ret_assr.
-
-(*  table tbl_clear_window {
-        key = {
-            ingress_mac_tstamp : ternary;
-        }
-        actions = {
-            act_clear_window_signal_0();
-            act_clear_window_signal_1();
-        }
-        const entries = {
-            48w0 &&& 48w2097152 : act_clear_window_signal_0();
-            _ : act_clear_window_signal_1();
-        }
-        default_action = act_clear_window_signal_1();
-        size = 2;
-    }
-*)
+        (MEM [(["ds_md"], update "clear_window" (P4Bit 16 (fst (update_timer t (Z.odd (tstamp / tick_time))))) ds_md)]
+        (EXT [timer_repr p (update_timer t (Z.odd (tstamp / tick_time)))]))))%arg_ret_assr.
 
 Lemma tbl_clear_window_body :
   func_sound ge tbl_clear_window_fd nil tbl_clear_window_spec.
@@ -623,14 +742,16 @@ Proof.
   start_function; elim_trivial_cases.
   { repeat rewrite Z.div_div in H by lia.
     simpl in H.
-    destruct (Z.odd (tstamp / 2097152)); try solve [inv H].
+    fold tick_time in H.
+    destruct (Z.odd (tstamp / tick_time)); try solve [inv H].
     table_action act_clear_window_signal_0_body.
     { entailer. }
     { entailer. }
   }
   { repeat rewrite Z.div_div in H by lia.
     simpl in H.
-    destruct (Z.odd (tstamp / 2097152)); try solve [inv H].
+    fold tick_time in H.
+    destruct (Z.odd (tstamp / tick_time)); try solve [inv H].
     table_action act_clear_window_signal_1_body.
     { entailer. }
     { entailer. }
@@ -640,92 +761,7 @@ Qed.
 #[local] Hint Extern 5 (func_modifies _ _ _ _ _) => (apply tbl_clear_window_body) : func_specs.
 
 Definition act_set_clear_win_1_fd :=
-  ltac:(get_fd ["Bf2BloomFilter"; "act_set_clear_win_1"] ge).
-
-(* Definition act_set_clear_win_1_spec : func_spec :=
-  WITH (* p *),
-    PATH p
-    MOD (Some [["ds_md"];
-               ["act_set_clear_win_1"; "api_1"];
-               ["act_set_clear_win_1"; "api_2"];
-               ["act_set_clear_win_1"; "api_3"];
-               ["act_set_clear_win_1"; "api_4"]]) []
-    WITH (ds_md : Sval) (api_1 api_2 api_3 api_4 : Sval),
-      PRE
-        (ARG [api_1; api_2; api_3; api_4]
-        (MEM [(["ds_md"], ds_md)]
-        (EXT [])))
-      POST
-        (ARG_RET [] ValBaseNull
-        (MEM [
-          (["ds_md"], update "win_1" (
-            update "index_1" (get "clear_index_1" ds_md)
-            (update "index_2" (get "clear_index_1" ds_md)
-            (update "index_3" (get "clear_index_1" ds_md) (get "win_1" ds_md))))
-            ds_md)]
-        (EXT []))).
-
-Lemma act_set_clear_win_1_body :
-  func_sound ge act_set_clear_win_1_fd nil act_set_clear_win_1_spec.
-Proof.
-  start_function.
-  assert (has_field "win_1" ds_md) by admit.
-  assert (has_field "win_2" ds_md) by admit.
-  assert (has_field "win_3" ds_md) by admit.
-  assert (has_field "win_4" ds_md) by admit.
-  simpl.
-  Time step.
-  simpl.
-  Time step.
-  simpl.
-
-Ltac rewrite_get_update_same :=
-  rewrite get_update_same by (auto using has_field_update).
-
-Ltac rewrite_get_update_diff :=
-  rewrite get_update_diff; [ | auto using has_field_update | discriminate].
-
-Ltac rewrite_update_update_same :=
-  rewrite update_update_same by (auto using has_field_update).
-
-Ltac get_update_simpl :=
-  repeat first [
-    rewrite_get_update_same
-  | rewrite_get_update_diff
-  | rewrite_update_update_same
-  ].
-
-  get_update_simpl.
-  Time step.
-  Time simpl; get_update_simpl.
-  Time step.
-  Time simpl; get_update_simpl.
-  Time step.
-  Time simpl; get_update_simpl.
-  Time step.
-  Time simpl; get_update_simpl.
-  Time step.
-  Time simpl; get_update_simpl.
-  Time step.
-  Time simpl; get_update_simpl.
-  Time step.
-  Time simpl; get_update_simpl.
-  Time step.
-  Time simpl; get_update_simpl.
-  Time step.
-  Time simpl; get_update_simpl.
-  Time step.
-  Time simpl; get_update_simpl.
-  Time step.
-  Time simpl; get_update_simpl.
-  Time step.
-  Time simpl; get_update_simpl.
-  Time step.
-  Time simpl; get_update_simpl.
-  Time step.
-  Time simpl; get_update_simpl.
-  (* Then we need a update_update_diff rule and guide it nicely. *)
-Abort. *)
+  ltac:(get_fd ["Cm2CountMinSketch"; "act_set_clear_win_1"] ge).
 
 Definition P4_bf2_win_md_t_ :=
   ValBaseStruct
@@ -733,9 +769,14 @@ Definition P4_bf2_win_md_t_ :=
      ("index_1", P4Bit_ index_w);
      ("index_2", P4Bit_ index_w);
      ("index_3", P4Bit_ index_w);
+     ("index_4", P4Bit_ index_w);
+     ("index_5", P4Bit_ index_w);
      ("rw_1", P4Bit_ 8);
      ("rw_2", P4Bit_ 8);
-     ("rw_3", P4Bit_ 8)].
+     ("rw_3", P4Bit_ 8);
+     ("rw_4", P4Bit_ 8);
+     ("rw_5", P4Bit_ 8)
+    ].
 
 Definition P4_bf2_win_md_t (op : Sval) (is : list Sval) :=
   ValBaseStruct
@@ -743,9 +784,14 @@ Definition P4_bf2_win_md_t (op : Sval) (is : list Sval) :=
      ("index_1", Znth 0 is);
      ("index_2", Znth 1 is);
      ("index_3", Znth 2 is);
+     ("index_4", Znth 3 is);
+     ("index_5", Znth 4 is);
      ("rw_1", P4Bit_ 8);
      ("rw_2", P4Bit_ 8);
-     ("rw_3", P4Bit_ 8)].
+     ("rw_3", P4Bit_ 8);
+     ("rw_4", P4Bit_ 8);
+     ("rw_5", P4Bit_ 8)
+    ].
 
 Definition act_set_clear_win_1_spec : func_spec :=
   WITH (* p *),
@@ -753,21 +799,21 @@ Definition act_set_clear_win_1_spec : func_spec :=
     MOD (Some [["ds_md"];
                ["act_set_clear_win_1"; "api_1"];
                ["act_set_clear_win_1"; "api_2"];
-               ["act_set_clear_win_1"; "api_3"];
-               ["act_set_clear_win_1"; "api_4"]]) []
-    WITH (clear_window clear_index_1 hash_index_1 hash_index_2 hash_index_3: Sval) (api_1 api_2 api_3 api_4 : Sval),
+               ["act_set_clear_win_1"; "api_3"]]) []
+    WITH (clear_window clear_index_1 hash_index_1 hash_index_2 hash_index_3 hash_index_4 hash_index_5 : Sval) (api_1 api_2 api_3 : Sval),
       PRE
-        (ARG [api_1; api_2; api_3; api_4]
+        (ARG [api_1; api_2; api_3]
         (MEM [(["ds_md"], ValBaseStruct
                  [("clear_window", clear_window);
                   ("clear_index_1", clear_index_1);
                   ("hash_index_1", hash_index_1);
                   ("hash_index_2", hash_index_2);
                   ("hash_index_3", hash_index_3);
+                  ("hash_index_4", hash_index_4);
+                  ("hash_index_5", hash_index_5);
                   ("win_1", P4_bf2_win_md_t_);
                   ("win_2", P4_bf2_win_md_t_);
-                  ("win_3", P4_bf2_win_md_t_);
-                  ("win_4", P4_bf2_win_md_t_)])]
+                  ("win_3", P4_bf2_win_md_t_)])]
         (EXT [])))
       POST
         (ARG_RET [] ValBaseNull
@@ -777,10 +823,11 @@ Definition act_set_clear_win_1_spec : func_spec :=
                   ("hash_index_1", hash_index_1);
                   ("hash_index_2", hash_index_2);
                   ("hash_index_3", hash_index_3);
-                  ("win_1", P4_bf2_win_md_t api_1 [clear_index_1; clear_index_1; clear_index_1]);
-                  ("win_2", P4_bf2_win_md_t api_2 [hash_index_1; hash_index_2; hash_index_3]);
-                  ("win_3", P4_bf2_win_md_t api_3 [hash_index_1; hash_index_2; hash_index_3]);
-                  ("win_4", P4_bf2_win_md_t api_4 [hash_index_1; hash_index_2; hash_index_3])])]
+                  ("hash_index_4", hash_index_4);
+                  ("hash_index_5", hash_index_5);
+                  ("win_1", P4_bf2_win_md_t api_1 [clear_index_1; clear_index_1; clear_index_1; clear_index_1; clear_index_1]);
+                  ("win_2", P4_bf2_win_md_t api_2 [hash_index_1; hash_index_2; hash_index_3; hash_index_4; hash_index_5]);
+                  ("win_3", P4_bf2_win_md_t api_3 [hash_index_1; hash_index_2; hash_index_3; hash_index_4; hash_index_5])])]
         (EXT []))).
 
 Lemma act_set_clear_win_1_body :
@@ -805,11 +852,13 @@ Proof.
   step.
   step.
   step.
+  step.
+  step.
   entailer.
 Qed.
 
 Definition act_set_clear_win_2_fd :=
-  ltac:(get_fd ["Bf2BloomFilter"; "act_set_clear_win_2"] ge).
+  ltac:(get_fd ["Cm2CountMinSketch"; "act_set_clear_win_2"] ge).
 
 Definition act_set_clear_win_2_spec : func_spec :=
   WITH (* p *),
@@ -817,21 +866,21 @@ Definition act_set_clear_win_2_spec : func_spec :=
     MOD (Some [["ds_md"];
                ["act_set_clear_win_2"; "api_1"];
                ["act_set_clear_win_2"; "api_2"];
-               ["act_set_clear_win_2"; "api_3"];
-               ["act_set_clear_win_2"; "api_4"]]) []
-    WITH (clear_window clear_index_1 hash_index_1 hash_index_2 hash_index_3: Sval) (api_1 api_2 api_3 api_4 : Sval),
+               ["act_set_clear_win_2"; "api_3"]]) []
+    WITH (clear_window clear_index_1 hash_index_1 hash_index_2 hash_index_3 hash_index_4 hash_index_5 : Sval) (api_1 api_2 api_3 api_4 : Sval),
       PRE
-        (ARG [api_1; api_2; api_3; api_4]
+        (ARG [api_1; api_2; api_3]
         (MEM [(["ds_md"], ValBaseStruct
                  [("clear_window", clear_window);
                   ("clear_index_1", clear_index_1);
                   ("hash_index_1", hash_index_1);
                   ("hash_index_2", hash_index_2);
                   ("hash_index_3", hash_index_3);
+                  ("hash_index_4", hash_index_4);
+                  ("hash_index_5", hash_index_5);
                   ("win_1", P4_bf2_win_md_t_);
                   ("win_2", P4_bf2_win_md_t_);
-                  ("win_3", P4_bf2_win_md_t_);
-                  ("win_4", P4_bf2_win_md_t_)])]
+                  ("win_3", P4_bf2_win_md_t_)])]
         (EXT [])))
       POST
         (ARG_RET [] ValBaseNull
@@ -841,10 +890,11 @@ Definition act_set_clear_win_2_spec : func_spec :=
                   ("hash_index_1", hash_index_1);
                   ("hash_index_2", hash_index_2);
                   ("hash_index_3", hash_index_3);
-                  ("win_1", P4_bf2_win_md_t api_1 [hash_index_1; hash_index_2; hash_index_3]);
-                  ("win_2", P4_bf2_win_md_t api_2 [clear_index_1; clear_index_1; clear_index_1]);
-                  ("win_3", P4_bf2_win_md_t api_3 [hash_index_1; hash_index_2; hash_index_3]);
-                  ("win_4", P4_bf2_win_md_t api_4 [hash_index_1; hash_index_2; hash_index_3])])]
+                  ("hash_index_4", hash_index_4);
+                  ("hash_index_5", hash_index_5);
+                  ("win_1", P4_bf2_win_md_t api_1 [hash_index_1; hash_index_2; hash_index_3; hash_index_4; hash_index_5]);
+                  ("win_2", P4_bf2_win_md_t api_2 [clear_index_1; clear_index_1; clear_index_1; clear_index_1; clear_index_1]);
+                  ("win_3", P4_bf2_win_md_t api_3 [hash_index_1; hash_index_2; hash_index_3; hash_index_4; hash_index_5])])]
         (EXT []))).
 
 Lemma act_set_clear_win_2_body :
@@ -869,11 +919,13 @@ Proof.
   step.
   step.
   step.
+  step.
+  step.
   entailer.
 Qed.
 
 Definition act_set_clear_win_3_fd :=
-  ltac:(get_fd ["Bf2BloomFilter"; "act_set_clear_win_3"] ge).
+  ltac:(get_fd ["Cm2CountMinSketch"; "act_set_clear_win_3"] ge).
 
 Definition act_set_clear_win_3_spec : func_spec :=
   WITH (* p *),
@@ -881,21 +933,21 @@ Definition act_set_clear_win_3_spec : func_spec :=
     MOD (Some [["ds_md"];
                ["act_set_clear_win_3"; "api_1"];
                ["act_set_clear_win_3"; "api_2"];
-               ["act_set_clear_win_3"; "api_3"];
-               ["act_set_clear_win_3"; "api_4"]]) []
-    WITH (clear_window clear_index_1 hash_index_1 hash_index_2 hash_index_3: Sval) (api_1 api_2 api_3 api_4 : Sval),
+               ["act_set_clear_win_3"; "api_3"]]) []
+    WITH (clear_window clear_index_1 hash_index_1 hash_index_2 hash_index_3 hash_index_4 hash_index_5 : Sval) (api_1 api_2 api_3 api_4 : Sval),
       PRE
-        (ARG [api_1; api_2; api_3; api_4]
+        (ARG [api_1; api_2; api_3]
         (MEM [(["ds_md"], ValBaseStruct
                  [("clear_window", clear_window);
                   ("clear_index_1", clear_index_1);
                   ("hash_index_1", hash_index_1);
                   ("hash_index_2", hash_index_2);
                   ("hash_index_3", hash_index_3);
+                  ("hash_index_4", hash_index_4);
+                  ("hash_index_5", hash_index_5);
                   ("win_1", P4_bf2_win_md_t_);
                   ("win_2", P4_bf2_win_md_t_);
-                  ("win_3", P4_bf2_win_md_t_);
-                  ("win_4", P4_bf2_win_md_t_)])]
+                  ("win_3", P4_bf2_win_md_t_)])]
         (EXT [])))
       POST
         (ARG_RET [] ValBaseNull
@@ -905,10 +957,11 @@ Definition act_set_clear_win_3_spec : func_spec :=
                   ("hash_index_1", hash_index_1);
                   ("hash_index_2", hash_index_2);
                   ("hash_index_3", hash_index_3);
-                  ("win_1", P4_bf2_win_md_t api_1 [hash_index_1; hash_index_2; hash_index_3]);
-                  ("win_2", P4_bf2_win_md_t api_2 [hash_index_1; hash_index_2; hash_index_3]);
-                  ("win_3", P4_bf2_win_md_t api_3 [clear_index_1; clear_index_1; clear_index_1]);
-                  ("win_4", P4_bf2_win_md_t api_4 [hash_index_1; hash_index_2; hash_index_3])])]
+                  ("hash_index_4", hash_index_4);
+                  ("hash_index_5", hash_index_5);
+                  ("win_1", P4_bf2_win_md_t api_1 [hash_index_1; hash_index_2; hash_index_3; hash_index_4; hash_index_5]);
+                  ("win_2", P4_bf2_win_md_t api_2 [hash_index_1; hash_index_2; hash_index_3; hash_index_4; hash_index_5]);
+                  ("win_3", P4_bf2_win_md_t api_3 [clear_index_1; clear_index_1; clear_index_1; clear_index_1; clear_index_1])])]
         (EXT []))).
 
 Lemma act_set_clear_win_3_body :
@@ -933,68 +986,6 @@ Proof.
   step.
   step.
   step.
-  entailer.
-Qed.
-
-Definition act_set_clear_win_4_fd :=
-  ltac:(get_fd ["Bf2BloomFilter"; "act_set_clear_win_4"] ge).
-
-Definition act_set_clear_win_4_spec : func_spec :=
-  WITH (* p *),
-    PATH p
-    MOD (Some [["ds_md"];
-               ["act_set_clear_win_4"; "api_1"];
-               ["act_set_clear_win_4"; "api_2"];
-               ["act_set_clear_win_4"; "api_3"];
-               ["act_set_clear_win_4"; "api_4"]]) []
-    WITH (clear_window clear_index_1 hash_index_1 hash_index_2 hash_index_3: Sval) (api_1 api_2 api_3 api_4 : Sval),
-      PRE
-        (ARG [api_1; api_2; api_3; api_4]
-        (MEM [(["ds_md"], ValBaseStruct
-                 [("clear_window", clear_window);
-                  ("clear_index_1", clear_index_1);
-                  ("hash_index_1", hash_index_1);
-                  ("hash_index_2", hash_index_2);
-                  ("hash_index_3", hash_index_3);
-                  ("win_1", P4_bf2_win_md_t_);
-                  ("win_2", P4_bf2_win_md_t_);
-                  ("win_3", P4_bf2_win_md_t_);
-                  ("win_4", P4_bf2_win_md_t_)])]
-        (EXT [])))
-      POST
-        (ARG_RET [] ValBaseNull
-        (MEM [(["ds_md"], ValBaseStruct
-                 [("clear_window", clear_window);
-                  ("clear_index_1", clear_index_1);
-                  ("hash_index_1", hash_index_1);
-                  ("hash_index_2", hash_index_2);
-                  ("hash_index_3", hash_index_3);
-                  ("win_1", P4_bf2_win_md_t api_1 [hash_index_1; hash_index_2; hash_index_3]);
-                  ("win_2", P4_bf2_win_md_t api_2 [hash_index_1; hash_index_2; hash_index_3]);
-                  ("win_3", P4_bf2_win_md_t api_3 [hash_index_1; hash_index_2; hash_index_3]);
-                  ("win_4", P4_bf2_win_md_t api_4 [clear_index_1; clear_index_1; clear_index_1])])]
-        (EXT []))).
-
-Lemma act_set_clear_win_4_body :
-  func_sound ge act_set_clear_win_4_fd nil act_set_clear_win_4_spec.
-Proof.
-  start_function.
-  unfold P4_bf2_win_md_t_.
-  step.
-  step.
-  step.
-  step.
-  step.
-  step.
-  step.
-  step.
-  step.
-  step.
-  step.
-  step.
-  step.
-  step.
-  step.
   step.
   step.
   entailer.
@@ -1003,10 +994,9 @@ Qed.
 #[local] Hint Extern 5 (func_modifies _ _ _ _ _) => (apply act_set_clear_win_1_body) : func_specs.
 #[local] Hint Extern 5 (func_modifies _ _ _ _ _) => (apply act_set_clear_win_2_body) : func_specs.
 #[local] Hint Extern 5 (func_modifies _ _ _ _ _) => (apply act_set_clear_win_3_body) : func_specs.
-#[local] Hint Extern 5 (func_modifies _ _ _ _ _) => (apply act_set_clear_win_4_body) : func_specs.
 
 Definition tbl_set_win_fd :=
-  ltac:(get_fd ["Bf2BloomFilter"; "tbl_set_win"; "apply"] ge).
+  ltac:(get_fd ["Cm2CountMinSketch"; "tbl_set_win"; "apply"] ge).
 
 Notation get_clear_frame := (get_clear_frame frame_tick_tocks).
 Notation get_insert_frame := (get_insert_frame num_frames).
@@ -1049,8 +1039,8 @@ Proof.
 Qed.
 
 Definition Filter_fd :=
-  ltac:(get_fd ["Bf2BloomFilter"; "apply"] ge).
+  ltac:(get_fd ["Cm2CountMinSketch"; "apply"] ge).
 
-Program Definition hashes (key : Val) : listn Z num_rows := (exist _ [hash1 key; hash2 key; hash3 key] eq_refl).
+Program Definition hashes (key : Val) : listn Z num_rows := (exist _ [hash1 key; hash2 key; hash3 key; hash4 key; hash5 key] eq_refl).
 
-Notation filter_repr := (filter_repr (frame_tick_tocks := frame_tick_tocks)).
+(* Notation cms_repr := (cms_repr (frame_tick_tocks := frame_tick_tocks)). *)

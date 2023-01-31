@@ -27,64 +27,89 @@ Definition INSQUERY := 4.
 Definition index_w := 15%N.
 Definition value_w := 32%N.
 Definition num_slots := Eval compute in 2 ^ (Z.of_N index_w).
-Definition num_rows := 4.
-Definition num_frames := 4.
-Definition frame_tick_tocks := 56.
-Definition tick_time := 268435456.
+Definition num_rows := 5.
+Definition num_frames := 3.
+Definition frame_tick_tocks := 7034.
+Definition tick_time := 4194304.
 Definition frame_time := frame_tick_tocks * tick_time * 2.
 
 Definition poly1 : Tofino.CRC_polynomial :=
   {|
-    Tofino.CRCP_width := 32;
-    Tofino.CRCP_coeff := P4Arith.to_lbool 32 79764919;
+    Tofino.CRCP_width := 16;
+    Tofino.CRCP_coeff := P4Arith.to_lbool 16 32773;
     Tofino.CRCP_reversed := true;
     Tofino.CRCP_msb := false;
     Tofino.CRCP_extended := false;
-    Tofino.CRCP_init := P4Arith.to_lbool 32 0;
-    Tofino.CRCP_xor := P4Arith.to_lbool 32 4294967295
+    Tofino.CRCP_init := P4Arith.to_lbool 16 0;
+    Tofino.CRCP_xor := P4Arith.to_lbool 16 0
   |}.
 
 Definition hash1 (v : Val) :=
-  hash_Z 32 poly1 v mod 2 ^ (Z.of_N index_w).
+  hash_Z 16 poly1 v mod 2 ^ (Z.of_N index_w).
 
 Definition poly2 : Tofino.CRC_polynomial :=
   {|
-    Tofino.CRCP_width := 32;
-    Tofino.CRCP_coeff := P4Arith.to_lbool 32 517762881;
-    Tofino.CRCP_reversed := true;
+    Tofino.CRCP_width := 16;
+    Tofino.CRCP_coeff := P4Arith.to_lbool 16 4129;
+    Tofino.CRCP_reversed := false;
     Tofino.CRCP_msb := false;
     Tofino.CRCP_extended := false;
-    Tofino.CRCP_init := P4Arith.to_lbool 32 0;
-    Tofino.CRCP_xor := P4Arith.to_lbool 32 4294967295
+    Tofino.CRCP_init := P4Arith.to_lbool 16 65535;
+    Tofino.CRCP_xor := P4Arith.to_lbool 16 0
   |}.
 
 Definition hash2 (v : Val) :=
-  hash_Z 32 poly2 v mod 2 ^ Z.of_N index_w.
+  hash_Z 16 poly2 v mod 2 ^ Z.of_N index_w.
 
 
 Definition poly3 : Tofino.CRC_polynomial :=
   {|
-    Tofino.CRCP_width := 32;
-    Tofino.CRCP_coeff := P4Arith.to_lbool 32 2821953579;
-    Tofino.CRCP_reversed := true;
+    Tofino.CRCP_width := 16;
+    Tofino.CRCP_coeff := P4Arith.to_lbool 16 1417;
+    Tofino.CRCP_reversed := false;
     Tofino.CRCP_msb := false;
     Tofino.CRCP_extended := false;
-    Tofino.CRCP_init := P4Arith.to_lbool 32 0;
-    Tofino.CRCP_xor := P4Arith.to_lbool 32 4294967295
+    Tofino.CRCP_init := P4Arith.to_lbool 16 1;
+    Tofino.CRCP_xor := P4Arith.to_lbool 16 1
   |}.
 
 Definition hash3 (v : Val) :=
-  hash_Z 32 poly3 v mod 2 ^ Z.of_N index_w.
+  hash_Z 16 poly3 v mod 2 ^ Z.of_N index_w.
 
-(* Placeholder *)
-Definition hash4 := hash3.
+Definition poly4 : Tofino.CRC_polynomial :=
+  {|
+    Tofino.CRCP_width := 16;
+    Tofino.CRCP_coeff := P4Arith.to_lbool 16 15717;
+    Tofino.CRCP_reversed := true;
+    Tofino.CRCP_msb := false;
+    Tofino.CRCP_extended := false;
+    Tofino.CRCP_init := P4Arith.to_lbool 16 0;
+    Tofino.CRCP_xor := P4Arith.to_lbool 16 65535
+  |}.
+
+Definition hash4 (v : Val) :=
+  hash_Z 16 poly4 v mod 2 ^ Z.of_N index_w.
+
+Definition poly5 : Tofino.CRC_polynomial :=
+  {|
+    Tofino.CRCP_width := 16;
+    Tofino.CRCP_coeff := P4Arith.to_lbool 16 35767;
+    Tofino.CRCP_reversed := false;
+    Tofino.CRCP_msb := false;
+    Tofino.CRCP_extended := false;
+    Tofino.CRCP_init := P4Arith.to_lbool 16 0;
+    Tofino.CRCP_xor := P4Arith.to_lbool 16 0
+  |}.
+
+Definition hash5 (v : Val) :=
+  hash_Z 16 poly5 v mod 2 ^ Z.of_N index_w.
 
 Definition header_type : Set := Z * Z.
 
 Definition header_to_val '((x, y) : header_type) : Val :=
   ValBaseBit ((P4Arith.to_lbool 32 y) ++ (P4Arith.to_lbool 32 x)).
 
-Definition hashes := [hash1 ∘ header_to_val; hash2 ∘ header_to_val; hash3 ∘ header_to_val; hash4 ∘ header_to_val].
+Definition hashes := [hash1 ∘ header_to_val; hash2 ∘ header_to_val; hash3 ∘ header_to_val; hash4 ∘ header_to_val; hash5 ∘ header_to_val].
 
 Lemma H_Zlength_hashes : Zlength hashes = num_rows.
 Proof. auto. Qed.
@@ -112,8 +137,8 @@ Ltac Zify.zify_pre_hook ::=
     NOOP, CLEAR, INSERT, QUERY, INSQUERY in *;
   saturate_b2z.
 
-Definition rows := ["row_1"; "row_2"; "row_3"; "row_4"].
-Definition panes := ["win_1"; "win_2"; "win_3"; "win_4"].
+Definition rows := ["row_1"; "row_2"; "row_3"; "row_4"; "row_5"].
+Definition panes := ["win_1"; "win_2"; "win_3"].
 
 Definition H_num_slots : 0 < num_slots := eq_refl.
 Definition H_num_rows : 0 < num_rows := eq_refl.

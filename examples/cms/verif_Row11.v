@@ -201,7 +201,7 @@ Definition Row_noop_case_spec : func_spec :=
     WITH (r : row) (i : Z)
       (_ : 0 <= i < num_slots),
       PRE
-        (ARG [P4Bit 32 NOOP;
+        (ARG [P4Bit 8 NOOP;
               P4Bit index_w i]
         (MEM []
         (EXT [row_repr p r])))
@@ -217,7 +217,7 @@ Definition Row_tbl_bloom_noop_spec : func_spec :=
     WITH (r : row),
       PRE
         (ARG []
-        (MEM [(["api"], P4Bit 32 NOOP);
+        (MEM [(["api"], P4Bit 8 NOOP);
               (["rw"], P4Bit_ value_w)]
         (EXT [row_repr p r])))
       POST
@@ -256,7 +256,7 @@ Definition Row_insert_case_spec : func_spec :=
     WITH (r : row) (i : Z)
       (_ : 0 <= i < num_slots),
       PRE
-        (ARG [P4Bit 32 INSERT;
+        (ARG [P4Bit 8 INSERT;
               P4Bit index_w i]
         (MEM []
         (EXT [row_repr p r])))
@@ -273,7 +273,7 @@ Definition Row_tbl_bloom_insert_spec : func_spec :=
       (_ : 0 <= i < num_slots),
       PRE
         (ARG []
-        (MEM [(["api"], P4Bit 32 INSERT);
+        (MEM [(["api"], P4Bit 8 INSERT);
               (["index"], P4Bit index_w i)]
         (EXT [row_repr p r])))
       POST
@@ -312,7 +312,7 @@ Definition Row_query_case_spec : func_spec :=
     WITH (r : row) (i : Z)
       (_ : 0 <= i < num_slots),
       PRE
-        (ARG [P4Bit 32 QUERY;
+        (ARG [P4Bit 8 QUERY;
               P4Bit index_w i]
         (MEM []
         (EXT [row_repr p r])))
@@ -329,7 +329,7 @@ Definition Row_tbl_bloom_query_spec : func_spec :=
       (_ : 0 <= i < num_slots),
       PRE
         (ARG []
-        (MEM [(["api"], P4Bit 32 QUERY);
+        (MEM [(["api"], P4Bit 8 QUERY);
               (["index"], P4Bit index_w i)]
         (EXT [row_repr p r])))
       POST
@@ -368,7 +368,7 @@ Definition Row_clear_case_spec : func_spec :=
     WITH (r : row) (i : Z)
       (_ : 0 <= i < num_slots),
       PRE
-        (ARG [P4Bit 32 CLEAR;
+        (ARG [P4Bit 8 CLEAR;
               P4Bit index_w i]
         (MEM []
         (EXT [row_repr p r])))
@@ -385,7 +385,7 @@ Definition Row_tbl_bloom_clear_spec : func_spec :=
       (_ : 0 <= i < num_slots),
       PRE
         (ARG []
-        (MEM [(["api"], P4Bit 32 CLEAR);
+        (MEM [(["api"], P4Bit 8 CLEAR);
               (["index"], P4Bit index_w i)]
         (EXT [row_repr p r])))
       POST

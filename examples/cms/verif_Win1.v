@@ -9,6 +9,7 @@ Require Import ProD3.examples.cms.verif_Row11.
 Require Import ProD3.examples.cms.verif_Row12.
 Require Import ProD3.examples.cms.verif_Row13.
 Require Import ProD3.examples.cms.verif_Row14.
+Require Import ProD3.examples.cms.verif_Row15.
 Require Import Hammer.Plugin.Hammer.
 Require Export Coq.Program.Program.
 Import ListNotations.
@@ -49,34 +50,38 @@ Definition act_merge_rows_1_spec : func_spec :=
   WITH (* p *),
     PATH p
     MOD (Some [["win_md"]]) []
-    WITH api_call index_1 index_2 index_3 index_4 rw_1 rw_2 rw_3 rw_4,
+    WITH api index_1 index_2 index_3 index_4 index_5 rw_1 rw_2 rw_3 rw_4 rw_5,
       PRE
         (ARG []
         (MEM [(["win_md"], ValBaseStruct
-               [("api_call", api_call);
+               [("api", api);
                 ("index_1", index_1);
                 ("index_2", index_2);
                 ("index_3", index_3);
                 ("index_4", index_4);
+                ("index_5", index_5);
                 ("rw_1", P4Bit value_w rw_1);
                 ("rw_2", P4Bit value_w rw_2);
                 ("rw_3", P4Bit value_w rw_3);
-                ("rw_4", P4Bit value_w rw_4)
+                ("rw_4", P4Bit value_w rw_4);
+                ("rw_5", P4Bit value_w rw_5)
                ])
              ]
         (EXT [])))
       POST
         (ARG_RET [] ValBaseNull
         (MEM [(["win_md"], ValBaseStruct
-               [("api_call", api_call);
+               [("api", api);
                 ("index_1", index_1);
                 ("index_2", index_2);
                 ("index_3", index_3);
                 ("index_4", index_4);
-                ("rw_1", P4Bit value_w (P4min rw_1 rw_3));
-                ("rw_2", P4Bit value_w (P4min rw_2 rw_4));
+                ("index_5", index_5);
+                ("rw_1", P4Bit value_w (P4min rw_1 rw_4));
+                ("rw_2", P4Bit value_w (P4min rw_2 rw_5));
                 ("rw_3", P4Bit value_w rw_3);
-                ("rw_4", P4Bit value_w rw_4)
+                ("rw_4", P4Bit value_w rw_4);
+                ("rw_5", P4Bit value_w rw_5)
                ])
              ]
         (EXT []))).
@@ -102,34 +107,38 @@ Definition act_merge_rows_2_spec : func_spec :=
   WITH (* p *),
     PATH p
     MOD (Some [["win_md"]]) []
-    WITH api_call index_1 index_2 index_3 index_4 rw_1 rw_2 rw_3 rw_4,
+    WITH api index_1 index_2 index_3 index_4 index_5 rw_1 rw_2 rw_3 rw_4 rw_5,
       PRE
         (ARG []
         (MEM [(["win_md"], ValBaseStruct
-               [("api_call", api_call);
+               [("api", api);
                 ("index_1", index_1);
                 ("index_2", index_2);
                 ("index_3", index_3);
                 ("index_4", index_4);
+                ("index_5", index_5);
                 ("rw_1", P4Bit value_w rw_1);
                 ("rw_2", P4Bit value_w rw_2);
-                ("rw_3", rw_3);
-                ("rw_4", rw_4)
+                ("rw_3", P4Bit value_w rw_3);
+                ("rw_4", rw_4);
+                ("rw_5", rw_5)
                ])
              ]
         (EXT [])))
       POST
         (ARG_RET [] ValBaseNull
         (MEM [(["win_md"], ValBaseStruct
-               [("api_call", api_call);
+               [("api", api);
                 ("index_1", index_1);
                 ("index_2", index_2);
                 ("index_3", index_3);
                 ("index_4", index_4);
-                ("rw_1", P4Bit value_w (P4min rw_1 rw_2));
+                ("index_5", index_5);
+                ("rw_1", P4Bit value_w (P4min rw_1 rw_3));
                 ("rw_2", P4Bit value_w rw_2);
-                ("rw_3", rw_3);
-                ("rw_4", rw_4)
+                ("rw_3", P4Bit value_w rw_3);
+                ("rw_4", rw_4);
+                ("rw_5", rw_5)
                ])
              ]
         (EXT []))).
@@ -146,6 +155,61 @@ Qed.
 
 #[local] Hint Extern 5 (func_modifies _ _ _ _ _) => (apply act_merge_rows_2_body) : func_specs.
 
+Definition act_merge_rows_3_fd :=
+  ltac:(get_fd ["Cm2CountMinSketchWin"; "act_merge_rows_3"] ge).
+
+Definition act_merge_rows_3_spec : func_spec :=
+  WITH (* p *),
+    PATH p
+    MOD (Some [["win_md"]]) []
+    WITH api index_1 index_2 index_3 index_4 index_5 rw_1 rw_2 rw_3 rw_4 rw_5,
+      PRE
+        (ARG []
+        (MEM [(["win_md"], ValBaseStruct
+               [("api", api);
+                ("index_1", index_1);
+                ("index_2", index_2);
+                ("index_3", index_3);
+                ("index_4", index_4);
+                ("index_5", index_5);
+                ("rw_1", P4Bit value_w rw_1);
+                ("rw_2", P4Bit value_w rw_2);
+                ("rw_3", rw_3);
+                ("rw_4", rw_4);
+                ("rw_5", rw_5)
+               ])
+             ]
+        (EXT [])))
+      POST
+        (ARG_RET [] ValBaseNull
+        (MEM [(["win_md"], ValBaseStruct
+               [("api", api);
+                ("index_1", index_1);
+                ("index_2", index_2);
+                ("index_3", index_3);
+                ("index_4", index_4);
+                ("index_5", index_5);
+                ("rw_1", P4Bit value_w (P4min rw_1 rw_2));
+                ("rw_2", P4Bit value_w rw_2);
+                ("rw_3", rw_3);
+                ("rw_4", rw_4);
+                ("rw_5", rw_5)
+               ])
+             ]
+        (EXT []))).
+
+Lemma act_merge_rows_3_body :
+  func_sound ge act_merge_rows_3_fd nil act_merge_rows_3_spec.
+Proof.
+  start_function.
+  step_call min_body.
+  { entailer. }
+  step.
+  entailer.
+Qed.
+
+#[local] Hint Extern 5 (func_modifies _ _ _ _ _) => (apply act_merge_rows_3_body) : func_specs.
+
 Definition tbl_merge_rows_1_fd :=
   ltac:(get_fd ["Cm2CountMinSketchWin"; "tbl_merge_rows_1"; "apply"] ge).
 
@@ -153,19 +217,21 @@ Definition tbl_merge_rows_1_spec : func_spec :=
   WITH (* p *),
     PATH p
     MOD (Some [["win_md"]]) []
-    WITH api_call index_1 index_2 index_3 index_4 rw_1 rw_2 rw_3 rw_4,
+    WITH api index_1 index_2 index_3 index_4 index_5 rw_1 rw_2 rw_3 rw_4 rw_5,
       PRE
         (ARG []
         (MEM [(["win_md"], ValBaseStruct
-               [("api_call", api_call);
+               [("api", api);
                 ("index_1", index_1);
                 ("index_2", index_2);
                 ("index_3", index_3);
                 ("index_4", index_4);
+                ("index_5", index_5);
                 ("rw_1", P4Bit value_w rw_1);
                 ("rw_2", P4Bit value_w rw_2);
                 ("rw_3", P4Bit value_w rw_3);
-                ("rw_4", P4Bit value_w rw_4)
+                ("rw_4", P4Bit value_w rw_4);
+                ("rw_5", P4Bit value_w rw_5)
                ])
              ]
         (EXT [])))
@@ -173,15 +239,17 @@ Definition tbl_merge_rows_1_spec : func_spec :=
         (EX retv,
         (ARG_RET [] retv
         (MEM [(["win_md"], ValBaseStruct
-               [("api_call", api_call);
+               [("api", api);
                 ("index_1", index_1);
                 ("index_2", index_2);
                 ("index_3", index_3);
                 ("index_4", index_4);
-                ("rw_1", P4Bit value_w (P4min rw_1 rw_3));
-                ("rw_2", P4Bit value_w (P4min rw_2 rw_4));
+                ("index_5", index_5);
+                ("rw_1", P4Bit value_w (P4min rw_1 rw_4));
+                ("rw_2", P4Bit value_w (P4min rw_2 rw_5));
                 ("rw_3", P4Bit value_w rw_3);
-                ("rw_4", P4Bit value_w rw_4)
+                ("rw_4", P4Bit value_w rw_4);
+                ("rw_5", P4Bit value_w rw_5)
                ])
              ]
         (EXT []))))%arg_ret_assr.
@@ -204,19 +272,21 @@ Definition tbl_merge_rows_2_spec : func_spec :=
   WITH (* p *),
     PATH p
     MOD (Some [["win_md"]]) []
-    WITH api_call index_1 index_2 index_3 index_4 rw_1 rw_2 rw_3 rw_4,
+    WITH api index_1 index_2 index_3 index_4 index_5 rw_1 rw_2 rw_3 rw_4 rw_5,
       PRE
         (ARG []
         (MEM [(["win_md"], ValBaseStruct
-               [("api_call", api_call);
+               [("api", api);
                 ("index_1", index_1);
                 ("index_2", index_2);
                 ("index_3", index_3);
                 ("index_4", index_4);
+                ("index_5", index_5);
                 ("rw_1", P4Bit value_w rw_1);
                 ("rw_2", P4Bit value_w rw_2);
-                ("rw_3", rw_3);
-                ("rw_4", rw_4)
+                ("rw_3", P4Bit value_w rw_3);
+                ("rw_4", rw_4);
+                ("rw_5", rw_5)
                ])
              ]
         (EXT [])))
@@ -224,15 +294,17 @@ Definition tbl_merge_rows_2_spec : func_spec :=
         (EX retv,
         (ARG_RET [] retv
         (MEM [(["win_md"], ValBaseStruct
-               [("api_call", api_call);
+               [("api", api);
                 ("index_1", index_1);
                 ("index_2", index_2);
                 ("index_3", index_3);
                 ("index_4", index_4);
-                ("rw_1", P4Bit value_w (P4min rw_1 rw_2));
+                ("index_5", index_5);
+                ("rw_1", P4Bit value_w (P4min rw_1 rw_3));
                 ("rw_2", P4Bit value_w rw_2);
-                ("rw_3", rw_3);
-                ("rw_4", rw_4)
+                ("rw_3", P4Bit value_w rw_3);
+                ("rw_4", rw_4);
+                ("rw_5", rw_5)
                ])
              ]
         (EXT []))))%arg_ret_assr.
@@ -247,6 +319,61 @@ Proof.
 Qed.
 
 #[local] Hint Extern 5 (func_modifies _ _ _ _ _) => (apply tbl_merge_rows_2_body) : func_specs.
+
+Definition tbl_merge_rows_3_fd :=
+  ltac:(get_fd ["Cm2CountMinSketchWin"; "tbl_merge_rows_3"; "apply"] ge).
+
+Definition tbl_merge_rows_3_spec : func_spec :=
+  WITH (* p *),
+    PATH p
+    MOD (Some [["win_md"]]) []
+    WITH api index_1 index_2 index_3 index_4 index_5 rw_1 rw_2 rw_3 rw_4 rw_5,
+      PRE
+        (ARG []
+        (MEM [(["win_md"], ValBaseStruct
+               [("api", api);
+                ("index_1", index_1);
+                ("index_2", index_2);
+                ("index_3", index_3);
+                ("index_4", index_4);
+                ("index_5", index_5);
+                ("rw_1", P4Bit value_w rw_1);
+                ("rw_2", P4Bit value_w rw_2);
+                ("rw_3", rw_3);
+                ("rw_4", rw_4);
+                ("rw_5", rw_5)
+               ])
+             ]
+        (EXT [])))
+      POST
+        (EX retv,
+        (ARG_RET [] retv
+        (MEM [(["win_md"], ValBaseStruct
+               [("api", api);
+                ("index_1", index_1);
+                ("index_2", index_2);
+                ("index_3", index_3);
+                ("index_4", index_4);
+                ("index_5", index_5);
+                ("rw_1", P4Bit value_w (P4min rw_1 rw_2));
+                ("rw_2", P4Bit value_w rw_2);
+                ("rw_3", rw_3);
+                ("rw_4", rw_4);
+                ("rw_5", rw_5)
+               ])
+             ]
+        (EXT []))))%arg_ret_assr.
+
+Lemma tbl_merge_rows_3_body :
+  func_sound ge tbl_merge_rows_3_fd nil tbl_merge_rows_3_spec.
+Proof.
+  start_function.
+  table_action act_merge_rows_3_body.
+  { entailer. }
+  { entailer. }
+Qed.
+
+#[local] Hint Extern 5 (func_modifies _ _ _ _ _) => (apply tbl_merge_rows_3_body) : func_specs.
 
 Definition min_undef_spec : func_spec :=
   WITH,
@@ -270,34 +397,38 @@ Definition act_merge_rows_1_undef_spec : func_spec :=
   WITH (* p *),
     PATH p
     MOD (Some [["win_md"]]) []
-    WITH api_call index_1 index_2 index_3 index_4,
+    WITH api index_1 index_2 index_3 index_4 index_5,
       PRE
         (ARG []
         (MEM [(["win_md"], ValBaseStruct
-               [("api_call", api_call);
+               [("api", api);
                 ("index_1", index_1);
                 ("index_2", index_2);
                 ("index_3", index_3);
                 ("index_4", index_4);
+                ("index_5", index_5);
                 ("rw_1", P4Bit_ value_w);
                 ("rw_2", P4Bit_ value_w);
                 ("rw_3", P4Bit_ value_w);
-                ("rw_4", P4Bit_ value_w)
+                ("rw_4", P4Bit_ value_w);
+                ("rw_5", P4Bit_ value_w)
                ])
              ]
         (EXT [])))
       POST
         (ARG_RET [] ValBaseNull
         (MEM [(["win_md"], ValBaseStruct
-               [("api_call", api_call);
+               [("api", api);
                 ("index_1", index_1);
                 ("index_2", index_2);
                 ("index_3", index_3);
                 ("index_4", index_4);
+                ("index_5", index_5);
                 ("rw_1", P4Bit_ value_w);
                 ("rw_2", P4Bit_ value_w);
                 ("rw_3", P4Bit_ value_w);
-                ("rw_4", P4Bit_ value_w)
+                ("rw_4", P4Bit_ value_w);
+                ("rw_5", P4Bit_ value_w)
                ])
              ]
         (EXT []))).
@@ -318,34 +449,38 @@ Definition act_merge_rows_2_undef_spec : func_spec :=
   WITH (* p *),
     PATH p
     MOD (Some [["win_md"]]) []
-    WITH api_call index_1 index_2 index_3 index_4 rw_3 rw_4,
+    WITH api index_1 index_2 index_3 index_4 index_5 rw_2 rw_4 rw_5,
       PRE
         (ARG []
         (MEM [(["win_md"], ValBaseStruct
-               [("api_call", api_call);
+               [("api", api);
                 ("index_1", index_1);
                 ("index_2", index_2);
                 ("index_3", index_3);
                 ("index_4", index_4);
+                ("index_5", index_5);
                 ("rw_1", P4Bit_ value_w);
-                ("rw_2", P4Bit_ value_w);
-                ("rw_3", rw_3);
-                ("rw_4", rw_4)
+                ("rw_2", rw_2);
+                ("rw_3", P4Bit_ value_w);
+                ("rw_4", rw_4);
+                ("rw_5", rw_5)
                ])
              ]
         (EXT [])))
       POST
         (ARG_RET [] ValBaseNull
         (MEM [(["win_md"], ValBaseStruct
-               [("api_call", api_call);
+               [("api", api);
                 ("index_1", index_1);
                 ("index_2", index_2);
                 ("index_3", index_3);
                 ("index_4", index_4);
+                ("index_5", index_5);
                 ("rw_1", P4Bit_ value_w);
-                ("rw_2", P4Bit_ value_w);
-                ("rw_3", rw_3);
-                ("rw_4", rw_4)
+                ("rw_2", rw_2);
+                ("rw_3", P4Bit_ value_w);
+                ("rw_4", rw_4);
+                ("rw_5", rw_5)
                ])
              ]
         (EXT []))).
@@ -360,23 +495,75 @@ Proof.
   entailer.
 Qed.
 
-Definition tbl_merge_rows_1_undef_spec : func_spec :=
+Definition act_merge_rows_3_undef_spec : func_spec :=
   WITH (* p *),
     PATH p
     MOD (Some [["win_md"]]) []
-    WITH api_call index_1 index_2 index_3 index_4,
+    WITH api index_1 index_2 index_3 index_4 index_5 rw_3 rw_4 rw_5,
       PRE
         (ARG []
         (MEM [(["win_md"], ValBaseStruct
-               [("api_call", api_call);
+               [("api", api);
                 ("index_1", index_1);
                 ("index_2", index_2);
                 ("index_3", index_3);
                 ("index_4", index_4);
+                ("index_5", index_5);
+                ("rw_1", P4Bit_ value_w);
+                ("rw_2", P4Bit_ value_w);
+                ("rw_3", rw_3);
+                ("rw_4", rw_4);
+                ("rw_5", rw_5)
+               ])
+             ]
+        (EXT [])))
+      POST
+        (ARG_RET [] ValBaseNull
+        (MEM [(["win_md"], ValBaseStruct
+               [("api", api);
+                ("index_1", index_1);
+                ("index_2", index_2);
+                ("index_3", index_3);
+                ("index_4", index_4);
+                ("index_5", index_5);
+                ("rw_1", P4Bit_ value_w);
+                ("rw_2", P4Bit_ value_w);
+                ("rw_3", rw_3);
+                ("rw_4", rw_4);
+                ("rw_5", rw_5)
+               ])
+             ]
+        (EXT []))).
+
+Lemma act_merge_rows_3_undef_body :
+  func_sound ge act_merge_rows_3_fd nil act_merge_rows_3_undef_spec.
+Proof.
+  start_function.
+  step_call min_undef_body.
+  { entailer. }
+  step.
+  entailer.
+Qed.
+
+Definition tbl_merge_rows_1_undef_spec : func_spec :=
+  WITH (* p *),
+    PATH p
+    MOD (Some [["win_md"]]) []
+    WITH api index_1 index_2 index_3 index_4 index_5,
+      PRE
+        (ARG []
+        (MEM [(["win_md"], ValBaseStruct
+               [("api", api);
+                ("index_1", index_1);
+                ("index_2", index_2);
+                ("index_3", index_3);
+                ("index_4", index_4);
+                ("index_5", index_5);
                 ("rw_1", P4Bit_ value_w);
                 ("rw_2", P4Bit_ value_w);
                 ("rw_3", P4Bit_ value_w);
-                ("rw_4", P4Bit_ value_w)
+                ("rw_4", P4Bit_ value_w);
+                ("rw_5", P4Bit_ value_w)
                ])
              ]
         (EXT [])))
@@ -384,15 +571,17 @@ Definition tbl_merge_rows_1_undef_spec : func_spec :=
         (EX retv,
         (ARG_RET [] retv
         (MEM [(["win_md"], ValBaseStruct
-               [("api_call", api_call);
+               [("api", api);
                 ("index_1", index_1);
                 ("index_2", index_2);
                 ("index_3", index_3);
                 ("index_4", index_4);
+                ("index_5", index_5);
                 ("rw_1", P4Bit_ value_w);
                 ("rw_2", P4Bit_ value_w);
                 ("rw_3", P4Bit_ value_w);
-                ("rw_4", P4Bit_ value_w)
+                ("rw_4", P4Bit_ value_w);
+                ("rw_5", P4Bit_ value_w)
                ])
              ]
         (EXT []))))%arg_ret_assr.
@@ -410,19 +599,21 @@ Definition tbl_merge_rows_2_undef_spec : func_spec :=
   WITH (* p *),
     PATH p
     MOD (Some [["win_md"]]) []
-    WITH api_call index_1 index_2 index_3 index_4 rw_3 rw_4,
+    WITH api index_1 index_2 index_3 index_4 index_5 rw_2 rw_4 rw_5,
       PRE
         (ARG []
         (MEM [(["win_md"], ValBaseStruct
-               [("api_call", api_call);
+               [("api", api);
                 ("index_1", index_1);
                 ("index_2", index_2);
                 ("index_3", index_3);
                 ("index_4", index_4);
+                ("index_5", index_5);
                 ("rw_1", P4Bit_ value_w);
-                ("rw_2", P4Bit_ value_w);
-                ("rw_3", rw_3);
-                ("rw_4", rw_4)
+                ("rw_2", rw_2);
+                ("rw_3", P4Bit_ value_w);
+                ("rw_4", rw_4);
+                ("rw_5", rw_5)
                ])
              ]
         (EXT [])))
@@ -430,15 +621,17 @@ Definition tbl_merge_rows_2_undef_spec : func_spec :=
         (EX retv,
         (ARG_RET [] retv
         (MEM [(["win_md"], ValBaseStruct
-               [("api_call", api_call);
+               [("api", api);
                 ("index_1", index_1);
                 ("index_2", index_2);
                 ("index_3", index_3);
                 ("index_4", index_4);
+                ("index_5", index_5);
                 ("rw_1", P4Bit_ value_w);
-                ("rw_2", P4Bit_ value_w);
-                ("rw_3", rw_3);
-                ("rw_4", rw_4)
+                ("rw_2", rw_2);
+                ("rw_3", P4Bit_ value_w);
+                ("rw_4", rw_4);
+                ("rw_5", rw_5)
                ])
              ]
         (EXT []))))%arg_ret_assr.
@@ -448,6 +641,56 @@ Lemma tbl_merge_rows_2_undef_body :
 Proof.
   start_function.
   table_action act_merge_rows_2_undef_body.
+  { entailer. }
+  { entailer. }
+Qed.
+
+Definition tbl_merge_rows_3_undef_spec : func_spec :=
+  WITH (* p *),
+    PATH p
+    MOD (Some [["win_md"]]) []
+    WITH api index_1 index_2 index_3 index_4 index_5 rw_3 rw_4 rw_5,
+      PRE
+        (ARG []
+        (MEM [(["win_md"], ValBaseStruct
+               [("api", api);
+                ("index_1", index_1);
+                ("index_2", index_2);
+                ("index_3", index_3);
+                ("index_4", index_4);
+                ("index_5", index_5);
+                ("rw_1", P4Bit_ value_w);
+                ("rw_2", P4Bit_ value_w);
+                ("rw_3", rw_3);
+                ("rw_4", rw_4);
+                ("rw_5", rw_5)
+               ])
+             ]
+        (EXT [])))
+      POST
+        (EX retv,
+        (ARG_RET [] retv
+        (MEM [(["win_md"], ValBaseStruct
+               [("api", api);
+                ("index_1", index_1);
+                ("index_2", index_2);
+                ("index_3", index_3);
+                ("index_4", index_4);
+                ("index_5", index_5);
+                ("rw_1", P4Bit_ value_w);
+                ("rw_2", P4Bit_ value_w);
+                ("rw_3", rw_3);
+                ("rw_4", rw_4);
+                ("rw_5", rw_5)
+               ])
+             ]
+        (EXT []))))%arg_ret_assr.
+
+Lemma tbl_merge_rows_3_undef_body :
+  func_sound ge tbl_merge_rows_3_fd nil tbl_merge_rows_3_undef_spec.
+Proof.
+  start_function.
+  table_action act_merge_rows_3_undef_body.
   { entailer. }
   { entailer. }
 Qed.
@@ -463,30 +706,34 @@ Definition Win_noop_spec : func_spec :=
       (_ : Forall (fun i => 0 <= i < num_slots) (`is)),
       PRE
         (ARG [ValBaseStruct
-               [("api_call", P4Bit 32 NOOP);
+               [("api", P4Bit 8 NOOP);
                 ("index_1", P4Bit index_w (Znth 0 (`is)));
                 ("index_2", P4Bit index_w (Znth 1 (`is)));
                 ("index_3", P4Bit index_w (Znth 2 (`is)));
                 ("index_4", P4Bit index_w (Znth 3 (`is)));
+                ("index_5", P4Bit index_w (Znth 4 (`is)));
                 ("rw_1", P4Bit_ value_w);
                 ("rw_2", P4Bit_ value_w);
                 ("rw_3", P4Bit_ value_w);
-                ("rw_4", P4Bit_ value_w)
+                ("rw_4", P4Bit_ value_w);
+                ("rw_5", P4Bit_ value_w)
                ]
              ]
         (MEM []
         (EXT [frame_repr p rows f])))
       POST
         (ARG_RET [ValBaseStruct
-               [("api_call", P4Bit 32 NOOP);
+               [("api", P4Bit 8 NOOP);
                 ("index_1", P4Bit index_w (Znth 0 (`is)));
                 ("index_2", P4Bit index_w (Znth 1 (`is)));
                 ("index_3", P4Bit index_w (Znth 2 (`is)));
                 ("index_4", P4Bit index_w (Znth 3 (`is)));
+                ("index_5", P4Bit index_w (Znth 4 (`is)));
                 ("rw_1", P4Bit_ value_w);
                 ("rw_2", P4Bit_ value_w);
                 ("rw_3", P4Bit_ value_w);
-                ("rw_4", P4Bit_ value_w)
+                ("rw_4", P4Bit_ value_w);
+                ("rw_5", P4Bit_ value_w)
                ]
         ] ValBaseNull
         (MEM []
@@ -517,10 +764,16 @@ Proof.
   step_call verif_Row14.Row_noop_case_body.
   { entailer. }
   { auto. }
+  step_call verif_Row15.Row_noop_case_body.
+  { entailer. }
+  { auto. }
   step_call tbl_merge_rows_1_undef_body.
   { entailer. }
   Intros _.
   step_call tbl_merge_rows_2_undef_body.
+  { entailer. }
+  Intros _.
+  step_call tbl_merge_rows_3_undef_body.
   { entailer. }
   Intros _.
   step.
@@ -535,30 +788,34 @@ Definition Win_insert_spec : func_spec :=
       (_ : Forall (fun i => 0 <= i < num_slots) (`is)),
       PRE
         (ARG [ValBaseStruct
-               [("api_call", P4Bit 32 INSERT);
+               [("api", P4Bit 8 INSERT);
                 ("index_1", P4Bit index_w (Znth 0 (`is)));
                 ("index_2", P4Bit index_w (Znth 1 (`is)));
                 ("index_3", P4Bit index_w (Znth 2 (`is)));
                 ("index_4", P4Bit index_w (Znth 3 (`is)));
+                ("index_5", P4Bit index_w (Znth 4 (`is)));
                 ("rw_1", P4Bit_ value_w);
                 ("rw_2", P4Bit_ value_w);
                 ("rw_3", P4Bit_ value_w);
-                ("rw_4", P4Bit_ value_w)
+                ("rw_4", P4Bit_ value_w);
+                ("rw_5", P4Bit_ value_w)
                ]
              ]
         (MEM []
         (EXT [frame_repr p rows f])))
       POST
         (ARG_RET [ValBaseStruct
-               [("api_call", P4Bit 32 INSERT);
+               [("api", P4Bit 8 INSERT);
                 ("index_1", P4Bit index_w (Znth 0 (`is)));
                 ("index_2", P4Bit index_w (Znth 1 (`is)));
                 ("index_3", P4Bit index_w (Znth 2 (`is)));
                 ("index_4", P4Bit index_w (Znth 3 (`is)));
+                ("index_5", P4Bit index_w (Znth 4 (`is)));
                 ("rw_1", P4Bit_ value_w);
                 ("rw_2", P4Bit_ value_w);
                 ("rw_3", P4Bit_ value_w);
-                ("rw_4", P4Bit_ value_w)
+                ("rw_4", P4Bit_ value_w);
+                ("rw_5", P4Bit_ value_w)
                ]
         ] ValBaseNull
         (MEM []
@@ -589,12 +846,18 @@ Proof.
   step_call verif_Row14.Row_insert_case_body.
   { entailer. }
   { auto. }
+  step_call verif_Row15.Row_insert_case_body.
+  { entailer. }
+  { auto. }
   step_call tbl_merge_rows_1_undef_body.
   { entailer.
     repeat constructor.
   }
   Intros _.
   step_call tbl_merge_rows_2_undef_body.
+  { entailer. }
+  Intros _.
+  step_call tbl_merge_rows_3_undef_body.
   { entailer. }
   Intros _.
   step.
@@ -609,30 +872,34 @@ Definition Win_query_spec : func_spec :=
       (_ : Forall (fun i => 0 <= i < num_slots) (`is)),
       PRE
         (ARG [ValBaseStruct
-               [("api_call", P4Bit 32 QUERY);
+               [("api", P4Bit 8 QUERY);
                 ("index_1", P4Bit index_w (Znth 0 (`is)));
                 ("index_2", P4Bit index_w (Znth 1 (`is)));
                 ("index_3", P4Bit index_w (Znth 2 (`is)));
                 ("index_4", P4Bit index_w (Znth 3 (`is)));
+                ("index_5", P4Bit index_w (Znth 4 (`is)));
                 ("rw_1", P4Bit_ value_w);
                 ("rw_2", P4Bit_ value_w);
                 ("rw_3", P4Bit_ value_w);
-                ("rw_4", P4Bit_ value_w)
+                ("rw_4", P4Bit_ value_w);
+                ("rw_5", P4Bit_ value_w)
                ]
              ]
         (MEM []
         (EXT [frame_repr p rows f])))
       POST
         (ARG_RET [ValBaseStruct
-               [("api_call", P4Bit 32 QUERY);
+               [("api", P4Bit 8 QUERY);
                 ("index_1", P4Bit index_w (Znth 0 (`is)));
                 ("index_2", P4Bit index_w (Znth 1 (`is)));
                 ("index_3", P4Bit index_w (Znth 2 (`is)));
                 ("index_4", P4Bit index_w (Znth 3 (`is)));
+                ("index_5", P4Bit index_w (Znth 4 (`is)));
                 ("rw_1", P4Bit value_w (frame_query f (`is)));
                 ("rw_2", P4Bit_ value_w);
                 ("rw_3", P4Bit_ value_w);
-                ("rw_4", P4Bit_ value_w)
+                ("rw_4", P4Bit_ value_w);
+                ("rw_5", P4Bit_ value_w)
                ]
         ] ValBaseNull
         (MEM []
@@ -663,10 +930,16 @@ Proof.
   step_call verif_Row14.Row_query_case_body.
   { entailer. }
   { auto. }
+  step_call verif_Row15.Row_query_case_body.
+  { entailer. }
+  { auto. }
   step_call tbl_merge_rows_1_body.
   { entailer. }
   Intros _.
   step_call tbl_merge_rows_2_body.
+  { entailer. }
+  Intros _.
+  step_call tbl_merge_rows_3_body.
   { entailer. }
   Intros _.
   step.
@@ -691,30 +964,34 @@ Definition Win_clear_spec : func_spec :=
       (_ : Forall (fun i => 0 <= i < num_slots) (`is)),
       PRE
         (ARG [ValBaseStruct
-               [("api_call", P4Bit 32 CLEAR);
+               [("api", P4Bit 8 CLEAR);
                 ("index_1", P4Bit index_w (Znth 0 (`is)));
                 ("index_2", P4Bit index_w (Znth 1 (`is)));
                 ("index_3", P4Bit index_w (Znth 2 (`is)));
                 ("index_4", P4Bit index_w (Znth 3 (`is)));
+                ("index_5", P4Bit index_w (Znth 4 (`is)));
                 ("rw_1", P4Bit_ value_w);
                 ("rw_2", P4Bit_ value_w);
                 ("rw_3", P4Bit_ value_w);
-                ("rw_4", P4Bit_ value_w)
+                ("rw_4", P4Bit_ value_w);
+                ("rw_5", P4Bit_ value_w)
                ]
              ]
         (MEM []
         (EXT [frame_repr p rows f])))
       POST
         (ARG_RET [ValBaseStruct
-               [("api_call", P4Bit 32 CLEAR);
+               [("api", P4Bit 8 CLEAR);
                 ("index_1", P4Bit index_w (Znth 0 (`is)));
                 ("index_2", P4Bit index_w (Znth 1 (`is)));
                 ("index_3", P4Bit index_w (Znth 2 (`is)));
                 ("index_4", P4Bit index_w (Znth 3 (`is)));
+                ("index_5", P4Bit index_w (Znth 4 (`is)));
                 ("rw_1", P4Bit_ value_w);
                 ("rw_2", P4Bit_ value_w);
                 ("rw_3", P4Bit_ value_w);
-                ("rw_4", P4Bit_ value_w)
+                ("rw_4", P4Bit_ value_w);
+                ("rw_5", P4Bit_ value_w)
                ]
         ] ValBaseNull
         (MEM []
@@ -745,12 +1022,18 @@ Proof.
   step_call verif_Row14.Row_clear_case_body.
   { entailer. }
   { auto. }
+  step_call verif_Row15.Row_clear_case_body.
+  { entailer. }
+  { auto. }
   step_call tbl_merge_rows_1_undef_body.
   { entailer.
     repeat constructor.
   }
   Intros _.
   step_call tbl_merge_rows_2_undef_body.
+  { entailer. }
+  Intros _.
+  step_call tbl_merge_rows_3_undef_body.
   { entailer. }
   Intros _.
   step.
@@ -768,15 +1051,17 @@ Definition Win_spec : func_spec :=
       (_ : Forall (fun i => 0 <= i < num_slots) (`is)),
       PRE
         (ARG [ValBaseStruct
-               [("api_call", P4Bit 32 op);
+               [("api", P4Bit 8 op);
                 ("index_1", P4Bit index_w (Znth 0 (`is)));
                 ("index_2", P4Bit index_w (Znth 1 (`is)));
                 ("index_3", P4Bit index_w (Znth 2 (`is)));
                 ("index_4", P4Bit index_w (Znth 3 (`is)));
+                ("index_5", P4Bit index_w (Znth 4 (`is)));
                 ("rw_1", P4Bit_ value_w);
                 ("rw_2", P4Bit_ value_w);
                 ("rw_3", P4Bit_ value_w);
-                ("rw_4", P4Bit_ value_w)
+                ("rw_4", P4Bit_ value_w);
+                ("rw_5", P4Bit_ value_w)
                ]
              ]
         (MEM []
@@ -785,51 +1070,59 @@ Definition Win_spec : func_spec :=
         (ARG_RET [
           if op =? NOOP then
             ValBaseStruct
-              [("api_call", P4Bit 32 NOOP);
+              [("api", P4Bit 8 NOOP);
                ("index_1", P4Bit index_w (Znth 0 (`is)));
                ("index_2", P4Bit index_w (Znth 1 (`is)));
                ("index_3", P4Bit index_w (Znth 2 (`is)));
                ("index_4", P4Bit index_w (Znth 3 (`is)));
+               ("index_5", P4Bit index_w (Znth 4 (`is)));
                ("rw_1", P4Bit_ value_w);
                ("rw_2", P4Bit_ value_w);
                ("rw_3", P4Bit_ value_w);
-               ("rw_4", P4Bit_ value_w)
+               ("rw_4", P4Bit_ value_w);
+               ("rw_5", P4Bit_ value_w)
               ]
           else if op =? CLEAR then
             ValBaseStruct
-              [("api_call", P4Bit 32 CLEAR);
+              [("api", P4Bit 8 CLEAR);
                ("index_1", P4Bit index_w (Znth 0 (`is)));
                ("index_2", P4Bit index_w (Znth 1 (`is)));
                ("index_3", P4Bit index_w (Znth 2 (`is)));
                ("index_4", P4Bit index_w (Znth 3 (`is)));
+               ("index_5", P4Bit index_w (Znth 4 (`is)));
                ("rw_1", P4Bit_ value_w);
                ("rw_2", P4Bit_ value_w);
                ("rw_3", P4Bit_ value_w);
-               ("rw_4", P4Bit_ value_w)
+               ("rw_4", P4Bit_ value_w);
+               ("rw_5", P4Bit_ value_w)
               ]
           else if op =? INSERT then
             ValBaseStruct
-              [("api_call", P4Bit 32 INSERT);
+              [("api", P4Bit 8 INSERT);
                ("index_1", P4Bit index_w (Znth 0 (`is)));
                ("index_2", P4Bit index_w (Znth 1 (`is)));
                ("index_3", P4Bit index_w (Znth 2 (`is)));
                ("index_4", P4Bit index_w (Znth 3 (`is)));
+               ("index_5", P4Bit index_w (Znth 4 (`is)));
                ("rw_1", P4Bit_ value_w);
                ("rw_2", P4Bit_ value_w);
                ("rw_3", P4Bit_ value_w);
-               ("rw_4", P4Bit_ value_w)
+               ("rw_4", P4Bit_ value_w);
+               ("rw_5", P4Bit_ value_w)
               ]
           else
             ValBaseStruct
-              [("api_call", P4Bit 32 QUERY);
+              [("api", P4Bit 8 QUERY);
                ("index_1", P4Bit index_w (Znth 0 (`is)));
                ("index_2", P4Bit index_w (Znth 1 (`is)));
                ("index_3", P4Bit index_w (Znth 2 (`is)));
                ("index_4", P4Bit index_w (Znth 3 (`is)));
+               ("index_5", P4Bit index_w (Znth 4 (`is)));
                ("rw_1", P4Bit value_w (frame_query f (`is)));
                ("rw_2", P4Bit_ value_w);
                ("rw_3", P4Bit_ value_w);
-               ("rw_4", P4Bit_ value_w)
+               ("rw_4", P4Bit_ value_w);
+               ("rw_5", P4Bit_ value_w)
               ]
         ] ValBaseNull
         (MEM []
