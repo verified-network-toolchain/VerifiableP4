@@ -284,12 +284,15 @@ Proof.
     auto.
 Qed.
 
-Lemma ok_until_query_some : forall f t h, ok_until f t -> exists k, cms_query f (t, h) = Some k.
+Lemma ok_until_query_some : forall f t t' h,
+    t <= t' ->
+    ok_until f t ->
+    exists k, cms_query f (t', h) = Some k.
 Proof.
-  intros f t h H_ok_until.
+  intros f t t' h Ht' H_ok_until.
   destruct f. 2: inv H_ok_until. red in H_ok_until. destruct c.
   destruct H_ok_until as [[Ht _] _]. simpl.
-  destruct (last_timestamp <=? t) eqn:Hlt. 2: lia.
+  destruct (last_timestamp <=? t') eqn:Hlt. 2: lia.
   match goal with
   | |- exists _, Some ?i = Some _ => exists i; reflexivity
   end.
