@@ -1043,4 +1043,4 @@ Definition Filter_fd :=
 
 Program Definition hashes (key : Val) : listn Z num_rows := (exist _ [hash1 key; hash2 key; hash3 key; hash4 key; hash5 key] eq_refl).
 
-(* Notation cms_repr := (cms_repr (frame_tick_tocks := frame_tick_tocks)). *)
+Notation cms_repr := (cms_repr (frame_tick_tocks := frame_tick_tocks)).

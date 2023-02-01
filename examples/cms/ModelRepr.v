@@ -73,7 +73,7 @@ Definition timer_repr (p : path) (t : Z * bool) : ext_pred :=
     (ExtPred.singleton (p ++ ["reg_clear_window"])
           (Tofino.ObjRegister [timer_repr_val t])).
 
-Program Definition filter_repr (p : path) (w : N) (panes : list string) (rows : list string) (cf : ConModel.cms num_frames num_rows num_slots) : ext_pred :=
+Program Definition cms_repr (p : path) (w : N) (panes : list string) (rows : list string) (cf : ConModel.cms num_frames num_rows num_slots) : ext_pred :=
   ExtPred.wrap [p] (
     let 'mk_cms pns clear_index timer := cf in
     map2 (fun pane cpa => frame_repr (p ++ [pane]) rows cpa) panes pns ++
