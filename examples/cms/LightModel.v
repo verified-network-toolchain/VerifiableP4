@@ -314,66 +314,108 @@ Proof.
   unfold cms_query, ok_until1, cms_inv1 in *.
   destruct (t <=? t') eqn:?H. 2 : inv H_query_clear.
   injection H_query_clear; clear H_query_clear; intros H_query_clear. f_equal.
-  (*
+  remember (fun hs: list header_type => _) as f.
+  remember (Z.min (Z.max ((t' - window_hi) / frame_time + 1) 0) (num_frames - 1)) as lo.
   assert ((t' - window_hi) / frame_time < num_frames - 2). {
     apply Z.div_lt_upper_bound. 1 : lia.
     fold T.
     lia.
   }
-  f_equal.
-  apply existsb_Znth_true with (i := num_frames - 2 - Z.max ((t' - window_hi) / frame_time + 1) 0).
-  { list_solve. }
-  rewrite forallb_fold_andb.
-  apply fold_andb_true; list_simplify; intros.
-  rewrite <- existsb_fold_orb.
-  list_simplify.
-  rewrite existsb_app.
-  simpl.
-  unfold compose.
-  replace (Znth i hashes h =? Znth i hashes h) with true by lia.
-  rewrite orbF.
-  rewrite orbT.
-  auto. *)
+  assert (0 <= lo < num_frames - 1) by (subst lo; lia).
+  rewrite (sublist_split lo (num_frames - 2) (num_frames - 1)) in H_query_clear |- *
+      by list_solve.
+  rewrite map_app, Zsum_app in *.
+  rewrite sublist_upd_Znth_l by lia.
+  replace (num_frames - 1) with (num_frames - 2 + 1) in H_query_clear |- * by lia.
+  rewrite sublist_len_1 in * by list_solve.
+  remember (Zsum (map f (sublist lo (num_frames - 2) normal_frames))) as m. clear Heqm.
+  unfold Zsum in H_query_clear |- *. simpl in H_query_clear |- *.
+  rewrite upd_Znth_same in * by lia. subst f.
+  remember (fun hash : header_type -> Z =>
+              Zsum (map (Z.b2z ∘ Z.eqb (hash h) ∘ hash)
+                      (Znth (num_frames - 2) normal_frames ++ [h]))) as f.
+  remember (fun hash : header_type -> Z =>
+              Zsum (map (Z.b2z ∘ Z.eqb (hash h) ∘ hash)
+                      (Znth (num_frames - 2) normal_frames))) as g.
+  assert (forall hash, f hash = g hash + 1). {
+    intros. subst. rewrite map_app, Zsum_app. f_equal. unfold Zsum, compose. simpl.
+    rewrite Z.eqb_refl. reflexivity. }
+  rewrite <- (map_ext (fun hash => g hash + 1)).
+  2: { intros; rewrite H2; reflexivity. }
+  rewrite list_min_map_add; lia.
+Qed.
 
-Abort.
+Lemma list_min_diff_at_most_one: forall (l1 l2: list Z),
+    0 < Zlength l1 ->
+    Zlength l1 = Zlength l2 ->
+    (forall i, 0 <= i < Zlength l1 -> Znth i l1 = Znth i l2 \/ Znth i l1 = Znth i l2 + 1) ->
+    list_min l1 = list_min l2 \/ list_min l1 = list_min l2 + 1.
+Proof.
+  intros l1 l2 Hgt Hl Hd. destruct l1. 1: list_solve. simpl.
+  destruct l2. 1: list_solve. simpl.
+  assert (Hl': Zlength l1 = Zlength l2) by list_solve.
+  assert (Hd': forall i, 0 <= i < Zlength l1 ->
+                    Znth i l1 = Znth i l2 \/ Znth i l1 = Znth i l2 + 1). {
+    intros. assert (Hp: 0 <= i + 1 < Zlength (z :: l1)) by list_solve. specialize (Hd _ Hp).
+    list_solve. }
+  specialize (Hd 0 ltac:(lia)). rewrite !Znth_0_cons in Hd. clear Hgt Hl.
+  revert l1 l2 z z0 Hd Hl' Hd'. induction l1; intros l2 z z0 Hd1 Hl Hd; simpl.
+  - destruct l2. 2: list_solve. simpl. assumption.
+  - destruct l2 as [|b l2]. 1: list_solve. simpl. apply IHl1. 2: list_solve.
+    + specialize (Hd 0 ltac:(list_solve)). list_solve.
+    + intros. specialize (Hd (i + 1) ltac:(list_solve)). list_solve.
+Qed.
 
-(*
-
-Lemma query_insert_other : forall f t t' h h',
+Lemma query_insert_other : forall f t t' h h' k,
   t <= t' ->
   ok_until f t ->
-  cms_query f (t', h') = Some true ->
-  cms_query (cms_insert f (t, h)) (t', h') = Some true.
+  cms_query f (t', h') = Some k ->
+  cms_query (cms_insert f (t, h)) (t', h') = Some k \/
+    cms_query (cms_insert f (t, h)) (t', h') = Some (k + 1).
 Proof.
-  intros * H_t' H_ok_until H_cms_query.
-  assert (H_query_clear : cms_query (cms_clear f t) (t', h') = Some true). {
+  intros f t t' h h' k H_t' H_ok_until H_cms_query.
+  assert (H_query_clear : cms_query (cms_clear f t) (t', h') = Some k). {
     erewrite <- query_clear; eauto.
   }
   clear H_cms_query.
   unfold cms_clear, abs_clear, cms_insert, abs_insert in *.
   destruct f. 2 : inv H_ok_until.
-  pose proof (H_ok_refresh := ok_refresh f t t ltac:(pose proof H_Tc; lia) ltac:(auto)).
-  destruct (abs_refresh f t) as [f' | ] eqn:?H. 2 : inv H_query_clear.
+  pose proof (H_ok_refresh := ok_refresh c t t ltac:(pose proof H_Tc; lia) ltac:(auto)).
+  destruct (abs_refresh c t) as [f' | ] eqn:?H. 2 : inv H_query_clear.
   destruct f' as [window_hi last_timestamp num_clears normal_frames].
   unfold cms_query in *.
   destruct (t <=? t') eqn:?H. 2 : inv H_query_clear.
-  injection H_query_clear; clear H_query_clear; intros H_query_clear. f_equal.
-  apply existsb_true_Znth in H_query_clear.
-  destruct H_query_clear as [i []].
-  assert (Zlength normal_frames = num_frames - 1). {
-    apply H_ok_refresh.
-  }
-  apply existsb_Znth_true with (i := i).
-  { list_solve. }
-  list_simplify.
-  rewrite e in H2.
-  clear -H2.
-  apply forallb_true_Znth in H2.
-  apply forallb_Znth_true.
-  list_simplify.
-  rewrite <- existsb_fold_orb in *.
-  rewrite existsb_app.
-  clear -H5; hauto lq: on.
+  injection H_query_clear; clear H_query_clear; intros H_query_clear.
+  remember (fun hs: list header_type => _) as f.
+  assert (Hl: Zlength normal_frames = num_frames - 1) by apply H_ok_refresh.
+  remember (Z.min (Z.max ((t' - window_hi) / frame_time + 1) 0) (num_frames - 1)) as lo.
+  destruct (Z_le_lt_dec (num_frames - 2) ((t' - window_hi) / frame_time)).
+  - assert (num_frames - 1 <= lo) by lia.
+    rewrite sublist_over in H_query_clear |- * by list_solve.
+    left. f_equal. assumption.
+  - assert (0 <= lo < num_frames - 1) by (subst lo; lia).
+    rewrite (sublist_split lo (num_frames - 2) (num_frames - 1)) in H_query_clear |- *
+        by list_solve.
+    rewrite map_app, Zsum_app in *.
+    rewrite sublist_upd_Znth_l by lia.
+    replace (num_frames - 1) with (num_frames - 2 + 1) in H_query_clear |- * by lia.
+    rewrite sublist_len_1 in * by list_solve.
+    remember (Zsum (map f (sublist lo (num_frames - 2) normal_frames))) as m. clear Heqm.
+    unfold Zsum in H_query_clear |- *. simpl in H_query_clear |- *.
+    rewrite upd_Znth_same in * by lia. subst f.
+    remember (fun hash : header_type -> Z =>
+                Zsum (map (Z.b2z ∘ Z.eqb (hash h') ∘ hash)
+                        (Znth (num_frames - 2) normal_frames ++ [h]))) as f.
+    remember (fun hash : header_type -> Z =>
+                Zsum (map (Z.b2z ∘ Z.eqb (hash h') ∘ hash)
+                        (Znth (num_frames - 2) normal_frames))) as g.
+    assert (forall hash, f hash = g hash \/ f hash = g hash + 1). {
+      intros. subst. rewrite map_app, Zsum_app. unfold Zsum, compose. simpl.
+      destruct (hash h' =? hash h); simpl; lia. }
+    cut (list_min (map f hashes) = list_min (map g hashes) \/
+           list_min (map f hashes) = list_min (map g hashes) + 1).
+    + intros Hmin. destruct Hmin; [left | right]; f_equal; lia.
+    + apply list_min_diff_at_most_one; list_solve.
 Qed.
 
 Lemma ok_insert : forall f t t' h,
@@ -383,10 +425,10 @@ Lemma ok_insert : forall f t t' h,
 Proof.
   intros * H_t' H_ok_until.
   destruct f. 2 : inv H_ok_until.
-  pose proof (H_ok_refresh := ok_refresh f t t' ltac:(auto) ltac:(auto)).
+  pose proof (H_ok_refresh := ok_refresh c t t' ltac:(auto) ltac:(auto)).
   unfold cms_insert, abs_insert in *.
-  destruct (abs_refresh f t). 2 : inv H_ok_refresh.
-  destruct f0.
+  destruct (abs_refresh c t). 2 : inv H_ok_refresh.
+  destruct c0.
   unfold ok_until, cms_inv.
   rewrite Zlength_upd_Znth.
   apply H_ok_refresh.
@@ -399,15 +441,10 @@ Lemma ok_clear : forall f t t',
 Proof.
   intros * H_t' H_ok_until.
   destruct f. 2 : inv H_ok_until.
-  pose proof (H_ok_refresh := ok_refresh f t t' ltac:(auto) ltac:(auto)).
+  pose proof (H_ok_refresh := ok_refresh c t t' ltac:(auto) ltac:(auto)).
   unfold cms_clear, abs_clear in *.
-  destruct (abs_refresh f t). 2 : inv H_ok_refresh.
-  destruct f0. apply H_ok_refresh.
+  destruct (abs_refresh c t). 2 : inv H_ok_refresh.
+  destruct c0. apply H_ok_refresh.
 Qed.
-
-(* Lemma ok_empty: forall t,
-  ok_until empty t. *)
-
-*)
 
 End LightModel.

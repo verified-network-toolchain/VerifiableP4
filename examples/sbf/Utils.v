@@ -147,3 +147,12 @@ Definition list_min (l : list Z) : Z :=
   | nil => 0
   | x :: l' => fold_left Z.min l' x
   end.
+
+Lemma list_min_map_add: forall {A: Type} (f: A -> Z) (z: Z) (l: list A),
+    0 < Zlength l ->
+    list_min (map (fun a => f a + z) l) = list_min (map f l) + z.
+Proof.
+  intros. destruct l as [| a l]. 1: list_solve. simpl. clear H.
+  generalize (f a) as init. clear a. induction l; intros; simpl; auto.
+  rewrite Z.add_min_distr_r. apply IHl.
+Qed.
