@@ -87,12 +87,6 @@ Proof.
   intros. destruct r as [r ?H]. unfold row_query, row_insert. simpl. list_solve.
 Qed.
 
-Definition list_min (l : list Z) : Z :=
-  match l with
-  | [] => 0
-  | x :: l' => fold_left Z.min l' x
-  end.
-
 Program Definition frame_query (f : frame) (is : list Z) : Z :=
   list_min (map2 row_query f is).
 

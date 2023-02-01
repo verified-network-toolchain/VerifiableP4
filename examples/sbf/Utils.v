@@ -138,3 +138,12 @@ Qed.
 
 Lemma Zsum_perm: forall l1 l2, Permutation l1 l2 -> Zsum l1 = Zsum l2.
 Proof. intros. induction H; simpl; auto; try rewrite !Zsum_cons; lia. Qed.
+
+Lemma Zsum_app: forall l1 l2, Zsum (l1 ++ l2) = Zsum l1 + Zsum l2.
+Proof. induction l1; intros; simpl; auto. rewrite !Zsum_cons. rewrite IHl1. lia. Qed.
+
+Definition list_min (l : list Z) : Z :=
+  match l with
+  | nil => 0
+  | x :: l' => fold_left Z.min l' x
+  end.
