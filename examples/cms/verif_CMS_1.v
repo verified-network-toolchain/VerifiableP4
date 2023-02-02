@@ -5,9 +5,6 @@ Require Import ProD3.core.Tofino.
 Require Import ProD3.examples.cms.ConModel.
 Require Import ProD3.examples.cms.common.
 Require Import ProD3.examples.cms.ModelRepr.
-Require Import ProD3.examples.cms.verif_Win1.
-Require Import ProD3.examples.cms.verif_Win2.
-Require Import ProD3.examples.cms.verif_Win3.
 Require Import Hammer.Plugin.Hammer.
 Require Export Coq.Program.Program.
 Import ListNotations.
@@ -771,11 +768,11 @@ Definition P4_bf2_win_md_t_ :=
      ("index_3", P4Bit_ index_w);
      ("index_4", P4Bit_ index_w);
      ("index_5", P4Bit_ index_w);
-     ("rw_1", P4Bit_ 8);
-     ("rw_2", P4Bit_ 8);
-     ("rw_3", P4Bit_ 8);
-     ("rw_4", P4Bit_ 8);
-     ("rw_5", P4Bit_ 8)
+     ("rw_1", P4Bit_ 32);
+     ("rw_2", P4Bit_ 32);
+     ("rw_3", P4Bit_ 32);
+     ("rw_4", P4Bit_ 32);
+     ("rw_5", P4Bit_ 32)
     ].
 
 Definition P4_bf2_win_md_t (op : Sval) (is : list Sval) :=
@@ -786,11 +783,11 @@ Definition P4_bf2_win_md_t (op : Sval) (is : list Sval) :=
      ("index_3", Znth 2 is);
      ("index_4", Znth 3 is);
      ("index_5", Znth 4 is);
-     ("rw_1", P4Bit_ 8);
-     ("rw_2", P4Bit_ 8);
-     ("rw_3", P4Bit_ 8);
-     ("rw_4", P4Bit_ 8);
-     ("rw_5", P4Bit_ 8)
+     ("rw_1", P4Bit_ 32);
+     ("rw_2", P4Bit_ 32);
+     ("rw_3", P4Bit_ 32);
+     ("rw_4", P4Bit_ 32);
+     ("rw_5", P4Bit_ 32)
     ].
 
 Definition act_set_clear_win_1_spec : func_spec :=
@@ -867,7 +864,7 @@ Definition act_set_clear_win_2_spec : func_spec :=
                ["act_set_clear_win_2"; "api_1"];
                ["act_set_clear_win_2"; "api_2"];
                ["act_set_clear_win_2"; "api_3"]]) []
-    WITH (clear_window clear_index_1 hash_index_1 hash_index_2 hash_index_3 hash_index_4 hash_index_5 : Sval) (api_1 api_2 api_3 api_4 : Sval),
+    WITH (clear_window clear_index_1 hash_index_1 hash_index_2 hash_index_3 hash_index_4 hash_index_5 : Sval) (api_1 api_2 api_3 : Sval),
       PRE
         (ARG [api_1; api_2; api_3]
         (MEM [(["ds_md"], ValBaseStruct
@@ -934,7 +931,7 @@ Definition act_set_clear_win_3_spec : func_spec :=
                ["act_set_clear_win_3"; "api_1"];
                ["act_set_clear_win_3"; "api_2"];
                ["act_set_clear_win_3"; "api_3"]]) []
-    WITH (clear_window clear_index_1 hash_index_1 hash_index_2 hash_index_3 hash_index_4 hash_index_5 : Sval) (api_1 api_2 api_3 api_4 : Sval),
+    WITH (clear_window clear_index_1 hash_index_1 hash_index_2 hash_index_3 hash_index_4 hash_index_5 : Sval) (api_1 api_2 api_3 : Sval),
       PRE
         (ARG [api_1; api_2; api_3]
         (MEM [(["ds_md"], ValBaseStruct
@@ -994,6 +991,104 @@ Qed.
 #[local] Hint Extern 5 (func_modifies _ _ _ _ _) => (apply act_set_clear_win_1_body) : func_specs.
 #[local] Hint Extern 5 (func_modifies _ _ _ _ _) => (apply act_set_clear_win_2_body) : func_specs.
 #[local] Hint Extern 5 (func_modifies _ _ _ _ _) => (apply act_set_clear_win_3_body) : func_specs.
+
+Definition act_merge_wins_1_fd :=
+  ltac:(get_fd ["Cm2CountMinSketch"; "act_merge_wins_1"] ge).
+
+Definition act_merge_wins_1_spec :=
+  WITH (* p *),
+    PATH p
+    MOD (Some [["ds_md"]]) []
+    WITH (ds_md : Sval) res1 res3
+      (H_get_1 : get "rw_1" (get "win_1" ds_md) = res1)
+      (H_get_3 : get "rw_1" (get "win_3" ds_md) = res3),
+      PRE
+        (ARG []
+        (MEM [(["ds_md"], ds_md)]
+        (EXT [])))
+      POST
+        (ARG_RET [] ValBaseNull
+        (MEM [(["ds_md"],
+          update "win_1" (
+            update "rw_1" (abs_plus_sat res1 res3) (get "win_1" ds_md)
+          ) ds_md)]
+        (EXT []))).
+
+Lemma act_merge_wins_1_body :
+  func_sound ge act_merge_wins_1_fd nil act_merge_wins_1_spec.
+Proof.
+  start_function.
+  step.
+  rewrite H_get_1, H_get_3.
+  step.
+  entailer.
+Qed.
+
+Definition tbl_merge_wins_1_fd :=
+  ltac:(get_fd ["Cm2CountMinSketch"; "tbl_merge_wins_1"; "apply"] ge).
+
+Definition tbl_merge_wins_1_spec :=
+  WITH (* p *),
+    PATH p
+    MOD (Some [["ds_md"]]) []
+    WITH (ds_md : Sval) res1 res3
+      (H_get_1 : get "rw_1" (get "win_1" ds_md) = res1)
+      (H_get_3 : get "rw_1" (get "win_3" ds_md) = res3),
+      PRE
+        (ARG []
+        (MEM [(["ds_md"], ds_md)]
+        (EXT [])))
+      POST
+        (EX retv,
+        (ARG_RET [] retv
+        (MEM [(["ds_md"],
+          update "win_1" (
+            update "rw_1" (abs_plus_sat res1 res3) (get "win_1" ds_md)
+          ) ds_md)]
+        (EXT []))))%arg_ret_assr.
+
+Lemma tbl_merge_wins_1_body :
+  func_sound ge tbl_merge_wins_1_fd nil tbl_merge_wins_1_spec.
+Proof.
+  start_function.
+  table_action act_merge_wins_1_body.
+  { entailer. }
+  { eauto. }
+  { eauto. }
+  { entailer. }
+Qed.
+
+Definition act_merge_wins_final_fd :=
+  ltac:(get_fd ["Cm2CountMinSketch"; "act_merge_wins_final"] ge).
+
+Definition act_merge_wins_final_spec :=
+  WITH (* p *),
+    PATH p
+    MOD (Some [["query_res"]]) []
+    WITH (ds_md : Sval) res1 res2
+      (H_get_1 : get "rw_1" (get "win_1" ds_md) = res1)
+      (H_get_2 : get "rw_1" (get "win_2" ds_md) = res2),
+      PRE
+        (ARG []
+        (MEM [(["ds_md"], ds_md)]
+        (EXT [])))
+      POST
+        (ARG_RET [] ValBaseNull
+        (MEM [(["query_res"], abs_plus_sat res1 res2)]
+        (EXT []))).
+
+Lemma act_merge_wins_final_body :
+  func_sound ge act_merge_wins_final_fd nil act_merge_wins_final_spec.
+Proof.
+  start_function.
+  step.
+  rewrite H_get_1, H_get_2.
+  step.
+  entailer.
+Qed.
+
+Definition tbl_merge_wins_final_fd :=
+  ltac:(get_fd ["Cm2CountMinSketch"; "tbl_merge_wins_final"; "apply"] ge).
 
 Definition tbl_set_win_fd :=
   ltac:(get_fd ["Cm2CountMinSketch"; "tbl_set_win"; "apply"] ge).

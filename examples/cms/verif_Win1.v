@@ -895,7 +895,7 @@ Definition Win_query_spec : func_spec :=
                 ("index_3", P4Bit index_w (Znth 2 (`is)));
                 ("index_4", P4Bit index_w (Znth 3 (`is)));
                 ("index_5", P4Bit index_w (Znth 4 (`is)));
-                ("rw_1", P4Bit value_w (frame_query f (`is)));
+                ("rw_1", P4Bit value_w (Z.min (frame_query f (`is)) (2 ^ 32 - 1)));
                 ("rw_2", P4Bit_ value_w);
                 ("rw_3", P4Bit_ value_w);
                 ("rw_4", P4Bit_ value_w);
@@ -904,6 +904,13 @@ Definition Win_query_spec : func_spec :=
         ] ValBaseNull
         (MEM []
         (EXT [frame_repr p rows f]))).
+
+(* A very slow test case in "apply" unless makeing row_repr opaque. *)
+(* Lemma test : forall (x x0 : row), exists p0,
+  ext_implies [row_repr (p ++ ["row_1"]) x] [row_repr p0 x0].
+Proof.
+  intros. eexists.
+  apply ext_implies_refl. *)
 
 Lemma Win_query_body :
   func_sound ge Win_fundef nil Win_query_spec.
@@ -918,6 +925,23 @@ Proof.
   repeat lazymatch goal with
   | H : Forall _ _ |- _ => inv H
   end.
+
+Ltac pose_row_query_bound r i :=
+  P4assert (row_query r i >= 0);
+  only 1 : (
+    eapply ext_implies_trans;
+    only 2 : (apply row_query_bound; auto);
+    entailer
+  ).
+
+  Opaque row_repr.
+  pose_row_query_bound x x4.
+  pose_row_query_bound x0 x5.
+  pose_row_query_bound x1 x6.
+  pose_row_query_bound x2 x7.
+  pose_row_query_bound x3 x8.
+  Transparent row_repr.
+
   step_call verif_Row11.Row_query_case_body.
   { entailer. }
   { auto. }
@@ -950,11 +974,23 @@ Proof.
   | apply Forall2_cons; only 1 : (split; only 1 : reflexivity);
     try apply sval_refine_refl
   ].
-  2-4 : repeat constructor.
-  apply sval_refine_refl'. repeat f_equal.
-  admit. (* arith *)
-(* Qed. *)
-Admitted.
+  2-5 : repeat constructor.
+  apply sval_refine_refl'. do 3 f_equal.
+  unfold P4min.
+  change (Znth 0 [x4; x5; x6; x7; x8]) with x4.
+  change (Znth 1 [x4; x5; x6; x7; x8]) with x5.
+  change (Znth 2 [x4; x5; x6; x7; x8]) with x6.
+  change (Znth 3 [x4; x5; x6; x7; x8]) with x7.
+  change (Znth 4 [x4; x5; x6; x7; x8]) with x8.
+  unfold value_w.
+  rewrite_strat bottomup mod_bound_small.
+  2-9 : lia.
+  unfold frame_query.
+  simpl Utils.list_min.
+  repeat rewrite Zmin_shrink.
+  f_equal.
+  lia.
+Qed.
 
 Definition Win_clear_spec : func_spec :=
   WITH (* p *),
@@ -987,7 +1023,7 @@ Definition Win_clear_spec : func_spec :=
                 ("index_3", P4Bit index_w (Znth 2 (`is)));
                 ("index_4", P4Bit index_w (Znth 3 (`is)));
                 ("index_5", P4Bit index_w (Znth 4 (`is)));
-                ("rw_1", P4Bit_ value_w);
+                ("rw_1", P4Bit value_w 0);
                 ("rw_2", P4Bit_ value_w);
                 ("rw_3", P4Bit_ value_w);
                 ("rw_4", P4Bit_ value_w);
@@ -1025,19 +1061,24 @@ Proof.
   step_call verif_Row15.Row_clear_case_body.
   { entailer. }
   { auto. }
-  step_call tbl_merge_rows_1_undef_body.
-  { entailer.
-    repeat constructor.
-  }
-  Intros _.
-  step_call tbl_merge_rows_2_undef_body.
+  step_call tbl_merge_rows_1_body.
   { entailer. }
   Intros _.
-  step_call tbl_merge_rows_3_undef_body.
+  step_call tbl_merge_rows_2_body.
+  { entailer. }
+  Intros _.
+  step_call tbl_merge_rows_3_body.
   { entailer. }
   Intros _.
   step.
   entailer.
+  constructor.
+  repeat first [
+    apply Forall2_nil
+  | apply Forall2_cons; only 1 : (split; only 1 : reflexivity);
+    try apply sval_refine_refl
+  ];
+  repeat constructor.
 Qed.
 
 #[export] Hint Extern 5 (func_modifies _ _ _ _ _) => (apply Win_noop_body) : func_specs.
@@ -1069,61 +1110,61 @@ Definition Win_spec : func_spec :=
       POST
         (ARG_RET [
           if op =? NOOP then
-            ValBaseStruct
-              [("api", P4Bit 8 NOOP);
-               ("index_1", P4Bit index_w (Znth 0 (`is)));
-               ("index_2", P4Bit index_w (Znth 1 (`is)));
-               ("index_3", P4Bit index_w (Znth 2 (`is)));
-               ("index_4", P4Bit index_w (Znth 3 (`is)));
-               ("index_5", P4Bit index_w (Znth 4 (`is)));
-               ("rw_1", P4Bit_ value_w);
-               ("rw_2", P4Bit_ value_w);
-               ("rw_3", P4Bit_ value_w);
-               ("rw_4", P4Bit_ value_w);
-               ("rw_5", P4Bit_ value_w)
-              ]
+             ValBaseStruct
+               [("api", P4Bit 8 NOOP);
+                ("index_1", P4Bit index_w (Znth 0 (`is)));
+                ("index_2", P4Bit index_w (Znth 1 (`is)));
+                ("index_3", P4Bit index_w (Znth 2 (`is)));
+                ("index_4", P4Bit index_w (Znth 3 (`is)));
+                ("index_5", P4Bit index_w (Znth 4 (`is)));
+                ("rw_1", P4Bit_ value_w);
+                ("rw_2", P4Bit_ value_w);
+                ("rw_3", P4Bit_ value_w);
+                ("rw_4", P4Bit_ value_w);
+                ("rw_5", P4Bit_ value_w)
+               ]
           else if op =? CLEAR then
-            ValBaseStruct
-              [("api", P4Bit 8 CLEAR);
-               ("index_1", P4Bit index_w (Znth 0 (`is)));
-               ("index_2", P4Bit index_w (Znth 1 (`is)));
-               ("index_3", P4Bit index_w (Znth 2 (`is)));
-               ("index_4", P4Bit index_w (Znth 3 (`is)));
-               ("index_5", P4Bit index_w (Znth 4 (`is)));
-               ("rw_1", P4Bit_ value_w);
-               ("rw_2", P4Bit_ value_w);
-               ("rw_3", P4Bit_ value_w);
-               ("rw_4", P4Bit_ value_w);
-               ("rw_5", P4Bit_ value_w)
-              ]
+             ValBaseStruct
+               [("api", P4Bit 8 CLEAR);
+                ("index_1", P4Bit index_w (Znth 0 (`is)));
+                ("index_2", P4Bit index_w (Znth 1 (`is)));
+                ("index_3", P4Bit index_w (Znth 2 (`is)));
+                ("index_4", P4Bit index_w (Znth 3 (`is)));
+                ("index_5", P4Bit index_w (Znth 4 (`is)));
+                ("rw_1", P4Bit value_w 0);
+                ("rw_2", P4Bit_ value_w);
+                ("rw_3", P4Bit_ value_w);
+                ("rw_4", P4Bit_ value_w);
+                ("rw_5", P4Bit_ value_w)
+               ]
           else if op =? INSERT then
-            ValBaseStruct
-              [("api", P4Bit 8 INSERT);
-               ("index_1", P4Bit index_w (Znth 0 (`is)));
-               ("index_2", P4Bit index_w (Znth 1 (`is)));
-               ("index_3", P4Bit index_w (Znth 2 (`is)));
-               ("index_4", P4Bit index_w (Znth 3 (`is)));
-               ("index_5", P4Bit index_w (Znth 4 (`is)));
-               ("rw_1", P4Bit_ value_w);
-               ("rw_2", P4Bit_ value_w);
-               ("rw_3", P4Bit_ value_w);
-               ("rw_4", P4Bit_ value_w);
-               ("rw_5", P4Bit_ value_w)
-              ]
+             ValBaseStruct
+               [("api", P4Bit 8 INSERT);
+                ("index_1", P4Bit index_w (Znth 0 (`is)));
+                ("index_2", P4Bit index_w (Znth 1 (`is)));
+                ("index_3", P4Bit index_w (Znth 2 (`is)));
+                ("index_4", P4Bit index_w (Znth 3 (`is)));
+                ("index_5", P4Bit index_w (Znth 4 (`is)));
+                ("rw_1", P4Bit_ value_w);
+                ("rw_2", P4Bit_ value_w);
+                ("rw_3", P4Bit_ value_w);
+                ("rw_4", P4Bit_ value_w);
+                ("rw_5", P4Bit_ value_w)
+               ]
           else
-            ValBaseStruct
-              [("api", P4Bit 8 QUERY);
-               ("index_1", P4Bit index_w (Znth 0 (`is)));
-               ("index_2", P4Bit index_w (Znth 1 (`is)));
-               ("index_3", P4Bit index_w (Znth 2 (`is)));
-               ("index_4", P4Bit index_w (Znth 3 (`is)));
-               ("index_5", P4Bit index_w (Znth 4 (`is)));
-               ("rw_1", P4Bit value_w (frame_query f (`is)));
-               ("rw_2", P4Bit_ value_w);
-               ("rw_3", P4Bit_ value_w);
-               ("rw_4", P4Bit_ value_w);
-               ("rw_5", P4Bit_ value_w)
-              ]
+             ValBaseStruct
+               [("api", P4Bit 8 QUERY);
+                ("index_1", P4Bit index_w (Znth 0 (`is)));
+                ("index_2", P4Bit index_w (Znth 1 (`is)));
+                ("index_3", P4Bit index_w (Znth 2 (`is)));
+                ("index_4", P4Bit index_w (Znth 3 (`is)));
+                ("index_5", P4Bit index_w (Znth 4 (`is)));
+                ("rw_1", P4Bit value_w (Z.min (frame_query f (`is)) (2 ^ 32 - 1)));
+                ("rw_2", P4Bit_ value_w);
+                ("rw_3", P4Bit_ value_w);
+                ("rw_4", P4Bit_ value_w);
+                ("rw_5", P4Bit_ value_w)
+               ]
         ] ValBaseNull
         (MEM []
         (EXT [frame_repr p rows (

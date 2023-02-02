@@ -847,9 +847,17 @@ Ltac entailer :=
 (* Assertion manipulation *)
 
 (* Need to improve efficiency. *)
-Ltac normalize_EXT :=
+(* Ltac normalize_EXT :=
   repeat rewrite AssertionLang.ext_pred_and_cons;
-  repeat rewrite AssertionLang.ext_pred_wrap_cons.
+  repeat rewrite AssertionLang.ext_pred_wrap_cons. *)
+
+(* An even slower version. *)
+Ltac normalize_EXT :=
+  repeat first
+  [ rewrite AssertionLang.ext_pred_and_cons
+  | rewrite <- (app_comm_cons (A := ExtPred.ext_pred))
+  | rewrite AssertionLang.ext_pred_wrap_cons
+  ].
 
 Ltac extract_ex_in_EXT a :=
   lazymatch a with

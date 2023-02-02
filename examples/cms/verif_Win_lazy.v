@@ -27,30 +27,34 @@ Definition Win_noop_spec : func_spec :=
       (_ : Forall (fun i => 0 <= i < num_slots) (`is)),
       PRE
         (ARG [ValBaseStruct
-               [("api_call", P4Bit 32 NOOP);
+               [("api", P4Bit 8 NOOP);
                 ("index_1", P4Bit index_w (Znth 0 (`is)));
                 ("index_2", P4Bit index_w (Znth 1 (`is)));
                 ("index_3", P4Bit index_w (Znth 2 (`is)));
                 ("index_4", P4Bit index_w (Znth 3 (`is)));
+                ("index_5", P4Bit index_w (Znth 4 (`is)));
                 ("rw_1", P4Bit_ value_w);
                 ("rw_2", P4Bit_ value_w);
                 ("rw_3", P4Bit_ value_w);
-                ("rw_4", P4Bit_ value_w)
+                ("rw_4", P4Bit_ value_w);
+                ("rw_5", P4Bit_ value_w)
                ]
              ]
         (MEM []
         (EXT [frame_repr p rows f])))
       POST
         (ARG_RET [ValBaseStruct
-               [("api_call", P4Bit 32 NOOP);
+               [("api", P4Bit 8 NOOP);
                 ("index_1", P4Bit index_w (Znth 0 (`is)));
                 ("index_2", P4Bit index_w (Znth 1 (`is)));
                 ("index_3", P4Bit index_w (Znth 2 (`is)));
                 ("index_4", P4Bit index_w (Znth 3 (`is)));
+                ("index_5", P4Bit index_w (Znth 4 (`is)));
                 ("rw_1", P4Bit_ value_w);
                 ("rw_2", P4Bit_ value_w);
                 ("rw_3", P4Bit_ value_w);
-                ("rw_4", P4Bit_ value_w)
+                ("rw_4", P4Bit_ value_w);
+                ("rw_5", P4Bit_ value_w)
                ]
         ] ValBaseNull
         (MEM []
@@ -69,30 +73,34 @@ Definition Win_insert_spec : func_spec :=
       (_ : Forall (fun i => 0 <= i < num_slots) (`is)),
       PRE
         (ARG [ValBaseStruct
-               [("api_call", P4Bit 32 INSERT);
+               [("api", P4Bit 8 INSERT);
                 ("index_1", P4Bit index_w (Znth 0 (`is)));
                 ("index_2", P4Bit index_w (Znth 1 (`is)));
                 ("index_3", P4Bit index_w (Znth 2 (`is)));
                 ("index_4", P4Bit index_w (Znth 3 (`is)));
+                ("index_5", P4Bit index_w (Znth 4 (`is)));
                 ("rw_1", P4Bit_ value_w);
                 ("rw_2", P4Bit_ value_w);
                 ("rw_3", P4Bit_ value_w);
-                ("rw_4", P4Bit_ value_w)
+                ("rw_4", P4Bit_ value_w);
+                ("rw_5", P4Bit_ value_w)
                ]
              ]
         (MEM []
         (EXT [frame_repr p rows f])))
       POST
         (ARG_RET [ValBaseStruct
-               [("api_call", P4Bit 32 INSERT);
+               [("api", P4Bit 8 INSERT);
                 ("index_1", P4Bit index_w (Znth 0 (`is)));
                 ("index_2", P4Bit index_w (Znth 1 (`is)));
                 ("index_3", P4Bit index_w (Znth 2 (`is)));
                 ("index_4", P4Bit index_w (Znth 3 (`is)));
+                ("index_5", P4Bit index_w (Znth 4 (`is)));
                 ("rw_1", P4Bit_ value_w);
                 ("rw_2", P4Bit_ value_w);
                 ("rw_3", P4Bit_ value_w);
-                ("rw_4", P4Bit_ value_w)
+                ("rw_4", P4Bit_ value_w);
+                ("rw_5", P4Bit_ value_w)
                ]
         ] ValBaseNull
         (MEM []
@@ -111,30 +119,34 @@ Definition Win_query_spec : func_spec :=
       (_ : Forall (fun i => 0 <= i < num_slots) (`is)),
       PRE
         (ARG [ValBaseStruct
-               [("api_call", P4Bit 32 QUERY);
+               [("api", P4Bit 8 QUERY);
                 ("index_1", P4Bit index_w (Znth 0 (`is)));
                 ("index_2", P4Bit index_w (Znth 1 (`is)));
                 ("index_3", P4Bit index_w (Znth 2 (`is)));
                 ("index_4", P4Bit index_w (Znth 3 (`is)));
+                ("index_5", P4Bit index_w (Znth 4 (`is)));
                 ("rw_1", P4Bit_ value_w);
                 ("rw_2", P4Bit_ value_w);
                 ("rw_3", P4Bit_ value_w);
-                ("rw_4", P4Bit_ value_w)
+                ("rw_4", P4Bit_ value_w);
+                ("rw_5", P4Bit_ value_w)
                ]
              ]
         (MEM []
         (EXT [frame_repr p rows f])))
       POST
         (ARG_RET [ValBaseStruct
-               [("api_call", P4Bit 32 QUERY);
+               [("api", P4Bit 8 QUERY);
                 ("index_1", P4Bit index_w (Znth 0 (`is)));
                 ("index_2", P4Bit index_w (Znth 1 (`is)));
                 ("index_3", P4Bit index_w (Znth 2 (`is)));
                 ("index_4", P4Bit index_w (Znth 3 (`is)));
-                ("rw_1", P4Bit value_w (frame_query f (`is)));
+                ("index_5", P4Bit index_w (Znth 4 (`is)));
+                ("rw_1", P4Bit value_w (Z.min (frame_query f (`is)) (2 ^ 32 - 1)));
                 ("rw_2", P4Bit_ value_w);
                 ("rw_3", P4Bit_ value_w);
-                ("rw_4", P4Bit_ value_w)
+                ("rw_4", P4Bit_ value_w);
+                ("rw_5", P4Bit_ value_w)
                ]
         ] ValBaseNull
         (MEM []
@@ -153,30 +165,34 @@ Definition Win_clear_spec : func_spec :=
       (_ : Forall (fun i => 0 <= i < num_slots) (`is)),
       PRE
         (ARG [ValBaseStruct
-               [("api_call", P4Bit 32 CLEAR);
+               [("api", P4Bit 8 CLEAR);
                 ("index_1", P4Bit index_w (Znth 0 (`is)));
                 ("index_2", P4Bit index_w (Znth 1 (`is)));
                 ("index_3", P4Bit index_w (Znth 2 (`is)));
                 ("index_4", P4Bit index_w (Znth 3 (`is)));
+                ("index_5", P4Bit index_w (Znth 4 (`is)));
                 ("rw_1", P4Bit_ value_w);
                 ("rw_2", P4Bit_ value_w);
                 ("rw_3", P4Bit_ value_w);
-                ("rw_4", P4Bit_ value_w)
+                ("rw_4", P4Bit_ value_w);
+                ("rw_5", P4Bit_ value_w)
                ]
              ]
         (MEM []
         (EXT [frame_repr p rows f])))
       POST
         (ARG_RET [ValBaseStruct
-               [("api_call", P4Bit 32 CLEAR);
+               [("api", P4Bit 8 CLEAR);
                 ("index_1", P4Bit index_w (Znth 0 (`is)));
                 ("index_2", P4Bit index_w (Znth 1 (`is)));
                 ("index_3", P4Bit index_w (Znth 2 (`is)));
                 ("index_4", P4Bit index_w (Znth 3 (`is)));
-                ("rw_1", P4Bit_ value_w);
+                ("index_5", P4Bit index_w (Znth 4 (`is)));
+                ("rw_1", P4Bit value_w 0);
                 ("rw_2", P4Bit_ value_w);
                 ("rw_3", P4Bit_ value_w);
-                ("rw_4", P4Bit_ value_w)
+                ("rw_4", P4Bit_ value_w);
+                ("rw_5", P4Bit_ value_w)
                ]
         ] ValBaseNull
         (MEM []
@@ -198,15 +214,17 @@ Definition Win_spec : func_spec :=
       (_ : Forall (fun i => 0 <= i < num_slots) (`is)),
       PRE
         (ARG [ValBaseStruct
-               [("api_call", P4Bit 32 op);
+               [("api", P4Bit 8 op);
                 ("index_1", P4Bit index_w (Znth 0 (`is)));
                 ("index_2", P4Bit index_w (Znth 1 (`is)));
                 ("index_3", P4Bit index_w (Znth 2 (`is)));
                 ("index_4", P4Bit index_w (Znth 3 (`is)));
+                ("index_5", P4Bit index_w (Znth 4 (`is)));
                 ("rw_1", P4Bit_ value_w);
                 ("rw_2", P4Bit_ value_w);
                 ("rw_3", P4Bit_ value_w);
-                ("rw_4", P4Bit_ value_w)
+                ("rw_4", P4Bit_ value_w);
+                ("rw_5", P4Bit_ value_w)
                ]
              ]
         (MEM []
@@ -214,53 +232,61 @@ Definition Win_spec : func_spec :=
       POST
         (ARG_RET [
           if op =? NOOP then
-            ValBaseStruct
-              [("api_call", P4Bit 32 NOOP);
-               ("index_1", P4Bit index_w (Znth 0 (`is)));
-               ("index_2", P4Bit index_w (Znth 1 (`is)));
-               ("index_3", P4Bit index_w (Znth 2 (`is)));
-               ("index_4", P4Bit index_w (Znth 3 (`is)));
-               ("rw_1", P4Bit_ value_w);
-               ("rw_2", P4Bit_ value_w);
-               ("rw_3", P4Bit_ value_w);
-               ("rw_4", P4Bit_ value_w)
-              ]
+             ValBaseStruct
+               [("api", P4Bit 8 NOOP);
+                ("index_1", P4Bit index_w (Znth 0 (`is)));
+                ("index_2", P4Bit index_w (Znth 1 (`is)));
+                ("index_3", P4Bit index_w (Znth 2 (`is)));
+                ("index_4", P4Bit index_w (Znth 3 (`is)));
+                ("index_5", P4Bit index_w (Znth 4 (`is)));
+                ("rw_1", P4Bit_ value_w);
+                ("rw_2", P4Bit_ value_w);
+                ("rw_3", P4Bit_ value_w);
+                ("rw_4", P4Bit_ value_w);
+                ("rw_5", P4Bit_ value_w)
+               ]
           else if op =? CLEAR then
-            ValBaseStruct
-              [("api_call", P4Bit 32 CLEAR);
-               ("index_1", P4Bit index_w (Znth 0 (`is)));
-               ("index_2", P4Bit index_w (Znth 1 (`is)));
-               ("index_3", P4Bit index_w (Znth 2 (`is)));
-               ("index_4", P4Bit index_w (Znth 3 (`is)));
-               ("rw_1", P4Bit_ value_w);
-               ("rw_2", P4Bit_ value_w);
-               ("rw_3", P4Bit_ value_w);
-               ("rw_4", P4Bit_ value_w)
-              ]
+             ValBaseStruct
+               [("api", P4Bit 8 CLEAR);
+                ("index_1", P4Bit index_w (Znth 0 (`is)));
+                ("index_2", P4Bit index_w (Znth 1 (`is)));
+                ("index_3", P4Bit index_w (Znth 2 (`is)));
+                ("index_4", P4Bit index_w (Znth 3 (`is)));
+                ("index_5", P4Bit index_w (Znth 4 (`is)));
+                ("rw_1", P4Bit value_w 0);
+                ("rw_2", P4Bit_ value_w);
+                ("rw_3", P4Bit_ value_w);
+                ("rw_4", P4Bit_ value_w);
+                ("rw_5", P4Bit_ value_w)
+               ]
           else if op =? INSERT then
-            ValBaseStruct
-              [("api_call", P4Bit 32 INSERT);
-               ("index_1", P4Bit index_w (Znth 0 (`is)));
-               ("index_2", P4Bit index_w (Znth 1 (`is)));
-               ("index_3", P4Bit index_w (Znth 2 (`is)));
-               ("index_4", P4Bit index_w (Znth 3 (`is)));
-               ("rw_1", P4Bit_ value_w);
-               ("rw_2", P4Bit_ value_w);
-               ("rw_3", P4Bit_ value_w);
-               ("rw_4", P4Bit_ value_w)
-              ]
+             ValBaseStruct
+               [("api", P4Bit 8 INSERT);
+                ("index_1", P4Bit index_w (Znth 0 (`is)));
+                ("index_2", P4Bit index_w (Znth 1 (`is)));
+                ("index_3", P4Bit index_w (Znth 2 (`is)));
+                ("index_4", P4Bit index_w (Znth 3 (`is)));
+                ("index_5", P4Bit index_w (Znth 4 (`is)));
+                ("rw_1", P4Bit_ value_w);
+                ("rw_2", P4Bit_ value_w);
+                ("rw_3", P4Bit_ value_w);
+                ("rw_4", P4Bit_ value_w);
+                ("rw_5", P4Bit_ value_w)
+               ]
           else
-            ValBaseStruct
-              [("api_call", P4Bit 32 QUERY);
-               ("index_1", P4Bit index_w (Znth 0 (`is)));
-               ("index_2", P4Bit index_w (Znth 1 (`is)));
-               ("index_3", P4Bit index_w (Znth 2 (`is)));
-               ("index_4", P4Bit index_w (Znth 3 (`is)));
-               ("rw_1", P4Bit value_w (frame_query f (`is)));
-               ("rw_2", P4Bit_ value_w);
-               ("rw_3", P4Bit_ value_w);
-               ("rw_4", P4Bit_ value_w)
-              ]
+             ValBaseStruct
+               [("api", P4Bit 8 QUERY);
+                ("index_1", P4Bit index_w (Znth 0 (`is)));
+                ("index_2", P4Bit index_w (Znth 1 (`is)));
+                ("index_3", P4Bit index_w (Znth 2 (`is)));
+                ("index_4", P4Bit index_w (Znth 3 (`is)));
+                ("index_5", P4Bit index_w (Znth 4 (`is)));
+                ("rw_1", P4Bit value_w (Z.min (frame_query f (`is)) (2 ^ 32 - 1)));
+                ("rw_2", P4Bit_ value_w);
+                ("rw_3", P4Bit_ value_w);
+                ("rw_4", P4Bit_ value_w);
+                ("rw_5", P4Bit_ value_w)
+               ]
         ] ValBaseNull
         (MEM []
         (EXT [frame_repr p rows (

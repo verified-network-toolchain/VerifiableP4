@@ -23,7 +23,9 @@ Definition Z_to_val (i : Z) : ValueBase :=
   ValBaseBit (P4Arith.to_lbool 32 (Z.min i (Z.pow 2 32 - 1))).
 
 Definition row_reg_repr (p : path) (cr : ConModel.row num_slots) : ext_pred :=
-  ExtPred.singleton (p ++ ["reg_row"]) (Tofino.ObjRegister (map Z_to_val (proj1_sig cr))).
+  ExtPred.and
+    (ExtPred.singleton (p ++ ["reg_row"]) (Tofino.ObjRegister (map Z_to_val (proj1_sig cr))))
+    (ExtPred.prop (Forall (fun x => x >= 0) (proj1_sig cr))).
 
 Program Definition row_repr (p : path) (cr : ConModel.row num_slots) : ext_pred :=
   ExtPred.wrap [p] [row_reg_repr p cr] _.
@@ -31,6 +33,19 @@ Next Obligation.
   unfold in_scope.
   rewrite <- (app_nil_r p) at 1.
   rewrite is_prefix_cancel. auto.
+Qed.
+
+Lemma row_query_bound : forall p cr i,
+  0 <= i < num_slots ->
+  ext_implies [row_repr p cr] [ExtPred.prop (row_query cr i >= 0)].
+Proof.
+  intros.
+  unfold row_repr, row_reg_repr.
+  destruct cr as [cr ?H]. unfold row_query. cbn [proj1_sig].
+  normalize_EXT.
+  Intros_prop.
+  apply ext_implies_prop_intro.
+  list_solve.
 Qed.
 
 Program Definition frame_repr (p : path) (rows : list string) (cf : ConModel.frame num_rows num_slots) : ext_pred :=

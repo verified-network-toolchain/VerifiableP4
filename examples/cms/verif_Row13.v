@@ -5,6 +5,7 @@ Require Import Poulet4.P4light.Architecture.Tofino.
 Require Import ProD3.core.Tofino.
 Require Import ProD3.examples.cms.ConModel.
 Require Import ProD3.examples.cms.common.
+
 Require Import ProD3.examples.cms.ModelRepr.
 Require Import Hammer.Plugin.Hammer.
 Require Export Coq.Program.Program.
@@ -59,6 +60,7 @@ Proof.
   destruct r as [r ?H].
   unfold row_repr, row_reg_repr. cbn [proj1_sig row_insert].
   normalize_EXT.
+  Intros_prop.
   step_call Row_regact_insert_execute_body.
   { entailer. }
   { list_solve. }
@@ -67,15 +69,25 @@ Proof.
     reflexivity.
   }
   step.
-  entailer.
-  { apply sval_refine_refl'; f_equal.
-    admit. (* arith *)
+  replace (P4Arith.BitArith.sat_bound 32
+            (P4Arith.BitArith.mod_bound 32
+               (Z.min (Znth i r) (2 ^ 32 - 1)) +
+             P4Arith.BitArith.mod_bound 32 1))
+    with
+    (Z.min (Znth i r + 1) (2 ^ 32 - 1)).
+  2 : {
+    repeat rewrite mod_bound_small by list_solve.
+    rewrite sat_bound_spec.
+    list_solve.
   }
-  f_equal.
-  list_simplify.
-  admit. (* the same arith *)
-(* Qed. *)
-Admitted.
+  entailer.
+  { f_equal.
+    list_solve.
+  }
+  { apply ext_implies_prop_intro.
+    list_solve.
+  }
+Qed.
 
 #[local] Hint Extern 5 (func_modifies _ _ _ _ _) => (apply Row_insert_body) : func_specs.
 
@@ -182,8 +194,13 @@ Proof.
   }
   step.
   entailer.
-  f_equal.
-  list_solve.
+  { f_equal.
+    list_solve.
+  }
+  { Intros_prop.
+    apply ext_implies_prop_intro.
+    list_solve.
+  }
 Qed.
 
 #[local] Hint Extern 5 (func_modifies _ _ _ _ _) => (apply Row_clear_body) : func_specs.

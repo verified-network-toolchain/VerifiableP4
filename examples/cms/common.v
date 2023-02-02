@@ -114,28 +114,44 @@ Definition hashes := [hash1 ∘ header_to_val; hash2 ∘ header_to_val; hash3 �
 Lemma H_Zlength_hashes : Zlength hashes = num_rows.
 Proof. auto. Qed.
 
-Lemma b2z_range : forall b,
-  0 <= Z.b2z b < 2.
+Lemma mod_bound_small : forall w n,
+  0 <= n < 2 ^ (Z.of_N w) ->
+  P4Arith.BitArith.mod_bound w n = n.
 Proof.
-  destruct b; simpl; lia.
+  intros.
+  apply Z.mod_small; auto.
 Qed.
 
-Ltac add_b2z_range b :=
-  assert_fails (assert (0 <= Z.b2z b < 2) by assumption);
-  pose proof (b2z_range b).
+Lemma sat_bound_spec : forall w n,
+  P4Arith.BitArith.sat_bound w n
+    = Z.min (Z.max n 0) (2 ^ (Z.of_N w) - 1).
+Proof.
+  intros.
+  unfold P4Arith.BitArith.sat_bound, P4Arith.BitArith.maxZ, P4Arith.BitArith.upper_bound.
+  destruct (n >? 2 ^ Z.of_N w - 1) eqn:?;
+  only 2 : destruct (n <? 0) eqn:?;
+  lia.
+Qed.
 
-Ltac saturate_b2z :=
-  repeat match goal with
-  | H : context [Z.b2z ?b] |- _ =>
-      add_b2z_range b
-  | |- context [Z.b2z ?b] =>
-      add_b2z_range b
-  end.
+Lemma Zmin_shrink : forall a b c,
+  Z.min (Z.min a c) (Z.min b c)
+    = Z.min (Z.min a b) c.
+Proof.
+  lia.
+Qed.
 
 Ltac Zify.zify_pre_hook ::=
   unfold is_true, index_w, num_slots, num_rows, num_frames, frame_tick_tocks,
-    NOOP, CLEAR, INSERT, QUERY, INSQUERY in *;
-  saturate_b2z.
+    NOOP, CLEAR, INSERT, QUERY, INSQUERY in *.
+
+Lemma ext_implies_trans : forall a1 a2 a3,
+  ext_implies a1 a2 ->
+  ext_implies a2 a3 ->
+  ext_implies a1 a3.
+Proof.
+  unfold ext_implies; intros.
+  auto.
+Qed.
 
 Definition rows := ["row_1"; "row_2"; "row_3"; "row_4"; "row_5"].
 Definition panes := ["win_1"; "win_2"; "win_3"].
