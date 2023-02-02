@@ -1133,7 +1133,7 @@ Proof.
   apply Z_div_squeeze with lo hi; lia.
 Qed.
 
-Definition Filter_fd :=
+Definition CMS_fd :=
   ltac:(get_fd ["Cm2CountMinSketch"; "apply"] ge).
 
 Program Definition hashes (key : Val) : listn Z num_rows := (exist _ [hash1 key; hash2 key; hash3 key; hash4 key; hash5 key] eq_refl).

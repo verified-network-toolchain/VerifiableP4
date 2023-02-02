@@ -112,22 +112,22 @@ Qed.
 Definition cms_clear := @cms_clear num_frames num_rows num_slots H_num_frames H_num_rows H_num_slots
   frame_tick_tocks.
 
-Definition Filter_clear_spec : func_spec :=
+Definition CMS_clear_spec : func_spec :=
   WITH (* p *),
     PATH p
     MOD None [p]
     WITH (key : Val) (tstamp : Z) (cf : cms num_frames num_rows num_slots),
       PRE
-        (ARG [eval_val_to_sval key; P4Bit 8 CLEAR; P4Bit 48 tstamp; P4Bit_ 8]
+        (ARG [eval_val_to_sval key; P4Bit 8 CLEAR; P4Bit 48 tstamp; P4Bit_ value_w]
         (MEM []
         (EXT [cms_repr p index_w panes rows cf])))
       POST
-        (ARG_RET [P4Bit_ 8] ValBaseNull
+        (ARG_RET [P4Bit_ value_w] ValBaseNull
         (MEM []
         (EXT [cms_repr p index_w panes rows (cms_clear cf (Z.odd (tstamp/tick_time)))]))).
 
-Lemma Filter_clear_body :
-  func_sound ge Filter_fd nil Filter_clear_spec.
+Lemma CMS_clear_body :
+  func_sound ge CMS_fd nil CMS_clear_spec.
 Proof.
   Time start_function.
   destruct cf as [[ps ?H] ? ?].

@@ -122,16 +122,16 @@ Definition CMS_insert_spec : func_spec :=
     MOD None [p]
     WITH (key : Val) (tstamp : Z) (cf : cms num_frames num_rows num_slots),
       PRE
-        (ARG [eval_val_to_sval key; P4Bit 8 INSERT; P4Bit 48 tstamp; P4Bit 8 0]
+        (ARG [eval_val_to_sval key; P4Bit 8 INSERT; P4Bit 48 tstamp; P4Bit_ value_w]
         (MEM []
         (EXT [cms_repr p index_w panes rows cf])))
       POST
-        (ARG_RET [P4Bit 8 0] ValBaseNull
+        (ARG_RET [P4Bit_ value_w] ValBaseNull
         (MEM []
         (EXT [cms_repr p index_w panes rows (cms_insert cf (Z.odd (tstamp/tick_time)) (hashes key))]))).
 
 Lemma CMS_insert_body :
-  func_sound ge Filter_fd nil CMS_insert_spec.
+  func_sound ge CMS_fd nil CMS_insert_spec.
 Proof.
   Time start_function.
   destruct cf as [[ps ?H] ? ?].

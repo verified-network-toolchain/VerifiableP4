@@ -109,61 +109,6 @@ Proof.
   - lia.
 Qed.
 
-(* Definition act_merge_wins_fd :=
-  ltac:(get_fd ["Bf2BloomFilter"; "act_merge_wins"] ge).
-
-Definition act_merge_wins_spec : func_spec :=
-  WITH (* p *),
-    PATH p
-    MOD (Some [["query_res"]]) []
-    WITH,
-      PRE
-        (ARG []
-        (MEM []
-        (EXT [])))
-      POST
-        (ARG_RET [] ValBaseNull
-        (MEM [(["query_res"], (P4Bit 8 1))]
-        (EXT []))).
-
-Lemma act_merge_wins_body :
-  func_sound ge act_merge_wins_fd nil act_merge_wins_spec.
-Proof.
-  start_function.
-  step.
-  step.
-  entailer.
-Qed.
-
-Definition act_merge_default_fd :=
-  ltac:(get_fd ["Bf2BloomFilter"; "act_merge_default"] ge).
-
-Definition act_merge_default_spec : func_spec :=
-  WITH (* p *),
-    PATH p
-    MOD (Some [["query_res"]]) []
-    WITH,
-      PRE
-        (ARG []
-        (MEM []
-        (EXT [])))
-      POST
-        (ARG_RET [] ValBaseNull
-        (MEM [(["query_res"], (P4Bit 8 0))]
-        (EXT []))).
-
-Lemma act_merge_default_body :
-  func_sound ge act_merge_default_fd nil act_merge_default_spec.
-Proof.
-  start_function.
-  step.
-  step.
-  entailer.
-Qed. *)
-
-(* Definition tbl_merge_wins_fd :=
-  ltac:(get_fd ["Bf2BloomFilter"; "tbl_merge_wins"; "apply"] ge). *)
-
 Definition tbl_merge_wins_final_spec : func_spec :=
   WITH (* p *),
     PATH p
@@ -194,17 +139,50 @@ Proof.
   { entailer. }
 Qed.
 
+Require Import ProD3.examples.sbf.Utils.
+
 #[local] Instance Inhabitant_ext_pred : Inhabitant ext_pred :=
   ExtPred.prop True.
 
 Lemma ext_implies_ext : forall a1 a2,
-  Zlength a1 = Zlength a2 ->
-  (forall i, 0 <= i < Zlength a1 -> ext_implies [Znth i a1] [Znth i a2]) ->
+  Forall2 (fun x y => ext_implies [x] [y]) a1 a2 ->
   ext_implies a1 a2.
 Proof.
-Admitted.
+  induction 1.
+  - apply ext_implies_nil.
+  - apply ext_implies_cons; split;
+      apply ext_cons_implies; auto.
+Qed.
 
-Require Import ProD3.examples.sbf.Utils.
+Lemma ext_implies_prop_gather : forall Ps,
+  ext_implies (map ExtPred.prop Ps) [ExtPred.prop (Forall id Ps)].
+Proof.
+  induction Ps as [ | P Ps].
+  - apply ext_implies_prop_intro; auto.
+  - unfold ext_implies in *; intros.
+    destruct H.
+    split; only 2 : apply I.
+    constructor.
+    + auto.
+    + apply (IHPs es).
+      auto.
+Qed.
+
+Lemma list_min_In : forall l,
+  In (list_min l) (0 :: l).
+Proof.
+  intros.
+  destruct l as [ | a l].
+  - simpl; auto.
+  - right.
+    generalize dependent a; induction l as [ | b l]; intros.
+    + simpl; auto.
+    + simpl.
+      destruct (Zmin_spec a b) as [[_ H_Zmin] | [_ H_Zmin]];
+        rewrite H_Zmin; clear H_Zmin.
+      * destruct (IHl a); auto.
+      * destruct (IHl b); auto.
+Qed.
 
 Lemma frame_query_bound : forall p (* rows *) (cf : frame) is,
   (* Zlength rows = num_rows -> *)
@@ -216,37 +194,46 @@ Proof.
   assert (Zlength rows = num_rows) by auto.
   unfold frame_repr, frame_query.
   rewrite ext_pred_wrap_cons.
-  eapply ext_implies_trans with (map2 (fun cr i => ExtPred.prop (row_query cr i >= 0)) (proj1_sig cf) is).
-  - destruct cf as [crs ?].
-    cbn [proj1_sig].
+  eapply ext_implies_trans with [ExtPred.prop (Forall id (map2 (fun cr i => row_query cr i >= 0) (proj1_sig cf) is))].
+  - eapply ext_implies_trans.
+    2 : apply ext_implies_prop_gather.
     apply ext_implies_ext.
-    { list_solve. }
-    intros.
-    list_simplify.
+    destruct cf as [crs ?].
+    cbn [proj1_sig].
+    apply Forall2_forall_range2.
+    split; only 1 : list_solve.
+    unfold forall_range2, forall_i; intros.
+    rewrite app_nil_r.
+    rewrite Z.add_0_r.
+    rewrite Znth_map by list_solve.
     do 2 rewrite Znth_map2 by list_solve.
     apply row_query_bound; list_solve.
-  - (* 
-      list_solve.
-  generalize dependent cf.
-  
-  destruct cr as [cr ?H]. unfold row_query. cbn [proj1_sig].
-  normalize_EXT.
-  Intros_prop.
-  apply ext_implies_prop_intro.
-  list_solve. *)
-(* Qed. *)
-Admitted.
+  - unfold ext_implies; intros.
+    destruct H2 as [H2 _].
+    simpl in H2.
+    split; only 2 : apply I; simpl.
+    assert (H_bound : Forall (fun x => x >= 0) (map2 row_query (` cf) is)). {
+      destruct cf as [crs ?].
+      list_simplify.
+      specialize (H2 i).
+      simpl in H2. rewrite Znth_map2 in H2 by list_solve.
+      rewrite Znth_map2 by list_solve. apply H2. list_solve.
+    }
+    clear -H_bound.
+    pose proof (list_min_In (map2 row_query (` cf) is)).
+    list_solve.
+Qed.
 
 Definition cms_query := @cms_query num_frames num_rows num_slots H_num_frames H_num_rows H_num_slots
   frame_tick_tocks.
 
-Definition Filter_query_spec : func_spec :=
+Definition CMS_query_spec : func_spec :=
   WITH (* p *),
     PATH p
     MOD None [p]
     WITH (key : Val) (tstamp : Z) (cf : cms num_frames num_rows num_slots),
       PRE
-        (ARG [eval_val_to_sval key; P4Bit 8 QUERY; P4Bit 48 tstamp; P4Bit_ 8]
+        (ARG [eval_val_to_sval key; P4Bit 8 QUERY; P4Bit 48 tstamp; P4Bit_ value_w]
         (MEM []
         (EXT [cms_repr p index_w panes rows cf])))
       POST
@@ -260,8 +247,8 @@ Ltac destruct_listn l :=
   destruct l as [l ?H];
   destruct_list l.
 
-Lemma Filter_query_body :
-  func_sound ge Filter_fd nil Filter_query_spec.
+Lemma CMS_query_body :
+  func_sound ge CMS_fd nil CMS_query_spec.
 Proof.
   start_function.
   destruct cf as [[ps ?H] ? ?].

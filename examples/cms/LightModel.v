@@ -26,7 +26,7 @@ Hypothesis (H_tick_time : 0 < tick_time).
 Hypothesis (H_frame_time : 0 < frame_time).
 Hypothesis (H_tick_time_div : (tick_time * 2 | frame_time)).
 
-Definition filter := option (@cms header_type).
+Definition cms := option (@cms header_type).
 
 Notation abs_insert := (@cms_insert header_type num_frames num_slots frame_time tick_time).
 Notation abs_query := (@cms_query header_type num_frames num_slots frame_time hashes tick_time).
@@ -55,13 +55,13 @@ Axiom H_Tc : 0 < Tc.
 (* Lemma Tc_le_T : Tc <= T.
 Admitted. *)
 
-Definition cms_insert (f : filter) (th : Z * header_type) : filter :=
+Definition cms_insert (f : cms) (th : Z * header_type) : cms :=
   match f with
   | Some f => abs_insert f th
   | None => None
   end.
 
-Definition cms_query (f : filter) '((t, h) : Z * header_type) : option Z :=
+Definition cms_query (f : cms) '((t, h) : Z * header_type) : option Z :=
   match f with
   | Some (mk_cms window_hi last_timestamp num_clears normal_frames) =>
       if last_timestamp <=? t then
@@ -74,16 +74,16 @@ Definition cms_query (f : filter) '((t, h) : Z * header_type) : option Z :=
   | None => None
   end.
 
-Definition cms_clear (f : filter) (t : Z) : filter :=
+Definition cms_clear (f : cms) (t : Z) : cms :=
   match f with
   | Some f =>
       abs_clear f t
   | None => None
   end.
 
-(* Axiom cms_empty : filter. *)
+(* Axiom cms_empty : cms. *)
 
-Definition weak_cms_inv (f : filter) : Prop :=
+Definition weak_cms_inv (f : cms) : Prop :=
   match f with
   | Some (mk_cms window_hi last_timestamp num_clears normal_frames) =>
       window_hi - frame_time <= last_timestamp < window_hi /\
@@ -91,7 +91,7 @@ Definition weak_cms_inv (f : filter) : Prop :=
   | None => False
   end.
 
-Definition cms_inv (f : filter) : Prop :=
+Definition cms_inv (f : cms) : Prop :=
   match f with
   | Some (mk_cms window_hi last_timestamp num_clears normal_frames) =>
       last_timestamp < window_hi /\
@@ -100,7 +100,7 @@ Definition cms_inv (f : filter) : Prop :=
   | None => False
   end.
 
-Definition ok_until (f : filter) (t : Z) : Prop :=
+Definition ok_until (f : cms) (t : Z) : Prop :=
   (* cms_inv f /\ *)
   match f with
   | Some (mk_cms window_hi last_timestamp num_clears normal_frames) =>
@@ -110,7 +110,7 @@ Definition ok_until (f : filter) (t : Z) : Prop :=
   | None => False
   end.
 
-Definition weak_cms_inv1 (f : filter) (new_timestamp : Z) : Prop :=
+Definition weak_cms_inv1 (f : cms) (new_timestamp : Z) : Prop :=
   match f with
   | Some (mk_cms window_hi last_timestamp num_clears normal_frames) =>
       window_hi - frame_time <= new_timestamp < window_hi /\
@@ -118,7 +118,7 @@ Definition weak_cms_inv1 (f : filter) (new_timestamp : Z) : Prop :=
   | None => False
   end.
 
-Definition cms_inv1 (f : filter) (new_timestamp : Z) : Prop :=
+Definition cms_inv1 (f : cms) (new_timestamp : Z) : Prop :=
   match f with
   | Some (mk_cms window_hi last_timestamp num_clears normal_frames) =>
       new_timestamp < window_hi /\
@@ -127,7 +127,7 @@ Definition cms_inv1 (f : filter) (new_timestamp : Z) : Prop :=
   | None => False
   end.
 
-Definition ok_until1 (f : filter) (new_timestamp : Z) (t : Z) : Prop :=
+Definition ok_until1 (f : cms) (new_timestamp : Z) (t : Z) : Prop :=
   match f with
   | Some (mk_cms window_hi _ num_clears normal_frames) =>
       0 <= t - new_timestamp <= Tc /\ cms_inv1 f new_timestamp
