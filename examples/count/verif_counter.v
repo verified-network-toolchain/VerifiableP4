@@ -36,11 +36,11 @@ Definition counter_act_spec : func_spec :=
     WITH (counter : Z),
       PRE
         (ARG []
-        (MEM []
+        (MEM [(["ig_md"], ValBaseStruct [("num_pkt", P4Bit_ 32)])]
         (EXT [counter_repr p counter])))
       POST
         (ARG_RET [] ValBaseNull
-        (MEM [(["ig_md"; "num_pkt"], P4Bit 32 (counter + 1))]
+        (MEM [(["ig_md"], ValBaseStruct [("num_pkt", P4Bit 32 (counter + 1))])]
            (EXT [counter_repr p (counter + 1)]))).
 
 Lemma counter_act_body:
@@ -50,5 +50,9 @@ Proof.
   unfold counter_repr, counter_reg_repr.
   normalize_EXT.
   Intros_prop. simpl.
-  (* step_call regact_counter_execute_body. *)
-Abort.
+  step_call regact_counter_execute_body;
+    [entailer | list_solve | lia | reflexivity |].
+  step.
+  entailer.
+  repeat intro. hnf. simpl. lia.
+Qed.
