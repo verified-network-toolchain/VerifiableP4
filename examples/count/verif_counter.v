@@ -41,7 +41,7 @@ Definition counter_act_spec : func_spec :=
       POST
         (ARG_RET [] ValBaseNull
         (MEM [(["ig_md"], ValBaseStruct [("num_pkt", P4Bit 32 (counter + 1))])]
-           (EXT [counter_repr p (counter + 1)]))).
+        (EXT [counter_repr p (counter + 1)]))).
 
 Lemma counter_act_body:
   func_sound ge counter_act_fundef nil counter_act_spec.
@@ -56,3 +56,60 @@ Proof.
   entailer.
   repeat intro. hnf. simpl. lia.
 Qed.
+
+Definition tbl_counter_fd :=
+  ltac:(get_fd ["SwitchIngress"; "tbl_counter"; "apply"] ge).
+
+Definition tbl_counter_spec : func_spec :=
+  WITH (* p *),
+    PATH p
+    MOD (Some [["ig_md"]]) [p]
+    WITH (counter : Z),
+      PRE
+        (ARG []
+        (MEM [(["ig_md"], ValBaseStruct [("num_pkt", P4Bit_ 32)])]
+        (EXT [counter_repr p counter])))
+      POST
+        (EX retv,
+        (ARG_RET [] retv
+        (MEM [(["ig_md"], ValBaseStruct [("num_pkt", P4Bit 32 (counter + 1))])]
+        (EXT [counter_repr p (counter + 1)]))))%arg_ret_assr.
+
+Lemma tbl_counter_body:
+  func_sound ge tbl_counter_fd nil tbl_counter_spec.
+Proof.
+  start_function.
+  table_action counter_act_body.
+  { entailer. }
+  { entailer. }
+Qed.
+
+#[local] Hint Extern 5 (func_modifies _ _ _ _ _) => (apply tbl_counter_body) : func_specs.
+
+
+Definition Ingress_fd :=
+  ltac:(get_fd ["SwitchIngress"; "apply"] ge).
+
+Definition Ingress_spec : func_spec :=
+  WITH (* p *),
+    PATH p
+    MOD (Some [["ig_md"]; ["ig_intr_dprsr_md"]]) [p]
+    WITH (counter : Z) (dprsr_md: Sval),
+      PRE
+        (ARG []
+        (MEM [(["ig_md"], ValBaseStruct [("num_pkt", P4Bit_ 32)]);
+              (["ig_intr_dprsr_md"], dprsr_md)]
+        (EXT [counter_repr p counter])))
+      POST
+        (ARG_RET [] ValBaseNull
+        (MEM [(["ig_md"], ValBaseStruct [("num_pkt", P4Bit 32 (counter + 1))]);
+              (["ig_intr_dprsr_md"],
+                if (Z.eqb 0 ((counter + 1) mod 1024)) then dprsr_md
+                else (update "digest_type" (P4Bit 3 1) dprsr_md))]
+        (EXT [counter_repr p (counter + 1)]))).
+
+Lemma Ingress_body:
+  func_sound ge Ingress_fd nil Ingress_spec.
+Proof.
+  (* start_function. *)
+Abort.
