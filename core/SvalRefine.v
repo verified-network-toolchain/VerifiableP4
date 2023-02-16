@@ -484,12 +484,15 @@ Fixpoint val_to_liberal_sval (val: Val): Sval :=
 
 Lemma Forall2_ndetbit : forall l : list bool, 
   Forall2 read_ndetbit (map Some l) l.
-Admitted.
+Proof.
+  induction l; constructor; auto.
+  constructor.
+Qed.
 
 Lemma sval_to_val_eval_p4int_sval : forall {t: P4Int.t tags_t},sval_to_val read_ndetbit (eval_p4int_sval t) (eval_p4int_val t).
 Proof.
   intros. unfold eval_p4int_sval, eval_p4int_val.
-  destruct (P4Int.width_signed t). 
+  destruct (P4Int.width_signed t).
   - destruct p. destruct b; constructor; apply Forall2_ndetbit.
   - constructor.
 Qed.
