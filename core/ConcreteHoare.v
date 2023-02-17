@@ -809,7 +809,7 @@ Lemma hoare_func_table' : forall p pre_mem pre_ext name keys actions default_act
     post cases ->
   hoare_func ge p
     (ARG [] (MEM pre_mem (EXT pre_ext)))
-    (FTable name keys actions (Some default_action) const_entries) []
+    (FTable name keys actions default_action const_entries) []
     post.
 Proof.
   intros.
@@ -830,7 +830,7 @@ Lemma hoare_func_table_middle' : forall p pre_mem pre_ext name keys actions defa
     exists cases,
       hoare_extern_match_list (combine keyvals match_kinds) entryvs cases
         /\ hoare_table_action_cases ge p (MEM pre_mem (EXT pre_ext)) actions default_action post cases) ->
-  hoare_func ge p (ARG [] (MEM pre_mem (EXT pre_ext))) (FTable name keys actions (Some default_action) (Some const_entries))
+  hoare_func ge p (ARG [] (MEM pre_mem (EXT pre_ext))) (FTable name keys actions default_action (Some const_entries))
       [] post.
 Proof.
   intros.
@@ -864,7 +864,7 @@ Inductive hoare_table_action_cases_nondet' (p : path) (pre : assertion) (actions
     post cases ->
   hoare_func ge p
     (ARG [] (MEM pre_mem (EXT pre_ext)))
-    (FTable name keys actions (Some default_action) const_entries) []
+    (FTable name keys actions default_action const_entries) []
     post.
 Proof.
   intros.

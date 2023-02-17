@@ -376,6 +376,8 @@ Proof.
 Qed.
 
 Inductive out_arg_In_vars (vars : option (list path)) : option Expression -> direction -> Prop :=
+  | out_arg_In_vars_directionless : forall expr,
+      out_arg_In_vars vars expr Directionless
   | out_arg_In_vars_in : forall expr,
       out_arg_In_vars vars expr Typed.In
   | out_arg_In_vars_out_dontcare :
@@ -400,6 +402,7 @@ Proof.
   induction H as [ | expr dir]; intros.
   - inv H; inv H0; auto.
   - inv H1. inv H9.
+    + eauto.
     + eauto.
     + inv H2. inv H5. eauto.
     + inv H2. inv H6. inv H. eauto.
@@ -601,7 +604,7 @@ Qed.
 Lemma func_modifies_table : forall p name keys actions default_action const_entries vars exts,
   Forall (fun expr => action_modifies' p expr vars exts) actions ->
   call_modifies p default_action vars exts ->
-  func_modifies p (FTable name keys actions (Some default_action) const_entries) vars exts.
+  func_modifies p (FTable name keys actions default_action const_entries) vars exts.
 Proof.
   unfold func_modifies; intros.
   inv H1.

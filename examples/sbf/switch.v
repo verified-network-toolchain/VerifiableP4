@@ -125,10 +125,10 @@ Definition get_drop_ctl (v : Sval) : bool :=
 
 Inductive process_packet : extern_state -> (timestamp_t * ipv4_header * payload_t) -> extern_state -> option (ipv4_header * payload_t) -> Prop :=
   | process_packet_intro : forall es timestamp ipv4 payload es' ipv4'
-            pipe_class_name pipe_inst_path class_name inst_path fd
+            pipe_class_name pipe_inst_path pipe_targs class_name inst_path targs fd
             m' hdr' meta' ingress_intrinsic_metadata_for_deparser' ingress_intrinsic_metadata_for_tm',
-      PathMap.get ["main"; "pipe0"] (ge_inst ge) = Some {|iclass:=pipe_class_name; ipath:=pipe_inst_path|} ->
-      PathMap.get (pipe_inst_path ++ ["ingress"]) (ge_inst ge) = Some {|iclass:=class_name; ipath:=inst_path|} ->
+      PathMap.get ["main"; "pipe0"] (ge_inst ge) = Some {|iclass:=pipe_class_name; ipath:=pipe_inst_path; itargs:=pipe_targs|} ->
+      PathMap.get (pipe_inst_path ++ ["ingress"]) (ge_inst ge) = Some {|iclass:=class_name; ipath:=inst_path; itargs:=targs|} ->
       PathMap.get ([class_name; "apply"]) (ge_func ge) = Some fd ->
       let hdr := update "ipv4"
         (update "src_addr" (P4Bit ipv4_addr_w (fst ipv4))

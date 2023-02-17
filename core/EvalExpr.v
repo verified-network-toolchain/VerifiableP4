@@ -474,6 +474,8 @@ Proof.
   - unfold get.
     destruct (BinNat.N.eqb next N0);
       inv H1; reflexivity.
+  - unfold get. rewrite H1. auto.
+  - unfold get. rewrite H1. auto.
 Qed.
 
 Ltac destruct_match H :=
@@ -793,9 +795,11 @@ Lemma eval_cast_val_sim: forall (typ: P4Type) v1 newv1 v2,
 Proof.
   induction typ using my_P4Type_ind with
     (Q := fun _ => True) (R := fun _ => True) (S := fun _ => True); intros; try simpl in H0; try (now inv H0); auto.
-  - destruct v1; simpl in H0; inv H0. inv H1. destruct value. inv H3.
-    destruct value. 2: destruct b; inv H3. inv H2. inv H6. simpl. exists (ValBaseBool y).
-    destruct y; split; auto; destruct b; inv H3; constructor; auto.
+  - destruct v1; simpl in H0; inv H0.
+    + inv H1. repeat econstructor.
+    + inv H1. destruct value. inv H3.
+      destruct value. 2: destruct b; inv H3. inv H2. inv H6. simpl. exists (ValBaseBool y).
+      destruct y; split; auto; destruct b; inv H3; constructor; auto.
   - destruct v1; simpl in H0; inv H0; inv H1; simpl.
     + solve_ex_sim. apply Forall2_refl. intros; auto.
     + destruct_match H3; inv H3. pose proof (Forall2_Zlength H2). rewrite H1 in H0.
@@ -2211,6 +2215,11 @@ Qed.
 Definition eval_arg (ge : genv) (p : path) (a : mem_assertion) (arg : option Expression)
     (dir : direction) : option argument :=
   match arg, dir with
+  | Some arg, Directionless =>
+      match eval_expr ge p a arg with
+      | Some sv => Some (Some sv, None)
+      | _ => None
+      end
   | Some arg, Typed.In =>
       match eval_expr ge p a arg with
       | Some sv => Some (Some sv, None)
@@ -2241,6 +2250,12 @@ Lemma eval_arg_sound : forall ge p a_mem a_ext arg dir argval,
 Proof.
   unfold hoare_arg; intros.
   inv H2.
+  - simpl in H0.
+    destruct (eval_expr ge p a_mem expr) eqn:H_eval_expr. 2 : inv H0.
+    inv H0.
+    repeat constructor.
+    eapply hoare_expr_det_intro; eauto.
+    eapply eval_expr_sound; auto.
   - simpl in H0.
     destruct (eval_expr ge p a_mem expr) eqn:H_eval_expr. 2 : inv H0.
     inv H0.

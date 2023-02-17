@@ -1042,7 +1042,7 @@ Lemma hoare_func_table_case : forall p pre name keys actions default_action cons
   hoare_table_match p pre name keys const_entries actionref ->
   get_table_call actions default_action actionref = Some (action, retv) ->
   hoare_call p pre action (fun _ st => post st) ->
-  hoare_func p (fun _ => pre) (FTable name keys actions (Some default_action) const_entries)
+  hoare_func p (fun _ => pre) (FTable name keys actions default_action const_entries)
       [] (fun args retv' st => args = [] /\ retv' = retv /\ post st).
 Proof.
   unfold hoare_table_match, hoare_call, hoare_func.
@@ -1128,7 +1128,7 @@ Inductive hoare_table_action_cases (p : path) (pre : assertion) (actions : list 
 Lemma hoare_func_table_action : forall p pre name keys actions default_action const_entries post matched_action,
   hoare_table_match p pre name keys const_entries matched_action ->
   hoare_table_action_case p pre actions default_action post matched_action ->
-  hoare_func p (fun _ => pre) (FTable name keys actions (Some default_action) const_entries)
+  hoare_func p (fun _ => pre) (FTable name keys actions default_action const_entries)
       [] post.
 Proof.
   intros. inv H1.
@@ -1142,7 +1142,7 @@ Qed.
 Lemma hoare_func_table : forall p pre name keys actions default_action const_entries post cases,
   hoare_table_match_list p pre name keys const_entries cases ->
   hoare_table_action_cases p pre actions default_action post cases ->
-  hoare_func p (fun _ => pre) (FTable name keys actions (Some default_action) const_entries)
+  hoare_func p (fun _ => pre) (FTable name keys actions default_action const_entries)
       [] post.
 Proof.
   induction 2.
@@ -1181,7 +1181,7 @@ Lemma hoare_func_table_middle : forall p pre name keys actions default_action co
     exists cases,
       hoare_extern_match_list (combine keyvals match_kinds) entryvs cases
         /\ hoare_table_action_cases p pre actions default_action post cases) ->
-  hoare_func p (fun _ => pre) (FTable name keys actions (Some default_action) (Some const_entries))
+  hoare_func p (fun _ => pre) (FTable name keys actions default_action (Some const_entries))
       [] post.
 Proof.
   intros; red; intros.
@@ -1289,7 +1289,7 @@ Qed.
 Lemma hoare_func_table_nondet : forall p pre name keys actions default_action const_entries post cases,
   hoare_table_match_list_nondet p pre name keys const_entries cases ->
   hoare_table_action_cases_nondet p pre actions default_action post cases ->
-  hoare_func p (fun _ => pre) (FTable name keys actions (Some default_action) const_entries)
+  hoare_func p (fun _ => pre) (FTable name keys actions default_action const_entries)
       [] post.
 Proof.
   intros. red; intros.

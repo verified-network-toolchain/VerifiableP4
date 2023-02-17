@@ -48,6 +48,10 @@ Definition get (f : ident) (sv : Sval) : Sval :=
         (if (next =? 0)%N
         then (ValBaseBit (Zrepeat (@None bool) 32%Z))
         else (ValBaseBit (P4Arith.to_loptbool 32%N (Z.of_N (next - 1)))))
+      else if String.eqb f "last" then
+        force ValBaseNull (get_last_of_stack headers next)
+      else if String.eqb f "next" then
+        force ValBaseNull (get_next_of_stack headers next)
       else
         ValBaseNull
   | _ => ValBaseNull
@@ -367,8 +371,35 @@ Proof.
       replace (Zlength lv) with (Zlength lv') by lia.
       apply sval_refine_refl.
     }
-    destruct (String.eqb f "lastIndex");
-      apply sval_refine_refl.
+    destruct (String.eqb f "lastIndex").
+    { apply sval_refine_refl. }
+    destruct (String.eqb f "last").
+    { unfold get_last_of_stack, ListUtil.Znth_default.
+      set (last := (Z.of_N (next - 1))). clearbody last.
+      destruct ((0 <=? last) && (last <? Zlength lv)) eqn:H_last.
+      { apply Forall2_forall_Znth in H0; destruct H0.
+        list_simplify.
+        apply H0; lia.
+      }
+      { apply Forall2_Zlength in H0.
+        do 2 rewrite Znth_outofbounds by list_solve.
+        apply sval_refine_refl.
+      }
+    }
+    destruct (String.eqb f "next").
+    { unfold get_next_of_stack, ListUtil.Znth_default.
+      set (next' := (Z.of_N next)). clearbody next'.
+      destruct ((0 <=? next') && (next' <? Zlength lv)) eqn:H_next'.
+      { apply Forall2_forall_Znth in H0; destruct H0.
+        list_simplify.
+        apply H0; lia.
+      }
+      { apply Forall2_Zlength in H0.
+        do 2 rewrite Znth_outofbounds by list_solve.
+        apply sval_refine_refl.
+      }
+    }
+    apply sval_refine_refl.
 Qed.
 
 Lemma Forall2_bit_refine_Some_same':

@@ -63,8 +63,8 @@ Definition out_port_to_sval (p : option port) :=
   ValBaseBit (P4Arith.to_loptbool 9 (out_port_to_Z p)).
 
 Inductive process_packet : extern_state -> (Z * port) -> extern_state -> option (Z * port) -> Prop :=
-  | process_packet_intro : forall es data in_port es' data' out_port meta' std_meta' class_name inst_path fd m',
-      PathMap.get ["main"; "ig"] (ge_inst ge) = Some {|iclass:=class_name; ipath:=inst_path|} ->
+  | process_packet_intro : forall es data in_port es' data' out_port meta' std_meta' class_name inst_path targs fd m',
+      PathMap.get ["main"; "ig"] (ge_inst ge) = Some {|iclass:=class_name; ipath:=inst_path; itargs:=targs|} ->
       PathMap.get ([class_name; "apply"]) (ge_func ge) = Some fd ->
       0 <= data < Z.pow 2 16 ->
       let hdr := ValBaseStruct [("myHeader",
