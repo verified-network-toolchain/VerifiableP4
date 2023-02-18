@@ -20,17 +20,19 @@ and
 
 This folder contains the definition of abstract syntax tree (AST) and
 the value type of the P4 programming language used in the Verifiable
-P4.
+P4. It corresponds to Section 3.1 of the paper.
 
 ### [Semantics](https://github.com/verified-network-toolchain/petr4/tree/poulet4/deps/poulet4/lib/P4light/Semantics)
 
-[Semantics.v](https://github.com/verified-network-toolchain/petr4/blob/b4a332e47a58359b5622eeb0936caa59f676c187/deps/poulet4/lib/P4light/Semantics/Semantics.v)
+This folder corresponds to Section 3.2 of the paper. In particular,
+
+- [Semantics.v](https://github.com/verified-network-toolchain/petr4/blob/b4a332e47a58359b5622eeb0936caa59f676c187/deps/poulet4/lib/P4light/Semantics/Semantics.v)
 contains the big-step operational semantics.
 
-[Interpreter.v](https://github.com/verified-network-toolchain/petr4/blob/poulet4/deps/poulet4/lib/P4light/Semantics/Interpreter.v)
+- [Interpreter.v](https://github.com/verified-network-toolchain/petr4/blob/poulet4/deps/poulet4/lib/P4light/Semantics/Interpreter.v)
 is the reference interpreter.
 
-[InterpreterSafe.v](https://github.com/verified-network-toolchain/petr4/blob/poulet4/deps/poulet4/lib/P4light/Semantics/InterpreterSafe.v)
+- [InterpreterSafe.v](https://github.com/verified-network-toolchain/petr4/blob/poulet4/deps/poulet4/lib/P4light/Semantics/InterpreterSafe.v)
 is the correctness proof of the reference interpreter.
 
 ### [Transformations](https://github.com/verified-network-toolchain/petr4/tree/poulet4/deps/poulet4/lib/P4light/Transformations)
@@ -41,13 +43,27 @@ TODO
 
 The program logic and related tactics are defined in the
 [core](https://github.com/verified-network-toolchain/VerifiableP4/tree/master/core)
-folder.
+folder. It corresponds to Section 3.3 of the paper.
 
 ## Verification Examples
 
-Our verification of the sliding-window Bloom filter, including the p4
-source code, can be found in the
-[sbf](https://github.com/verified-network-toolchain/VerifiableP4/tree/master/examples/sbf)
-folder. The count-min-sketch example can be found in the
-[cms](https://github.com/verified-network-toolchain/VerifiableP4/tree/master/examples/cms)
-folder.
+### [Sliding-Window Bloom Filter](https://github.com/verified-network-toolchain/VerifiableP4/tree/master/examples/sbf)
+
+**Theorem 1** in Section 2.1 is scattered in
+[`LightFilter.v`](https://github.com/verified-network-toolchain/VerifiableP4/tree/master/examples/sbf/LightFilter.v),
+named `query_insert_same`, `query_insert_other`, `query_clear`,
+`ok_insert`, `ok_clear` and `ok_empty`.
+
+**Theorem 2** in Section 2.2 is scattered in
+[`verif_Filter_all.v`](https://github.com/verified-network-toolchain/VerifiableP4/tree/master/examples/sbf/verif_Filter_all.v),
+named `Filter_insert_body`, `Filter_query_body` and
+`Filter_clear_body`.
+
+### [Count-Min-Sketch](https://github.com/verified-network-toolchain/VerifiableP4/tree/master/examples/cms)
+
+This folder is about our another example, the
+count-min-sketch. Theorems similar to **Theorem 1** and **Theorem 2**
+can be found in
+[`LightModel.v`](https://github.com/verified-network-toolchain/VerifiableP4/tree/master/examples/cms/LightModel.v)
+and
+[`verif_CMS_all.v`](https://github.com/verified-network-toolchain/VerifiableP4/tree/master/examples/cms/verif_CMS_all.v)
