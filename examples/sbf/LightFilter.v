@@ -81,7 +81,8 @@ Definition filter_clear (f : filter) (t : Z) : filter :=
   | None => None
   end.
 
-(* Axiom filter_empty : filter. *)
+Definition filter_empty (t : Z) : filter :=
+  Some (mk_filter (t + 1) t num_slots (Zrepeat [] (num_frames - 1))).
 
 Definition weak_filter_inv (f : filter) : Prop :=
   match f with
@@ -438,7 +439,17 @@ Proof.
   destruct f0. apply H_ok_refresh.
 Qed.
 
-(* Lemma ok_empty: forall t,
-  ok_until empty t. *)
+Lemma ok_empty: forall t,
+  ok_until (filter_empty t) t.
+Proof.
+  intros.
+  unfold ok_until, filter_empty, filter_inv.
+  repeat apply conj; try (pose proof H_Tc; lia).
+  { replace (t + 1 - 1 - t) with 0 by lia.
+    rewrite Zdiv.Zdiv_0_l.
+    lia.
+  }
+  { list_solve. }
+Qed.
 
 End LightFilter.

@@ -31,37 +31,67 @@ Definition query : filter -> Time * Header -> option bool :=
 Definition clear : filter -> Time -> filter :=
   filter_clear.
 
-Opaque insert query clear.
+Definition empty : Time -> filter := filter_empty num_frames num_slots.
 
-(* Parameter insert : (option filter_base) -> (Time * Header) -> (option filter_base).
-Parameter query : (option filter_base) -> (Time * Header) -> option bool.
-Parameter clear : (option filter_base) -> Time -> (option filter_base). *)
-Parameter empty : Time -> filter.
-Parameter ok_until: filter -> Time -> Prop.
+Definition ok_until : filter -> Time -> Prop :=
+  ok_until num_frames num_slots frame_time.
 
-Axiom query_clear: forall f t t' h,
+Lemma H_frame_time : 0 < frame_time.
+Proof. constructor. Qed.
+
+Ltac resolve_parameter_conditions :=
+  auto using H_hashes;
+  reflexivity.
+
+Lemma query_clear: forall f t t' h,
   t <= t' ->
   ok_until f t ->
   query f (t', h) = query (clear f t) (t', h).
+Proof.
+  apply query_clear with (num_rows := num_rows);
+    resolve_parameter_conditions.
+Qed.
 
-Axiom query_insert_same : forall f t t' h,
+Lemma query_insert_same : forall f t t' h,
   t <= t' <= t+T ->
   ok_until f t ->
   query (insert f (t, h)) (t', h) = Some true.
+Proof.
+  apply query_insert_same;
+    resolve_parameter_conditions.
+Qed.
 
-Axiom query_insert_other : forall f t t' h h',
+Lemma query_insert_other : forall f t t' h h',
   t <= t' ->
   ok_until f t ->
   query f (t', h') = Some true ->
   query (insert f (t, h)) (t', h') = Some true.
+Proof.
+  apply query_insert_other with (num_rows := num_rows);
+    resolve_parameter_conditions.
+Qed.
 
-Axiom ok_insert: forall f t t' h, t <= t' <= t+Tc -> ok_until f t ->
+Lemma ok_insert: forall f t t' h, t <= t' <= t+Tc -> ok_until f t ->
              ok_until (insert f (t,h)) t'.
+Proof.
+  apply ok_insert;
+    resolve_parameter_conditions.
+Qed.
 
-Axiom ok_clear: forall f t t', t <= t' <= t+Tc -> ok_until f t ->
+Lemma ok_clear: forall f t t', t <= t' <= t+Tc -> ok_until f t ->
             ok_until (clear f t) t'.
+Proof.
+  apply ok_clear;
+    resolve_parameter_conditions.
+Qed.
 
-Axiom empty_ok: forall t, ok_until (empty t) t.
+Lemma ok_empty: forall t, ok_until (empty t) t.
+Proof.
+  apply ok_empty;
+    resolve_parameter_conditions.
+Qed.
+
+Opaque insert query clear empty ok_until.
 
 Definition Payload := list bool.
 (* Definition DummyData: Inhabitant Payload.
@@ -276,7 +306,7 @@ assert (OK_f: ok_until f tp).
   eapply (trans_preserves_okUntil H). 
      + intros N; subst; list_solve.
      + apply Trans.
-     + rewrite Znth_app1 by list_solve. apply empty_ok.
+     + rewrite Znth_app1 by list_solve. apply ok_empty.
      + clear - Hi H0. exploit (H0 (Zlength h -1)). list_solve.
         replace (Zlength h - 1 + 1) with (Zlength h) by list_solve.
         intros R; red in R. unfold get_tstamp in *.
@@ -334,7 +364,7 @@ assert (State1OK: ok_until state1 (get_tstamp (Znth i h))).
     - destruct h. list_solve. simpl in *.
       remember (Z.to_nat i) as n; destruct n; simpl in Heqfront; [ | discriminate].
       assert (i=0) by lia; subst i. clear. (* clear H1 Hi Heqn; simpl in *.*)
-      rewrite ! Znth_0_cons. apply empty_ok.
+      rewrite ! Znth_0_cons. apply ok_empty.
     - apply app_eq_nil in H; destruct H; congruence.
   + assert (HF: (p::front) <> []) by congruence. (* (rewrite <- H; intros N; apply app_eq_nil in N; destruct N; congruence).*)
     specialize (trans_preserves_okUntil ValidFront HF _ _ _ Front). subst l. simpl. rewrite ! Znth_0_cons. intros H.
@@ -343,7 +373,7 @@ assert (State1OK: ok_until state1 (get_tstamp (Znth i h))).
       - destruct (Z.to_nat i); simpl in Heqfront; congruence.
       - rewrite Znth_0_cons; simpl. 
         remember (Z.to_nat i) as n; destruct n; simpl in *; inv Heqfront. 
-        apply empty_ok.
+        apply ok_empty.
     * red in ValidFrontI.
       exploit (ValidFrontI (Zlength front)).
       - unfold Packet in *; list_solve. 
@@ -434,7 +464,7 @@ Lemma full_property h p (Vp: valid_flow (h ++ [p])):
   (exists res, high_level_exec h p res) /\
   (forall res, high_level_exec h p res -> property h p res).
 Proof. destruct (valid_flow_trans_wf _ Vp (empty (get_tstamp (Znth 0 (h++[p]))))) as [t [r Hr]].
-  + destruct h; simpl; apply empty_ok.
+  + destruct h; simpl; apply ok_empty.
   + split.
     - unfold high_level_exec. inv Hr.
       * symmetry in H1; apply app_eq_nil in H1; destruct H1; congruence.
