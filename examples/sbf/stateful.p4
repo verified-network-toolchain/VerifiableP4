@@ -495,7 +495,7 @@ control SwitchIngress(inout header_t hdr,
                       inout ingress_intrinsic_metadata_for_tm_t ig_intr_tm_md)
                       {
     action act_for_tbl_1_action_0() {
-        ig_md.solicited = 0;
+        ig_md.solicited = 1;
     }
     table tbl_for_stmt_1 {
         actions = {

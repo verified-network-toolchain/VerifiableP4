@@ -30,10 +30,10 @@ Definition is_internal (ip_addr : Z) : bool :=
          (eval_p4int_val
             {| tags := NoInfo; value := 4294901760; width_signed := None |})).
 
-(* The bool in the return value means the packet is allowed. *)
+(* The bool in the return value means the packet is dropped. *)
 Definition process (f : filter) '((timestamp, ipv4) : Z * ipv4_header) : filter * option bool :=
   if is_internal (fst ipv4) then
-    (filter_insert f (timestamp, ipv4), Some true)
+    (filter_insert f (timestamp, ipv4), Some false)
   else
     (filter_clear f timestamp,
       option_map negb (filter_query (filter_clear f timestamp) (timestamp, (snd ipv4, fst ipv4)))).
@@ -54,7 +54,7 @@ Definition act_for_tbl_1_action_0_spec :=
         (EXT [])))
       POST
         (ARG_RET [] ValBaseNull
-        (MEM [(["ig_md"], update "solicited" (P4Bit 8 0)
+        (MEM [(["ig_md"], update "solicited" (P4Bit 8 1)
           (force ValBaseNull (uninit_sval_of_typ None metadata_t)))]
         (EXT []))).
 
@@ -82,7 +82,7 @@ Definition tbl_for_stmt_1_spec :=
       POST
       (EX retv,
         (ARG_RET [] retv
-        (MEM [(["ig_md"], update "solicited" (P4Bit 8 0)
+        (MEM [(["ig_md"], update "solicited" (P4Bit 8 1)
           (force ValBaseNull (uninit_sval_of_typ None metadata_t)))]
         (EXT []))))%arg_ret_assr.
 
@@ -112,7 +112,7 @@ Definition bf2_act_set_insert_key_spec :=
                   (update "dst_addr" (P4Bit ipv4_addr_w (snd h))
                     (force ValBaseNull (uninit_sval_of_typ (Some true) ipv4_h))))
                 (force ValBaseNull (uninit_sval_of_typ None header_t)));
-              (["ig_md"], update "solicited" (P4Bit 8 0)
+              (["ig_md"], update "solicited" (P4Bit 8 1)
                 (force ValBaseNull (uninit_sval_of_typ None metadata_t)))]
         (EXT [])))
       POST
@@ -120,7 +120,7 @@ Definition bf2_act_set_insert_key_spec :=
         (MEM [(["ig_md"], update "bf2_key" (eval_val_to_sval (ValBaseBit
                 (P4Arith.to_lbool ipv4_addr_w (snd h) ++ P4Arith.to_lbool ipv4_addr_w (fst h))))
           (update "bf2_api" (P4Bit 8 INSERT)
-            (update "solicited" (P4Bit 8 0)
+            (update "solicited" (P4Bit 8 1)
               (force ValBaseNull (uninit_sval_of_typ None metadata_t)))))]
         (EXT []))).
 
@@ -151,7 +151,7 @@ Definition bf2_act_set_query_key_spec :=
                   (update "dst_addr" (P4Bit ipv4_addr_w (snd h))
                     (force ValBaseNull (uninit_sval_of_typ (Some true) ipv4_h))))
                 (force ValBaseNull (uninit_sval_of_typ None header_t)));
-              (["ig_md"], update "solicited" (P4Bit 8 0)
+              (["ig_md"], update "solicited" (P4Bit 8 1)
                 (force ValBaseNull (uninit_sval_of_typ None metadata_t)))]
         (EXT [])))
       POST
@@ -159,7 +159,7 @@ Definition bf2_act_set_query_key_spec :=
         (MEM [(["ig_md"], update "bf2_key" (eval_val_to_sval (ValBaseBit
                 (P4Arith.to_lbool ipv4_addr_w (fst h) ++ P4Arith.to_lbool ipv4_addr_w (snd h))))
           (update "bf2_api" (P4Bit 8 QUERY)
-            (update "solicited" (P4Bit 8 0)
+            (update "solicited" (P4Bit 8 1)
               (force ValBaseNull (uninit_sval_of_typ None metadata_t)))))]
         (EXT []))).
 
@@ -190,7 +190,7 @@ Definition bf2_tbl_set_key_spec :=
                   (update "dst_addr" (P4Bit ipv4_addr_w (snd h))
                     (force ValBaseNull (uninit_sval_of_typ (Some true) ipv4_h))))
                 (force ValBaseNull (uninit_sval_of_typ None header_t)));
-              (["ig_md"], update "solicited" (P4Bit 8 0)
+              (["ig_md"], update "solicited" (P4Bit 8 1)
                 (force ValBaseNull (uninit_sval_of_typ None metadata_t)))]
         (EXT [])))
       POST
@@ -202,7 +202,7 @@ Definition bf2_tbl_set_key_spec :=
                else
                 P4Arith.to_lbool ipv4_addr_w (fst h) ++ P4Arith.to_lbool ipv4_addr_w (snd h))))
           (update "bf2_api" (P4Bit 8 (if is_internal (fst h) then INSERT else QUERY))
-            (update "solicited" (P4Bit 8 0)
+            (update "solicited" (P4Bit 8 1)
               (force ValBaseNull (uninit_sval_of_typ None metadata_t)))))]
         (EXT []))))%arg_ret_assr.
 
@@ -390,7 +390,7 @@ Proof.
   destruct (is_internal (fst h)) eqn:H_is_internal.
   - step_call Filter_insert_body (fst h, snd h) tstamp.
     { entailer. }
-    step_call tbl_for_stmt_3_body (Some false).
+    step_call tbl_for_stmt_3_body (Some true).
     { entailer.
       repeat constructor.
     }

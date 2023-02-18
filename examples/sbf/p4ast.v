@@ -191,20 +191,17 @@ Definition MeterColor_t := DeclSerializableEnum NoInfo
        (MkExpression NoInfo
             (ExpInt
              {| itags := NoInfo; value := 0;
-                width_signed := (Some ( 8%N, false )) |}) (TypBit 8%N)
-            Directionless) );
+                width_signed := (Some ( 8%N, false )) |}) (TypBit 8%N) In) );
      ( {| stags := NoInfo; str := "YELLOW" |},
        (MkExpression NoInfo
             (ExpInt
              {| itags := NoInfo; value := 1;
-                width_signed := (Some ( 8%N, false )) |}) (TypBit 8%N)
-            Directionless) );
+                width_signed := (Some ( 8%N, false )) |}) (TypBit 8%N) In) );
      ( {| stags := NoInfo; str := "RED" |},
        (MkExpression NoInfo
             (ExpInt
              {| itags := NoInfo; value := 3;
-                width_signed := (Some ( 8%N, false )) |}) (TypBit 8%N)
-            Directionless) )].
+                width_signed := (Some ( 8%N, false )) |}) (TypBit 8%N) In) )].
 
 Definition CounterType_t := DeclEnum NoInfo
     {| stags := NoInfo; str := "CounterType_t" |}
@@ -1974,7 +1971,7 @@ Definition TofinoIngressParser := DeclParser NoInfo
                                     (ExpName
                                      (BareName
                                       {| stags := NoInfo; str := "pkt" |})
-                                     NoLocator)
+                                     (LInstance ["pkt"]))
                                     (TypTypeName
                                      {| stags := NoInfo;
                                         str := "packet_in" |}) Directionless)
@@ -2006,7 +2003,7 @@ Definition TofinoIngressParser := DeclParser NoInfo
                             (ExpName
                              (BareName
                               {| stags := NoInfo; str := "ig_intr_md" |})
-                             NoLocator)
+                             (LInstance ["ig_intr_md"]))
                             (TypTypeName
                              {| stags := NoInfo;
                                 str := "ingress_intrinsic_metadata_t" |})
@@ -2018,7 +2015,7 @@ Definition TofinoIngressParser := DeclParser NoInfo
                                (ExpName
                                 (BareName
                                  {| stags := NoInfo; str := "ig_intr_md" |})
-                                NoLocator)
+                                (LInstance ["ig_intr_md"]))
                                (TypTypeName
                                 {| stags := NoInfo;
                                    str := "ingress_intrinsic_metadata_t" |})
@@ -2060,7 +2057,7 @@ Definition TofinoIngressParser := DeclParser NoInfo
                                     (ExpName
                                      (BareName
                                       {| stags := NoInfo; str := "pkt" |})
-                                     NoLocator)
+                                     (LInstance ["pkt"]))
                                     (TypTypeName
                                      {| stags := NoInfo;
                                         str := "packet_in" |}) Directionless)
@@ -2091,7 +2088,7 @@ Definition TofinoIngressParser := DeclParser NoInfo
                                     (ExpName
                                      (BareName
                                       {| stags := NoInfo; str := "pkt" |})
-                                     NoLocator)
+                                     (LInstance ["pkt"]))
                                     (TypTypeName
                                      {| stags := NoInfo;
                                         str := "packet_in" |}) Directionless)
@@ -2131,7 +2128,7 @@ Definition TofinoEgressParser := DeclParser NoInfo
                                     (ExpName
                                      (BareName
                                       {| stags := NoInfo; str := "pkt" |})
-                                     NoLocator)
+                                     (LInstance ["pkt"]))
                                     (TypTypeName
                                      {| stags := NoInfo;
                                         str := "packet_in" |}) Directionless)
@@ -2202,7 +2199,7 @@ Definition TofinoEgressParser := DeclParser NoInfo
                             (ExpName
                              (BareName
                               {| stags := NoInfo; str := "eg_intr_md" |})
-                             NoLocator)
+                             (LInstance ["eg_intr_md"]))
                             (TypTypeName
                              {| stags := NoInfo;
                                 str := "egress_intrinsic_metadata_t" |}) Out))])
@@ -2454,7 +2451,7 @@ Definition EtherIPTCPUDPParser := DeclParser NoInfo
                                     (ExpName
                                      (BareName
                                       {| stags := NoInfo; str := "pkt" |})
-                                     NoLocator)
+                                     (LInstance ["pkt"]))
                                     (TypTypeName
                                      {| stags := NoInfo;
                                         str := "packet_in" |}) Directionless)
@@ -2482,7 +2479,7 @@ Definition EtherIPTCPUDPParser := DeclParser NoInfo
                                       (ExpName
                                        (BareName
                                         {| stags := NoInfo; str := "hdr" |})
-                                       NoLocator)
+                                       (LInstance ["hdr"]))
                                       (TypTypeName
                                        {| stags := NoInfo;
                                           str := "header_t" |}) Out)
@@ -2503,7 +2500,8 @@ Definition EtherIPTCPUDPParser := DeclParser NoInfo
                                          (ExpName
                                           (BareName
                                            {| stags := NoInfo;
-                                              str := "hdr" |}) NoLocator)
+                                              str := "hdr" |})
+                                          (LInstance ["hdr"]))
                                          (TypTypeName
                                           {| stags := NoInfo;
                                              str := "header_t" |}) Out)
@@ -2525,7 +2523,8 @@ Definition EtherIPTCPUDPParser := DeclParser NoInfo
                                                          (BareName
                                                           {| stags := NoInfo;
                                                              str := "ETHERTYPE_IPV4" |})
-                                                         NoLocator)
+                                                         (LGlobal
+                                                              ["missing_locator"]))
                                                         (TypTypeName
                                                          {| stags := NoInfo;
                                                             str := "ether_type_t" |})
@@ -2544,7 +2543,7 @@ Definition EtherIPTCPUDPParser := DeclParser NoInfo
                                     (ExpName
                                      (BareName
                                       {| stags := NoInfo; str := "pkt" |})
-                                     NoLocator)
+                                     (LInstance ["pkt"]))
                                     (TypTypeName
                                      {| stags := NoInfo;
                                         str := "packet_in" |}) Directionless)
@@ -2588,7 +2587,7 @@ Definition EtherIPTCPUDPParser := DeclParser NoInfo
                                       (ExpName
                                        (BareName
                                         {| stags := NoInfo; str := "hdr" |})
-                                       NoLocator)
+                                       (LInstance ["hdr"]))
                                       (TypTypeName
                                        {| stags := NoInfo;
                                           str := "header_t" |}) Out)
@@ -2628,7 +2627,8 @@ Definition EtherIPTCPUDPParser := DeclParser NoInfo
                                          (ExpName
                                           (BareName
                                            {| stags := NoInfo;
-                                              str := "hdr" |}) NoLocator)
+                                              str := "hdr" |})
+                                          (LInstance ["hdr"]))
                                          (TypTypeName
                                           {| stags := NoInfo;
                                              str := "header_t" |}) Out)
@@ -2671,7 +2671,8 @@ Definition EtherIPTCPUDPParser := DeclParser NoInfo
                                                         (BareName
                                                          {| stags := NoInfo;
                                                             str := "IP_PROTOCOLS_TCP" |})
-                                                        NoLocator)
+                                                        (LGlobal
+                                                             ["missing_locator"]))
                                                        (TypTypeName
                                                         {| stags := NoInfo;
                                                            str := "ip_protocol_t" |})
@@ -2686,7 +2687,8 @@ Definition EtherIPTCPUDPParser := DeclParser NoInfo
                                                         (BareName
                                                          {| stags := NoInfo;
                                                             str := "IP_PROTOCOLS_UDP" |})
-                                                        NoLocator)
+                                                        (LGlobal
+                                                             ["missing_locator"]))
                                                        (TypTypeName
                                                         {| stags := NoInfo;
                                                            str := "ip_protocol_t" |})
@@ -2705,7 +2707,7 @@ Definition EtherIPTCPUDPParser := DeclParser NoInfo
                                     (ExpName
                                      (BareName
                                       {| stags := NoInfo; str := "pkt" |})
-                                     NoLocator)
+                                     (LInstance ["pkt"]))
                                     (TypTypeName
                                      {| stags := NoInfo;
                                         str := "packet_in" |}) Directionless)
@@ -2746,7 +2748,7 @@ Definition EtherIPTCPUDPParser := DeclParser NoInfo
                                       (ExpName
                                        (BareName
                                         {| stags := NoInfo; str := "hdr" |})
-                                       NoLocator)
+                                       (LInstance ["hdr"]))
                                       (TypTypeName
                                        {| stags := NoInfo;
                                           str := "header_t" |}) Out)
@@ -2782,7 +2784,7 @@ Definition EtherIPTCPUDPParser := DeclParser NoInfo
                                     (ExpName
                                      (BareName
                                       {| stags := NoInfo; str := "pkt" |})
-                                     NoLocator)
+                                     (LInstance ["pkt"]))
                                     (TypTypeName
                                      {| stags := NoInfo;
                                         str := "packet_in" |}) Directionless)
@@ -2812,7 +2814,7 @@ Definition EtherIPTCPUDPParser := DeclParser NoInfo
                                       (ExpName
                                        (BareName
                                         {| stags := NoInfo; str := "hdr" |})
-                                       NoLocator)
+                                       (LInstance ["hdr"]))
                                       (TypTypeName
                                        {| stags := NoInfo;
                                           str := "header_t" |}) Out)
@@ -2862,8 +2864,100 @@ Definition SwitchIngressParser := DeclParser NoInfo
                                     (ExpName
                                      (BareName
                                       {| stags := NoInfo;
+                                         str := "tofino_parser" |})
+                                     (LInstance ["tofino_parser"]))
+                                    (TypParser
+                                     (MkControlType nil
+                                          [(MkParameter false Directionless
+                                                (TypExtern
+                                                 {| stags := NoInfo;
+                                                    str := "packet_in" |})
+                                                None
+                                                {| stags := NoInfo;
+                                                   str := "pkt" |});
+                                           (MkParameter false Out
+                                                (TypHeader
+                                                 [( {| stags := NoInfo;
+                                                       str := "resubmit_flag" |},
+                                                    (TypBit 1%N) );
+                                                  ( {| stags := NoInfo;
+                                                       str := "_pad1" |},
+                                                    (TypBit 1%N) );
+                                                  ( {| stags := NoInfo;
+                                                       str := "packet_version" |},
+                                                    (TypBit 2%N) );
+                                                  ( {| stags := NoInfo;
+                                                       str := "_pad2" |},
+                                                    (TypBit 3%N) );
+                                                  ( {| stags := NoInfo;
+                                                       str := "ingress_port" |},
+                                                    (TypBit 9%N) );
+                                                  ( {| stags := NoInfo;
+                                                       str := "ingress_mac_tstamp" |},
+                                                    (TypBit 48%N) )]) 
+                                                None
+                                                {| stags := NoInfo;
+                                                   str := "ig_intr_md" |})]))
+                                    Directionless)
+                               {| stags := NoInfo; str := "apply" |})
+                          (TypFunction
+                           (MkFunctionType nil
+                                [(MkParameter false Directionless
+                                      (TypExtern
+                                       {| stags := NoInfo;
+                                          str := "packet_in" |}) None
+                                      {| stags := NoInfo; str := "pkt" |});
+                                 (MkParameter false Out
+                                      (TypHeader
+                                       [( {| stags := NoInfo;
+                                             str := "resubmit_flag" |},
+                                          (TypBit 1%N) );
+                                        ( {| stags := NoInfo;
+                                             str := "_pad1" |},
+                                          (TypBit 1%N) );
+                                        ( {| stags := NoInfo;
+                                             str := "packet_version" |},
+                                          (TypBit 2%N) );
+                                        ( {| stags := NoInfo;
+                                             str := "_pad2" |},
+                                          (TypBit 3%N) );
+                                        ( {| stags := NoInfo;
+                                             str := "ingress_port" |},
+                                          (TypBit 9%N) );
+                                        ( {| stags := NoInfo;
+                                             str := "ingress_mac_tstamp" |},
+                                          (TypBit 48%N) )]) None
+                                      {| stags := NoInfo;
+                                         str := "ig_intr_md" |})] FunParser
+                                TypVoid)) Directionless) nil
+                     [(Some
+                       (MkExpression NoInfo
+                            (ExpName
+                             (BareName {| stags := NoInfo; str := "pkt" |})
+                             (LInstance ["pkt"]))
+                            (TypTypeName
+                             {| stags := NoInfo; str := "packet_in" |})
+                            Directionless));
+                      (Some
+                       (MkExpression NoInfo
+                            (ExpName
+                             (BareName
+                              {| stags := NoInfo; str := "ig_intr_md" |})
+                             (LInstance ["ig_intr_md"]))
+                            (TypTypeName
+                             {| stags := NoInfo;
+                                str := "ingress_intrinsic_metadata_t" |})
+                            Out))]) StmUnit);
+           (MkStatement NoInfo
+                (StatMethodCall
+                     (MkExpression NoInfo
+                          (ExpExpressionMember
+                               (MkExpression NoInfo
+                                    (ExpName
+                                     (BareName
+                                      {| stags := NoInfo;
                                          str := "layer4_parser" |})
-                                     NoLocator)
+                                     (LInstance ["layer4_parser"]))
                                     (TypParser
                                      (MkControlType nil
                                           [(MkParameter false Directionless
@@ -3091,7 +3185,7 @@ Definition SwitchIngressParser := DeclParser NoInfo
                        (MkExpression NoInfo
                             (ExpName
                              (BareName {| stags := NoInfo; str := "pkt" |})
-                             NoLocator)
+                             (LInstance ["pkt"]))
                             (TypTypeName
                              {| stags := NoInfo; str := "packet_in" |})
                             Directionless));
@@ -3099,102 +3193,10 @@ Definition SwitchIngressParser := DeclParser NoInfo
                        (MkExpression NoInfo
                             (ExpName
                              (BareName {| stags := NoInfo; str := "hdr" |})
-                             NoLocator)
+                             (LInstance ["hdr"]))
                             (TypTypeName
                              {| stags := NoInfo; str := "header_t" |}) Out))])
-                StmUnit);
-           (MkStatement NoInfo
-                (StatMethodCall
-                     (MkExpression NoInfo
-                          (ExpExpressionMember
-                               (MkExpression NoInfo
-                                    (ExpName
-                                     (BareName
-                                      {| stags := NoInfo;
-                                         str := "tofino_parser" |})
-                                     NoLocator)
-                                    (TypParser
-                                     (MkControlType nil
-                                          [(MkParameter false Directionless
-                                                (TypExtern
-                                                 {| stags := NoInfo;
-                                                    str := "packet_in" |})
-                                                None
-                                                {| stags := NoInfo;
-                                                   str := "pkt" |});
-                                           (MkParameter false Out
-                                                (TypHeader
-                                                 [( {| stags := NoInfo;
-                                                       str := "resubmit_flag" |},
-                                                    (TypBit 1%N) );
-                                                  ( {| stags := NoInfo;
-                                                       str := "_pad1" |},
-                                                    (TypBit 1%N) );
-                                                  ( {| stags := NoInfo;
-                                                       str := "packet_version" |},
-                                                    (TypBit 2%N) );
-                                                  ( {| stags := NoInfo;
-                                                       str := "_pad2" |},
-                                                    (TypBit 3%N) );
-                                                  ( {| stags := NoInfo;
-                                                       str := "ingress_port" |},
-                                                    (TypBit 9%N) );
-                                                  ( {| stags := NoInfo;
-                                                       str := "ingress_mac_tstamp" |},
-                                                    (TypBit 48%N) )]) 
-                                                None
-                                                {| stags := NoInfo;
-                                                   str := "ig_intr_md" |})]))
-                                    Directionless)
-                               {| stags := NoInfo; str := "apply" |})
-                          (TypFunction
-                           (MkFunctionType nil
-                                [(MkParameter false Directionless
-                                      (TypExtern
-                                       {| stags := NoInfo;
-                                          str := "packet_in" |}) None
-                                      {| stags := NoInfo; str := "pkt" |});
-                                 (MkParameter false Out
-                                      (TypHeader
-                                       [( {| stags := NoInfo;
-                                             str := "resubmit_flag" |},
-                                          (TypBit 1%N) );
-                                        ( {| stags := NoInfo;
-                                             str := "_pad1" |},
-                                          (TypBit 1%N) );
-                                        ( {| stags := NoInfo;
-                                             str := "packet_version" |},
-                                          (TypBit 2%N) );
-                                        ( {| stags := NoInfo;
-                                             str := "_pad2" |},
-                                          (TypBit 3%N) );
-                                        ( {| stags := NoInfo;
-                                             str := "ingress_port" |},
-                                          (TypBit 9%N) );
-                                        ( {| stags := NoInfo;
-                                             str := "ingress_mac_tstamp" |},
-                                          (TypBit 48%N) )]) None
-                                      {| stags := NoInfo;
-                                         str := "ig_intr_md" |})] FunParser
-                                TypVoid)) Directionless) nil
-                     [(Some
-                       (MkExpression NoInfo
-                            (ExpName
-                             (BareName {| stags := NoInfo; str := "pkt" |})
-                             NoLocator)
-                            (TypTypeName
-                             {| stags := NoInfo; str := "packet_in" |})
-                            Directionless));
-                      (Some
-                       (MkExpression NoInfo
-                            (ExpName
-                             (BareName
-                              {| stags := NoInfo; str := "ig_intr_md" |})
-                             NoLocator)
-                            (TypTypeName
-                             {| stags := NoInfo;
-                                str := "ingress_intrinsic_metadata_t" |})
-                            Out))]) StmUnit)]
+                StmUnit)]
           (ParserDirect NoInfo {| stags := NoInfo; str := "accept" |}))].
 
 Definition Bf2BloomFilterRow := DeclControl NoInfo
@@ -3231,7 +3233,7 @@ Definition Bf2BloomFilterRow := DeclControl NoInfo
                 (TypTypeName {| stags := NoInfo; str := "bf2_value_t" |})])
           [(MkExpression NoInfo
                 (ExpName (BareName {| stags := NoInfo; str := "reg_row" |})
-                 NoLocator)
+                 (LGlobal ["missing_locator"]))
                 (TypSpecializedType
                      (TypExtern {| stags := NoInfo; str := "Register" |})
                      [(TypBit 8%N); (TypBit 18%N)]) Directionless)]
@@ -3340,7 +3342,7 @@ Definition Bf2BloomFilterRow := DeclControl NoInfo
                 (TypTypeName {| stags := NoInfo; str := "bf2_value_t" |})])
           [(MkExpression NoInfo
                 (ExpName (BareName {| stags := NoInfo; str := "reg_row" |})
-                 NoLocator)
+                 (LGlobal ["missing_locator"]))
                 (TypSpecializedType
                      (TypExtern {| stags := NoInfo; str := "Register" |})
                      [(TypBit 8%N); (TypBit 18%N)]) Directionless)]
@@ -3435,7 +3437,7 @@ Definition Bf2BloomFilterRow := DeclControl NoInfo
                 (TypTypeName {| stags := NoInfo; str := "bf2_value_t" |})])
           [(MkExpression NoInfo
                 (ExpName (BareName {| stags := NoInfo; str := "reg_row" |})
-                 NoLocator)
+                 (LGlobal ["missing_locator"]))
                 (TypSpecializedType
                      (TypExtern {| stags := NoInfo; str := "Register" |})
                      [(TypBit 8%N); (TypBit 18%N)]) Directionless)]
@@ -3973,7 +3975,7 @@ Definition Bf2BloomFilter := DeclControl NoInfo
            (MkExpression NoInfo
                 (ExpName
                  (BareName {| stags := NoInfo; str := "poly_idx_1" |})
-                 NoLocator)
+                 (LGlobal ["missing_locator"]))
                 (TypSpecializedType
                      (TypExtern
                       {| stags := NoInfo; str := "CRCPolynomial" |})
@@ -4116,7 +4118,7 @@ Definition Bf2BloomFilter := DeclControl NoInfo
            (MkExpression NoInfo
                 (ExpName
                  (BareName {| stags := NoInfo; str := "poly_idx_2" |})
-                 NoLocator)
+                 (LGlobal ["missing_locator"]))
                 (TypSpecializedType
                      (TypExtern
                       {| stags := NoInfo; str := "CRCPolynomial" |})
@@ -4259,7 +4261,7 @@ Definition Bf2BloomFilter := DeclControl NoInfo
            (MkExpression NoInfo
                 (ExpName
                  (BareName {| stags := NoInfo; str := "poly_idx_3" |})
-                 NoLocator)
+                 (LGlobal ["missing_locator"]))
                 (TypSpecializedType
                      (TypExtern
                       {| stags := NoInfo; str := "CRCPolynomial" |})
@@ -4381,7 +4383,7 @@ Definition Bf2BloomFilter := DeclControl NoInfo
           [(MkExpression NoInfo
                 (ExpName
                  (BareName {| stags := NoInfo; str := "reg_clear_index" |})
-                 NoLocator)
+                 (LGlobal ["missing_locator"]))
                 (TypSpecializedType
                      (TypExtern {| stags := NoInfo; str := "Register" |})
                      [(TypBit 32%N); (TypBit 1%N)]) Directionless)]
@@ -4568,7 +4570,7 @@ Definition Bf2BloomFilter := DeclControl NoInfo
           [(MkExpression NoInfo
                 (ExpName
                  (BareName {| stags := NoInfo; str := "reg_clear_window" |})
-                 NoLocator)
+                 (LGlobal ["missing_locator"]))
                 (TypSpecializedType
                      (TypExtern {| stags := NoInfo; str := "Register" |})
                      [(TypStruct
@@ -5055,7 +5057,7 @@ Definition Bf2BloomFilter := DeclControl NoInfo
           [(MkExpression NoInfo
                 (ExpName
                  (BareName {| stags := NoInfo; str := "reg_clear_window" |})
-                 NoLocator)
+                 (LGlobal ["missing_locator"]))
                 (TypSpecializedType
                      (TypExtern {| stags := NoInfo; str := "Register" |})
                      [(TypStruct
@@ -13878,7 +13880,7 @@ Definition SwitchIngress := DeclControl NoInfo
                               (ExpCast (TypBit 8%N)
                                    (MkExpression NoInfo
                                         (ExpInt
-                                         {| itags := NoInfo; value := 0;
+                                         {| itags := NoInfo; value := 1;
                                             width_signed := None |})
                                         TypInteger Directionless))
                               (TypBit 8%N) Directionless)) StmUnit)
@@ -14839,8 +14841,214 @@ Definition SwitchEgressParser := DeclParser NoInfo
                                     (ExpName
                                      (BareName
                                       {| stags := NoInfo;
+                                         str := "tofino_parser" |})
+                                     (LInstance ["tofino_parser"]))
+                                    (TypParser
+                                     (MkControlType nil
+                                          [(MkParameter false Directionless
+                                                (TypExtern
+                                                 {| stags := NoInfo;
+                                                    str := "packet_in" |})
+                                                None
+                                                {| stags := NoInfo;
+                                                   str := "pkt" |});
+                                           (MkParameter false Out
+                                                (TypHeader
+                                                 [( {| stags := NoInfo;
+                                                       str := "_pad0" |},
+                                                    (TypBit 7%N) );
+                                                  ( {| stags := NoInfo;
+                                                       str := "egress_port" |},
+                                                    (TypBit 9%N) );
+                                                  ( {| stags := NoInfo;
+                                                       str := "_pad1" |},
+                                                    (TypBit 5%N) );
+                                                  ( {| stags := NoInfo;
+                                                       str := "enq_qdepth" |},
+                                                    (TypBit 19%N) );
+                                                  ( {| stags := NoInfo;
+                                                       str := "_pad2" |},
+                                                    (TypBit 6%N) );
+                                                  ( {| stags := NoInfo;
+                                                       str := "enq_congest_stat" |},
+                                                    (TypBit 2%N) );
+                                                  ( {| stags := NoInfo;
+                                                       str := "_pad3" |},
+                                                    (TypBit 14%N) );
+                                                  ( {| stags := NoInfo;
+                                                       str := "enq_tstamp" |},
+                                                    (TypBit 18%N) );
+                                                  ( {| stags := NoInfo;
+                                                       str := "_pad4" |},
+                                                    (TypBit 5%N) );
+                                                  ( {| stags := NoInfo;
+                                                       str := "deq_qdepth" |},
+                                                    (TypBit 19%N) );
+                                                  ( {| stags := NoInfo;
+                                                       str := "_pad5" |},
+                                                    (TypBit 6%N) );
+                                                  ( {| stags := NoInfo;
+                                                       str := "deq_congest_stat" |},
+                                                    (TypBit 2%N) );
+                                                  ( {| stags := NoInfo;
+                                                       str := "app_pool_congest_stat" |},
+                                                    (TypBit 8%N) );
+                                                  ( {| stags := NoInfo;
+                                                       str := "_pad6" |},
+                                                    (TypBit 14%N) );
+                                                  ( {| stags := NoInfo;
+                                                       str := "deq_timedelta" |},
+                                                    (TypBit 18%N) );
+                                                  ( {| stags := NoInfo;
+                                                       str := "egress_rid" |},
+                                                    (TypBit 16%N) );
+                                                  ( {| stags := NoInfo;
+                                                       str := "_pad7" |},
+                                                    (TypBit 7%N) );
+                                                  ( {| stags := NoInfo;
+                                                       str := "egress_rid_first" |},
+                                                    (TypBit 1%N) );
+                                                  ( {| stags := NoInfo;
+                                                       str := "_pad8" |},
+                                                    (TypBit 3%N) );
+                                                  ( {| stags := NoInfo;
+                                                       str := "egress_qid" |},
+                                                    (TypBit 5%N) );
+                                                  ( {| stags := NoInfo;
+                                                       str := "_pad9" |},
+                                                    (TypBit 5%N) );
+                                                  ( {| stags := NoInfo;
+                                                       str := "egress_cos" |},
+                                                    (TypBit 3%N) );
+                                                  ( {| stags := NoInfo;
+                                                       str := "_pad10" |},
+                                                    (TypBit 7%N) );
+                                                  ( {| stags := NoInfo;
+                                                       str := "deflection_flag" |},
+                                                    (TypBit 1%N) );
+                                                  ( {| stags := NoInfo;
+                                                       str := "pkt_length" |},
+                                                    (TypBit 16%N) )]) 
+                                                None
+                                                {| stags := NoInfo;
+                                                   str := "eg_intr_md" |})]))
+                                    Directionless)
+                               {| stags := NoInfo; str := "apply" |})
+                          (TypFunction
+                           (MkFunctionType nil
+                                [(MkParameter false Directionless
+                                      (TypExtern
+                                       {| stags := NoInfo;
+                                          str := "packet_in" |}) None
+                                      {| stags := NoInfo; str := "pkt" |});
+                                 (MkParameter false Out
+                                      (TypHeader
+                                       [( {| stags := NoInfo;
+                                             str := "_pad0" |},
+                                          (TypBit 7%N) );
+                                        ( {| stags := NoInfo;
+                                             str := "egress_port" |},
+                                          (TypBit 9%N) );
+                                        ( {| stags := NoInfo;
+                                             str := "_pad1" |},
+                                          (TypBit 5%N) );
+                                        ( {| stags := NoInfo;
+                                             str := "enq_qdepth" |},
+                                          (TypBit 19%N) );
+                                        ( {| stags := NoInfo;
+                                             str := "_pad2" |},
+                                          (TypBit 6%N) );
+                                        ( {| stags := NoInfo;
+                                             str := "enq_congest_stat" |},
+                                          (TypBit 2%N) );
+                                        ( {| stags := NoInfo;
+                                             str := "_pad3" |},
+                                          (TypBit 14%N) );
+                                        ( {| stags := NoInfo;
+                                             str := "enq_tstamp" |},
+                                          (TypBit 18%N) );
+                                        ( {| stags := NoInfo;
+                                             str := "_pad4" |},
+                                          (TypBit 5%N) );
+                                        ( {| stags := NoInfo;
+                                             str := "deq_qdepth" |},
+                                          (TypBit 19%N) );
+                                        ( {| stags := NoInfo;
+                                             str := "_pad5" |},
+                                          (TypBit 6%N) );
+                                        ( {| stags := NoInfo;
+                                             str := "deq_congest_stat" |},
+                                          (TypBit 2%N) );
+                                        ( {| stags := NoInfo;
+                                             str := "app_pool_congest_stat" |},
+                                          (TypBit 8%N) );
+                                        ( {| stags := NoInfo;
+                                             str := "_pad6" |},
+                                          (TypBit 14%N) );
+                                        ( {| stags := NoInfo;
+                                             str := "deq_timedelta" |},
+                                          (TypBit 18%N) );
+                                        ( {| stags := NoInfo;
+                                             str := "egress_rid" |},
+                                          (TypBit 16%N) );
+                                        ( {| stags := NoInfo;
+                                             str := "_pad7" |},
+                                          (TypBit 7%N) );
+                                        ( {| stags := NoInfo;
+                                             str := "egress_rid_first" |},
+                                          (TypBit 1%N) );
+                                        ( {| stags := NoInfo;
+                                             str := "_pad8" |},
+                                          (TypBit 3%N) );
+                                        ( {| stags := NoInfo;
+                                             str := "egress_qid" |},
+                                          (TypBit 5%N) );
+                                        ( {| stags := NoInfo;
+                                             str := "_pad9" |},
+                                          (TypBit 5%N) );
+                                        ( {| stags := NoInfo;
+                                             str := "egress_cos" |},
+                                          (TypBit 3%N) );
+                                        ( {| stags := NoInfo;
+                                             str := "_pad10" |},
+                                          (TypBit 7%N) );
+                                        ( {| stags := NoInfo;
+                                             str := "deflection_flag" |},
+                                          (TypBit 1%N) );
+                                        ( {| stags := NoInfo;
+                                             str := "pkt_length" |},
+                                          (TypBit 16%N) )]) None
+                                      {| stags := NoInfo;
+                                         str := "eg_intr_md" |})] FunParser
+                                TypVoid)) Directionless) nil
+                     [(Some
+                       (MkExpression NoInfo
+                            (ExpName
+                             (BareName {| stags := NoInfo; str := "pkt" |})
+                             (LInstance ["pkt"]))
+                            (TypTypeName
+                             {| stags := NoInfo; str := "packet_in" |})
+                            Directionless));
+                      (Some
+                       (MkExpression NoInfo
+                            (ExpName
+                             (BareName
+                              {| stags := NoInfo; str := "eg_intr_md" |})
+                             (LInstance ["eg_intr_md"]))
+                            (TypTypeName
+                             {| stags := NoInfo;
+                                str := "egress_intrinsic_metadata_t" |}) Out))])
+                StmUnit);
+           (MkStatement NoInfo
+                (StatMethodCall
+                     (MkExpression NoInfo
+                          (ExpExpressionMember
+                               (MkExpression NoInfo
+                                    (ExpName
+                                     (BareName
+                                      {| stags := NoInfo;
                                          str := "layer4_parser" |})
-                                     NoLocator)
+                                     (LInstance ["layer4_parser"]))
                                     (TypParser
                                      (MkControlType nil
                                           [(MkParameter false Directionless
@@ -15068,7 +15276,7 @@ Definition SwitchEgressParser := DeclParser NoInfo
                        (MkExpression NoInfo
                             (ExpName
                              (BareName {| stags := NoInfo; str := "pkt" |})
-                             NoLocator)
+                             (LInstance ["pkt"]))
                             (TypTypeName
                              {| stags := NoInfo; str := "packet_in" |})
                             Directionless));
@@ -15076,215 +15284,9 @@ Definition SwitchEgressParser := DeclParser NoInfo
                        (MkExpression NoInfo
                             (ExpName
                              (BareName {| stags := NoInfo; str := "hdr" |})
-                             NoLocator)
+                             (LInstance ["hdr"]))
                             (TypTypeName
                              {| stags := NoInfo; str := "header_t" |}) Out))])
-                StmUnit);
-           (MkStatement NoInfo
-                (StatMethodCall
-                     (MkExpression NoInfo
-                          (ExpExpressionMember
-                               (MkExpression NoInfo
-                                    (ExpName
-                                     (BareName
-                                      {| stags := NoInfo;
-                                         str := "tofino_parser" |})
-                                     NoLocator)
-                                    (TypParser
-                                     (MkControlType nil
-                                          [(MkParameter false Directionless
-                                                (TypExtern
-                                                 {| stags := NoInfo;
-                                                    str := "packet_in" |})
-                                                None
-                                                {| stags := NoInfo;
-                                                   str := "pkt" |});
-                                           (MkParameter false Out
-                                                (TypHeader
-                                                 [( {| stags := NoInfo;
-                                                       str := "_pad0" |},
-                                                    (TypBit 7%N) );
-                                                  ( {| stags := NoInfo;
-                                                       str := "egress_port" |},
-                                                    (TypBit 9%N) );
-                                                  ( {| stags := NoInfo;
-                                                       str := "_pad1" |},
-                                                    (TypBit 5%N) );
-                                                  ( {| stags := NoInfo;
-                                                       str := "enq_qdepth" |},
-                                                    (TypBit 19%N) );
-                                                  ( {| stags := NoInfo;
-                                                       str := "_pad2" |},
-                                                    (TypBit 6%N) );
-                                                  ( {| stags := NoInfo;
-                                                       str := "enq_congest_stat" |},
-                                                    (TypBit 2%N) );
-                                                  ( {| stags := NoInfo;
-                                                       str := "_pad3" |},
-                                                    (TypBit 14%N) );
-                                                  ( {| stags := NoInfo;
-                                                       str := "enq_tstamp" |},
-                                                    (TypBit 18%N) );
-                                                  ( {| stags := NoInfo;
-                                                       str := "_pad4" |},
-                                                    (TypBit 5%N) );
-                                                  ( {| stags := NoInfo;
-                                                       str := "deq_qdepth" |},
-                                                    (TypBit 19%N) );
-                                                  ( {| stags := NoInfo;
-                                                       str := "_pad5" |},
-                                                    (TypBit 6%N) );
-                                                  ( {| stags := NoInfo;
-                                                       str := "deq_congest_stat" |},
-                                                    (TypBit 2%N) );
-                                                  ( {| stags := NoInfo;
-                                                       str := "app_pool_congest_stat" |},
-                                                    (TypBit 8%N) );
-                                                  ( {| stags := NoInfo;
-                                                       str := "_pad6" |},
-                                                    (TypBit 14%N) );
-                                                  ( {| stags := NoInfo;
-                                                       str := "deq_timedelta" |},
-                                                    (TypBit 18%N) );
-                                                  ( {| stags := NoInfo;
-                                                       str := "egress_rid" |},
-                                                    (TypBit 16%N) );
-                                                  ( {| stags := NoInfo;
-                                                       str := "_pad7" |},
-                                                    (TypBit 7%N) );
-                                                  ( {| stags := NoInfo;
-                                                       str := "egress_rid_first" |},
-                                                    (TypBit 1%N) );
-                                                  ( {| stags := NoInfo;
-                                                       str := "_pad8" |},
-                                                    (TypBit 3%N) );
-                                                  ( {| stags := NoInfo;
-                                                       str := "egress_qid" |},
-                                                    (TypBit 5%N) );
-                                                  ( {| stags := NoInfo;
-                                                       str := "_pad9" |},
-                                                    (TypBit 5%N) );
-                                                  ( {| stags := NoInfo;
-                                                       str := "egress_cos" |},
-                                                    (TypBit 3%N) );
-                                                  ( {| stags := NoInfo;
-                                                       str := "_pad10" |},
-                                                    (TypBit 7%N) );
-                                                  ( {| stags := NoInfo;
-                                                       str := "deflection_flag" |},
-                                                    (TypBit 1%N) );
-                                                  ( {| stags := NoInfo;
-                                                       str := "pkt_length" |},
-                                                    (TypBit 16%N) )]) 
-                                                None
-                                                {| stags := NoInfo;
-                                                   str := "eg_intr_md" |})]))
-                                    Directionless)
-                               {| stags := NoInfo; str := "apply" |})
-                          (TypFunction
-                           (MkFunctionType nil
-                                [(MkParameter false Directionless
-                                      (TypExtern
-                                       {| stags := NoInfo;
-                                          str := "packet_in" |}) None
-                                      {| stags := NoInfo; str := "pkt" |});
-                                 (MkParameter false Out
-                                      (TypHeader
-                                       [( {| stags := NoInfo;
-                                             str := "_pad0" |},
-                                          (TypBit 7%N) );
-                                        ( {| stags := NoInfo;
-                                             str := "egress_port" |},
-                                          (TypBit 9%N) );
-                                        ( {| stags := NoInfo;
-                                             str := "_pad1" |},
-                                          (TypBit 5%N) );
-                                        ( {| stags := NoInfo;
-                                             str := "enq_qdepth" |},
-                                          (TypBit 19%N) );
-                                        ( {| stags := NoInfo;
-                                             str := "_pad2" |},
-                                          (TypBit 6%N) );
-                                        ( {| stags := NoInfo;
-                                             str := "enq_congest_stat" |},
-                                          (TypBit 2%N) );
-                                        ( {| stags := NoInfo;
-                                             str := "_pad3" |},
-                                          (TypBit 14%N) );
-                                        ( {| stags := NoInfo;
-                                             str := "enq_tstamp" |},
-                                          (TypBit 18%N) );
-                                        ( {| stags := NoInfo;
-                                             str := "_pad4" |},
-                                          (TypBit 5%N) );
-                                        ( {| stags := NoInfo;
-                                             str := "deq_qdepth" |},
-                                          (TypBit 19%N) );
-                                        ( {| stags := NoInfo;
-                                             str := "_pad5" |},
-                                          (TypBit 6%N) );
-                                        ( {| stags := NoInfo;
-                                             str := "deq_congest_stat" |},
-                                          (TypBit 2%N) );
-                                        ( {| stags := NoInfo;
-                                             str := "app_pool_congest_stat" |},
-                                          (TypBit 8%N) );
-                                        ( {| stags := NoInfo;
-                                             str := "_pad6" |},
-                                          (TypBit 14%N) );
-                                        ( {| stags := NoInfo;
-                                             str := "deq_timedelta" |},
-                                          (TypBit 18%N) );
-                                        ( {| stags := NoInfo;
-                                             str := "egress_rid" |},
-                                          (TypBit 16%N) );
-                                        ( {| stags := NoInfo;
-                                             str := "_pad7" |},
-                                          (TypBit 7%N) );
-                                        ( {| stags := NoInfo;
-                                             str := "egress_rid_first" |},
-                                          (TypBit 1%N) );
-                                        ( {| stags := NoInfo;
-                                             str := "_pad8" |},
-                                          (TypBit 3%N) );
-                                        ( {| stags := NoInfo;
-                                             str := "egress_qid" |},
-                                          (TypBit 5%N) );
-                                        ( {| stags := NoInfo;
-                                             str := "_pad9" |},
-                                          (TypBit 5%N) );
-                                        ( {| stags := NoInfo;
-                                             str := "egress_cos" |},
-                                          (TypBit 3%N) );
-                                        ( {| stags := NoInfo;
-                                             str := "_pad10" |},
-                                          (TypBit 7%N) );
-                                        ( {| stags := NoInfo;
-                                             str := "deflection_flag" |},
-                                          (TypBit 1%N) );
-                                        ( {| stags := NoInfo;
-                                             str := "pkt_length" |},
-                                          (TypBit 16%N) )]) None
-                                      {| stags := NoInfo;
-                                         str := "eg_intr_md" |})] FunParser
-                                TypVoid)) Directionless) nil
-                     [(Some
-                       (MkExpression NoInfo
-                            (ExpName
-                             (BareName {| stags := NoInfo; str := "pkt" |})
-                             NoLocator)
-                            (TypTypeName
-                             {| stags := NoInfo; str := "packet_in" |})
-                            Directionless));
-                      (Some
-                       (MkExpression NoInfo
-                            (ExpName
-                             (BareName
-                              {| stags := NoInfo; str := "eg_intr_md" |})
-                             NoLocator)
-                            (TypTypeName
-                             {| stags := NoInfo;
-                                str := "egress_intrinsic_metadata_t" |}) Out))])
                 StmUnit)]
           (ParserDirect NoInfo {| stags := NoInfo; str := "accept" |}))].
 
@@ -16397,7 +16399,8 @@ Definition main := DeclInstantiation NoInfo
           TypVoid; TypVoid; TypVoid; TypVoid; TypVoid; TypVoid; TypVoid;
           TypVoid; TypVoid; TypVoid; TypVoid; TypVoid])
     [(MkExpression NoInfo
-          (ExpName (BareName {| stags := NoInfo; str := "pipe" |}) NoLocator)
+          (ExpName (BareName {| stags := NoInfo; str := "pipe" |})
+           (LGlobal ["missing_locator"]))
           (TypPackage nil nil
                [(MkParameter false Directionless
                      (TypSpecializedType

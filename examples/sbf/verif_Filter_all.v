@@ -38,11 +38,11 @@ Definition Filter_insert_spec : func_spec :=
     MOD None [p]
     WITH (h : header_type) (tstamp : Z) (f : filter),
       PRE
-        (ARG [eval_val_to_sval (header_to_val h); P4Bit 8 INSERT; P4Bit 48 tstamp; P4Bit 8 0]
+        (ARG [eval_val_to_sval (header_to_val h); P4Bit 8 INSERT; P4Bit 48 tstamp; P4Bit 8 1]
         (MEM []
         (EXT [filter_repr p f])))
       POST
-        (ARG_RET [P4Bit 8 0] ValBaseNull
+        (ARG_RET [P4Bit 8 1] ValBaseNull
         (MEM []
         (EXT [filter_repr p (filter_insert f (tstamp, h))]))).
 

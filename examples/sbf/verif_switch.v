@@ -141,8 +141,7 @@ Proof.
   unfold process in H_drop_ctl |- *.
   destruct (is_internal (fst h)) eqn:H_is_internal.
   - inv H_drop_ctl.
-    (* This is not provable, because the P4 program drops outgoing packets. *)
-    admit.
+    constructor; auto.
   - change (option_map ~~
       (filter_query (filter_clear f tstamp) (tstamp, (snd h, fst h))))
     with (option_map ~~
@@ -175,4 +174,4 @@ Proof.
           with (filter_query (filter_clear f tstamp) (tstamp, (snd h, fst h))).
         rewrite H_filter_query. solve [repeat constructor].
       }
-Admitted.
+Qed.
