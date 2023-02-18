@@ -1417,13 +1417,13 @@ Proof.
       pose proof (Forall2_Zlength H4). pose proof (Forall2_Zlength H5).
       rewrite <- H2, <- H3, H0.
       destruct op; simpl in H1; inv H1; simpl; try solve_ex_sim; auto;
-        try apply Forall2_to_lbool. admit. admit.
+        try apply Forall2_to_lbool.
     + destruct_match H1. 2: inv H1. inv H2. inv H3. simpl.
       pose proof (Forall2_Zlength H4). pose proof (Forall2_Zlength H5).
       rewrite <- H2, <- H3, H0.
       destruct op; simpl in H1; inv H1; simpl; try solve_ex_sim; auto;
         try apply Forall2_to_lbool.
-Admitted.
+Qed.
 
 Lemma sval_refine_liberal_binary:
   forall (op : OpBin) (v v0 : Sval) (largv rargv v1 : Val),
