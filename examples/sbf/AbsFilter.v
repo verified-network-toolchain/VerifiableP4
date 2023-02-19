@@ -299,11 +299,6 @@ Record filter : Type := mk_filter {
   (and the time interval of a tock as well). *)
 Context (tick_time : Z).
 Hypothesis (H_tick_time : 0 < tick_time).
-(* round_time can be defined. But it is annoying to have tick_time in abstract operations. *)
-Context (round_time : Z -> Z).
-(* Definition round_time (t : Z) :=
-  t mod (tick_time * 2) * (tick_time * 2). *)
-
 Hypothesis (H_frame_time : 0 < frame_time).
 Hypothesis (H_tick_time_div : (tick_time * 2 | frame_time)).
 
@@ -424,11 +419,11 @@ Inductive filter_sim : filter -> ConFilter.filter num_frames num_rows num_slots 
       clear_index_wf num_slots (fil_clear_index cf) ->
       filter_sim (mk_filter window_hi last_timestamp num_clears normal_frames) cf.
 
-Definition filter_init (time : Z) : filter :=
-  mk_filter (round_time time + frame_time) time num_slots (Zrepeat [] (num_frames - 1)).
 
-Definition Is_filter_init (f : filter) : Prop :=
-  exists time, f = filter_init time.
+(* Create an empty abstract filter that the first packet can be at timestamp. *)
+Definition filter_empty (timestamp : Z) : filter :=
+  let window_hi := timestamp / (tick_time * 2) * (tick_time * 2) + frame_time in
+  mk_filter window_hi (Z.max (window_hi - frame_time) (timestamp - tick_time)) num_slots (Zrepeat [] (num_frames - 1)).
 
 Definition filter_refresh (f : filter) (timestamp : Z) : option filter :=
   let '(mk_filter window_hi last_timestamp num_clears normal_frames) := f in
@@ -547,6 +542,65 @@ Proof.
   destruct (ZArith_dec.Z_lt_ge_dec r tick_time). 2: lia. exfalso.
   rewrite H4, Z.div_add, Z.odd_add_mul_2, Z.div_add, Z.div_small in H1 by lia.
   simpl in H1. inv H1.
+Qed.
+
+Lemma Zdiv_mul_pos_bound : forall a b, b > 0 ->
+  a - b < a / b * b <= a.
+Proof.
+  clear; intros.
+  pose proof (Zdiv.Zmod_eq a b H).
+  pose proof (Z.mod_pos_bound a b (ltac:(lia))).
+  lia.
+Qed.
+
+Lemma filter_sim_empty : forall t,
+  filter_sim (filter_empty t) (ConFilter.filter_empty H_num_frames H_num_rows H_num_slots).
+Proof.
+  intros.
+  apply filter_sim_intro with (ic := 0).
+    Search (Inhabitant (ConFilter.frame)).
+  - simpl proj1_sig.
+    rewrite Forall2_forall_Znth.
+    split; only 1 : list_solve.
+    intros.
+    rewrite Zlength_map in H.
+    list_simplify.
+    { clear -H_Zlength_hashes.
+      hnf.
+      simpl proj1_sig.
+      rewrite (Forall2_forall_Znth (d2 := ConFilter.Inhabitant_row H_num_slots)).
+      split; only 1 : list_solve.
+      list_simplify.
+      constructor. auto.
+    }
+  - lia.
+  - exists (Zrepeat true num_slots).
+    split.
+    { clear -H_Zlength_hashes.
+      hnf.
+      simpl proj1_sig.
+      rewrite (Forall2_forall_Znth (d2 := ConFilter.Inhabitant_row H_num_slots)).
+      list_simplify; simpl proj1_sig.
+      - list_solve.
+      - constructor; try list_simplify.
+        simpl proj1_sig; list_solve.
+    }
+    { list_solve. }
+  - split.
+    + apply Z.divide_add_r.
+      { eexists; eauto. }
+      { apply H_tick_time_div. }
+    + intro n; change n with 0; clear n.
+      pose proof (Zdiv_mul_pos_bound t (tick_time * 2)).
+      lia.
+  - auto.
+  - hnf; simpl.
+    split; only 1 : lia.
+    apply Z.mul_pos_pos.
+    + apply H_frame_tick_tocks0; auto.
+    + lia.
+  - hnf; simpl.
+    lia.
 Qed.
 
 Lemma filter_refresh'_sound : forall f cf t f',

@@ -31,16 +31,21 @@ Definition query : filter -> Time * Header -> option bool :=
 Definition clear : filter -> Time -> filter :=
   filter_clear.
 
-Definition empty : Time -> filter := filter_empty num_frames num_slots.
+Definition empty : Time -> filter := filter_empty num_frames num_slots frame_time tick_time.
 
 Definition ok_until : filter -> Time -> Prop :=
-  ok_until num_frames num_slots frame_time.
+  ok_until num_frames num_slots frame_time tick_time.
 
 Lemma H_frame_time : 0 < frame_time.
 Proof. constructor. Qed.
 
+Lemma H_tick_time_div : (tick_time * 2 | frame_time).
+  exists frame_tick_tocks.
+  auto.
+Qed.
+
 Ltac resolve_parameter_conditions :=
-  auto using H_hashes;
+  auto using H_hashes, H_tick_time_div;
   reflexivity.
 
 Lemma query_clear: forall f t t' h,

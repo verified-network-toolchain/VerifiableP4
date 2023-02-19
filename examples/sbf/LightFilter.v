@@ -51,7 +51,24 @@ Proof.
   rewrite Z.mul_comm. apply Z.le_mul_diag_r; lia.
 Qed.
 
+Lemma tick_time_le_frame_time : tick_time <= frame_time.
+Proof.
+  destruct H_tick_time_div as [x ?].
+  assert (x > 0) by nia.
+  assert (frame_time = tick_time + (x * 2 - 1) * tick_time) by nia.
+  assert (x * 2 - 1 > 0) by lia.
+  nia.
+Qed.
+
+Lemma tick_time_mul_2_le_frame_time : tick_time * 2 <= frame_time.
+Proof.
+  destruct H_tick_time_div as [x ?].
+  assert (x > 0) by nia.
+  nia.
+Qed.
+
 Axiom H_Tc : 0 < Tc.
+
 (* Lemma Tc_le_T : Tc <= T.
 Admitted. *)
 
@@ -82,7 +99,7 @@ Definition filter_clear (f : filter) (t : Z) : filter :=
   end.
 
 Definition filter_empty (t : Z) : filter :=
-  Some (mk_filter (t + 1) t num_slots (Zrepeat [] (num_frames - 1))).
+  Some (AbsFilter.filter_empty num_frames num_slots frame_time tick_time t).
 
 Definition weak_filter_inv (f : filter) : Prop :=
   match f with
@@ -102,12 +119,9 @@ Definition filter_inv (f : filter) : Prop :=
   end.
 
 Definition ok_until (f : filter) (t : Z) : Prop :=
-  (* filter_inv f /\ *)
   match f with
   | Some (mk_filter window_hi last_timestamp num_clears normal_frames) =>
-      0 <= t - last_timestamp <= Tc /\ filter_inv f
-        (* last_timestamp < window_hi /\
-        (window_hi - 1 - last_timestamp) / Tc + num_clears >= num_slots *)
+      (0 <= t - last_timestamp <= Tc \/ num_clears >= num_slots /\ t < window_hi /\ 0 <= t - last_timestamp <= tick_time) /\ filter_inv f
   | None => False
   end.
 
@@ -131,9 +145,7 @@ Definition filter_inv1 (f : filter) (new_timestamp : Z) : Prop :=
 Definition ok_until1 (f : filter) (new_timestamp : Z) (t : Z) : Prop :=
   match f with
   | Some (mk_filter window_hi _ num_clears normal_frames) =>
-      0 <= t - new_timestamp <= Tc /\ filter_inv1 f new_timestamp
-        (* new_timestamp < window_hi /\
-        (window_hi - 1 - new_timestamp) / Tc + (num_clears + 1) >= num_slots *)
+      (0 <= t - new_timestamp <= Tc \/ num_clears + 1 >= num_slots /\ t < window_hi /\ 0 <= t - new_timestamp <= tick_time) /\ filter_inv1 f new_timestamp
   | None => False
   end.
 
@@ -197,12 +209,15 @@ Proof.
   replace (last_timestamp <=? t) with true by lia.
   replace (t <=? last_timestamp + tick_time) with true by (pose Tc_le_tick_time; lia).
   destruct (t >=? window_hi) eqn:?H.
-  - assert (0 <= window_hi - 1 - last_timestamp < Tc) by (pose Tc_le_tick_time; lia).
-    rewrite Z.div_small in H_ok_until by lia.
-    replace (num_clears >=? num_slots) with true by lia.
+  - replace (num_clears >=? num_slots) with true. 2 : {
+      destruct H_ok_until as [[] H_ok_until]. 2 : lia.
+      assert (0 <= window_hi - 1 - last_timestamp < Tc) by lia.
+      rewrite Z.div_small in H_ok_until by lia.
+      lia.
+    }
     simpl.
     split; only 1 : lia.
-    split; only 1 : (pose Tc_le_frame_time; lia).
+    split; only 1 : (pose Tc_le_frame_time; pose tick_time_le_frame_time; lia).
     split; only 2 : list_solve.
     pose proof Tc_mul_num_slots_le_frame_time.
     assert (window_hi - t >= 1 - Tc) by lia.
@@ -212,18 +227,22 @@ Proof.
       - rewrite <- Z.add_opp_r. change (- Tc) with ((- 1) * Tc).
         rewrite Z.div_add; lia. }
     apply Zorder.Zge_trans with (frame_time / Tc); auto.
-    apply Z.div_le_mono with (c := Tc) in H1. 2: lia.
-    rewrite Z.mul_comm, Z.div_mul in H1; lia.
+    apply Z.div_le_mono with (c := Tc) in H0. 2: lia.
+    rewrite Z.mul_comm, Z.div_mul in H0; lia.
   - simpl.
     split; only 1 : lia.
     split; only 1 : lia.
     split; only 2 : lia.
-    assert ((window_hi - 1 - last_timestamp + (-1) * Tc) / Tc <= (window_hi - 1 - t) / Tc). {
-      apply Z.div_le_mono. 2 : lia.
-      apply H_Tc.
-    }
-    rewrite Zdiv.Z_div_plus in * by (pose proof H_Tc; lia).
-    lia.
+    destruct H_ok_until as [[] ?].
+    + assert ((window_hi - 1 - last_timestamp + (-1) * Tc) / Tc <= (window_hi - 1 - t) / Tc). {
+        apply Z.div_le_mono. 2 : lia.
+        apply H_Tc.
+      }
+      rewrite Zdiv.Z_div_plus in * by (pose proof H_Tc; lia).
+      lia.
+    + pose proof (H2 := Z.div_le_mono 0 (window_hi - 1 - t) Tc H_Tc).
+      rewrite Z.div_0_l in H2 by (pose H_Tc; lia).
+      lia.
 Qed.
 
 Lemma existsb_Znth_true : forall {A} {d : Inhabitant A} (f : A -> bool) l i,
@@ -423,6 +442,7 @@ Proof.
   destruct f0.
   unfold ok_until, filter_inv.
   rewrite Zlength_upd_Znth.
+  unfold ok_until1 in H_ok_refresh.
   apply H_ok_refresh.
 Qed.
 
@@ -443,13 +463,21 @@ Lemma ok_empty: forall t,
   ok_until (filter_empty t) t.
 Proof.
   intros.
-  unfold ok_until, filter_empty, filter_inv.
-  repeat apply conj; try (pose proof H_Tc; lia).
-  { replace (t + 1 - 1 - t) with 0 by lia.
-    rewrite Zdiv.Zdiv_0_l.
-    lia.
+  unfold ok_until, filter_empty, AbsFilter.filter_empty, filter_inv.
+  pose proof (Zdiv_mul_pos_bound t (tick_time * 2) ltac:(lia)).
+  pose proof Tc_le_tick_time; pose proof H_Tc; pose proof tick_time_mul_2_le_frame_time.
+  split.
+  { right.
+    repeat apply conj; try lia.
   }
-  { list_solve. }
+  { repeat apply conj; try lia.
+    - match goal with
+      | |- context [?a / ?b] =>
+        pose proof (Zdiv.Z_div_ge0 a b ltac:(lia) ltac:(lia))
+      end.
+      lia.
+    - list_solve.
+  }
 Qed.
 
 End LightFilter.

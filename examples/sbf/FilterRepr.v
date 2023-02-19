@@ -58,8 +58,8 @@ Next Obligation.
 Qed.
 
 Definition timer_repr_sval (t : Z * bool) :=
-  ValBaseStruct [("hi", P4Bit 16 (fst t));
-                 ("lo", P4Bit 16 (Z.b2z (snd t)))].
+  ValBaseStruct [("lo", P4Bit 16 (Z.b2z (snd t)));
+                 ("hi", P4Bit 16 (fst t))].
 
 Definition timer_repr_val (t : Z * bool) :=
   force_sval_to_val (timer_repr_sval t).

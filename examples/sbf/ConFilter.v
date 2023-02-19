@@ -42,6 +42,18 @@ Next Obligation.
   lia.
 Qed.
 
+Program Definition row_empty : row :=
+  Zrepeat false num_slots.
+Next Obligation.
+  list_solve.
+Qed.
+
+Program Definition frame_empty : frame :=
+  Zrepeat row_empty num_rows.
+Next Obligation.
+  list_solve.
+Qed.
+
 Program Definition row_insert (r : row) (i : Z) : row :=
   upd_Znth i r true.
 Next Obligation.
@@ -245,6 +257,12 @@ Proof.
       apply Decidable.not_and in H2; [| red; destruct (snd timer); intuition].
       destruct H2; [left; destruct (snd timer) | right]; intuition.
     + rewrite get_clear_frame_update_neq; auto. lia.
+Qed.
+
+Program Definition filter_empty : filter :=
+  mk_filter (Zrepeat frame_empty num_frames) 0 (0, false).
+Next Obligation.
+  clear dependent frame_tick_tocks; list_solve.
 Qed.
 
 Definition get_insert_frame (cf : Z) : Z :=
