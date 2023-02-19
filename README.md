@@ -7,17 +7,44 @@ This approach only installs the backend of Verifiable P4, which includes the ope
 The following steps install Verifiable P4<br>
 TODO
 ### Full installation
+
 This approach installs the the full Verifiable P4.
-1. Install `petr4`: in a proper directory
+
+1. Install OPAM 2 following the official [OPAM installation
+   instructions](https://opam.ocaml.org/doc/Install.html). Make sure
+   `opam --version` reports version 2 or later.
+   
+2. Create a new switch such as `artifact` and add Coq repository
 ```
-git clone https://github.com/verified-network-toolchain/petr4/tree/poulet4 --branch poulet4
+opam switch create artifact 4.14.0
+eval $(opam env --switch=artifact)
+opam repo add coq-released https://coq.inria.fr/opam/released
+```
+
+3. Install dependencies for petr4
+```
+opam install coq bignum coq-equations coq-compcert coq-vst-zlist coq-record-update
+opam install alcotest cstruct-sexp js_of_ocaml-lwt js_of_ocaml-ppx ppx_import
+opam install core_unix core_kernel ppx_deriving_yojson ANSITerminal p4pp
+```
+
+4. Install `petr4`: in a proper directory
+```
+git clone https://github.com/verified-network-toolchain/petr4.git --branch poulet4-resolve
 cd petr4
 make; make install
 ```
-2. Install Verifiable P4
+
+5. Install dependencies for Verifiable P4
+```
+opam install coq-hammer coq-vst
+```
+
+6. Make Verifiable P4: in another proper directory
 ```
 git clone https://github.com/verified-network-toolchain/VerifiableP4.git
-make; make install
+cd VerifiableP4
+make
 ```
 
 ## Workflow
