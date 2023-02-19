@@ -145,3 +145,5 @@ Proof.
   destruct H. destruct H.
   eauto.
 Qed.
+
+Print Assumptions main_theorem.

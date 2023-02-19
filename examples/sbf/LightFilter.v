@@ -37,19 +37,19 @@ Notation abs_refresh := (@filter_refresh header_type num_frames num_slots frame_
 Definition T := frame_time * (num_frames - 2).
 
 (* The maximum time interval between consecutive packets, e.g. 112us. *)
-Definition Tc := frame_time / num_slots.
+Definition Tc := Z.min (frame_time / num_slots) tick_time.
 
-(* This should be provable *)
 Lemma Tc_mul_num_slots_le_frame_time : Tc * num_slots <= frame_time.
-Proof. unfold Tc. rewrite Z.mul_comm. apply Z.mul_div_le. assumption. Qed.
-(* This seems NOT provable. *)
-Axiom Tc_le_tick_time : Tc <= tick_time.
-
-Lemma Tc_le_frame_time : Tc <= frame_time.
 Proof.
-  unfold Tc. apply Z.div_le_upper_bound; auto.
-  rewrite Z.mul_comm. apply Z.le_mul_diag_r; lia.
+  unfold Tc.
+  assert (frame_time / num_slots * num_slots <= frame_time). {
+    rewrite Z.mul_comm. apply Z.mul_div_le. assumption.
+  }
+  nia.
 Qed.
+
+Lemma Tc_le_tick_time : Tc <= tick_time.
+Proof. unfold Tc; lia. Qed.
 
 Lemma tick_time_le_frame_time : tick_time <= frame_time.
 Proof.
@@ -60,6 +60,11 @@ Proof.
   nia.
 Qed.
 
+Lemma Tc_le_frame_time : Tc <= frame_time.
+Proof.
+  rewrite Tc_le_tick_time. apply tick_time_le_frame_time.
+Qed.
+
 Lemma tick_time_mul_2_le_frame_time : tick_time * 2 <= frame_time.
 Proof.
   destruct H_tick_time_div as [x ?].
@@ -67,10 +72,7 @@ Proof.
   nia.
 Qed.
 
-Axiom H_Tc : 0 < Tc.
-
-(* Lemma Tc_le_T : Tc <= T.
-Admitted. *)
+Hypothesis H_Tc : 0 < Tc.
 
 Definition filter_insert (f : filter) (th : Z * header_type) : filter :=
   match f with
@@ -167,10 +169,7 @@ Proof.
   destruct (t >=? window_hi) eqn:?H.
   - destruct (num_clears >=? num_slots); only 2 : auto.
     split.
-    + assert (tick_time <= frame_time). {
-        destruct H_tick_time_div as [z ?]. subst.
-        replace (z * (tick_time * 2)) with (tick_time * (2 * z)) by lia.
-        apply Z.le_mul_diag_r; lia. } lia.
+    + pose proof tick_time_le_frame_time; lia.
     + list_solve.
   - lia.
 Qed.

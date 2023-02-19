@@ -9,7 +9,7 @@ Definition ip_addr := Z.
 (* Parameter ip_addrDummy: Inhabitant ip_addr. *)
 (* Parameter T Tc:Time. *)
 Notation T := (T num_frames frame_time).
-Notation Tc := (Tc num_slots frame_time).
+Notation Tc := (Tc num_slots frame_time tick_time).
 (* Parameter is_internal: ip_addr -> bool. *)
 
 (* Parameter filter_base : Type. *)
