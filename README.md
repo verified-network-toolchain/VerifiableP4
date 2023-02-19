@@ -1,14 +1,6 @@
 # Verifiable P4
+
 ## Installation
-There are two options to install Verifiable P4.
-### Backend-only installation
-This approach only installs the backend of Verifiable P4, which includes the operational semantics, program logic, and proof automation. With this installation, one can verify programs that are already translated into a Coq AST or check existing proofs.
-
-The following steps install Verifiable P4<br>
-TODO
-### Full installation
-
-This approach installs the the full Verifiable P4.
 
 1. Install OPAM 2 following the official [OPAM installation
    instructions](https://opam.ocaml.org/doc/Install.html). Make sure
@@ -47,10 +39,10 @@ cd VerifiableP4
 make
 ```
 
-## Workflow
-1. Translate a P4 program into Coq AST
-```
-./ast_gen.sh name_of_program.p4
-```
-2. Start to verify a program<br>
-TODO
+<!-- ## Workflow -->
+<!-- 1. Translate a P4 program into Coq AST -->
+<!-- ``` -->
+<!-- <\!-- ./ast_gen.sh name_of_program.p4 -\-> -->
+<!-- <\!-- ``` -\-> -->
+<!-- <\!-- 2. Start to verify a program<br> -\-> -->
+<!-- <\!-- TODO -\-> -->
