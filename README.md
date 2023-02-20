@@ -1,5 +1,9 @@
 # Verifiable P4
 
+## Artifact
+
+We describe how this repository implements our Feb 2023 paper in [ARTIFACT.md](ARTIFACT.md).
+
 ## Installation
 
 1. Install OPAM 2 following the official [OPAM installation
@@ -22,8 +26,9 @@ opam install core_unix core_kernel ppx_deriving_yojson ANSITerminal p4pp
 
 4. Install `petr4`: in a proper directory
 ```
-git clone https://github.com/verified-network-toolchain/petr4.git --branch poulet4-resolve
+git clone https://github.com/verified-network-toolchain/petr4.git
 cd petr4
+git checkout Feb2023
 make; make install
 ```
 
@@ -36,6 +41,7 @@ opam install coq-hammer coq-vst
 ```
 git clone https://github.com/verified-network-toolchain/VerifiableP4.git
 cd VerifiableP4
+git checkout Feb2023
 make
 ```
 
