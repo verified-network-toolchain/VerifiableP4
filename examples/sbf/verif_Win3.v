@@ -6,6 +6,9 @@ Require Import ProD3.examples.sbf.p4ast.
 Require Import ProD3.examples.sbf.ConFilter.
 Require Import ProD3.examples.sbf.common.
 Require Import ProD3.examples.sbf.FilterRepr.
+Require Import ProD3.examples.sbf.verif_Row31.
+Require Import ProD3.examples.sbf.verif_Row32.
+Require Import ProD3.examples.sbf.verif_Row33.
 Require Import Hammer.Plugin.Hammer.
 Require Export Coq.Program.Program.
 Import ListNotations.
@@ -56,7 +59,28 @@ Definition Win_noop_spec : func_spec :=
 Lemma Win_noop_body :
   func_sound ge Win_fundef nil Win_noop_spec.
 Proof.
-Admitted.
+  start_function.
+  unfold frame_repr.
+  normalize_EXT.
+  destruct f as [f ?H]. destruct is as [is ?H].
+  cbn [proj1_sig] in *.
+  destruct_list f.
+  destruct_list is.
+  repeat lazymatch goal with
+  | H : Forall _ _ |- _ => inv H
+  end.
+  step_call verif_Row31.Row_noop_case_body.
+  { entailer. }
+  { auto. }
+  step_call verif_Row32.Row_noop_case_body.
+  { entailer. }
+  { auto. }
+  step_call verif_Row33.Row_noop_case_body.
+  { entailer. }
+  { auto. }
+  step.
+  entailer.
+Qed.
 
 Definition Win_insert_spec : func_spec :=
   WITH (* p *),
@@ -94,7 +118,28 @@ Definition Win_insert_spec : func_spec :=
 Lemma Win_insert_body :
   func_sound ge Win_fundef nil Win_insert_spec.
 Proof.
-Admitted.
+  start_function.
+  unfold frame_repr.
+  normalize_EXT.
+  destruct f as [f ?H]. destruct is as [is ?H].
+  cbn [proj1_sig frame_insert] in *.
+  destruct_list f.
+  destruct_list is.
+  repeat lazymatch goal with
+  | H : Forall _ _ |- _ => inv H
+  end.
+  step_call verif_Row31.Row_insert_case_body.
+  { entailer. }
+  { auto. }
+  step_call verif_Row32.Row_insert_case_body.
+  { entailer. }
+  { auto. }
+  step_call verif_Row33.Row_insert_case_body.
+  { entailer. }
+  { auto. }
+  step.
+  entailer.
+Qed.
 
 Definition Win_query_spec : func_spec :=
   WITH (* p *),
@@ -132,7 +177,28 @@ Definition Win_query_spec : func_spec :=
 Lemma Win_query_body :
   func_sound ge Win_fundef nil Win_query_spec.
 Proof.
-Admitted.
+  start_function.
+  unfold frame_repr.
+  normalize_EXT.
+  destruct f as [f ?H]. destruct is as [is ?H].
+  cbn [proj1_sig] in *.
+  destruct_list f.
+  destruct_list is.
+  repeat lazymatch goal with
+  | H : Forall _ _ |- _ => inv H
+  end.
+  step_call verif_Row31.Row_query_case_body.
+  { entailer. }
+  { auto. }
+  step_call verif_Row32.Row_query_case_body.
+  { entailer. }
+  { auto. }
+  step_call verif_Row33.Row_query_case_body.
+  { entailer. }
+  { auto. }
+  step.
+  entailer.
+Qed.
 
 Definition Win_query_spec2 : func_spec :=
   WITH (* p *),
@@ -171,7 +237,19 @@ Definition Win_query_spec2 : func_spec :=
 Lemma Win_query_body2 :
   func_sound ge Win_fundef nil Win_query_spec2.
 Proof.
-Admitted.
+  refine_function Win_query_body.
+  { entailer. }
+  1 : auto.
+  entailer.
+  destruct f as [f ?H]. destruct is as [is ?H].
+  unfold frame_query. cbn [proj1_sig] in *.
+  destruct_list f.
+  destruct_list is.
+  repeat lazymatch goal with
+  | H : Forall _ _ |- _ => inv H
+  end.
+  auto.
+Qed.
 
 Definition Win_clear_spec : func_spec :=
   WITH (* p *),
@@ -209,7 +287,28 @@ Definition Win_clear_spec : func_spec :=
 Lemma Win_clear_body :
   func_sound ge Win_fundef nil Win_clear_spec.
 Proof.
-Admitted.
+  start_function.
+  unfold frame_repr.
+  normalize_EXT.
+  destruct f as [f ?H]. destruct is as [is ?H].
+  cbn [proj1_sig frame_clear] in *.
+  destruct_list f.
+  destruct_list is.
+  repeat lazymatch goal with
+  | H : Forall _ _ |- _ => inv H
+  end.
+  step_call verif_Row31.Row_clear_case_body.
+  { entailer. }
+  { auto. }
+  step_call verif_Row32.Row_clear_case_body.
+  { entailer. }
+  { auto. }
+  step_call verif_Row33.Row_clear_case_body.
+  { entailer. }
+  { auto. }
+  step.
+  entailer.
+Qed.
 
 #[export] Hint Extern 5 (func_modifies _ _ _ _ _) => (apply Win_noop_body) : func_specs.
 
