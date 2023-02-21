@@ -986,3 +986,7 @@ Opaque dummy_fundef.
 Ltac get_fd p ge :=
   let fd := eval compute in (force dummy_fundef (PathMap.get p (ge_func ge))) in
   exact fd.
+
+Ltac get_type name ge :=
+  let ty := eval compute in (force dummy_type (IdentMap.get name (ge_typ ge))) in
+  exact ty.
