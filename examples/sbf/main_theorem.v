@@ -82,6 +82,7 @@ Ltac simpl_init_es_entry :=
       change (PathMap.get p init_es) with obj'
   end.
 
+Transparent Tofino.new_register.
 Lemma init_es_reg_repr :
   @Some (extern_object)
     (Tofino.ObjRegister
@@ -90,13 +91,12 @@ Lemma init_es_reg_repr :
   Some
     (Tofino.ObjRegister (map FilterRepr.bool_to_val (` (ConFilter.row_empty H_num_slots)))).
 Proof.
-  Transparent Tofino.new_register.
   unfold Tofino.new_register.
-  Opaque Tofino.new_register.
   unfold ConFilter.row_empty, proj1_sig.
   rewrite map_Zrepeat.
   f_equal.
 Qed.
+Opaque Tofino.new_register.
 
 Lemma filter_repr_empty_init_es : forall t,
   filter_repr (empty t) init_es.
@@ -128,8 +128,6 @@ Proof.
     resolve_parameter_conditions.
 Qed.
 
-Print property.
-
 Theorem main_theorem : forall h p es' rs' res,
   process_packets ge P4_types.metadata_t init_es (h ++ [p]) es' (rs' ++ [res]) ->
   abs_flow_wf (h ++ [p]) ->
@@ -145,5 +143,3 @@ Proof.
   destruct H. destruct H.
   eauto.
 Qed.
-
-Print Assumptions main_theorem.
