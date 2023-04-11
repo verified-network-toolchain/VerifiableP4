@@ -1,0 +1,24 @@
+{
+    "name" : "one_packet", 
+    "input_port": "128",
+    "packets": [
+        {
+            "ip.src" : "1.1.1.1", 
+            "ip.dst" : "2.2.2.2",
+            "ip.tos" : 1
+        }
+    ],
+    "model-output":
+    [
+        {
+            "port" : 128,
+            "ip.src" : "1.1.1.1", 
+            "ip.dst" : "2.2.2.2",
+            "ip.tos" : 1
+        },
+        { "port" : 129,
+          "ip.src" : "1.1.1.1", 
+          "ip.dst" : "2.2.2.2",
+          "ip.num" : 1 }            
+    ]
+}
