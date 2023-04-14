@@ -24,7 +24,7 @@ Notation path := (list ident).
 Notation Val := (@ValueBase bool).
 Notation Expression := (@Expression tags_t).
 Notation P4Type := (@P4Type tags_t).
-Notation extern_state := (@extern_state tags_t Expression).
+Notation extern_state := (@extern_state Expression).
 
 Instance target : @Target tags_t Expression := V1Model.
 
