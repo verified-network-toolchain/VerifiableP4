@@ -3624,7 +3624,7 @@ Definition Bf2BloomFilterRow := DeclControl NoInfo
                 (MkTablePreActionRef
                      (QualifiedName nil
                           {| stags := NoInfo; str := "NoAction" |}) nil)
-                TypVoid)) (Some 4%N) nil)]
+                (TypAction nil nil))) (Some 4%N) nil)]
     (BlockCons
          (MkStatement NoInfo
               (StatMethodCall
@@ -4074,7 +4074,7 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                 (MkTablePreActionRef
                      (BareName
                       {| stags := NoInfo; str := "act_hash_index_1" |}) nil)
-                TypVoid)) (Some 1%N) nil);
+                (TypAction nil nil))) (Some 1%N) nil);
      (DeclInstantiation NoInfo
           (TypSpecializedType
                (TypTypeName {| stags := NoInfo; str := "CRCPolynomial" |})
@@ -4217,7 +4217,7 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                 (MkTablePreActionRef
                      (BareName
                       {| stags := NoInfo; str := "act_hash_index_2" |}) nil)
-                TypVoid)) (Some 1%N) nil);
+                (TypAction nil nil))) (Some 1%N) nil);
      (DeclInstantiation NoInfo
           (TypSpecializedType
                (TypTypeName {| stags := NoInfo; str := "CRCPolynomial" |})
@@ -4360,7 +4360,7 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                 (MkTablePreActionRef
                      (BareName
                       {| stags := NoInfo; str := "act_hash_index_3" |}) nil)
-                TypVoid)) (Some 1%N) nil);
+                (TypAction nil nil))) (Some 1%N) nil);
      (DeclInstantiation NoInfo
           (TypSpecializedType
                (TypTypeName {| stags := NoInfo; str := "Register" |})
@@ -4526,7 +4526,7 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                 (MkTablePreActionRef
                      (BareName
                       {| stags := NoInfo; str := "act_clear_index" |}) nil)
-                TypVoid)) (Some 1%N) nil);
+                (TypAction nil nil))) (Some 1%N) nil);
      (DeclInstantiation NoInfo
           (TypSpecializedType
                (TypTypeName {| stags := NoInfo; str := "Register" |})
@@ -5359,8 +5359,8 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                 (MkTablePreActionRef
                      (BareName
                       {| stags := NoInfo;
-                         str := "act_clear_window_signal_1" |}) nil) 
-                TypVoid)) (Some 2%N) nil);
+                         str := "act_clear_window_signal_1" |}) nil)
+                (TypAction nil nil))) (Some 2%N) nil);
      (DeclAction NoInfo {| stags := NoInfo; str := "act_set_clear_win_1" |}
           nil
           [(MkParameter false Directionless (TypBit 8%N) None
@@ -12106,7 +12106,7 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                 (MkTablePreActionRef
                      (QualifiedName nil
                           {| stags := NoInfo; str := "NoAction" |}) nil)
-                TypVoid)) (Some 13%N) nil);
+                (TypAction nil nil))) (Some 13%N) nil);
      (DeclInstantiation NoInfo
           (TypSpecializedType
                (TypTypeName
@@ -12857,7 +12857,7 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                 (MkTablePreActionRef
                      (QualifiedName nil
                           {| stags := NoInfo; str := "NoAction" |}) nil)
-                TypVoid)) (Some 6%N) nil)]
+                (TypAction nil nil))) (Some 6%N) nil)]
     (BlockCons
          (MkStatement NoInfo
               (StatMethodCall
@@ -13896,7 +13896,7 @@ Definition SwitchIngress := DeclControl NoInfo
                 (MkTablePreActionRef
                      (BareName
                       {| stags := NoInfo; str := "act_for_tbl_1_action_0" |})
-                     nil) TypVoid)) (Some 1%N) nil);
+                     nil) (TypAction nil nil))) (Some 1%N) nil);
      (DeclAction NoInfo
           {| stags := NoInfo; str := "bf2_act_set_insert_key" |} nil
           [(MkParameter false Directionless (TypBit 8%N) None
@@ -14387,7 +14387,7 @@ Definition SwitchIngress := DeclControl NoInfo
                 (MkTablePreActionRef
                      (BareName
                       {| stags := NoInfo; str := "bf2_act_set_clear_key" |})
-                     nil) TypVoid)) (Some 2%N) nil);
+                     nil) (TypAction nil nil))) (Some 2%N) nil);
      (DeclInstantiation NoInfo
           (TypSpecializedType
                (TypTypeName {| stags := NoInfo; str := "Bf2BloomFilter" |})
@@ -14504,7 +14504,7 @@ Definition SwitchIngress := DeclControl NoInfo
                 (MkTablePreActionRef
                      (BareName
                       {| stags := NoInfo; str := "act_for_tbl_3_action_1" |})
-                     nil) TypVoid)) (Some 2%N) nil)]
+                     nil) (TypAction nil nil))) (Some 2%N) nil)]
     (BlockCons
          (MkStatement NoInfo
               (StatMethodCall

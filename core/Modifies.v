@@ -409,9 +409,9 @@ Proof.
     + inv H2. inv H9. inv H. eauto.
 Qed.
 
-Lemma call_modifies_func : forall p tags func targs args typ dir obj_path fd vars exts,
+Lemma call_modifies_func : forall p tags func targs args typ dir obj_path fd vars exts dirs,
   is_builtin_func func = false ->
-  let dirs := get_arg_directions func in
+  forall (H_dirs : get_arg_directions func = Result.Ok dirs),
   Forall2 (out_arg_In_vars vars) args dirs ->
   lookup_func ge p func = Some (obj_path, fd) ->
   func_modifies (force p obj_path) fd (if is_some obj_path then None else vars) exts ->
@@ -420,18 +420,19 @@ Proof.
   unfold call_modifies, func_modifies.
   intros.
   inv H3. { inv H. }
-  rewrite H1 in H14; inv H14.
+  rewrite H11 in H_dirs; inv H_dirs.
+  rewrite H1 in H15; inv H15.
   assert (modifies vars exts st (if is_some obj_path0 then set_memory (get_memory st) s3 else s3)). {
     destruct (is_some obj_path0).
     - destruct st. destruct s3.
-      apply H2 in H18.
-      destruct H18; destruct vars; split; eauto.
+      apply H2 in H19.
+      destruct H19; destruct vars; split; eauto.
     - eauto.
   }
   assert (modifies vars exts (if is_some obj_path0 then set_memory (get_memory st) s3 else s3) s5). {
     eapply call_modifies_func_part1; eauto.
   }
-  destruct sig0; destruct H21; subst; eauto.
+  destruct sig0; destruct H22; subst; eauto.
 Qed.
 
 Inductive incl_vars : (option (list path)) -> (option (list path)) -> Prop :=
@@ -527,9 +528,9 @@ Qed.
 
 Inductive action_modifies' : path -> Expression -> option (list path)
     -> list path -> Prop :=
-  | action_modifies'_intro : forall p tags func args1 typ dir vars exts obj_path fd,
+  | action_modifies'_intro : forall p tags func args1 typ dir vars exts obj_path fd dirs,
       is_builtin_func func = false ->
-      let dirs := get_arg_directions func in
+      forall (H_dirs : get_arg_directions func = Result.Ok dirs),
       (* I'm not sure if this form is okay for auto to solve. *)
       Forall2 (out_arg_In_vars vars) args1 (sublist 0 (Zlength args1) dirs) ->
       Forall (eq Typed.In) (sublist (Zlength args1) (Zlength dirs) dirs) ->
@@ -549,21 +550,17 @@ Proof.
   assert (Zlength dirs = Zlength args1 + Zlength args2). {
     inv H.
     - inv H9.
-    - clear -H7.
-      assert (dirs0 = dirs) by auto.
-      clearbody dirs0.
-      subst dirs0.
-      clearbody dirs.
+    - clear -H7 H8 H_dirs.
+      rewrite H7 in H_dirs.
+      inv H_dirs.
       rewrite <- Zlength_app.
-      revert H7.
+      clear H7; revert H8.
       generalize (args1 ++ args2) as args.
-      intros. induction H7.
+      intros. induction H8.
       + list_solve.
       + list_solve.
   }
   eapply call_modifies_func; eauto.
-  fold dirs.
-  clearbody dirs.
   clear -H10 H11 H0.
   generalize dependent dirs.
   induction args1; intros.
@@ -677,6 +674,7 @@ End Modifies.
 (* This is needed, because (simple apply eq_refl) cannot unify. I don't think it causes any
   backtracking, because it seems eauto does not backtrack terminal rules. *)
 #[export] Hint Extern 0 (eq _ (Some _)) => reflexivity : modifies.
+#[export] Hint Extern 0 (eq _ (Result.Ok _)) => reflexivity : modifies.
 #[export] Hint Extern 1 (is_true _) => reflexivity : modifies.
 #[export] Hint Resolve eq_refl : modifies.
 #[export] Hint Constructors out_arg_In_vars : modifies.

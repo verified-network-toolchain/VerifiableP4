@@ -461,6 +461,7 @@ Ltac step_call_func func_spec :=
   | |- hoare_call _ _ _ _ _ =>
       eapply hoare_call_func'_ex;
         [ reflexivity (* is_builtin_func *)
+        | reflexivity (* get_arg_directions *)
         | eval_expr (* eval_args *)
         | reflexivity (* lookup_func *)
         | (* func_spec *)
@@ -667,6 +668,7 @@ Ltac step_call_into :=
   | |- hoare_call _ _ _ _ _ =>
       eapply hoare_call_func';
         [ reflexivity (* is_builtin_func *)
+        | reflexivity (* get_arg_directions *)
         | eval_expr (* eval_args *)
         | reflexivity (* lookup_func *)
         | (* step into function body *)

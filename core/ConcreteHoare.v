@@ -316,10 +316,10 @@ Proof.
 Qed.
 
 (* This is quite dirty, maybe some improvement. *)
-Lemma hoare_call_func' : forall p pre_mem pre_ext tags func targs args typ dir argvals obj_path fd
+Lemma hoare_call_func' : forall p pre_mem pre_ext tags func targs args typ dir dirs argvals obj_path fd
     outargs vret mid_mem post_mem post_ext,
   is_builtin_func func = false ->
-  let dirs := get_arg_directions func in
+  forall (H_dirs : get_arg_directions func = Result.Ok dirs),
   eval_args ge p pre_mem args dirs = Some argvals ->
   lookup_func ge p func = Some (obj_path, fd) ->
   hoare_func ge (force p obj_path)
@@ -336,6 +336,7 @@ Proof.
   intros.
   eapply hoare_call_func.
   - assumption.
+  - eassumption.
   - eapply eval_args_sound. eassumption.
   - eassumption.
   - reflexivity.
@@ -368,10 +369,10 @@ Inductive hoare_call_func_ex_layer (obj_path : option path) pre_mem out_argvals 
       hoare_call_func_ex_layer obj_path pre_mem out_argvals
         (arg_ret_exists P) (ret_exists Q).
 
-Lemma hoare_call_func'_ex : forall p pre_mem pre_ext tags func targs args typ dir argvals obj_path fd
+Lemma hoare_call_func'_ex : forall p pre_mem pre_ext tags func targs args typ dir dirs argvals obj_path fd
     mid post,
   is_builtin_func func = false ->
-  let dirs := get_arg_directions func in
+  forall (H_dirs : get_arg_directions func = Result.Ok dirs),
   eval_args ge p pre_mem args dirs = Some argvals ->
   lookup_func ge p func = Some (obj_path, fd) ->
   hoare_func ge (force p obj_path)
@@ -387,6 +388,7 @@ Proof.
   intros.
   eapply hoare_call_func.
   - assumption.
+  - eassumption.
   - eapply eval_args_sound. eassumption.
   - eassumption.
   - reflexivity.
@@ -662,7 +664,7 @@ Lemma hoare_table_match_case' : forall p pre_mem pre_ext name keys keysvals keyv
   let match_kinds := map table_key_matchkind keys in
   eval_exprs ge p pre_mem (map table_key_key keys) = Some keysvals ->
   lift_option (map eval_sval_to_val keysvals) = Some keyvals ->
-  hoare_table_entries ge p entries entryvs ->
+  hoare_table_entries p entries entryvs ->
   extern_match (combine keyvals match_kinds) entryvs = matched_action ->
   hoare_table_match ge p (MEM pre_mem (EXT pre_ext)) name keys (Some const_entries) matched_action.
 Proof.
@@ -690,7 +692,7 @@ Definition hoare_table_match_list_intro' : forall p pre_mem pre_ext name keys ke
   let match_kinds := map table_key_matchkind keys in
   eval_exprs ge p pre_mem (map table_key_key keys) = Some keysvals ->
   lift_option (map eval_sval_to_val keysvals) = Some keyvals ->
-  hoare_table_entries ge p entries entryvs ->
+  hoare_table_entries p entries entryvs ->
   hoare_extern_match_list (combine keyvals match_kinds) entryvs cases ->
   hoare_table_match_list ge p (MEM pre_mem (EXT pre_ext)) name keys (Some const_entries) cases.
 Proof.
@@ -824,7 +826,7 @@ Lemma hoare_func_table_middle' : forall p pre_mem pre_ext name keys actions defa
   let entries := const_entries in
   let match_kinds := map table_key_matchkind keys in
   eval_exprs ge p pre_mem (map table_key_key keys) = Some keysvals ->
-  hoare_table_entries ge p entries entryvs ->
+  hoare_table_entries p entries entryvs ->
   (forall keyvals,
     Forall2 (sval_to_val read_ndetbit) keysvals keyvals ->
     exists cases,

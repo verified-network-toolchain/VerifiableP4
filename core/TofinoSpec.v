@@ -20,7 +20,6 @@ Context {tags_t: Type} {tags_t_inhabitant : Inhabitant tags_t}.
 Notation Val := (@ValueBase bool).
 Notation Sval := (@ValueBase (option bool)).
 (* Notation ValSet := (@ValueSet tags_t). *)
-Notation ValSetT := (@ValSetT tags_t).
 Notation Lval := ValueLvalue.
 
 Notation ident := (String.string).
@@ -28,7 +27,7 @@ Notation path := (list ident).
 Notation P4Int := (P4Int.t tags_t).
 Notation P4String := (P4String.t tags_t).
 Notation Expression := (@Expression tags_t).
-Notation table_entry_valset := (@table_entry_valset tags_t Expression).
+Notation table_entry_valset := (@table_entry_valset Expression).
 
 Instance target : @Target tags_t Expression := Tofino.
 
@@ -413,7 +412,7 @@ Proof.
     }
     rewrite H4 in H.
     change (@extern_object tags_t Expression (@extern_sem tags_t Expression target))
-      with (@Tofino.object tags_t Expression) in H.
+      with (@Tofino.object Expression) in H.
     congruence.
   }
   clear H H5.

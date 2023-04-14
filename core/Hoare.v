@@ -840,10 +840,10 @@ Proof.
   assumption.
 Qed.
 
-Lemma hoare_call_func : forall p (pre : assertion) tags func targs args typ dir post argvals obj_path fd
+Lemma hoare_call_func : forall p (pre : assertion) tags func targs args typ dir post dirs argvals obj_path fd
     (mid1 : arg_assertion) mid2 mid3,
   is_builtin_func func = false ->
-  let dirs := get_arg_directions func in
+  forall (H_dirs : get_arg_directions func = Result.Ok dirs),
   hoare_args p pre args dirs argvals ->
   lookup_func ge p func = Some (obj_path, fd) ->
   mid1 = (fun inargs st => Forall2 sval_refine (extract_invals argvals) inargs
@@ -860,18 +860,18 @@ Proof.
   unfold hoare_args, hoare_func, hoare_call_copy_out, hoare_call.
   intros.
   inv H8. { inv H0. }
+  rewrite H16 in H_dirs; inv H_dirs.
   specialize_hoare_args.
   destruct H1 as [? H1]. subst.
-  rewrite H2 in H19; inv H19.
-  unshelve epose proof (H4 _ _ _ _ _ ltac:(shelve) H23). {
+  rewrite H2 in H20; inv H20.
+  unshelve epose proof (H4 _ _ _ _ _ ltac:(shelve) H24). {
     split. { apply args_refine_extract_invals. auto. }
     destruct (is_some obj_path0).
     - destruct st. split; eauto.
     - auto.
   }
-  subst dirs.
-  erewrite <- args_refine_map_snd in H25 by eauto.
-  unshelve epose proof (H6 _ sig' _ _ ltac:(shelve) H25). {
+  erewrite <- args_refine_map_snd in H26 by eauto.
+  unshelve epose proof (H6 _ sig' _ _ ltac:(shelve) H26). {
     destruct (is_some obj_path0).
     - destruct s3. destruct sig'; try solve [inv H3].
       split.
@@ -879,7 +879,7 @@ Proof.
       + eauto.
     - auto.
   }
-  inv H26.
+  inv H27.
   assumption.
 Qed.
 
@@ -922,28 +922,12 @@ Qed.
 
 Definition hoare_table_entries p entries entryvs : Prop :=
   forall entryvs',
-    exec_table_entries ge read_ndetbit p entries entryvs' ->
+    exec_table_entries (tags_t := tags_t) read_ndetbit p entries entryvs' ->
     entryvs' = entryvs.
 
-(* This is still not true. For example, reading from an invalid header or an out-of-bound
-  position of a header stack is still nondeterministic. *)
-Lemma exec_expr_det_empty_det : forall p expr v v',
-  exec_expr_det ge read_ndetbit p empty_state expr v ->
-  exec_expr_det ge read_ndetbit p empty_state expr v' ->
-  v' = v.
-Proof.
-  clear.
-  (* intros.
-  inv H0. inv H1.
-  generalize dependent v'.
-  induction H2; intros; inv H0.
-  - inv H3. inv H4. inv H1. inv H2. auto.
-  - destruct i. destruct width_signed as [[? []] | ]; inv H3; inv H4. *)
-Admitted.
-
 Lemma exec_table_entries_det : forall p entries entryvs entryvs',
-  exec_table_entries ge read_ndetbit p entries entryvs ->
-  exec_table_entries ge read_ndetbit p entries entryvs' ->
+  exec_table_entries (tags_t := tags_t) read_ndetbit p entries entryvs ->
+  exec_table_entries read_ndetbit p entries entryvs' ->
   entryvs' = entryvs.
 Proof.
   intros. generalize dependent entryvs'.
@@ -953,23 +937,11 @@ Proof.
   f_equal; only 2 : eauto.
   clear -H0 H5.
   inv H0; inv H5.
-  assert (svs0 = svs). {
-    clear -H1 H6.
-    generalize dependent svs0.
-    induction H1; intros.
-    { inv H6; auto. }
-    inv H6; f_equal; only 2 : eauto.
-    clear -H0 H4.
-    inv H0; inv H4; try f_equal; eauto using exec_expr_det_empty_det.
-    assert (oldv0 = oldv) by eauto using exec_expr_det_empty_det.
-    congruence.
-  }
-  subst.
-  destruct (PeanoNat.Nat.eqb (length svs) 1); congruence.
+  destruct (PeanoNat.Nat.eqb (length svs) 1); subst; auto.
 Qed.
 
 Lemma hoare_table_entries_intros : forall p entries entryvs,
-  exec_table_entries ge read_ndetbit p entries entryvs ->
+  exec_table_entries (tags_t := tags_t) read_ndetbit p entries entryvs ->
   hoare_table_entries p entries entryvs.
 Proof.
   unfold hoare_table_entries; intros.
