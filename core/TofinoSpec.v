@@ -778,6 +778,33 @@ Proof.
   auto.
 Qed.
 
+(* NoAction *)
+
+Definition NoAction_fundef: @fundef tags_t :=
+  FInternal [] (BlockEmpty default).
+
+Definition NoAction_spec : func_spec :=
+  WITH,
+    PATH []
+    MOD None []
+    WITH,
+      PRE
+        (ARG []
+        (MEM []
+        (EXT [])))
+      POST
+        (ARG_RET [] ValBaseNull
+        (MEM []
+        (EXT []))).
+
+Lemma NoAction_body :
+  func_sound ge NoAction_fundef nil NoAction_spec.
+Proof.
+  start_function.
+  step.
+  entailer.
+Qed.
+
 End TofinoSpec.
 
 #[export] Hint Extern 5 (func_modifies _ _ _ _ _) =>

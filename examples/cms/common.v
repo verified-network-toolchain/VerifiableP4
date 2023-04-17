@@ -187,30 +187,3 @@ Notation frame := (frame num_rows num_slots).
 
 #[export] Instance Inhabitant_frame : Inhabitant frame :=
   Inhabitant_frame H_num_rows H_num_slots.
-
-(* NoAction *)
-
-Definition NoAction_fundef : @fundef Info :=
-  ltac:(get_fd ["NoAction"] ge).
-
-Definition NoAction_spec : func_spec :=
-  WITH,
-    PATH []
-    MOD None []
-    WITH,
-      PRE
-        (ARG []
-        (MEM []
-        (EXT [])))
-      POST
-        (ARG_RET [] ValBaseNull
-        (MEM []
-        (EXT []))).
-
-Lemma NoAction_body :
-  func_sound ge NoAction_fundef nil NoAction_spec.
-Proof.
-  start_function.
-  step.
-  entailer.
-Qed.

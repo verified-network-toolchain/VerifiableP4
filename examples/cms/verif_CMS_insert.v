@@ -237,7 +237,7 @@ Proof.
     step_into.
     { hoare_func_table; elim_trivial_cases.
       { clear -H5; lia. }
-      table_action NoAction_body.
+      table_action (@NoAction_body Info).
       { entailer. }
       { apply arg_ret_implies_refl. }
     }
@@ -270,7 +270,7 @@ Proof.
     step_into.
     { hoare_func_table; elim_trivial_cases.
       { clear -H5; lia. }
-      table_action NoAction_body.
+      table_action (@NoAction_body Info).
       { entailer. }
       { apply arg_ret_implies_refl. }
     }
@@ -303,7 +303,7 @@ Proof.
     step_into.
     { hoare_func_table; elim_trivial_cases.
       { clear -H5; lia. }
-      table_action NoAction_body.
+      table_action (@NoAction_body Info).
       { entailer. }
       { apply arg_ret_implies_refl. }
     }
@@ -336,7 +336,7 @@ Proof.
     step_into.
     { hoare_func_table; elim_trivial_cases.
       { clear -H5; lia. }
-      table_action NoAction_body.
+      table_action (@NoAction_body Info).
       { entailer. }
       { apply arg_ret_implies_refl. }
     }

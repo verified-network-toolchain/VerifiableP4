@@ -247,7 +247,7 @@ Lemma Row_tbl_bloom_noop_body :
   func_sound ge Row_tbl_bloom_fundef nil Row_tbl_bloom_noop_spec.
 Proof.
   start_function; elim_trivial_cases; try lia.
-  table_action NoAction_body.
+  table_action (@NoAction_body Info).
   { entailer. }
   { entailer. }
 Qed.

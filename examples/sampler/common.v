@@ -3,7 +3,7 @@ Require Import Poulet4.P4light.Semantics.Semantics.
 Require Import Coq.Program.Program.
 Require Import ProD3.core.Core.
 Require Import ProD3.core.Tofino.
-Require Import ProD3.examples.count.p4ast.
+Require Import ProD3.examples.sampler.p4ast.
 
 Open Scope func_spec.
 
