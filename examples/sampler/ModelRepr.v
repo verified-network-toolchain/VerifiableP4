@@ -29,15 +29,15 @@ Qed.
 Definition bridge_repr (data: Z): ValueBase :=
   ValBaseHeader [("contains_sample", P4Bit 8 data)] (Some true).
 
-Definition COLLECTOR_MAC: Z := 1.
-Definition MY_MAC: Z := 2.
+Definition COLLECTOR_MAC: Z := 2.
+Definition MY_MAC: Z := 1.
 Definition SAMPLE_ETYPE := 0x1234.
 
-Definition sample_repr (srcip dstip: list (option bool)) (num_pkts: Z): ValueBase :=
+Definition sample_repr srcip dstip (num_pkts: Z): ValueBase :=
   ValBaseHeader
     [("dmac", P4Bit 48 COLLECTOR_MAC);
      ("smac", P4Bit 48 MY_MAC);
      ("etype", P4Bit 16 SAMPLE_ETYPE);
-     ("srcip", ValBaseBit srcip);
-     ("dstip", ValBaseBit dstip);
+     ("srcip", srcip);
+     ("dstip", dstip);
      ("num_pkts", P4Bit 32 num_pkts)] (Some true).
