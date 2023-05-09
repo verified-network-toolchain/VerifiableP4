@@ -155,3 +155,132 @@ Proof.
   do 10 step.
   entailer.
 Qed.
+
+Definition tbl_sample_fd :=
+  ltac:(get_fd ["SwitchIngress"; "tbl_sample"; "apply"] ge).
+
+Definition tbl_sample_spec : func_spec :=
+  WITH (* p *),
+    PATH p
+    MOD (Some [["hdr"]; ["ig_intr_tm_md"]]) [p]
+    WITH ethernet tcp udp ipv4 ig_intr_tm_md num_pkts,
+      PRE
+        (ARG []
+        (MEM [(["hdr"], hdr ethernet tcp udp ipv4);
+              (["ig_md"], ig_md num_pkts);
+              (["ig_intr_tm_md"], ig_intr_tm_md)]
+        (EXT [])))
+      POST
+        (EX retv,
+        (ARG_RET [] retv
+        (MEM [(["hdr"], update "sample"
+                          (sample_repr (ipv4_src_addr ipv4)
+                             (ipv4_dst_addr ipv4) num_pkts)
+                          (update "bridge" (bridge_repr 1)
+                             (hdr ethernet tcp udp ipv4)));
+              (["ig_md"], ig_md num_pkts);
+              (["ig_intr_tm_md"], update "mcast_grp_a" (P4Bit 16 1) ig_intr_tm_md)]
+        (EXT []))))%arg_ret_assr.
+
+Lemma mod_2_pow_1_less: forall v n m,
+    0 < m -> m < n -> v mod 2 ^ n = 1 ->  Z.odd (v / 2 ^ m) = false.
+Proof.
+  intros v n m Hg0 Hl Hm.
+  pose proof (Z_div_mod_eq_full v (2 ^ n)) as Hveq.
+  rewrite Hm in Hveq. clear Hm.
+  assert (n = m + (n - m)) as HE by lia. rewrite HE in Hveq at 1. clear HE.
+  rewrite Z.pow_add_r in Hveq by lia.
+  rewrite <- Z.mul_assoc, Z.mul_comm in Hveq.
+  rewrite Hveq, Z.div_add_l by lia.
+  rewrite Z.div_1_l.
+  - rewrite Z.add_0_r, Z.odd_mul, Z.odd_pow by lia. reflexivity.
+  - rewrite <- (Z.pow_0_r 2). apply Z.pow_lt_mono_r; lia.
+Qed.
+
+Lemma mod_2_pow_0_less_iff: forall v n,
+    0 <= n ->
+    v mod 2 ^ n = 0 <-> (forall m, 0 <= m < n -> Z.odd (v / 2 ^ m) = false).
+Proof.
+  intros v n Hg. split.
+  - intros Hvm m Hmlt.
+    pose proof (Z_div_mod_eq_full v (2 ^ n)) as Hveq.
+    rewrite Hvm, Z.add_0_r in Hveq.
+    assert (n = m + (n - m)) as HE by lia. rewrite HE in Hveq at 1. clear HE.
+    rewrite Z.pow_add_r in Hveq by lia.
+    rewrite <- Z.mul_assoc, Z.mul_comm in Hveq.
+    rewrite Hveq, Z_div_mult by lia.
+    rewrite Z.odd_mul, Z.odd_pow by lia. simpl. reflexivity.
+  - rewrite Z.le_lteq in Hg. destruct Hg as [Hg | Hg].
+    + assert (n = Z.of_nat (S (Z.to_nat n - 1))) as Heq by lia.
+      rewrite Heq. revert v. clear Hg Heq. generalize (Z.to_nat n - 1)%nat. clear n.
+      induction n; intros v Hm.
+      * simpl Z.of_nat in *. rewrite Z.pow_1_r. specialize (Hm 0 ltac:(lia)).
+        rewrite Z.pow_0_r, Z.div_1_r in Hm. rewrite Zmod_odd, Hm. reflexivity.
+      * rewrite Nat2Z.inj_succ, <- Z.add_1_l, Z.pow_add_r by lia.
+        rewrite Z.pow_1_r, <- P4Arith.div_2_mod_2_pow by lia.
+        generalize (Hm 0 ltac:(lia)). rewrite Z.pow_0_r, Z.div_1_r.
+        intro H0; rewrite H0. clear H0. rewrite IHn. 1: lia. intros m' Hm'.
+        rewrite Z.div_div by lia. replace 2 with (2 ^ 1) at 1 by lia.
+        rewrite <- Z.pow_add_r by lia. apply Hm. lia.
+    + intros. rewrite <- Hg. rewrite Z.pow_0_r, Z.mod_1_r. reflexivity.
+Qed.
+
+Lemma mod_2_pow_1_less_iff: forall v n,
+    0 < n ->
+    v mod 2 ^ n = 1 <-> (forall m, 0 < m < n -> Z.odd (v / 2 ^ m) = false) /\
+                        Z.odd v = true.
+Proof.
+  intros v n Hg. split.
+  - intros Hm. split.
+    + intros. eapply mod_2_pow_1_less; eauto; lia.
+    + assert (n = Z.of_nat (S (Z.to_nat n - 1))) as Heq by lia.
+      rewrite Heq in Hm. erewrite <- P4Arith.Z_odd_pow_2_S.
+      rewrite Hm. reflexivity.
+  - intros [Hm Hv].
+    assert (n = 1 + (n - 1)) as Heq by lia.
+    rewrite Heq. rewrite Z.pow_add_r, Z.pow_1_r by lia.
+    rewrite <- P4Arith.div_2_mod_2_pow by lia. rewrite Hv.
+    cut ((v / 2) mod 2 ^ (n - 1) = 0).
+    + intros Hmv. rewrite Hmv. lia.
+    + rewrite mod_2_pow_0_less_iff by lia. intros m' Hm'.
+      rewrite Z.div_div by lia. replace 2 with (2 ^ 1) at 1 by lia.
+      rewrite <- Z.pow_add_r by lia. apply Hm. lia.
+Qed.
+
+Lemma table_match_helper: forall v,
+    values_match_mask
+      (ValBaseBit (P4Arith.to_lbool 32 v))
+      (ValBaseBit (P4Arith.to_lbool 32 0x001))
+      (ValBaseBit (P4Arith.to_lbool 32 0x3FF)) <->
+      v mod 1024 = 1.
+Proof.
+  intros. unfold values_match_mask. simpl.
+  (* cbv - [Bool.eqb Z.odd Z.div Z.modulo]. *)
+  rewrite !Z.div_div by lia. simpl.
+  unfold is_true. rewrite !Bool.andb_true_iff, !Bool.eqb_true_iff.
+  change 2 with (2 ^ 1). change 4 with (2 ^ 2). change 8 with (2 ^ 3).
+  change 16 with (2 ^ 4). change 32 with (2 ^ 5). change 64 with (2 ^ 6).
+  change 128 with (2 ^ 7). change 256 with (2 ^ 8). change 512 with (2 ^ 9).
+  change 1024 with (2 ^ 10). rewrite mod_2_pow_1_less_iff by lia. split; intros.
+  - repeat match goal with | [H: _ /\ _ |- _] => destruct H end.
+    rewrite H8. split. 2: reflexivity. intros. destruct H10 as [Hlo Hhi].
+    do 9 (apply Ztac.Zlt_le_add_1 in Hlo; simpl in Hlo; rewrite Z.le_lteq in Hlo;
+          destruct Hlo as [Hlo | Hlo]; [| now rewrite <- Hlo]). lia.
+  - destruct H. rewrite H0.
+    repeat (rewrite H; only 2: lia). tauto.
+Qed.
+
+(* cbv - [Bool.eqb Z.odd Z.div Z.modulo]. *)
+
+Lemma tbl_sample_body:
+  func_sound ge tbl_sample_fd nil tbl_sample_spec.
+Proof.
+  start_function; elim_trivial_cases.
+  - assert (num_pkts mod 1024 = 1). {
+      rewrite <- table_match_helper.
+      unfold values_match_mask. simpl.
+      cbv - [Bool.eqb Z.odd Z.div Z.modulo]. easy. } clear H. simpl.
+    (* table_action act_sample_body. *)
+    admit.
+  -  simpl. table_action (@NoAction_body Info).
+Abort.
