@@ -124,6 +124,11 @@ Definition hdr (ethernet tcp udp: Sval) (ipv4: ipv4_rec): Sval :=
 
 Definition ig_md (num_pkts: Z) := ValBaseStruct [("num_pkts", P4Bit 32 num_pkts)].
 
+Definition update_hdr ethernet tcp udp ipv4 num_pkts :=
+  update "sample"
+    (sample_repr (ipv4_src_addr ipv4) (ipv4_dst_addr ipv4) num_pkts)
+    (update "bridge" (bridge_repr 1) (hdr ethernet tcp udp ipv4)).
+
 Definition act_sample_spec : func_spec :=
   WITH (* p *),
     PATH p
@@ -137,12 +142,8 @@ Definition act_sample_spec : func_spec :=
         (EXT [])))
       POST
         (ARG_RET [] ValBaseNull
-        (MEM [(["hdr"], update "sample"
-                          (sample_repr (ipv4_src_addr ipv4)
-                             (ipv4_dst_addr ipv4) num_pkts)
-                          (update "bridge" (bridge_repr 1)
-                             (hdr ethernet tcp udp ipv4)));
-              (["ig_md"], ig_md num_pkts);
+        (MEM [(["hdr"], update_hdr ethernet tcp udp ipv4 num_pkts);
+              (* (["ig_md"], ig_md num_pkts); *)
               (["ig_intr_tm_md"], update "mcast_grp_a" (P4Bit 16 1) ig_intr_tm_md)]
         (EXT []))).
 
@@ -173,13 +174,13 @@ Definition tbl_sample_spec : func_spec :=
       POST
         (EX retv,
         (ARG_RET [] retv
-        (MEM [(["hdr"], update "sample"
-                          (sample_repr (ipv4_src_addr ipv4)
-                             (ipv4_dst_addr ipv4) num_pkts)
-                          (update "bridge" (bridge_repr 1)
-                             (hdr ethernet tcp udp ipv4)));
-              (["ig_md"], ig_md num_pkts);
-              (["ig_intr_tm_md"], update "mcast_grp_a" (P4Bit 16 1) ig_intr_tm_md)]
+        (MEM [(["hdr"], if (num_pkts mod 1024 =? 1) then
+                             update_hdr ethernet tcp udp ipv4 num_pkts
+                           else hdr ethernet tcp udp ipv4);
+              (* (["ig_md"], ig_md num_pkts); *)
+              (["ig_intr_tm_md"], if (num_pkts mod 1024 =? 1) then
+                                    update "mcast_grp_a" (P4Bit 16 1) ig_intr_tm_md
+                                  else ig_intr_tm_md)]
         (EXT []))))%arg_ret_assr.
 
 Lemma mod_2_pow_1_less: forall v n m,
@@ -270,17 +271,24 @@ Proof.
     repeat (rewrite H; only 2: lia). tauto.
 Qed.
 
-(* cbv - [Bool.eqb Z.odd Z.div Z.modulo]. *)
-
 Lemma tbl_sample_body:
   func_sound ge tbl_sample_fd nil tbl_sample_spec.
 Proof.
-  start_function; elim_trivial_cases.
-  - assert (num_pkts mod 1024 = 1). {
+  start_function; elim_trivial_cases; simpl fst; simpl snd.
+  - assert (num_pkts mod 1024 = 1) as Hm. {
       rewrite <- table_match_helper.
       unfold values_match_mask. simpl.
       cbv - [Bool.eqb Z.odd Z.div Z.modulo]. easy. } clear H. simpl.
-    (* table_action act_sample_body. *)
-    admit.
-  -  simpl. table_action (@NoAction_body Info).
-Abort.
+    rewrite <- Z.eqb_eq in Hm. rewrite Hm.
+    table_action act_sample_body.
+    + entailer.
+    + entailer.
+  - assert (num_pkts mod 1024 <> 1) as Hm. {
+      intro. rewrite <- table_match_helper in H1.
+      unfold values_match_mask in H1. simpl in H1.
+      cbv - [Bool.eqb Z.odd Z.div Z.modulo] in H1. rewrite H1 in H. easy. }
+    rewrite <- Z.eqb_neq in Hm. rewrite Hm.
+    table_action (@NoAction_body Info).
+    + entailer.
+    + entailer.
+Qed.
