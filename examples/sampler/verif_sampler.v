@@ -133,19 +133,19 @@ Definition act_sample_spec : func_spec :=
   WITH (* p *),
     PATH p
     MOD (Some [["hdr"]; ["ig_intr_tm_md"]]) [p]
-    WITH ethernet tcp udp ipv4 ig_intr_tm_md num_pkts,
+    WITH ethernet tcp udp ipv4 ig_intr_tm_md num_pkts counter,
       PRE
         (ARG []
         (MEM [(["hdr"], hdr ethernet tcp udp ipv4);
               (["ig_md"], ig_md num_pkts);
               (["ig_intr_tm_md"], ig_intr_tm_md)]
-        (EXT [])))
+        (EXT [counter_repr p counter])))
       POST
         (ARG_RET [] ValBaseNull
         (MEM [(["hdr"], update_hdr ethernet tcp udp ipv4 num_pkts);
               (* (["ig_md"], ig_md num_pkts); *)
               (["ig_intr_tm_md"], update "mcast_grp_a" (P4Bit 16 1) ig_intr_tm_md)]
-        (EXT []))).
+        (EXT [counter_repr p counter]))).
 
 Lemma act_sample_body:
   func_sound ge act_sample_fundef nil act_sample_spec.
@@ -164,13 +164,13 @@ Definition tbl_sample_spec : func_spec :=
   WITH (* p *),
     PATH p
     MOD (Some [["hdr"]; ["ig_intr_tm_md"]]) [p]
-    WITH ethernet tcp udp ipv4 ig_intr_tm_md num_pkts,
+    WITH ethernet tcp udp ipv4 ig_intr_tm_md num_pkts counter,
       PRE
         (ARG []
         (MEM [(["hdr"], hdr ethernet tcp udp ipv4);
               (["ig_md"], ig_md num_pkts);
               (["ig_intr_tm_md"], ig_intr_tm_md)]
-        (EXT [])))
+        (EXT [counter_repr p counter])))
       POST
         (EX retv,
         (ARG_RET [] retv
@@ -181,7 +181,7 @@ Definition tbl_sample_spec : func_spec :=
               (["ig_intr_tm_md"], if (num_pkts mod 1024 =? 1) then
                                     update "mcast_grp_a" (P4Bit 16 1) ig_intr_tm_md
                                   else ig_intr_tm_md)]
-        (EXT []))))%arg_ret_assr.
+        (EXT [counter_repr p counter]))))%arg_ret_assr.
 
 Lemma mod_2_pow_1_less: forall v n m,
     0 < m -> m < n -> v mod 2 ^ n = 1 ->  Z.odd (v / 2 ^ m) = false.
@@ -291,4 +291,67 @@ Proof.
     table_action (@NoAction_body Info).
     + entailer.
     + entailer.
+Qed.
+
+#[local] Hint Extern 5 (func_modifies _ _ _ _ _) => (apply tbl_sample_body) : func_specs.
+
+Definition Ingress_fd :=
+  ltac:(get_fd ["SwitchIngress"; "apply"] ge).
+
+Definition Ingress_spec : func_spec :=
+  WITH (* p *),
+    PATH p
+    MOD None [p]
+    WITH (counter : Z) ethernet tcp udp ipv4 ig_intr_tm_md,
+      PRE
+        (ARG [hdr ethernet tcp udp ipv4;
+              ValBaseStruct [("num_pkts", P4Bit_ 32)];
+              force ValBaseNull (uninit_sval_of_typ None ingress_intrinsic_metadata_t);
+              force ValBaseNull (uninit_sval_of_typ None ingress_intrinsic_metadata_from_parser_t);
+              force ValBaseNull (uninit_sval_of_typ None ingress_intrinsic_metadata_for_deparser_t);
+              ig_intr_tm_md]
+        (MEM []
+        (EXT [counter_repr p counter])))
+      POST
+        (ARG_RET [if (counter mod 1024 =? 0) then
+                    update_hdr ethernet tcp udp ipv4 (counter + 1)
+                  else hdr ethernet tcp udp ipv4;
+                  ValBaseStruct [("num_pkts", P4Bit 32 (counter + 1))];
+                  force ValBaseNull (uninit_sval_of_typ None ingress_intrinsic_metadata_for_deparser_t);
+                  if (counter mod 1024 =? 0) then
+                    update "mcast_grp_a" (P4Bit 16 1) ig_intr_tm_md
+                  else ig_intr_tm_md
+         ] ValBaseNull
+        (MEM []
+        (EXT [counter_repr p (counter + 1)]))).
+
+Lemma mod_0_iff_plus1_mod_1:
+  forall a b, 1 < b -> a mod b = 0 <-> (a + 1) mod b = 1.
+Proof.
+  intros. split; intros Hm.
+  - apply Z_div_exact_2 in Hm. 2: lia. rewrite Hm.
+    rewrite Z.add_comm, Z.mul_comm, Z.mod_add, Z.mod_1_l; lia.
+  - pose proof (Z_div_mod_eq_full (a + 1) b) as Hb. rewrite Hm in Hb.
+    assert (a = b * ((a + 1) / b)) as Ha by lia. rewrite Ha.
+    rewrite Z.mul_comm, Z.mod_mul; lia.
+Qed.
+
+Lemma Ingress_body:
+  func_sound ge Ingress_fd nil Ingress_spec.
+Proof.
+  start_function.
+  step_call act_count_body. 1: entailer.
+  step_call tbl_sample_body. 1: entailer.
+  Intros _.
+  step.
+  assert ((counter mod 1024 =? 0) = ((counter + 1) mod 1024 =? 1)) as Hm. {
+    destruct (counter mod 1024 =? 0) eqn: ?Hm;
+      destruct ((counter + 1) mod 1024 =? 1) eqn: ?Hp; auto.
+    - rewrite Z.eqb_eq in Hm. rewrite Z.eqb_neq in Hp.
+      rewrite mod_0_iff_plus1_mod_1 in Hm by lia. contradiction.
+    - rewrite Z.eqb_eq in Hp. rewrite Z.eqb_neq in Hm.
+      rewrite <- mod_0_iff_plus1_mod_1 in Hp by lia. contradiction. }
+  entailer.
+  - rewrite Hm. simpl. apply sval_refine_refl.
+  - rewrite Hm. simpl. apply sval_refine_refl.
 Qed.
