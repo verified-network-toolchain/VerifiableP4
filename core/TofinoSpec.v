@@ -14,6 +14,84 @@ Open Scope string_scope.
 Open Scope list_scope.
 Open Scope Z_scope.
 
+Lemma mod_bound_succ: forall w z,
+    BitArith.mod_bound (N.succ w) z =
+      2 * BitArith.mod_bound w (z / 2) + Z.b2z (Z.odd z).
+Proof.
+  intros. unfold BitArith.mod_bound, BitArith.upper_bound.
+  rewrite Znat.N2Z.inj_succ, Z.pow_succ_r, <- div_2_mod_2_pow, Z.mul_comm by lia.
+  reflexivity.
+Qed.
+
+Lemma to_lbool_succ: forall w z, to_lbool (N.succ w) z = to_lbool w (z / 2) ++ [Z.odd z].
+Proof.
+  intros. unfold to_lbool. rewrite Nnat.N2Nat.inj_succ.
+  simpl. rewrite P4Arith.to_lbool'_app. reflexivity.
+Qed.
+
+Lemma vmm_help_app: forall l1 l1' l2 l2' l3 l3',
+    length l1 = length l2 -> length l2 = length l3 ->
+    vmm_help (l1 ++ l1') (l2 ++ l2') (l3 ++ l3') =
+      andb (vmm_help l1 l2 l3) (vmm_help l1' l2' l3').
+Proof.
+  induction l1; intros l1' l2 l2' l3 l3' Hl12 Hl23.
+  - destruct l2, l3; simpl in *; [reflexivity | discriminate..].
+  - destruct l2, l3; simpl in *; try discriminate.
+    destruct b0; rewrite IHl1; auto.
+    rewrite Bool.andb_assoc. reflexivity.
+Qed.
+
+Lemma land_mod_bound: forall a b w,
+    Z.land a (BitArith.mod_bound w b) =
+      Z.land (BitArith.mod_bound w a) (BitArith.mod_bound w b).
+Proof.
+  intros. unfold BitArith.mod_bound, BitArith.upper_bound.
+  rewrite <- !Z.land_ones, !Z.land_assoc, !Z.land_ones by lia.
+  rewrite <- (Z.land_ones a), <- Z.land_assoc,
+    (Z.land_comm (Z.ones (Z.of_N w))), Z.land_assoc, Z.land_ones by lia.
+  rewrite Zdiv.Zmod_mod. reflexivity.
+Qed.
+
+Lemma land_double_add_b2z: forall a b c1 c2,
+    Z.land (2 * a + Z.b2z c1) (2 * b + Z.b2z c2) =
+      2 * Z.land a b + Z.b2z (c1 && c2).
+Proof.
+  intros. apply Z.bits_inj'. intros. rewrite Z.land_spec.
+  rewrite Z.le_lteq in H. destruct H.
+  - replace n with (Z.succ (Z.pred n)) by lia.
+    rewrite !Z.testbit_succ_r, Z.land_spec by lia. reflexivity.
+  - subst. rewrite !Z.testbit_0_r. reflexivity.
+Qed.
+
+Lemma values_match_mask_land: forall w key val mask,
+    values_match_mask
+      (ValBaseBit (to_lbool w key))
+      (ValBaseBit (to_lbool w val))
+      (ValBaseBit (to_lbool w mask)) =
+      (Z.land key (BitArith.mod_bound w mask) =?
+       Z.land val (BitArith.mod_bound w mask)).
+Proof.
+  intros w key val mask. unfold values_match_mask. simpl.
+  rewrite !Zlength_to_lbool, N.eqb_refl. simpl.
+  revert key val mask.
+  induction w using N.peano_ind; intros key val mask.
+  - simpl. rewrite bit_mod_bound_0, !Z.land_0_r. reflexivity.
+  - rewrite !to_lbool_succ, vmm_help_app by now rewrite !length_to_lbool.
+    rewrite (land_mod_bound key), (land_mod_bound val).
+    rewrite !mod_bound_succ. rewrite !land_double_add_b2z.
+    rewrite <- !land_mod_bound. rewrite IHw.
+    remember (BitArith.mod_bound w (mask / 2)) as z. simpl vmm_help.
+    destruct (Z.land (key / 2) z =? Z.land (val / 2) z) eqn: Hkv.
+    + rewrite Z.eqb_eq in Hkv. rewrite Hkv. simpl andb. destruct (Z.odd mask).
+      * rewrite !Bool.andb_true_r.
+        destruct (Z.odd key), (Z.odd val); simpl Z.b2z; simpl Bool.eqb;
+          (try now rewrite Z.eqb_refl); symmetry; rewrite Z.eqb_neq; lia.
+      * rewrite !Bool.andb_false_r, Z.eqb_refl. reflexivity.
+    + rewrite Bool.andb_false_l. symmetry. rewrite Z.eqb_neq in *.
+      destruct (Z.odd key && Z.odd mask), (Z.odd val && Z.odd mask);
+        simpl Z.b2z; lia.
+Qed.
+
 Section TofinoSpec.
 
 Context {tags_t: Type} {tags_t_inhabitant : Inhabitant tags_t}.
