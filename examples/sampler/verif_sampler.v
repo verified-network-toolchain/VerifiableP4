@@ -132,20 +132,20 @@ Definition update_hdr ethernet tcp udp ipv4 num_pkts :=
 Definition act_sample_spec : func_spec :=
   WITH (* p *),
     PATH p
-    MOD (Some [["hdr"]; ["ig_intr_tm_md"]]) [p]
-    WITH ethernet tcp udp ipv4 ig_intr_tm_md num_pkts counter,
+    MOD (Some [["hdr"]; ["ig_intr_tm_md"]]) []
+    WITH ethernet tcp udp ipv4 ig_intr_tm_md num_pkts,
       PRE
         (ARG []
         (MEM [(["hdr"], hdr ethernet tcp udp ipv4);
               (["ig_md"], ig_md num_pkts);
               (["ig_intr_tm_md"], ig_intr_tm_md)]
-        (EXT [counter_repr p counter])))
+        (EXT [])))
       POST
         (ARG_RET [] ValBaseNull
         (MEM [(["hdr"], update_hdr ethernet tcp udp ipv4 num_pkts);
               (* (["ig_md"], ig_md num_pkts); *)
               (["ig_intr_tm_md"], update "mcast_grp_a" (P4Bit 16 1) ig_intr_tm_md)]
-        (EXT [counter_repr p counter]))).
+        (EXT []))).
 
 Lemma act_sample_body:
   func_sound ge act_sample_fundef nil act_sample_spec.
@@ -163,14 +163,14 @@ Definition tbl_sample_fd :=
 Definition tbl_sample_spec : func_spec :=
   WITH (* p *),
     PATH p
-    MOD (Some [["hdr"]; ["ig_intr_tm_md"]]) [p]
-    WITH ethernet tcp udp ipv4 ig_intr_tm_md num_pkts counter,
+    MOD (Some [["hdr"]; ["ig_intr_tm_md"]]) []
+    WITH ethernet tcp udp ipv4 ig_intr_tm_md num_pkts,
       PRE
         (ARG []
         (MEM [(["hdr"], hdr ethernet tcp udp ipv4);
               (["ig_md"], ig_md num_pkts);
               (["ig_intr_tm_md"], ig_intr_tm_md)]
-        (EXT [counter_repr p counter])))
+        (EXT [])))
       POST
         (EX retv,
         (ARG_RET [] retv
@@ -181,7 +181,7 @@ Definition tbl_sample_spec : func_spec :=
               (["ig_intr_tm_md"], if (num_pkts mod 1024 =? 1) then
                                     update "mcast_grp_a" (P4Bit 16 1) ig_intr_tm_md
                                   else ig_intr_tm_md)]
-        (EXT [counter_repr p counter]))))%arg_ret_assr.
+        (EXT []))))%arg_ret_assr.
 
 Lemma mod_2_pow_1_less: forall v n m,
     0 < m -> m < n -> v mod 2 ^ n = 1 ->  Z.odd (v / 2 ^ m) = false.
