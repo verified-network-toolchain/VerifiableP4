@@ -49,7 +49,7 @@ Lemma tofino_parser_start_body:
   func_sound ge tofino_parser_start_fundef nil tofino_parser_start_spec.
 Proof.
   start_function.
-Qed.
+Abort.
 
 Definition parser_start_fundef :=
   ltac:(get_fd ["SwitchIngressParser"; "start"] ge).

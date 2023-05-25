@@ -273,7 +273,7 @@ Proof.
   - destruct a.
     destruct b; auto. *)
 (* Qed. *)
-Admitted.
+Abort.
 
 Open Scope func_spec.
 

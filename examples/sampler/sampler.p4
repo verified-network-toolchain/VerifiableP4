@@ -78,7 +78,7 @@ control SwitchIngress(inout header_sample_t hdr,
                       inout ingress_intrinsic_metadata_for_tm_t ig_intr_tm_md)
                       {
     action act_set_egress_port() {
-        ig_tm_md.ucast_egress_port = OUT_PORT;
+        ig_intr_tm_md.ucast_egress_port = OUT_PORT;
     }
     Register<bit<32>, bit<1>>(32w1, 32w0) reg_count;
     RegisterAction<bit<32>, bit<1>, bit<32>>(reg_count) regact_count = {

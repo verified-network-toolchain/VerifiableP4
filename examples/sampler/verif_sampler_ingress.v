@@ -16,6 +16,9 @@ Notation path := (list ident).
 Notation Val := (@ValueBase bool).
 Notation Sval := (@ValueBase (option bool)).
 
+Definition COLLECTOR_MULTICAST_GROUP: Z := 1.
+Definition OUT_PORT: Z := 128.
+
 Definition p := ["pipe"; "ingress"].
 
 Open Scope func_spec.
@@ -144,7 +147,7 @@ Definition act_sample_spec : func_spec :=
         (ARG_RET [] ValBaseNull
         (MEM [(["hdr"], update_hdr ethernet tcp udp ipv4 num_pkts);
               (* (["ig_md"], ig_md num_pkts); *)
-              (["ig_intr_tm_md"], update "mcast_grp_a" (P4Bit 16 1) ig_intr_tm_md)]
+              (["ig_intr_tm_md"], update "mcast_grp_a" (P4Bit 16 COLLECTOR_MULTICAST_GROUP) ig_intr_tm_md)]
         (EXT []))).
 
 Lemma act_sample_body:
@@ -154,6 +157,34 @@ Proof.
   unfold hdr.
   simpl.
   do 10 step.
+  entailer.
+Qed.
+
+Definition update_outport (port: Z) (ig_intr_tm_md: Sval) :=
+  update "ucast_egress_port" (P4Bit 9 port) ig_intr_tm_md.
+
+Definition act_set_egress_port_fundef :=
+  ltac:(get_fd ["SwitchIngress"; "act_set_egress_port"] ge).
+
+Definition act_set_egress_port_spec : func_spec :=
+  WITH (* p *),
+    PATH p
+    MOD (Some [["ig_intr_tm_md"]]) []
+    WITH ig_intr_tm_md,
+      PRE
+        (ARG []
+        (MEM [(["ig_intr_tm_md"], ig_intr_tm_md)]
+        (EXT [])))
+      POST
+        (ARG_RET [] ValBaseNull
+        (MEM [(["ig_intr_tm_md"], update_outport OUT_PORT ig_intr_tm_md)]
+        (EXT []))).
+
+Lemma act_set_egress_port_body:
+  func_sound ge act_set_egress_port_fundef nil act_set_egress_port_spec.
+Proof.
+  start_function.
+  do 2 step.
   entailer.
 Qed.
 
@@ -179,7 +210,7 @@ Definition tbl_sample_spec : func_spec :=
                            else hdr ethernet tcp udp ipv4);
               (* (["ig_md"], ig_md num_pkts); *)
               (["ig_intr_tm_md"], if (num_pkts mod 1024 =? 1) then
-                                    update "mcast_grp_a" (P4Bit 16 1) ig_intr_tm_md
+                                    update "mcast_grp_a" (P4Bit 16 COLLECTOR_MULTICAST_GROUP) ig_intr_tm_md
                                   else ig_intr_tm_md)]
         (EXT []))))%arg_ret_assr.
 
@@ -319,8 +350,9 @@ Definition Ingress_spec : func_spec :=
                   ValBaseStruct [("num_pkts", P4Bit 32 (counter + 1))];
                   force ValBaseNull (uninit_sval_of_typ None ingress_intrinsic_metadata_for_deparser_t);
                   if (counter mod 1024 =? 0) then
-                    update "mcast_grp_a" (P4Bit 16 1) ig_intr_tm_md
-                  else ig_intr_tm_md
+                    update "mcast_grp_a" (P4Bit 16 COLLECTOR_MULTICAST_GROUP)
+                      (update_outport OUT_PORT ig_intr_tm_md)
+                  else update_outport OUT_PORT ig_intr_tm_md
          ] ValBaseNull
         (MEM []
         (EXT [counter_repr p (counter + 1)]))).
@@ -340,6 +372,7 @@ Lemma Ingress_body:
   func_sound ge Ingress_fd nil Ingress_spec.
 Proof.
   start_function.
+  step_call act_set_egress_port_body. 1: entailer.
   step_call act_count_body. 1: entailer.
   step_call tbl_sample_body. 1: entailer.
   Intros _.

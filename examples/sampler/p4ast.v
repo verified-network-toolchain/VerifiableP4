@@ -2943,7 +2943,36 @@ Definition SwitchIngress := DeclControl NoInfo
            {| stags := NoInfo;
               str := "ingress_intrinsic_metadata_for_tm_t" |}) None
           {| stags := NoInfo; str := "ig_intr_tm_md" |})] nil
-    [(DeclInstantiation NoInfo
+    [(DeclAction NoInfo {| stags := NoInfo; str := "act_set_egress_port" |}
+          nil nil
+          (BlockCons
+               (MkStatement NoInfo
+                    (StatAssignment
+                         (MkExpression NoInfo
+                              (ExpExpressionMember
+                                   (MkExpression NoInfo
+                                        (ExpName
+                                         (BareName
+                                          {| stags := NoInfo;
+                                             str := "ig_intr_tm_md" |})
+                                         (LInstance ["ig_intr_tm_md"]))
+                                        (TypTypeName
+                                         {| stags := NoInfo;
+                                            str := "ingress_intrinsic_metadata_for_tm_t" |})
+                                        InOut)
+                                   {| stags := NoInfo;
+                                      str := "ucast_egress_port" |})
+                              (TypBit 9%N) Directionless)
+                         (MkExpression NoInfo
+                              (ExpCast (TypBit 9%N)
+                                   (MkExpression NoInfo
+                                        (ExpInt
+                                         {| itags := NoInfo; value := 128;
+                                            width_signed := None |})
+                                        TypInteger Directionless))
+                              (TypBit 9%N) Directionless)) StmUnit)
+               (BlockEmpty NoInfo)));
+     (DeclInstantiation NoInfo
           (TypSpecializedType
                (TypTypeName {| stags := NoInfo; str := "Register" |})
                [(TypBit 32%N); (TypBit 1%N)])
@@ -3894,32 +3923,42 @@ Definition SwitchIngress := DeclControl NoInfo
               (StatMethodCall
                    (MkExpression NoInfo
                         (ExpName
-                         (BareName {| stags := NoInfo; str := "act_count" |})
-                         (LInstance ["act_count"])) (TypAction nil nil)
-                        Directionless) nil nil) StmUnit)
+                         (BareName
+                          {| stags := NoInfo; str := "act_set_egress_port" |})
+                         (LInstance ["act_set_egress_port"]))
+                        (TypAction nil nil) Directionless) nil nil) StmUnit)
          (BlockCons
               (MkStatement NoInfo
                    (StatMethodCall
                         (MkExpression NoInfo
-                             (ExpExpressionMember
-                                  (MkExpression NoInfo
-                                       (ExpName
-                                        (BareName
-                                         {| stags := NoInfo;
-                                            str := "tbl_sample" |})
-                                        (LInstance ["tbl_sample"]))
-                                       (TypTable
-                                        {| stags := NoInfo;
-                                           str := "apply_result_tbl_sample" |})
-                                       Directionless)
-                                  {| stags := NoInfo; str := "apply" |})
-                             (TypFunction
-                              (MkFunctionType nil nil FunTable
-                                   (TypTypeName
-                                    {| stags := NoInfo;
-                                       str := "apply_result_tbl_sample" |})))
+                             (ExpName
+                              (BareName
+                               {| stags := NoInfo; str := "act_count" |})
+                              (LInstance ["act_count"])) (TypAction nil nil)
                              Directionless) nil nil) StmUnit)
-              (BlockEmpty NoInfo))).
+              (BlockCons
+                   (MkStatement NoInfo
+                        (StatMethodCall
+                             (MkExpression NoInfo
+                                  (ExpExpressionMember
+                                       (MkExpression NoInfo
+                                            (ExpName
+                                             (BareName
+                                              {| stags := NoInfo;
+                                                 str := "tbl_sample" |})
+                                             (LInstance ["tbl_sample"]))
+                                            (TypTable
+                                             {| stags := NoInfo;
+                                                str := "apply_result_tbl_sample" |})
+                                            Directionless)
+                                       {| stags := NoInfo; str := "apply" |})
+                                  (TypFunction
+                                   (MkFunctionType nil nil FunTable
+                                        (TypTypeName
+                                         {| stags := NoInfo;
+                                            str := "apply_result_tbl_sample" |})))
+                                  Directionless) nil nil) StmUnit)
+                   (BlockEmpty NoInfo)))).
 
 Definition SwitchIngressDeparser := DeclControl NoInfo
     {| stags := NoInfo; str := "SwitchIngressDeparser" |} nil
