@@ -77,7 +77,9 @@ control SwitchIngress(inout header_sample_t hdr,
                       inout ingress_intrinsic_metadata_for_deparser_t ig_intr_dprsr_md,
                       inout ingress_intrinsic_metadata_for_tm_t ig_intr_tm_md)
                       {
-
+    action act_set_egress_port() {
+        ig_tm_md.ucast_egress_port = OUT_PORT;
+    }
     Register<bit<32>, bit<1>>(32w1, 32w0) reg_count;
     RegisterAction<bit<32>, bit<1>, bit<32>>(reg_count) regact_count = {
         void apply(inout bit<32> value, out bit<32> rv) {
@@ -109,8 +111,8 @@ control SwitchIngress(inout header_sample_t hdr,
             NoAction;
         }
         const entries = {
-        	32w0x00000001 &&& 32w0x000003FF : act_sample();
-        	_ : NoAction();
+            32w0x00000001 &&& 32w0x000003FF : act_sample();
+            _ : NoAction();
         }
 
         const default_action = NoAction;
@@ -118,6 +120,7 @@ control SwitchIngress(inout header_sample_t hdr,
     }
 
     apply {
+        act_set_egress_port();
         act_count();
         tbl_sample.apply();
     }
