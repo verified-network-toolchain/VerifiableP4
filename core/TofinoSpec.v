@@ -104,6 +104,7 @@ Notation ident := (String.string).
 Notation path := (list ident).
 Notation P4Int := (P4Int.t tags_t).
 Notation P4String := (P4String.t tags_t).
+Notation P4Type := (@P4Type tags_t).
 Notation Expression := (@Expression tags_t).
 Notation table_entry_valset := (@table_entry_valset Expression).
 
@@ -276,6 +277,41 @@ Proof.
 Abort.
 
 Open Scope func_spec.
+
+Definition packet_in_extract_spec (p: path) (typ: P4Type): func_spec :=
+  WITH,
+    PATH p
+    MOD None [p]
+    WITH (pin: packet_in) v pin' (H: extract typ pin = Some (v, SReturnNull, pin')),
+    PRE (ARG []
+           (MEM []
+              (EXT [ExtPred.singleton p (ObjPin pin)])))
+    POST (ARG_RET [eval_val_to_sval v] ValBaseNull
+         (MEM []
+         (EXT [ExtPred.singleton p (ObjPin pin')]))).
+
+Lemma packet_in_extract_body: forall (p: path) (typ: P4Type),
+    func_sound ge (FExternal "packet_in" "extract") [typ]
+      (packet_in_extract_spec p typ).
+Proof.
+  intros. unfold packet_in_extract_spec. simpl. split; repeat intro.
+  - inv H0. inv H6. simpl in H0. inv H0.
+    + destruct H. destruct H0. destruct H1. simpl in H1. rewrite H1 in H2.
+      inv H2. rewrite x2 in H7. inv H7. constructor.
+      * hnf. red in H12.
+        eapply ForallMap.Forall2_forall_impl_Forall2; [|apply H12].
+        constructor. 2: constructor. clear. intros.
+        rewrite val_to_sval_iff in H. subst. apply sval_refine_refl.
+      * split.
+        -- apply eval_val_to_sval_ret_denote. reflexivity.
+        -- split; auto. hnf. split; simpl; auto. apply PathMap.get_set_same.
+    + red in H. destruct H. red in H. red in H. inv H. inv H3.
+  - red. split; simpl; auto. repeat intro. inv H. inv H6. simpl in *.
+    assert (q <> p). {
+      intro. apply H0. subst. rewrite Bool.orb_false_r. red.
+      unfold in_scope. apply is_prefix_refl. }
+    inv H; rewrite PathMap.get_set_diff; auto.
+Qed.
 
 (* This is the general form of RegisterAction's apply method's spec that we support.
   We expecct this is general enough for all practical application. We don't support
