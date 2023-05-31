@@ -278,6 +278,10 @@ Abort.
 
 Open Scope func_spec.
 
+(** TODO This spec only considers the ideal situation: there is no
+error in packet parsing. This is reasonable because the error packets
+will be dropped so that they will not affect the ingress after parser,
+at least in the Tofino switch. *)
 Definition packet_in_extract_spec (p: path) (typ: P4Type): func_spec :=
   WITH,
     PATH p
@@ -306,6 +310,51 @@ Proof.
         -- apply eval_val_to_sval_ret_denote. reflexivity.
         -- split; auto. hnf. split; simpl; auto. apply PathMap.get_set_same.
     + red in H. destruct H. red in H. red in H. inv H. inv H3.
+  - red. split; simpl; auto. repeat intro. inv H. inv H6. simpl in *.
+    assert (q <> p). {
+      intro. apply H0. subst. rewrite Bool.orb_false_r. red.
+      unfold in_scope. apply is_prefix_refl. }
+    inv H; rewrite PathMap.get_set_diff; auto.
+Qed.
+
+Definition packet_in_advance_spec (p: path): func_spec :=
+  WITH,
+    PATH p
+    MOD None [p]
+    WITH (pin: packet_in) (size: Z) (_: 0 <= size < Zlength pin)
+         (_: Zlength pin < 2 ^ 32),
+    PRE (ARG [P4Bit 32 size]
+           (MEM []
+              (EXT [ExtPred.singleton p (ObjPin pin)])))
+    POST (ARG_RET [] ValBaseNull
+         (MEM []
+         (EXT [ExtPred.singleton p (ObjPin (skipn (Z.to_nat size) pin))]))).
+
+Lemma packet_in_advance_body: forall (p: path),
+    func_sound ge (FExternal "packet_in" "advance") [] (packet_in_advance_spec p).
+Proof.
+  intros. unfold packet_in_advance_spec. simpl. split; repeat intro.
+  - inv H0. inv H6. simpl in H0. inv H0. destruct H. hnf in H. red in H3.
+    inv H. inv H9. inv H3. clear H10. apply sval_refine_bit_to_loptbool in H7.
+    subst y. apply sval_to_val_bit_to_loptbool in H8.
+    remember (to_lbool 32 (Z.of_nat len)) as lb1.
+    remember (to_lbool 32 x0) as lb2. inversion H8. clear H8.
+    rewrite Heqlb1, Heqlb2 in H3. clear dependent lb1. clear dependent lb2.
+    apply to_lbool_inj_bit_mod in H3.
+    unfold BitArith.mod_bound, BitArith.upper_bound in H3. simpl in H3.
+    destruct H0. destruct H0. simpl in H0. rewrite H0 in H1. inv H1.
+    rewrite (Zdiv.Zmod_small x0) in H3 by lia.
+    rewrite Zdiv.Zmod_small in H3 by lia. subst x0. rewrite Znat.Nat2Z.id.
+    unfold advance in H4. unfold Packet.extract_bits in H4. simpl in H4.
+    unfold Packet.packet_bind, Packet.packet_ret, ExceptionState.state_bind,
+      ExceptionState.state_return, Packet.verify, Packet.pkt_min_size in H4.
+    assert (Nat.leb len (Datatypes.length pin) = true). {
+      pose proof (Zlength_correct pin). rewrite PeanoNat.Nat.leb_le. lia. }
+    rewrite H1 in H4. simpl in H4. inv H4. constructor.
+    + hnf in H12 |- * . inversion H12. constructor.
+    + split.
+      * apply eval_val_to_sval_ret_denote. reflexivity.
+      * split; auto. hnf. split; simpl; auto. apply PathMap.get_set_same.
   - red. split; simpl; auto. repeat intro. inv H. inv H6. simpl in *.
     assert (q <> p). {
       intro. apply H0. subst. rewrite Bool.orb_false_r. red.
