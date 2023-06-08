@@ -321,8 +321,8 @@ Definition packet_in_advance_spec (p: path): func_spec :=
   WITH,
     PATH p
     MOD None [p]
-    WITH (pin: packet_in) (size: Z) (_: 0 <= size < Zlength pin)
-         (_: Zlength pin < 2 ^ 32),
+    WITH (pin: packet_in) (size: Z) (_: 0 <= size < 2 ^ 32)
+         (_: size < Zlength pin),
     PRE (ARG [P4Bit 32 size]
            (MEM []
               (EXT [ExtPred.singleton p (ObjPin pin)])))
@@ -360,6 +360,24 @@ Proof.
       intro. apply H0. subst. rewrite Bool.orb_false_r. red.
       unfold in_scope. apply is_prefix_refl. }
     inv H; rewrite PathMap.get_set_diff; auto.
+Qed.
+
+Definition parser_accept_spec (p: path): func_spec :=
+  WITH,
+    PATH p
+    MOD None []
+    WITH ,
+    PRE (ARG [] (MEM [] (EXT [])))
+    POST (ARG_RET [] ValBaseNull (MEM [] (EXT []))).
+
+Lemma parser_accept_body: forall p,
+    func_sound ge (@accept_state tags_t tags_t_inhabitant) []
+      (parser_accept_spec p).
+Proof.
+  intros. unfold accept_state, BlockNil.
+  start_function.
+  step.
+  entailer.
 Qed.
 
 (* This is the general form of RegisterAction's apply method's spec that we support.
@@ -972,3 +990,5 @@ End TofinoSpec.
 
 #[export] Hint Extern 5 (func_modifies _ _ _ _ _) =>
   (refine (proj2 (Hash_get_body _ _ _ _ _ _ _)); try exact (@nil _); compute; reflexivity) : func_specs.
+
+#[export] Hint Extern 5 (func_modifies _ _ _ _ _) => (apply packet_in_advance_body) : func_specs.

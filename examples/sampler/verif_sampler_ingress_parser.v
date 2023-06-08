@@ -23,33 +23,43 @@ Open Scope func_spec.
 Definition tofino_parser_start_fundef :=
   ltac:(get_fd ["TofinoIngressParser"; "start"] ge).
 
-Definition tofino_parse_resubmit_fundef :=
+Definition tofino_parser_resubmit_fundef :=
   ltac:(get_fd ["TofinoIngressParser"; "parse_resubmit"] ge).
 
-Definition tofino_parse_port_metadata_fundef :=
+Definition tofino_parser_port_metadata_fundef :=
   ltac:(get_fd ["TofinoIngressParser"; "parse_port_metadata"] ge).
 
-Definition tofino_parser_start_spec: func_spec :=
+Definition test :=
+  ltac:(get_fd ["TofinoIngressParser"; "accept"] ge).
+
+Definition tofino_parser_port_metadata_spec: func_spec :=
   WITH,
     PATH p
-    MOD None []
-    WITH,
+    MOD None [["packet_in"]]
+    WITH (pin: packet_in) (_: 64 < Zlength pin),
       PRE
         (ARG []
         (MEM []
-        (EXT [])))
+        (EXT [ExtPred.singleton ["packet_in"] (ObjPin pin)])))
       POST
         (ARG_RET [] ValBaseNull
         (MEM []
-           (EXT []))).
+           (EXT [ExtPred.singleton ["packet_in"] (ObjPin (skipn 64 pin))]))).
 
 (* Unset Printing Notations. *)
 
-Lemma tofino_parser_start_body:
-  func_sound ge tofino_parser_start_fundef nil tofino_parser_start_spec.
+Lemma tofino_parser_port_metadata_body:
+  func_sound ge tofino_parser_port_metadata_fundef nil
+    tofino_parser_port_metadata_spec.
 Proof.
   start_function.
-Abort.
+  step_call (@packet_in_advance_body Info);
+    [ entailer; instantiate (1 := 64); apply sval_refine_refl |
+      lia | assumption | ].
+  step_call (@parser_accept_body Info); [entailer |].
+  step.
+  entailer.
+Qed.
 
 Definition parser_start_fundef :=
   ltac:(get_fd ["SwitchIngressParser"; "start"] ge).
