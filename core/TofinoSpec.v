@@ -380,6 +380,23 @@ Proof.
   entailer.
 Qed.
 
+Definition parser_reject_spec (p: path): func_spec :=
+  WITH,
+    PATH p
+    MOD None []
+    WITH (_: False),
+    PRE (ARG [] (MEM [] (EXT [])))
+    POST (ARG_RET [] ValBaseNull (MEM [] (EXT []))).
+
+Lemma parser_reject_body: forall p,
+    func_sound ge (@reject_state tags_t tags_t_inhabitant) []
+      (parser_reject_spec p).
+Proof.
+  intros. unfold reject_state, BlockNil.
+  start_function. exfalso; auto.
+  red. split; admit.
+Admitted.
+
 (* This is the general form of RegisterAction's apply method's spec that we support.
   We expecct this is general enough for all practical application. We don't support
   other kind of apply methods. *)
@@ -992,3 +1009,7 @@ End TofinoSpec.
   (refine (proj2 (Hash_get_body _ _ _ _ _ _ _)); try exact (@nil _); compute; reflexivity) : func_specs.
 
 #[export] Hint Extern 5 (func_modifies _ _ _ _ _) => (apply packet_in_advance_body) : func_specs.
+
+#[export] Hint Extern 5 (func_modifies _ _ _ _ _) => (refine (proj2 (packet_in_extract_body _ _ _)); exact TypBool) : func_specs.
+
+#[export] Hint Extern 5 (func_modifies ?g _ _ _ _) => (apply (parser_reject_body g g)) : func_specs.

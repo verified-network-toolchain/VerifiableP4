@@ -14,3 +14,14 @@ Notation Sval := (@ValueBase (option bool)).
 
 Definition am_ge := ltac:(get_am_ge prog).
 Definition ge := ltac:(get_ge am_ge prog).
+
+Definition header_sample_t: P4Type := ltac:(get_type "header_sample_t" ge).
+Definition metadata_t: P4Type := ltac:(get_type "metadata_t" ge).
+Definition ingress_intrinsic_metadata_t: P4Type :=
+  ltac:(get_type "ingress_intrinsic_metadata_t" ge).
+Definition ingress_intrinsic_metadata_from_parser_t: P4Type :=
+  ltac:(get_type "ingress_intrinsic_metadata_from_parser_t" ge).
+Definition ingress_intrinsic_metadata_for_deparser_t: P4Type :=
+  ltac:(get_type "ingress_intrinsic_metadata_for_deparser_t" ge).
+Definition ingress_intrinsic_metadata_for_tm_t: P4Type :=
+  ltac:(get_type "ingress_intrinsic_metadata_for_tm_t" ge).

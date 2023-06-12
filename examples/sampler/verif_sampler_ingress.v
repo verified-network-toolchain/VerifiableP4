@@ -65,17 +65,6 @@ Qed.
 Definition act_sample_fundef :=
   ltac:(get_fd ["SwitchIngress"; "act_sample"] ge).
 
-Definition header_sample_t: P4Type := ltac:(get_type "header_sample_t" ge).
-Definition metadata_t: P4Type := ltac:(get_type "metadata_t" ge).
-Definition ingress_intrinsic_metadata_t: P4Type :=
-  ltac:(get_type "ingress_intrinsic_metadata_t" ge).
-Definition ingress_intrinsic_metadata_from_parser_t: P4Type :=
-  ltac:(get_type "ingress_intrinsic_metadata_from_parser_t" ge).
-Definition ingress_intrinsic_metadata_for_deparser_t: P4Type :=
-  ltac:(get_type "ingress_intrinsic_metadata_for_deparser_t" ge).
-Definition ingress_intrinsic_metadata_for_tm_t: P4Type :=
-  ltac:(get_type "ingress_intrinsic_metadata_for_tm_t" ge).
-
 Definition set_field_valid (h: Sval) (fld: ident): Sval :=
   (update fld (EvalBuiltin.setValid (get fld h)) h).
 
