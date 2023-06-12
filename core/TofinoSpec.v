@@ -392,6 +392,7 @@ Lemma parser_reject_body: forall p,
     func_sound ge (@reject_state tags_t tags_t_inhabitant) []
       (parser_reject_spec p).
 Proof.
+  clear am_ge.
   intros. unfold reject_state, BlockNil.
   start_function. exfalso; auto.
   red. split; admit.
@@ -1012,4 +1013,4 @@ End TofinoSpec.
 
 #[export] Hint Extern 5 (func_modifies _ _ _ _ _) => (refine (proj2 (packet_in_extract_body _ _ _)); exact TypBool) : func_specs.
 
-#[export] Hint Extern 5 (func_modifies ?g _ _ _ _) => (apply (parser_reject_body g g)) : func_specs.
+#[export] Hint Extern 5 (func_modifies _ _ _ _ _) => (apply parser_reject_body) : func_specs.

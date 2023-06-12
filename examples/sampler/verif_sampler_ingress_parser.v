@@ -16,7 +16,7 @@ Notation path := (list ident).
 Notation Val := (@ValueBase bool).
 Notation Sval := (@ValueBase (option bool)).
 
-Definition p := ["pipe"; "ingress_parser"].
+Definition p := ["pipe"; "ingress_parser"; "tofino_parser"].
 
 Open Scope func_spec.
 
@@ -79,7 +79,7 @@ Proof.
   step_call (@packet_in_advance_body Info);
     [ entailer; instantiate (1 := 64); apply sval_refine_refl |
       lia | assumption | ].
-  step_call (parser_reject_body ge ge); [entailer | assumption |].
+  step_call (@parser_reject_body Info); [entailer | assumption |].
   step. entailer.
 Qed.
 
@@ -132,45 +132,10 @@ Lemma tofino_parser_start_body:
 Proof.
   start_function.
   - step_call (@packet_in_extract_body Info); [entailer | apply H |].
-    step_if.
-    + simpl get in H1. exfalso; auto.
-    + simpl Ops.eval_cast in H1.
-      simpl get in H1. simpl build_abs_unary_op in H1.
-      unfold build_abs_unary_op in H1. simpl eval_sval_to_val in H1.
-      simpl in H1. exfalso. assumption.
-  - apply func_modifies_internal.
-    apply Forall_nil.
-    simple apply @block_modifies_cons.
-    + eauto 300 with nocore modifies.
-    + simple apply @block_modifies_cons.
-      simple apply @stmt_modifies_if.
-      simple eapply @stmt_modifies_method_call.
-      simple eapply @call_modifies_func; try eauto 300 with nocore modifies.
-      simpl.
-(*
- simple eapply @stmt_modifies_assign
- simple eapply @stmt_modifies_assign_call
- simple apply @eq_refl
- simple eapply @call_modifies_func
- simple apply @eq_refl
- (*external*) reflexivity
- (*external*) (apply Forall2_cons)
- simple apply @out_arg_In_vars_in
- (*external*) (apply Forall2_nil)
- (*external*) reflexivity
-
- (*external*) (eapply func_modifies_frame; only 1: solve
-                            [ eauto  15 with nocore func_specs ])
- (*external*) (apply incl_vars_None_None)
- (*external*) (apply Forall_cons)
- (*external*) reflexivity
- (*external*) (apply Forall_nil)
- (*external*) reflexivity
-
- (*external*) (apply In_vars_Some)
- simple apply in_eq
- simple apply @block_modifies_nil *)
-Abort.
+    step_if; simpl in H1. 1: exfalso; auto.
+    clear H1. step_if; simpl in H1. 2: exfalso; auto.
+    step_call tofino_parser_port_metadata_body; auto. entailer.
+Qed.
 
 Definition parser_start_fundef :=
   ltac:(get_fd ["SwitchIngressParser"; "start"] ge).
