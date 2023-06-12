@@ -229,6 +229,13 @@ Qed.
 
 Local Hint Resolve write_modifies_intro : core.
 
+Lemma stmt_modifies_empty : forall p tags typ vars exts,
+  stmt_modifies p (MkStatement tags (StatEmpty) typ) vars exts.
+Proof.
+  unfold stmt_modifies. intros.
+  inv H; eauto.
+Qed.
+
 Lemma stmt_modifies_assign : forall p tags lhs rhs typ lv vars exts,
   is_call_expression rhs = false ->
   get_lexpr_base lhs = Some lv ->
@@ -662,7 +669,7 @@ End Modifies.
 #[export] Hint Resolve block_modifies_nil block_modifies_cons : modifies.
 (* stmt_modifies rules *)
 #[export] Hint Resolve
-    stmt_modifies_assign stmt_modifies_assign_call stmt_modifies_method_call stmt_modifies_direct_application
+    stmt_modifies_empty stmt_modifies_assign stmt_modifies_assign_call stmt_modifies_method_call stmt_modifies_direct_application
     stmt_modifies_var stmt_modifies_var_call stmt_modifies_if_none stmt_modifies_if_some stmt_modifies_block
     stmt_modifies_var_none
     : modifies.
