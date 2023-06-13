@@ -365,7 +365,7 @@ Qed.
 Definition parser_accept_spec (p: path): func_spec :=
   WITH,
     PATH p
-    MOD None []
+    MOD (Some []) []
     WITH ,
     PRE (ARG [] (MEM [] (EXT [])))
     POST (ARG_RET [] ValBaseNull (MEM [] (EXT []))).
@@ -383,7 +383,7 @@ Qed.
 Definition parser_reject_spec (p: path): func_spec :=
   WITH,
     PATH p
-    MOD None []
+    MOD (Some []) []
     WITH (_: False),
     PRE (ARG [] (MEM [] (EXT [])))
     POST (ARG_RET [] ValBaseNull (MEM [] (EXT []))).

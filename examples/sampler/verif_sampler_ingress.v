@@ -3,18 +3,13 @@ Require Import Poulet4.P4light.Semantics.Semantics.
 Require Import ProD3.core.Core.
 Require Import Poulet4.P4light.Architecture.Tofino.
 Require Import ProD3.core.Tofino.
-Require Import ProD3.examples.sampler.common.
 Require Import ProD3.examples.sampler.ModelRepr.
+Require Import ProD3.examples.sampler.common.
 Require Import ProD3.core.ProgNotations.
 Require Import Poulet4.P4light.Syntax.P4Notations.
 Require Import Hammer.Plugin.Hammer.
 Require Export Coq.Program.Program.
 Import ListNotations.
-
-Notation ident := string.
-Notation path := (list ident).
-Notation Val := (@ValueBase bool).
-Notation Sval := (@ValueBase (option bool)).
 
 Definition COLLECTOR_MULTICAST_GROUP: Z := 1.
 Definition OUT_PORT: Z := 128.

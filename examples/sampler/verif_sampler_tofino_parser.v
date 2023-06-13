@@ -3,18 +3,13 @@ Require Import Poulet4.P4light.Semantics.Semantics.
 Require Import ProD3.core.Core.
 Require Import Poulet4.P4light.Architecture.Tofino.
 Require Import ProD3.core.Tofino.
-Require Import ProD3.examples.sampler.common.
 Require Import ProD3.examples.sampler.ModelRepr.
+Require Import ProD3.examples.sampler.common.
 Require Import ProD3.core.ProgNotations.
 Require Import Poulet4.P4light.Syntax.P4Notations.
 Require Import Hammer.Plugin.Hammer.
 Require Export Coq.Program.Program.
 Import ListNotations.
-
-Notation ident := string.
-Notation path := (list ident).
-Notation Val := (@ValueBase bool).
-Notation Sval := (@ValueBase (option bool)).
 
 Definition p := ["pipe"; "ingress_parser"; "tofino_parser"].
 
@@ -26,7 +21,7 @@ Definition tofino_parser_port_metadata_fundef :=
 Definition tofino_parser_port_metadata_spec: func_spec :=
   WITH,
     PATH p
-    MOD None [["packet_in"]]
+    MOD (Some []) [["packet_in"]]
     WITH (pin: packet_in) (_: 64 < Zlength pin),
       PRE
         (ARG []
@@ -60,7 +55,7 @@ Definition tofino_parser_resubmit_fundef :=
 Definition tofino_parser_resubmit_spec: func_spec :=
   WITH,
     PATH p
-    MOD None [["packet_in"]]
+    MOD (Some []) [["packet_in"]]
     WITH (pin: packet_in) (_: 64 < Zlength pin) (_: False),
       PRE
         (ARG []
@@ -109,7 +104,50 @@ Definition iimt_repr_val (flag version port stamp: Z) : Val :=
      ("ingress_port", P4BitV 9 port);
      ("ingress_mac_tstamp", P4BitV 48 stamp)] true.
 
+Lemma iimt_repr_eq: forall flag ver port stamp,
+    eval_val_to_sval (iimt_repr_val flag ver port stamp) =
+      iimt_repr_sval flag ver port stamp.
+Proof.
+  intros. rewrite <- val_to_sval_iff.
+  unfold iimt_repr_val, iimt_repr_sval.
+  repeat constructor.
+Qed.
+
 Definition tofino_parser_start_spec: func_spec :=
+  WITH,
+    PATH p
+    MOD (Some [["ig_intr_md"]]) [["packet_in"]]
+    WITH (pin: packet_in) ver port stamp pin'
+         (_: extract ingress_intrinsic_metadata_t pin =
+             Some (iimt_repr_val 0 ver port stamp, SReturnNull, pin'))
+         (_: 64 < Zlength pin'),
+      PRE
+        (ARG []
+        (MEM []
+        (EXT [ExtPred.singleton ["packet_in"] (ObjPin pin)])))
+      POST
+        (ARG_RET [] ValBaseNull
+        (MEM [(["ig_intr_md"], (iimt_repr_sval 0 ver port stamp))]
+           (EXT [ExtPred.singleton ["packet_in"] (ObjPin (skipn 64 pin'))]))).
+
+Lemma tofino_parser_start_body:
+  func_sound ge tofino_parser_start_fundef nil
+    tofino_parser_start_spec.
+Proof.
+  start_function.
+  - step_call (@packet_in_extract_body Info); [entailer | apply H |].
+    step_if; simpl in H1. 1: exfalso; auto.
+    clear H1. step_if; simpl in H1. 2: exfalso; auto.
+    rewrite iimt_repr_eq.
+    step_call tofino_parser_port_metadata_body; auto. entailer.
+Qed.
+
+#[export] Hint Extern 5 (func_modifies _ _ _ _ _) => (apply tofino_parser_start_body) : func_specs.
+
+Definition tofino_parser_fundef :=
+  ltac:(get_fd ["TofinoIngressParser"; "apply"] ge).
+
+Definition tofino_parser_spec: func_spec :=
   WITH,
     PATH p
     MOD None [["packet_in"]]
@@ -122,23 +160,18 @@ Definition tofino_parser_start_spec: func_spec :=
         (MEM []
         (EXT [ExtPred.singleton ["packet_in"] (ObjPin pin)])))
       POST
-        (ARG_RET [] ValBaseNull
+        (ARG_RET [iimt_repr_sval 0 ver port stamp] ValBaseNull
         (MEM []
            (EXT [ExtPred.singleton ["packet_in"] (ObjPin (skipn 64 pin'))]))).
 
-Lemma tofino_parser_start_body:
-  func_sound ge tofino_parser_start_fundef nil
-    tofino_parser_start_spec.
+Lemma tofino_parser_body:
+  func_sound ge tofino_parser_fundef nil tofino_parser_spec.
 Proof.
   start_function.
-  - step_call (@packet_in_extract_body Info); [entailer | apply H |].
-    step_if; simpl in H1. 1: exfalso; auto.
-    clear H1. step_if; simpl in H1. 2: exfalso; auto.
-    step_call tofino_parser_port_metadata_body; auto. entailer.
+  step.
+  step_call tofino_parser_start_body; [ entailer | apply H | assumption | ].
+  step.
+  entailer.
 Qed.
 
-Definition parser_start_fundef :=
-  ltac:(get_fd ["SwitchIngressParser"; "start"] ge).
-
-Definition parser_parse_ethernet_fundef :=
-  ltac:(get_fd ["SwitchIngressParser"; "parse_ethernet"] ge).
+#[export] Hint Extern 5 (func_modifies _ _ _ _ _) => (apply tofino_parser_body) : func_specs.
