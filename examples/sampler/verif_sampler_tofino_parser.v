@@ -135,11 +135,11 @@ Lemma tofino_parser_start_body:
     tofino_parser_start_spec.
 Proof.
   start_function.
-  - step_call (@packet_in_extract_body Info); [entailer | apply H |].
-    step_if; simpl in H1. 1: exfalso; auto.
-    clear H1. step_if; simpl in H1. 2: exfalso; auto.
-    rewrite iimt_repr_eq.
-    step_call tofino_parser_port_metadata_body; auto. entailer.
+  step_call (@packet_in_extract_body Info); [entailer | apply H |].
+  step_if; simpl in H1. 1: exfalso; auto.
+  clear H1. step_if; simpl in H1. 2: exfalso; auto.
+  rewrite iimt_repr_eq.
+  step_call tofino_parser_port_metadata_body; auto. entailer.
 Qed.
 
 #[export] Hint Extern 5 (func_modifies _ _ _ _ _) => (apply tofino_parser_start_body) : func_specs.

@@ -25,3 +25,5 @@ Definition ingress_intrinsic_metadata_for_deparser_t: P4Type :=
   ltac:(get_type "ingress_intrinsic_metadata_for_deparser_t" ge).
 Definition ingress_intrinsic_metadata_for_tm_t: P4Type :=
   ltac:(get_type "ingress_intrinsic_metadata_for_tm_t" ge).
+Definition tcp_h: P4Type := ltac:(get_type "tcp_h" ge).
+Definition udp_h: P4Type := ltac:(get_type "udp_h" ge).

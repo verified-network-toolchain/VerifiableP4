@@ -285,7 +285,7 @@ at least in the Tofino switch. *)
 Definition packet_in_extract_spec (p: path) (typ: P4Type): func_spec :=
   WITH,
     PATH p
-    MOD None [p]
+    MOD (Some []) [p]
     WITH (pin: packet_in) v pin' (H: extract typ pin = Some (v, SReturnNull, pin')),
     PRE (ARG []
            (MEM []
@@ -310,11 +310,11 @@ Proof.
         -- apply eval_val_to_sval_ret_denote. reflexivity.
         -- split; auto. hnf. split; simpl; auto. apply PathMap.get_set_same.
     + red in H. destruct H. red in H. red in H. inv H. inv H3.
-  - red. split; simpl; auto. repeat intro. inv H. inv H6. simpl in *.
+  - red. inv H. split; simpl; auto. repeat intro. inv H5. simpl in *.
     assert (q <> p). {
-      intro. apply H0. subst. rewrite Bool.orb_false_r. red.
+      intro. apply H. subst. rewrite Bool.orb_false_r. red.
       unfold in_scope. apply is_prefix_refl. }
-    inv H; rewrite PathMap.get_set_diff; auto.
+    inv H0; rewrite PathMap.get_set_diff; auto.
 Qed.
 
 Definition packet_in_advance_spec (p: path): func_spec :=
