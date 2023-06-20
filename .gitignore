@@ -43,3 +43,7 @@ nia.cache
 nlia.cache
 nra.cache
 _opam
+
+#jupyter lab
+__pycache__
+.ipynb_checkpoints

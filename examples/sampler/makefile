@@ -15,7 +15,7 @@ build: $(PROG).p4 $(PROG).py
 hw:
 	$(P4TAPP) hw $(PROG).p4
 test:
-	$(P4TAPP) test $(PROG).p4 test.json
+	$(P4TAPP) test $(PROG).p4 1025_test.json
 sim:
 	$(P4TAPP) sim $(PROG).p4
 dummy:

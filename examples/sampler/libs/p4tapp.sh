@@ -424,13 +424,14 @@ function test() {
     echo "**** sending pcap ****"
     send_pcap "$pcapfn" "$port_in"
     # give the model at least 10 seconds to process each packet
-    # echo "**** sleeping for $(num_pkts_in) ****"
-    # sleep "$num_pkts_in"
-    sleep 5
+    echo "**** sleeping for $(num_pkts_in) ****"
+    sleep "$num_pkts_in" \* 5
+    # sleep 5
     echo "**** cleaning up ****"
     stopsim
     echo "**** checking test spec against model log ****"
     MODEL_LOG_FN="$(to_model_log $1)"
+    # python3 $SCRIPT_DIR/check_testspec.py "$jsonfn" "$MODEL_LOG_FN"
     result=$(python3 $SCRIPT_DIR/check_testspec.py "$jsonfn" "$MODEL_LOG_FN")
     if [ $result = "True" ]; then
         echo "PASS"

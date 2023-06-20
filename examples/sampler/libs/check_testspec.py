@@ -66,15 +66,14 @@ def parse_single_packet(port, pkt):
         "eth.dst":(":".join('{:02x}'.format(x) for x in pkt.dst))
     }
     if (pkt.type == dpkt.ethernet.ETH_TYPE_IP): 
-        rec["ip.src"] = socket.inet_ntoa(pkt.ip.src)    
-        rec["ip.dst"] = socket.inet_ntoa(pkt.ip.dst)   
-        rec["ip.tos"] = int(pkt.ip.tos)
+        rec["report.srcip"] = socket.inet_ntoa(pkt.ip.src)    
+        rec["report.dstip"] = socket.inet_ntoa(pkt.ip.dst)   
     else:
         data = pkt.data
         rec["eth.typ"] = int(pkt.type)
-        rec["ip.src"] = socket.inet_ntoa(data[:4])    
-        rec["ip.dst"] = socket.inet_ntoa(data[4:8])
-        rec["ip.num"] = int(struct.unpack(">L", data[8:12]))
+        rec["report.srcip"] = socket.inet_ntoa(data[:4])    
+        rec["report.dstip"] = socket.inet_ntoa(data[4:8])
+        rec["report.numpkt"] = int(struct.unpack(">L", data[8:12])[0])
 
     # print ("--- packet --- ")
     # for (k, v) in rec.items():
