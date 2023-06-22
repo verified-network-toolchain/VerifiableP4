@@ -854,7 +854,7 @@ Definition MathUnit := DeclExternObject NoInfo
     [{| stags := NoInfo; str := "T30" |}]
     [(ProtoConstructor NoInfo {| stags := NoInfo; str := "MathUnit" |}
           [(MkParameter false Directionless
-                (TypTypeName {| stags := NoInfo; str := "MathOp_t" |}) 
+                (TypTypeName {| stags := NoInfo; str := "MathOp_t" |})
                 None {| stags := NoInfo; str := "op" |});
            (MkParameter false Directionless TypInteger None
                 {| stags := NoInfo; str := "A" |});
@@ -862,7 +862,7 @@ Definition MathUnit := DeclExternObject NoInfo
                 {| stags := NoInfo; str := "B" |})]);
      (ProtoConstructor NoInfo {| stags := NoInfo; str := "MathUnit" |}
           [(MkParameter false Directionless
-                (TypTypeName {| stags := NoInfo; str := "MathOp_t" |}) 
+                (TypTypeName {| stags := NoInfo; str := "MathOp_t" |})
                 None {| stags := NoInfo; str := "op" |});
            (MkParameter false Directionless TypInteger None
                 {| stags := NoInfo; str := "factor" |})]);
@@ -1050,14 +1050,14 @@ Definition Mirror := DeclExternObject NoInfo
      (ProtoMethod NoInfo TypVoid {| stags := NoInfo; str := "emit" |}
           [{| stags := NoInfo; str := "T35" |}]
           [(MkParameter false In
-                (TypTypeName {| stags := NoInfo; str := "MirrorId_t" |}) 
+                (TypTypeName {| stags := NoInfo; str := "MirrorId_t" |})
                 None {| stags := NoInfo; str := "session_id" |});
            (MkParameter false In
                 (TypTypeName {| stags := NoInfo; str := "T35" |}) None
                 {| stags := NoInfo; str := "hdr" |})]);
      (ProtoMethod NoInfo TypVoid {| stags := NoInfo; str := "emit" |} nil
           [(MkParameter false In
-                (TypTypeName {| stags := NoInfo; str := "MirrorId_t" |}) 
+                (TypTypeName {| stags := NoInfo; str := "MirrorId_t" |})
                 None {| stags := NoInfo; str := "session_id" |})])].
 
 Definition Resubmit := DeclExternObject NoInfo
@@ -1118,7 +1118,7 @@ Definition IngressParserT := DeclParserType NoInfo
           None {| stags := NoInfo; str := "ig_md" |});
      (MkParameter true Out
           (TypTypeName
-           {| stags := NoInfo; str := "ingress_intrinsic_metadata_t" |}) 
+           {| stags := NoInfo; str := "ingress_intrinsic_metadata_t" |})
           None {| stags := NoInfo; str := "ig_intr_md" |});
      (MkParameter true Out
           (TypTypeName
@@ -1144,7 +1144,7 @@ Definition EgressParserT := DeclParserType NoInfo
           None {| stags := NoInfo; str := "eg_md" |});
      (MkParameter true Out
           (TypTypeName
-           {| stags := NoInfo; str := "egress_intrinsic_metadata_t" |}) 
+           {| stags := NoInfo; str := "egress_intrinsic_metadata_t" |})
           None {| stags := NoInfo; str := "eg_intr_md" |});
      (MkParameter true Out
           (TypTypeName
@@ -1164,7 +1164,7 @@ Definition IngressT := DeclControlType NoInfo
           {| stags := NoInfo; str := "ig_md" |});
      (MkParameter true In
           (TypTypeName
-           {| stags := NoInfo; str := "ingress_intrinsic_metadata_t" |}) 
+           {| stags := NoInfo; str := "ingress_intrinsic_metadata_t" |})
           None {| stags := NoInfo; str := "ig_intr_md" |});
      (MkParameter true In
           (TypTypeName
@@ -1174,7 +1174,7 @@ Definition IngressT := DeclControlType NoInfo
      (MkParameter true InOut
           (TypTypeName
            {| stags := NoInfo;
-              str := "ingress_intrinsic_metadata_for_deparser_t" |}) 
+              str := "ingress_intrinsic_metadata_for_deparser_t" |})
           None {| stags := NoInfo; str := "ig_intr_md_for_dprsr" |});
      (MkParameter true InOut
           (TypTypeName
@@ -1194,7 +1194,7 @@ Definition EgressT := DeclControlType NoInfo
           {| stags := NoInfo; str := "eg_md" |});
      (MkParameter true In
           (TypTypeName
-           {| stags := NoInfo; str := "egress_intrinsic_metadata_t" |}) 
+           {| stags := NoInfo; str := "egress_intrinsic_metadata_t" |})
           None {| stags := NoInfo; str := "eg_intr_md" |});
      (MkParameter true In
           (TypTypeName
@@ -1209,7 +1209,7 @@ Definition EgressT := DeclControlType NoInfo
      (MkParameter true InOut
           (TypTypeName
            {| stags := NoInfo;
-              str := "egress_intrinsic_metadata_for_output_port_t" |}) 
+              str := "egress_intrinsic_metadata_for_output_port_t" |})
           None {| stags := NoInfo; str := "eg_intr_md_for_oport" |})].
 
 Definition IngressDeparserT := DeclControlType NoInfo
@@ -1227,11 +1227,11 @@ Definition IngressDeparserT := DeclControlType NoInfo
      (MkParameter true In
           (TypTypeName
            {| stags := NoInfo;
-              str := "ingress_intrinsic_metadata_for_deparser_t" |}) 
+              str := "ingress_intrinsic_metadata_for_deparser_t" |})
           None {| stags := NoInfo; str := "ig_intr_md_for_dprsr" |});
      (MkParameter true In
           (TypTypeName
-           {| stags := NoInfo; str := "ingress_intrinsic_metadata_t" |}) 
+           {| stags := NoInfo; str := "ingress_intrinsic_metadata_t" |})
           None {| stags := NoInfo; str := "ig_intr_md" |})].
 
 Definition EgressDeparserT := DeclControlType NoInfo
@@ -1253,7 +1253,7 @@ Definition EgressDeparserT := DeclControlType NoInfo
           {| stags := NoInfo; str := "eg_intr_md_for_dprsr" |});
      (MkParameter true In
           (TypTypeName
-           {| stags := NoInfo; str := "egress_intrinsic_metadata_t" |}) 
+           {| stags := NoInfo; str := "egress_intrinsic_metadata_t" |})
           None {| stags := NoInfo; str := "eg_intr_md" |});
      (MkParameter true In
           (TypTypeName
@@ -1589,37 +1589,37 @@ Definition MultiParserPipeline := DeclPackageType NoInfo
           (TypSpecializedType
                (TypTypeName {| stags := NoInfo; str := "IngressParsers" |})
                [(TypTypeName {| stags := NoInfo; str := "IH53" |});
-                (TypTypeName {| stags := NoInfo; str := "IM54" |})]) 
+                (TypTypeName {| stags := NoInfo; str := "IM54" |})])
           None {| stags := NoInfo; str := "ig_prsr" |});
      (MkParameter false Directionless
           (TypSpecializedType
                (TypTypeName {| stags := NoInfo; str := "IngressT" |})
                [(TypTypeName {| stags := NoInfo; str := "IH53" |});
-                (TypTypeName {| stags := NoInfo; str := "IM54" |})]) 
+                (TypTypeName {| stags := NoInfo; str := "IM54" |})])
           None {| stags := NoInfo; str := "ingress" |});
      (MkParameter false Directionless
           (TypSpecializedType
                (TypTypeName {| stags := NoInfo; str := "IngressDeparserT" |})
                [(TypTypeName {| stags := NoInfo; str := "IH53" |});
-                (TypTypeName {| stags := NoInfo; str := "IM54" |})]) 
+                (TypTypeName {| stags := NoInfo; str := "IM54" |})])
           None {| stags := NoInfo; str := "ingress_deparser" |});
      (MkParameter false Directionless
           (TypSpecializedType
                (TypTypeName {| stags := NoInfo; str := "EgressParsers" |})
                [(TypTypeName {| stags := NoInfo; str := "EH55" |});
-                (TypTypeName {| stags := NoInfo; str := "EM56" |})]) 
+                (TypTypeName {| stags := NoInfo; str := "EM56" |})])
           None {| stags := NoInfo; str := "eg_prsr" |});
      (MkParameter false Directionless
           (TypSpecializedType
                (TypTypeName {| stags := NoInfo; str := "EgressT" |})
                [(TypTypeName {| stags := NoInfo; str := "EH55" |});
-                (TypTypeName {| stags := NoInfo; str := "EM56" |})]) 
+                (TypTypeName {| stags := NoInfo; str := "EM56" |})])
           None {| stags := NoInfo; str := "egress" |});
      (MkParameter false Directionless
           (TypSpecializedType
                (TypTypeName {| stags := NoInfo; str := "EgressDeparserT" |})
                [(TypTypeName {| stags := NoInfo; str := "EH55" |});
-                (TypTypeName {| stags := NoInfo; str := "EM56" |})]) 
+                (TypTypeName {| stags := NoInfo; str := "EM56" |})])
           None {| stags := NoInfo; str := "egress_deparser" |})].
 
 Definition MultiParserSwitch := DeclPackageType NoInfo
@@ -1647,7 +1647,7 @@ Definition MultiParserSwitch := DeclPackageType NoInfo
                [(TypTypeName {| stags := NoInfo; str := "IH057" |});
                 (TypTypeName {| stags := NoInfo; str := "IM058" |});
                 (TypTypeName {| stags := NoInfo; str := "EH059" |});
-                (TypTypeName {| stags := NoInfo; str := "EM060" |})]) 
+                (TypTypeName {| stags := NoInfo; str := "EM060" |})])
           None {| stags := NoInfo; str := "pipe0" |});
      (MkParameter true Directionless
           (TypSpecializedType
@@ -1656,7 +1656,7 @@ Definition MultiParserSwitch := DeclPackageType NoInfo
                [(TypTypeName {| stags := NoInfo; str := "IH161" |});
                 (TypTypeName {| stags := NoInfo; str := "IM162" |});
                 (TypTypeName {| stags := NoInfo; str := "EH163" |});
-                (TypTypeName {| stags := NoInfo; str := "EM164" |})]) 
+                (TypTypeName {| stags := NoInfo; str := "EM164" |})])
           None {| stags := NoInfo; str := "pipe1" |});
      (MkParameter true Directionless
           (TypSpecializedType
@@ -1665,7 +1665,7 @@ Definition MultiParserSwitch := DeclPackageType NoInfo
                [(TypTypeName {| stags := NoInfo; str := "IH265" |});
                 (TypTypeName {| stags := NoInfo; str := "IM266" |});
                 (TypTypeName {| stags := NoInfo; str := "EH267" |});
-                (TypTypeName {| stags := NoInfo; str := "EM268" |})]) 
+                (TypTypeName {| stags := NoInfo; str := "EM268" |})])
           None {| stags := NoInfo; str := "pipe2" |});
      (MkParameter true Directionless
           (TypSpecializedType
@@ -1674,7 +1674,7 @@ Definition MultiParserSwitch := DeclPackageType NoInfo
                [(TypTypeName {| stags := NoInfo; str := "IH369" |});
                 (TypTypeName {| stags := NoInfo; str := "IM370" |});
                 (TypTypeName {| stags := NoInfo; str := "EH371" |});
-                (TypTypeName {| stags := NoInfo; str := "EM372" |})]) 
+                (TypTypeName {| stags := NoInfo; str := "EM372" |})])
           None {| stags := NoInfo; str := "pipe3" |})].
 
 Definition mac_addr_t := DeclTypeDef NoInfo
@@ -1960,7 +1960,7 @@ Definition TofinoIngressParser := DeclParser NoInfo
           {| stags := NoInfo; str := "pkt" |});
      (MkParameter false Out
           (TypTypeName
-           {| stags := NoInfo; str := "ingress_intrinsic_metadata_t" |}) 
+           {| stags := NoInfo; str := "ingress_intrinsic_metadata_t" |})
           None {| stags := NoInfo; str := "ig_intr_md" |})] nil nil
     [(MkParserState NoInfo {| stags := NoInfo; str := "start" |}
           [(MkStatement NoInfo
@@ -2029,7 +2029,7 @@ Definition TofinoIngressParser := DeclParser NoInfo
                                                        (ExpInt
                                                         {| itags := NoInfo;
                                                            value := 1;
-                                                           width_signed := 
+                                                           width_signed :=
                                                            None |})
                                                        TypInteger
                                                        Directionless))
@@ -2042,7 +2042,7 @@ Definition TofinoIngressParser := DeclParser NoInfo
                                                        (ExpInt
                                                         {| itags := NoInfo;
                                                            value := 0;
-                                                           width_signed := 
+                                                           width_signed :=
                                                            None |})
                                                        TypInteger
                                                        Directionless))
@@ -2064,7 +2064,7 @@ Definition TofinoIngressParser := DeclParser NoInfo
                                {| stags := NoInfo; str := "advance" |})
                           (TypFunction
                            (MkFunctionType nil
-                                [(MkParameter false In (TypBit 32%N) 
+                                [(MkParameter false In (TypBit 32%N)
                                       None
                                       {| stags := NoInfo;
                                          str := "sizeInBits" |})] FunExtern
@@ -2095,7 +2095,7 @@ Definition TofinoIngressParser := DeclParser NoInfo
                                {| stags := NoInfo; str := "advance" |})
                           (TypFunction
                            (MkFunctionType nil
-                                [(MkParameter false In (TypBit 32%N) 
+                                [(MkParameter false In (TypBit 32%N)
                                       None
                                       {| stags := NoInfo;
                                          str := "sizeInBits" |})] FunExtern
@@ -2117,7 +2117,7 @@ Definition TofinoEgressParser := DeclParser NoInfo
           {| stags := NoInfo; str := "pkt" |});
      (MkParameter false Out
           (TypTypeName
-           {| stags := NoInfo; str := "egress_intrinsic_metadata_t" |}) 
+           {| stags := NoInfo; str := "egress_intrinsic_metadata_t" |})
           None {| stags := NoInfo; str := "eg_intr_md" |})] nil nil
     [(MkParserState NoInfo {| stags := NoInfo; str := "start" |}
           [(MkStatement NoInfo
@@ -2280,14 +2280,14 @@ Definition EmptyEgressParser := DeclParser NoInfo
           (TypTypeName {| stags := NoInfo; str := "packet_in" |}) None
           {| stags := NoInfo; str := "pkt" |});
      (MkParameter false Out
-          (TypTypeName {| stags := NoInfo; str := "empty_header_t" |}) 
+          (TypTypeName {| stags := NoInfo; str := "empty_header_t" |})
           None {| stags := NoInfo; str := "hdr" |});
      (MkParameter false Out
-          (TypTypeName {| stags := NoInfo; str := "empty_metadata_t" |}) 
+          (TypTypeName {| stags := NoInfo; str := "empty_metadata_t" |})
           None {| stags := NoInfo; str := "eg_md" |});
      (MkParameter false Out
           (TypTypeName
-           {| stags := NoInfo; str := "egress_intrinsic_metadata_t" |}) 
+           {| stags := NoInfo; str := "egress_intrinsic_metadata_t" |})
           None {| stags := NoInfo; str := "eg_intr_md" |})] nil nil
     [(MkParserState NoInfo {| stags := NoInfo; str := "start" |} nil
           (ParserDirect NoInfo {| stags := NoInfo; str := "accept" |}))].
@@ -2298,10 +2298,10 @@ Definition EmptyEgressDeparser := DeclControl NoInfo
           (TypTypeName {| stags := NoInfo; str := "packet_out" |}) None
           {| stags := NoInfo; str := "pkt" |});
      (MkParameter false InOut
-          (TypTypeName {| stags := NoInfo; str := "empty_header_t" |}) 
+          (TypTypeName {| stags := NoInfo; str := "empty_header_t" |})
           None {| stags := NoInfo; str := "hdr" |});
      (MkParameter false In
-          (TypTypeName {| stags := NoInfo; str := "empty_metadata_t" |}) 
+          (TypTypeName {| stags := NoInfo; str := "empty_metadata_t" |})
           None {| stags := NoInfo; str := "eg_md" |});
      (MkParameter false In
           (TypTypeName
@@ -2313,14 +2313,14 @@ Definition EmptyEgressDeparser := DeclControl NoInfo
 Definition EmptyEgress := DeclControl NoInfo
     {| stags := NoInfo; str := "EmptyEgress" |} nil
     [(MkParameter false InOut
-          (TypTypeName {| stags := NoInfo; str := "empty_header_t" |}) 
+          (TypTypeName {| stags := NoInfo; str := "empty_header_t" |})
           None {| stags := NoInfo; str := "hdr" |});
      (MkParameter false InOut
-          (TypTypeName {| stags := NoInfo; str := "empty_metadata_t" |}) 
+          (TypTypeName {| stags := NoInfo; str := "empty_metadata_t" |})
           None {| stags := NoInfo; str := "eg_md" |});
      (MkParameter false In
           (TypTypeName
-           {| stags := NoInfo; str := "egress_intrinsic_metadata_t" |}) 
+           {| stags := NoInfo; str := "egress_intrinsic_metadata_t" |})
           None {| stags := NoInfo; str := "eg_intr_md" |});
      (MkParameter false In
           (TypTypeName
@@ -2335,7 +2335,7 @@ Definition EmptyEgress := DeclControl NoInfo
      (MkParameter false InOut
           (TypTypeName
            {| stags := NoInfo;
-              str := "egress_intrinsic_metadata_for_output_port_t" |}) 
+              str := "egress_intrinsic_metadata_for_output_port_t" |})
           None {| stags := NoInfo; str := "eg_intr_oport_md" |})] nil nil
     (BlockEmpty NoInfo).
 
@@ -2391,14 +2391,14 @@ Definition SwitchIngressParser := DeclParser NoInfo
           (TypTypeName {| stags := NoInfo; str := "packet_in" |}) None
           {| stags := NoInfo; str := "pkt" |});
      (MkParameter false Out
-          (TypTypeName {| stags := NoInfo; str := "header_sample_t" |}) 
+          (TypTypeName {| stags := NoInfo; str := "header_sample_t" |})
           None {| stags := NoInfo; str := "hdr" |});
      (MkParameter false Out
           (TypTypeName {| stags := NoInfo; str := "metadata_t" |}) None
           {| stags := NoInfo; str := "ig_md" |});
      (MkParameter false Out
           (TypTypeName
-           {| stags := NoInfo; str := "ingress_intrinsic_metadata_t" |}) 
+           {| stags := NoInfo; str := "ingress_intrinsic_metadata_t" |})
           None {| stags := NoInfo; str := "ig_intr_md" |})] nil
     [(DeclInstantiation NoInfo
           (TypSpecializedType
@@ -2444,7 +2444,7 @@ Definition SwitchIngressParser := DeclParser NoInfo
                                                     (TypBit 9%N) );
                                                   ( {| stags := NoInfo;
                                                        str := "ingress_mac_tstamp" |},
-                                                    (TypBit 48%N) )]) 
+                                                    (TypBit 48%N) )])
                                                 None
                                                 {| stags := NoInfo;
                                                    str := "ig_intr_md" |})]))
@@ -2609,7 +2609,7 @@ Definition SwitchIngressParser := DeclParser NoInfo
                                                           {| stags := NoInfo;
                                                              str := "ETHERTYPE_IPV4" |})
                                                          (LGlobal
-                                                              ["missing_locator"]))
+                                                              ["ETHERTYPE_IPV4"]))
                                                         (TypTypeName
                                                          {| stags := NoInfo;
                                                             str := "ether_type_t" |})
@@ -2758,7 +2758,7 @@ Definition SwitchIngressParser := DeclParser NoInfo
                                                          {| stags := NoInfo;
                                                             str := "IP_PROTOCOLS_TCP" |})
                                                         (LGlobal
-                                                             ["missing_locator"]))
+                                                             ["IP_PROTOCOLS_TCP"]))
                                                        (TypTypeName
                                                         {| stags := NoInfo;
                                                            str := "ip_protocol_t" |})
@@ -2774,7 +2774,7 @@ Definition SwitchIngressParser := DeclParser NoInfo
                                                          {| stags := NoInfo;
                                                             str := "IP_PROTOCOLS_UDP" |})
                                                         (LGlobal
-                                                             ["missing_locator"]))
+                                                             ["IP_PROTOCOLS_UDP"]))
                                                        (TypTypeName
                                                         {| stags := NoInfo;
                                                            str := "ip_protocol_t" |})
@@ -2919,14 +2919,14 @@ Definition SwitchIngressParser := DeclParser NoInfo
 Definition SwitchIngress := DeclControl NoInfo
     {| stags := NoInfo; str := "SwitchIngress" |} nil
     [(MkParameter false InOut
-          (TypTypeName {| stags := NoInfo; str := "header_sample_t" |}) 
+          (TypTypeName {| stags := NoInfo; str := "header_sample_t" |})
           None {| stags := NoInfo; str := "hdr" |});
      (MkParameter false InOut
           (TypTypeName {| stags := NoInfo; str := "metadata_t" |}) None
           {| stags := NoInfo; str := "ig_md" |});
      (MkParameter false In
           (TypTypeName
-           {| stags := NoInfo; str := "ingress_intrinsic_metadata_t" |}) 
+           {| stags := NoInfo; str := "ingress_intrinsic_metadata_t" |})
           None {| stags := NoInfo; str := "ig_intr_md" |});
      (MkParameter false In
           (TypTypeName
@@ -2936,7 +2936,7 @@ Definition SwitchIngress := DeclControl NoInfo
      (MkParameter false InOut
           (TypTypeName
            {| stags := NoInfo;
-              str := "ingress_intrinsic_metadata_for_deparser_t" |}) 
+              str := "ingress_intrinsic_metadata_for_deparser_t" |})
           None {| stags := NoInfo; str := "ig_intr_dprsr_md" |});
      (MkParameter false InOut
           (TypTypeName
@@ -3027,7 +3027,7 @@ Definition SwitchIngress := DeclControl NoInfo
                                                {| itags := NoInfo;
                                                   value := 1;
                                                   width_signed := (Some
-                                                                   ( 
+                                                                   (
                                                                    32%N,
                                                                    false )) |})
                                               (TypBit 32%N) Directionless))
@@ -3102,7 +3102,7 @@ Definition SwitchIngress := DeclControl NoInfo
                                                     (ExpInt
                                                      {| itags := NoInfo;
                                                         value := 0;
-                                                        width_signed := 
+                                                        width_signed :=
                                                         None |}) TypInteger
                                                     Directionless))
                                           (TypBit 1%N) Directionless))])
@@ -3237,7 +3237,7 @@ Definition SwitchIngress := DeclControl NoInfo
                                                   (ExpInt
                                                    {| itags := NoInfo;
                                                       value := 2;
-                                                      width_signed := 
+                                                      width_signed :=
                                                       None |}) TypInteger
                                                   Directionless))
                                         (TypBit 48%N) Directionless))
@@ -3253,13 +3253,13 @@ Definition SwitchIngress := DeclControl NoInfo
                                                                  NoInfo
                                                                  (ExpName
                                                                   (BareName
-                                                                   {| 
+                                                                   {|
                                                                    stags := NoInfo;
                                                                    str := "hdr" |})
                                                                   (LInstance
                                                                     ["hdr"]))
                                                                  (TypTypeName
-                                                                  {| 
+                                                                  {|
                                                                   stags := NoInfo;
                                                                   str := "header_sample_t" |})
                                                                  InOut)
@@ -3294,7 +3294,7 @@ Definition SwitchIngress := DeclControl NoInfo
                                                        (ExpInt
                                                         {| itags := NoInfo;
                                                            value := 1;
-                                                           width_signed := 
+                                                           width_signed :=
                                                            None |})
                                                        TypInteger
                                                        Directionless))
@@ -3311,13 +3311,13 @@ Definition SwitchIngress := DeclControl NoInfo
                                                                     NoInfo
                                                                     (ExpName
                                                                     (BareName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "hdr" |})
                                                                     (LInstance
                                                                     ["hdr"]))
                                                                     (TypTypeName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "header_sample_t" |})
                                                                     InOut)
@@ -3353,7 +3353,7 @@ Definition SwitchIngress := DeclControl NoInfo
                                                             (ExpInt
                                                              {| itags := NoInfo;
                                                                 value := 4660;
-                                                                width_signed := 
+                                                                width_signed :=
                                                                 None |})
                                                             TypInteger
                                                             Directionless))
@@ -3371,52 +3371,52 @@ Definition SwitchIngress := DeclControl NoInfo
                                                                     NoInfo
                                                                     (ExpName
                                                                     (BareName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "hdr" |})
                                                                     (LInstance
                                                                     ["hdr"]))
                                                                     (TypTypeName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "header_sample_t" |})
                                                                     InOut)
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "sample" |})
                                                                  (TypHeader
-                                                                  [( 
-                                                                   {| 
+                                                                  [(
+                                                                   {|
                                                                    stags := NoInfo;
                                                                    str := "dmac" |},
                                                                    (TypBit
                                                                     48%N) );
-                                                                   ( 
-                                                                   {| 
+                                                                   (
+                                                                   {|
                                                                    stags := NoInfo;
                                                                    str := "smac" |},
                                                                    (TypBit
                                                                     48%N) );
-                                                                   ( 
-                                                                   {| 
+                                                                   (
+                                                                   {|
                                                                    stags := NoInfo;
                                                                    str := "etype" |},
                                                                    (TypBit
                                                                     16%N) );
-                                                                   ( 
-                                                                   {| 
+                                                                   (
+                                                                   {|
                                                                    stags := NoInfo;
                                                                    str := "srcip" |},
                                                                    (TypBit
                                                                     32%N) );
-                                                                   ( 
-                                                                   {| 
+                                                                   (
+                                                                   {|
                                                                    stags := NoInfo;
                                                                    str := "dstip" |},
                                                                    (TypBit
                                                                     32%N) );
-                                                                   ( 
-                                                                   {| 
+                                                                   (
+                                                                   {|
                                                                    stags := NoInfo;
                                                                    str := "num_pkts" |},
                                                                    (TypBit
@@ -3435,88 +3435,88 @@ Definition SwitchIngress := DeclControl NoInfo
                                                                     NoInfo
                                                                     (ExpName
                                                                     (BareName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "hdr" |})
                                                                     (LInstance
                                                                     ["hdr"]))
                                                                     (TypTypeName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "header_sample_t" |})
                                                                     InOut)
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "ipv4" |})
                                                                  (TypHeader
-                                                                  [( 
-                                                                   {| 
+                                                                  [(
+                                                                   {|
                                                                    stags := NoInfo;
                                                                    str := "version" |},
                                                                    (TypBit
                                                                     4%N) );
-                                                                   ( 
-                                                                   {| 
+                                                                   (
+                                                                   {|
                                                                    stags := NoInfo;
                                                                    str := "ihl" |},
                                                                    (TypBit
                                                                     4%N) );
-                                                                   ( 
-                                                                   {| 
+                                                                   (
+                                                                   {|
                                                                    stags := NoInfo;
                                                                    str := "diffserv" |},
                                                                    (TypBit
                                                                     8%N) );
-                                                                   ( 
-                                                                   {| 
+                                                                   (
+                                                                   {|
                                                                    stags := NoInfo;
                                                                    str := "total_len" |},
                                                                    (TypBit
                                                                     16%N) );
-                                                                   ( 
-                                                                   {| 
+                                                                   (
+                                                                   {|
                                                                    stags := NoInfo;
                                                                    str := "identification" |},
                                                                    (TypBit
                                                                     16%N) );
-                                                                   ( 
-                                                                   {| 
+                                                                   (
+                                                                   {|
                                                                    stags := NoInfo;
                                                                    str := "flags" |},
                                                                    (TypBit
                                                                     3%N) );
-                                                                   ( 
-                                                                   {| 
+                                                                   (
+                                                                   {|
                                                                    stags := NoInfo;
                                                                    str := "frag_offset" |},
                                                                    (TypBit
                                                                     13%N) );
-                                                                   ( 
-                                                                   {| 
+                                                                   (
+                                                                   {|
                                                                    stags := NoInfo;
                                                                    str := "ttl" |},
                                                                    (TypBit
                                                                     8%N) );
-                                                                   ( 
-                                                                   {| 
+                                                                   (
+                                                                   {|
                                                                    stags := NoInfo;
                                                                    str := "protocol" |},
                                                                    (TypBit
                                                                     8%N) );
-                                                                   ( 
-                                                                   {| 
+                                                                   (
+                                                                   {|
                                                                    stags := NoInfo;
                                                                    str := "hdr_checksum" |},
                                                                    (TypBit
                                                                     16%N) );
-                                                                   ( 
-                                                                   {| 
+                                                                   (
+                                                                   {|
                                                                    stags := NoInfo;
                                                                    str := "src_addr" |},
                                                                    (TypBit
                                                                     32%N) );
-                                                                   ( 
-                                                                   {| 
+                                                                   (
+                                                                   {|
                                                                    stags := NoInfo;
                                                                    str := "dst_addr" |},
                                                                    (TypBit
@@ -3539,56 +3539,56 @@ Definition SwitchIngress := DeclControl NoInfo
                                                                     NoInfo
                                                                     (ExpName
                                                                     (BareName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "hdr" |})
                                                                     (LInstance
                                                                     ["hdr"]))
                                                                     (TypTypeName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "header_sample_t" |})
                                                                     InOut)
                                                                     {| stags := NoInfo;
                                                                     str := "sample" |})
                                                                     (TypHeader
-                                                                    [( 
-                                                                    {| 
+                                                                    [(
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "dmac" |},
                                                                     (
                                                                     TypBit
                                                                     48%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "smac" |},
                                                                     (
                                                                     TypBit
                                                                     48%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "etype" |},
                                                                     (
                                                                     TypBit
                                                                     16%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "srcip" |},
                                                                     (
                                                                     TypBit
                                                                     32%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "dstip" |},
                                                                     (
                                                                     TypBit
                                                                     32%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "num_pkts" |},
                                                                     (
@@ -3608,98 +3608,98 @@ Definition SwitchIngress := DeclControl NoInfo
                                                                     NoInfo
                                                                     (ExpName
                                                                     (BareName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "hdr" |})
                                                                     (LInstance
                                                                     ["hdr"]))
                                                                     (TypTypeName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "header_sample_t" |})
                                                                     InOut)
                                                                     {| stags := NoInfo;
                                                                     str := "ipv4" |})
                                                                     (TypHeader
-                                                                    [( 
-                                                                    {| 
+                                                                    [(
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "version" |},
                                                                     (
                                                                     TypBit
                                                                     4%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "ihl" |},
                                                                     (
                                                                     TypBit
                                                                     4%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "diffserv" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "total_len" |},
                                                                     (
                                                                     TypBit
                                                                     16%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "identification" |},
                                                                     (
                                                                     TypBit
                                                                     16%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "flags" |},
                                                                     (
                                                                     TypBit
                                                                     3%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "frag_offset" |},
                                                                     (
                                                                     TypBit
                                                                     13%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "ttl" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "protocol" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "hdr_checksum" |},
                                                                     (
                                                                     TypBit
                                                                     16%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "src_addr" |},
                                                                     (
                                                                     TypBit
                                                                     32%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "dst_addr" |},
                                                                     (
@@ -3724,63 +3724,63 @@ Definition SwitchIngress := DeclControl NoInfo
                                                                     NoInfo
                                                                     (ExpName
                                                                     (BareName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "hdr" |})
                                                                     (LInstance
                                                                     ["hdr"]))
                                                                     (TypTypeName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "header_sample_t" |})
                                                                     InOut)
                                                                     {| stags := NoInfo;
                                                                     str := "sample" |})
                                                                     (TypHeader
-                                                                    [( 
-                                                                    {| 
+                                                                    [(
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "dmac" |},
                                                                     (
                                                                     TypBit
                                                                     48%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "smac" |},
                                                                     (
                                                                     TypBit
                                                                     48%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "etype" |},
                                                                     (
                                                                     TypBit
                                                                     16%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "srcip" |},
                                                                     (
                                                                     TypBit
                                                                     32%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "dstip" |},
                                                                     (
                                                                     TypBit
                                                                     32%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "num_pkts" |},
                                                                     (
                                                                     TypBit
                                                                     32%N) )])
                                                                     Directionless)
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "num_pkts" |})
                                                                  (TypBit
@@ -3793,17 +3793,17 @@ Definition SwitchIngress := DeclControl NoInfo
                                                                     NoInfo
                                                                     (ExpName
                                                                     (BareName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "ig_md" |})
                                                                     (LInstance
                                                                     ["ig_md"]))
                                                                     (TypTypeName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "metadata_t" |})
                                                                     InOut)
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "num_pkts" |})
                                                                  (TypBit
@@ -3820,13 +3820,13 @@ Definition SwitchIngress := DeclControl NoInfo
                                                                     NoInfo
                                                                     (ExpName
                                                                     (BareName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "ig_intr_tm_md" |})
                                                                     (LInstance
                                                                     ["ig_intr_tm_md"]))
                                                                     (TypTypeName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "ingress_intrinsic_metadata_for_tm_t" |})
                                                                     InOut)
@@ -3843,10 +3843,10 @@ Definition SwitchIngress := DeclControl NoInfo
                                                                     (MkExpression
                                                                     NoInfo
                                                                     (ExpInt
-                                                                    {| 
+                                                                    {|
                                                                     itags := NoInfo;
                                                                     value := 1;
-                                                                    width_signed := 
+                                                                    width_signed :=
                                                                     None |})
                                                                     TypInteger
                                                                     Directionless))
@@ -3894,7 +3894,7 @@ Definition SwitchIngress := DeclControl NoInfo
                                                                    value := 1023;
                                                                    width_signed := (
                                                                    Some
-                                                                   ( 
+                                                                   (
                                                                    32%N,
                                                                    false )) |})
                                                                (TypBit 32%N)
@@ -3966,7 +3966,7 @@ Definition SwitchIngressDeparser := DeclControl NoInfo
           (TypTypeName {| stags := NoInfo; str := "packet_out" |}) None
           {| stags := NoInfo; str := "pkt" |});
      (MkParameter false InOut
-          (TypTypeName {| stags := NoInfo; str := "header_sample_t" |}) 
+          (TypTypeName {| stags := NoInfo; str := "header_sample_t" |})
           None {| stags := NoInfo; str := "hdr" |});
      (MkParameter false In
           (TypTypeName {| stags := NoInfo; str := "metadata_t" |}) None
@@ -3974,7 +3974,7 @@ Definition SwitchIngressDeparser := DeclControl NoInfo
      (MkParameter false In
           (TypTypeName
            {| stags := NoInfo;
-              str := "ingress_intrinsic_metadata_for_deparser_t" |}) 
+              str := "ingress_intrinsic_metadata_for_deparser_t" |})
           None {| stags := NoInfo; str := "ig_intr_dprsr_md" |})] nil nil
     (BlockCons
          (MkStatement NoInfo
@@ -3994,7 +3994,7 @@ Definition SwitchIngressDeparser := DeclControl NoInfo
                          (MkFunctionType [{| stags := NoInfo; str := "T2" |}]
                               [(MkParameter false In
                                     (TypTypeName
-                                     {| stags := NoInfo; str := "T2" |}) 
+                                     {| stags := NoInfo; str := "T2" |})
                                     None {| stags := NoInfo; str := "hdr" |})]
                               FunExtern TypVoid)) Directionless)
                    [(TypStruct
@@ -4097,14 +4097,14 @@ Definition SwitchEgressParser := DeclParser NoInfo
           (TypTypeName {| stags := NoInfo; str := "packet_in" |}) None
           {| stags := NoInfo; str := "pkt" |});
      (MkParameter false Out
-          (TypTypeName {| stags := NoInfo; str := "header_sample_t" |}) 
+          (TypTypeName {| stags := NoInfo; str := "header_sample_t" |})
           None {| stags := NoInfo; str := "hdr" |});
      (MkParameter false Out
           (TypTypeName {| stags := NoInfo; str := "metadata_t" |}) None
           {| stags := NoInfo; str := "eg_md" |});
      (MkParameter false Out
           (TypTypeName
-           {| stags := NoInfo; str := "egress_intrinsic_metadata_t" |}) 
+           {| stags := NoInfo; str := "egress_intrinsic_metadata_t" |})
           None {| stags := NoInfo; str := "eg_intr_md" |})] nil
     [(DeclInstantiation NoInfo
           (TypSpecializedType
@@ -4207,7 +4207,7 @@ Definition SwitchEgressParser := DeclParser NoInfo
                                                     (TypBit 1%N) );
                                                   ( {| stags := NoInfo;
                                                        str := "pkt_length" |},
-                                                    (TypBit 16%N) )]) 
+                                                    (TypBit 16%N) )])
                                                 None
                                                 {| stags := NoInfo;
                                                    str := "eg_intr_md" |})]))
@@ -4388,7 +4388,7 @@ Definition SwitchEgressParser := DeclParser NoInfo
                                                        (ExpInt
                                                         {| itags := NoInfo;
                                                            value := 1;
-                                                           width_signed := 
+                                                           width_signed :=
                                                            None |})
                                                        TypInteger
                                                        Directionless))
@@ -4543,7 +4543,7 @@ Definition SwitchEgressParser := DeclParser NoInfo
                                                           {| stags := NoInfo;
                                                              str := "ETHERTYPE_IPV4" |})
                                                          (LGlobal
-                                                              ["missing_locator"]))
+                                                              ["ETHERTYPE_IPV4"]))
                                                         (TypTypeName
                                                          {| stags := NoInfo;
                                                             str := "ether_type_t" |})
@@ -4692,7 +4692,7 @@ Definition SwitchEgressParser := DeclParser NoInfo
                                                          {| stags := NoInfo;
                                                             str := "IP_PROTOCOLS_TCP" |})
                                                         (LGlobal
-                                                             ["missing_locator"]))
+                                                             ["IP_PROTOCOLS_TCP"]))
                                                        (TypTypeName
                                                         {| stags := NoInfo;
                                                            str := "ip_protocol_t" |})
@@ -4708,7 +4708,7 @@ Definition SwitchEgressParser := DeclParser NoInfo
                                                          {| stags := NoInfo;
                                                             str := "IP_PROTOCOLS_UDP" |})
                                                         (LGlobal
-                                                             ["missing_locator"]))
+                                                             ["IP_PROTOCOLS_UDP"]))
                                                        (TypTypeName
                                                         {| stags := NoInfo;
                                                            str := "ip_protocol_t" |})
@@ -4853,14 +4853,14 @@ Definition SwitchEgressParser := DeclParser NoInfo
 Definition SwitchEgress := DeclControl NoInfo
     {| stags := NoInfo; str := "SwitchEgress" |} nil
     [(MkParameter false InOut
-          (TypTypeName {| stags := NoInfo; str := "header_sample_t" |}) 
+          (TypTypeName {| stags := NoInfo; str := "header_sample_t" |})
           None {| stags := NoInfo; str := "hdr" |});
      (MkParameter false InOut
           (TypTypeName {| stags := NoInfo; str := "metadata_t" |}) None
           {| stags := NoInfo; str := "eg_md" |});
      (MkParameter false In
           (TypTypeName
-           {| stags := NoInfo; str := "egress_intrinsic_metadata_t" |}) 
+           {| stags := NoInfo; str := "egress_intrinsic_metadata_t" |})
           None {| stags := NoInfo; str := "eg_intr_md" |});
      (MkParameter false In
           (TypTypeName
@@ -4875,7 +4875,7 @@ Definition SwitchEgress := DeclControl NoInfo
      (MkParameter false InOut
           (TypTypeName
            {| stags := NoInfo;
-              str := "egress_intrinsic_metadata_for_output_port_t" |}) 
+              str := "egress_intrinsic_metadata_for_output_port_t" |})
           None {| stags := NoInfo; str := "eg_intr_md_for_oport" |})] nil
     [(DeclAction NoInfo
           {| stags := NoInfo; str := "act_delete_sample_hdrs" |} nil nil
@@ -5148,7 +5148,7 @@ Definition SwitchEgressDeparser := DeclControl NoInfo
           (TypTypeName {| stags := NoInfo; str := "packet_out" |}) None
           {| stags := NoInfo; str := "pkt" |});
      (MkParameter false InOut
-          (TypTypeName {| stags := NoInfo; str := "header_sample_t" |}) 
+          (TypTypeName {| stags := NoInfo; str := "header_sample_t" |})
           None {| stags := NoInfo; str := "hdr" |});
      (MkParameter false In
           (TypTypeName {| stags := NoInfo; str := "metadata_t" |}) None
@@ -5176,7 +5176,7 @@ Definition SwitchEgressDeparser := DeclControl NoInfo
                          (MkFunctionType [{| stags := NoInfo; str := "T2" |}]
                               [(MkParameter false In
                                     (TypTypeName
-                                     {| stags := NoInfo; str := "T2" |}) 
+                                     {| stags := NoInfo; str := "T2" |})
                                     None {| stags := NoInfo; str := "hdr" |})]
                               FunExtern TypVoid)) Directionless)
                    [(TypStruct
@@ -7633,5 +7633,3 @@ Definition prog := Program
      EmptyEgressDeparser; EmptyEgress; bridge_t; sample_t; header_sample_t;
      metadata_t; SwitchIngressParser; SwitchIngress; SwitchIngressDeparser;
      SwitchEgressParser; SwitchEgress; SwitchEgressDeparser; pipe; main].
-
-

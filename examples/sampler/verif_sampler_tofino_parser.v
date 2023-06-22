@@ -92,9 +92,6 @@ Definition iimt_repr_sval (flag version port stamp: Z): Sval :=
      ("ingress_port", P4Bit 9 port);
      ("ingress_mac_tstamp", P4Bit 48 stamp)] (Some true).
 
-Definition P4BitV (w : N) (v : Z) : Val :=
-  ValBaseBit (P4Arith.to_lbool w v).
-
 Definition iimt_repr_val (flag version port stamp: Z) : Val :=
   ValBaseHeader
     [("resubmit_flag", P4BitV 1 flag);

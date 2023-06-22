@@ -1128,26 +1128,9 @@ Proof.
     pose proof (Forall2_Zlength H3). pose proof (Forall2_Zlength H4).
     rewrite <- H1, <- H2, H0. solve_ex_sim. auto.
   - destruct_match H3; inv H3. inv H1. inv H2. simpl. rewrite H0. solve_ex_sim. auto.
-  - remember (fix eval_binary_op_eq_tuple (l1 l2 : list Val) {struct l1} : option bool :=
-          match l1 with
-          | [] => match l2 with
-                  | [] => Some true
-                  | _ :: _ => None
-                  end
-          | x1 :: l1' =>
-              match l2 with
-              | [] => None
-              | x2 :: l2' =>
-                  match Ops.eval_binary_op_eq x1 x2 with
-                  | Some b1 =>
-                      match eval_binary_op_eq_tuple l1' l2' with
-                      | Some b2 => Some (b1 && b2)
-                      | None => None
-                      end
-                  | None => None
-                  end
-              end
-          end) as eq_tuple. rename Heqeq_tuple into Htlp.
+  - remember (fix eval_binary_op_eq_tuple (l1 l2 : list Val)
+                {struct l1} : option bool := _) as eq_tuple.
+    rename Heqeq_tuple into Htlp.
     inversion H1. subst lv v3. clear H1. inversion H2. subst lv v4. clear H2. simpl.
     rewrite <- Htlp. revert vs l lv' lv'0 b H0 H3 H4 H5. induction vs; intros.
     + rewrite Htlp in H3. destruct l; inversion H3. subst b. clear H3.
@@ -1162,30 +1145,8 @@ Proof.
       specialize (IHvs _ _ _ _ H7 H1 H10 H11). destruct IHvs as [? [? ?]].
       destruct_match H2; inversion H2. subst x. clear H2. solve_ex_sim; auto.
   - inv H3. inv H1. inv H2. simpl. solve_ex_sim. auto.
-  - remember (fix eval_binary_op_eq_struct' (l1 l2 : Ops.Fields Val) {struct l1} :
-              option bool :=
-            match l1 with
-            | [] => match l2 with
-                    | [] => Some true
-                    | _ :: _ => None
-                    end
-            | (k1, v1) :: l1' =>
-                match l2 with
-                | [] => None
-                | (k2, v2) :: l2' =>
-                    if ~~ (k1 =? k2)
-                    then None
-                    else
-                     match Ops.eval_binary_op_eq v1 v2 with
-                     | Some b1 =>
-                         match eval_binary_op_eq_struct' l1' l2' with
-                         | Some b2 => Some (b1 && b2)
-                         | None => None
-                         end
-                     | None => None
-                     end
-                end
-            end) as eq_struct. rename Heqeq_struct into Hst.
+  - remember (fix eval_binary_op_eq_struct' (l1 l2 : Ops.Fields Val)
+                {struct l1} := _) as eq_struct. rename Heqeq_struct into Hst.
     destruct_match H3. 1: inv H3. inversion H1. subst kvs v3. clear H1.
     inversion H2. subst kvs v4. clear H2. simpl. rewrite <- Hst.
     rewrite Bool.negb_false_iff in H4. apply andb_prop in H4. destruct H4.
@@ -1208,29 +1169,7 @@ Proof.
       destruct IHvs as [? [? ?]]. destruct_match H0; inversion H0. subst x. clear H0.
       solve_ex_sim. auto.
   - remember (fix eval_binary_op_eq_struct' (l1 l2 : Ops.Fields Val) {struct l1} :
-              option bool :=
-            match l1 with
-            | [] => match l2 with
-                    | [] => Some true
-                    | _ :: _ => None
-                    end
-            | (k1, v1) :: l1' =>
-                match l2 with
-                | [] => None
-                | (k2, v2) :: l2' =>
-                    if ~~ (k1 =? k2)
-                    then None
-                    else
-                     match Ops.eval_binary_op_eq v1 v2 with
-                     | Some b1 =>
-                         match eval_binary_op_eq_struct' l1' l2' with
-                         | Some b2 => Some (b1 && b2)
-                         | None => None
-                         end
-                     | None => None
-                     end
-                end
-            end) as eq_struct. rename Heqeq_struct into Hst.
+              option bool := _) as eq_struct. rename Heqeq_struct into Hst.
     destruct_match H3; inversion H3. subst b0; clear H3.
     destruct_match H4. 1: inv H4. inversion H1. subst kvs b0 v3. clear H1.
     inversion H2. subst kvs b0 v4. clear H2. simpl. rewrite <- Hst.
@@ -1254,30 +1193,8 @@ Proof.
       destruct IHvs as [? [? ?]]. destruct_match H0; inversion H0. subst x. clear H0.
       destruct_match H5; inversion H5. subst b3. clear H5.
       solve_ex_sim. auto.
-  - remember (fix eval_binary_op_eq_struct' (l1 l2 : Ops.Fields Val) {struct l1} :
-              option bool :=
-            match l1 with
-            | [] => match l2 with
-                    | [] => Some true
-                    | _ :: _ => None
-                    end
-            | (k1, v1) :: l1' =>
-                match l2 with
-                | [] => None
-                | (k2, v2) :: l2' =>
-                    if ~~ (k1 =? k2)
-                    then None
-                    else
-                     match Ops.eval_binary_op_eq v1 v2 with
-                     | Some b1 =>
-                         match eval_binary_op_eq_struct' l1' l2' with
-                         | Some b2 => Some (b1 && b2)
-                         | None => None
-                         end
-                     | None => None
-                     end
-                end
-            end) as eq_struct. rename Heqeq_struct into Hst.
+  - remember (fix eval_binary_op_eq_struct' (l1 l2 : Ops.Fields Val)
+                {struct l1} := _) as eq_struct. rename Heqeq_struct into Hst.
     destruct_match H3. 1: inv H3. inversion H1. subst kvs v3. clear H1.
     inversion H2. subst kvs v4. clear H2. simpl. rewrite <- Hst.
     rewrite Bool.negb_false_iff in H4. apply andb_prop in H4. destruct H4.
@@ -1299,26 +1216,8 @@ Proof.
       destruct H4 as [? [? ?]]. destruct_match H0; inversion H0. subst x. clear H0.
       destruct IHvs as [? [? ?]]. destruct_match H0; inversion H0. subst x. clear H0.
       solve_ex_sim. auto.
-  - remember (fix eval_binary_op_eq_tuple (l1 l2 : list Val) {struct l1} : option bool :=
-          match l1 with
-          | [] => match l2 with
-                  | [] => Some true
-                  | _ :: _ => None
-                  end
-          | x1 :: l1' =>
-              match l2 with
-              | [] => None
-              | x2 :: l2' =>
-                  match Ops.eval_binary_op_eq x1 x2 with
-                  | Some b1 =>
-                      match eval_binary_op_eq_tuple l1' l2' with
-                      | Some b2 => Some (b1 && b2)
-                      | None => None
-                      end
-                  | None => None
-                  end
-              end
-          end) as eq_tuple. rename Heqeq_tuple into Htlp.
+  - remember (fix eval_binary_op_eq_tuple (l1 l2 : list Val)
+                {struct l1} := _) as eq_tuple. rename Heqeq_tuple into Htlp.
     inversion H1. subst lv next0 v3. clear H1. inversion H2. subst lv next0 v4.
     clear H2. simpl. rewrite <- Htlp. destruct_match H3. 1: inv H3.
     pose proof (Forall2_Zlength H7). pose proof (Forall2_Zlength H6).
@@ -1326,14 +1225,19 @@ Proof.
     revert vs headers lv' lv'0 b H0 H3 H6 H7. induction vs; intros.
     + rewrite Htlp in H3. destruct headers; inversion H3. subst b. clear H3.
       inversion H6. inversion H7. rewrite Htlp. solve_ex_sim; auto.
-    + rewrite Htlp, <- Htlp in H3. destruct headers. 1: inv H3.
-      destruct lv'0. 1: inv H6. destruct lv'. 1: inv H7. inversion H0. subst x l.
-      clear H0. inversion H6. subst x l y l'. clear H6. inversion H7. subst x l y l'.
-      clear H7. destruct_match H3. 2: inv H3. destruct_match H3. 2: inv H3.
-      specialize (H4 _ _ _ _ H6 H8 H0). rewrite Htlp, <- Htlp.
-      destruct H4 as [? [? ?]]. destruct_match H2; inversion H2. subst x. clear H2.
-      specialize (IHvs _ _ _ _ H5 H1 H10 H11). destruct IHvs as [? [? ?]].
-      destruct_match H2; inversion H2. subst x. clear H2. solve_ex_sim; auto.
+    + rewrite Htlp, <- Htlp in H3. destruct headers. 1: discriminate.
+      destruct lv'0. 1: inv H6. destruct lv'. 1: inv H7.
+      rewrite Forall_cons_iff in H0. destruct H0.
+      inversion H6. subst x l y l'. clear H6. inversion H7. subst x l y l'.
+      clear H7. destruct_match H3. 2: inv H3. inversion H3. clear H3. subst b.
+      destruct_match H2. 2: inv H2.
+      specialize (H0 _ _ _ _ H6 H8 H3). rewrite Htlp, <- Htlp.
+      destruct H0 as [? [? ?]]. destruct_match H2. 2: discriminate.
+      destruct_match H0. 2: discriminate.
+      specialize (IHvs headers lv' lv'0 ((i =? next)%N && b1) H1).
+      rewrite H5 in IHvs. specialize (IHvs eq_refl H10 H11). clear H1.
+      destruct IHvs as [? [? ?]]. destruct_match H1; inversion H1.
+      destruct_match H12; inversion H12. solve_ex_sim; auto.
   - destruct_match H3; inv H3. inv H1. inv H2. simpl. rewrite H0. solve_ex_sim. auto.
   - destruct (t =? typ_name) eqn:?H. 2: inv H3. apply eqb_eq in H0. subst typ_name.
     inv H1. inv H2. simpl. rewrite eqb_refl. eapply IHv1; eauto.

@@ -482,7 +482,7 @@ Fixpoint val_to_liberal_sval (val: Val): Sval :=
   | ValBaseSenumField s1 s => ValBaseSenumField s1 (val_to_liberal_sval s)
   end.
 
-Lemma Forall2_ndetbit : forall l : list bool, 
+Lemma Forall2_ndetbit : forall l : list bool,
   Forall2 read_ndetbit (map Some l) l.
 Proof.
   induction l; constructor; auto.
@@ -555,4 +555,20 @@ Proof.
   }
   eapply exec_val_eq in H.
   auto.
+Qed.
+
+Lemma eval_sval_to_val_eq:
+  forall v, eval_sval_to_val (eval_val_to_sval v) = Some v.
+Proof.
+  induction v using custom_ValueBase_ind; simpl; auto;
+    rewrite ?lift_option_map_some; auto.
+  1, 5: rewrite map_map; induction vs; simpl; auto;
+  rewrite Forall_cons_iff in H; destruct H; rewrite H;
+  specialize (IHvs H0); remember (lift_option _);
+  destruct o; [inversion IHvs; reflexivity | discriminate].
+  1 - 3: induction vs; simpl; auto; rewrite Forall_cons_iff in H; destruct H;
+  destruct a; simpl; rewrite H; specialize (IHvs H0);
+  remember (lift_option_kv _); destruct o;
+  [inversion IHvs; reflexivity | discriminate].
+  rewrite IHv. reflexivity.
 Qed.

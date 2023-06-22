@@ -11,6 +11,16 @@ Notation ident := string.
 Notation path := (list ident).
 Notation Val := (@ValueBase bool).
 Notation Sval := (@ValueBase (option bool)).
+Notation Val_eqb := (val_eqb Bool.eqb).
+
+Lemma Val_eqb_eq_iff: forall (v1 v2: Val), Val_eqb v1 v2 = true <-> v1 = v2.
+Proof.
+  intros. split; intros.
+  - apply val_eqb_eq in H; auto. intros. apply Bool.eqb_prop; auto.
+  - subst. apply val_eqb_refl. exact Bool.eqb_reflx.
+Qed.
+
+Definition P4BitV (w : N) (v : Z) : Val := ValBaseBit (P4Arith.to_lbool w v).
 
 Definition am_ge := ltac:(get_am_ge prog).
 Definition ge := ltac:(get_ge am_ge prog).
@@ -27,3 +37,4 @@ Definition ingress_intrinsic_metadata_for_tm_t: P4Type :=
   ltac:(get_type "ingress_intrinsic_metadata_for_tm_t" ge).
 Definition tcp_h: P4Type := ltac:(get_type "tcp_h" ge).
 Definition udp_h: P4Type := ltac:(get_type "udp_h" ge).
+Definition ipv4_h: P4Type := ltac:(get_type "ipv4_h" ge).
