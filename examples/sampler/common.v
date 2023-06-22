@@ -20,6 +20,14 @@ Proof.
   - subst. apply val_eqb_refl. exact Bool.eqb_reflx.
 Qed.
 
+Lemma Val_eqb_neq_iff: forall (v1 v2: Val), Val_eqb v1 v2 = false <-> v1 <> v2.
+Proof.
+  intros. split; intros.
+  - intro. rewrite <- Val_eqb_eq_iff, H in H0. discriminate.
+  - rewrite <- Bool.not_true_iff_false. intro. rewrite Val_eqb_eq_iff in H0.
+    apply H. assumption.
+Qed.
+
 Definition P4BitV (w : N) (v : Z) : Val := ValBaseBit (P4Arith.to_lbool w v).
 
 Definition am_ge := ltac:(get_am_ge prog).
@@ -38,3 +46,4 @@ Definition ingress_intrinsic_metadata_for_tm_t: P4Type :=
 Definition tcp_h: P4Type := ltac:(get_type "tcp_h" ge).
 Definition udp_h: P4Type := ltac:(get_type "udp_h" ge).
 Definition ipv4_h: P4Type := ltac:(get_type "ipv4_h" ge).
+Definition ethernet_h: P4Type := ltac:(get_type "ethernet_h" ge).

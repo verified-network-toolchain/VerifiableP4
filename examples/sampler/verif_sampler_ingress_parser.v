@@ -168,7 +168,7 @@ Proof.
   rewrite P4Arith.to_lbool_bit_mod. reflexivity.
 Qed.
 
-Lemma abs_ipv_hdr_eq_eq: forall ipv4 hsample w v,
+Lemma abs_ipv4_hdr_eq_eq: forall ipv4 hsample w v,
     abs_eq
       (get "protocol"
          (get "ipv4"
@@ -198,7 +198,7 @@ Proof.
   rewrite <- Val_eqb_eq_iff in Heqo. assumption.
 Qed.
 
-Lemma is_sval_true_binary_op_neq: forall v1 v2,
+Lemma is_sval_false_binary_op_eq: forall v1 v2,
   is_sval_false
     (eval_val_to_sval (force ValBaseNull (Ops.eval_binary_op Eq v1 v2))) ->
   Val_eqb v1 v2 = false.
@@ -217,23 +217,107 @@ Proof.
   start_function.
   step_call (@packet_in_extract_body Info); [ entailer | apply H |].
   step_if; change (ValBaseBit _) with (P4BitV 8 IP_PROTOCOLS_TCP) in H1;
-    rewrite abs_ipv_hdr_eq_eq in H1.
+    rewrite abs_ipv4_hdr_eq_eq in H1.
   - apply is_sval_true_binary_op_eq in H1. red in H0. rewrite H1 in H0.
     unfold protocol_extract_result. rewrite !H1.
     step_call parser_parse_tcp_body. 2: apply H0. entailer.
-  - apply is_sval_true_binary_op_neq in H1. red in H0. rewrite H1 in H0.
+  - apply is_sval_false_binary_op_eq in H1. red in H0. rewrite H1 in H0.
     unfold protocol_extract_result. rewrite !H1.
     step_if; change (ValBaseBit _) with (P4BitV 8 IP_PROTOCOLS_UDP) in H2;
-      rewrite abs_ipv_hdr_eq_eq in H2.
+      rewrite abs_ipv4_hdr_eq_eq in H2.
     + apply is_sval_true_binary_op_eq in H2. rewrite H2 in H0.
       rewrite !H2. step_call parser_parse_udp_body. 2: apply H0. entailer.
-    + apply is_sval_true_binary_op_neq in H2. rewrite H2 in H0.
+    + apply is_sval_false_binary_op_eq in H2. rewrite H2 in H0.
       destruct H0. subst. rewrite !H2.
       step_call (@parser_accept_body Info). entailer.
 Qed.
 
 Definition parser_parse_ethernet_fundef :=
   ltac:(get_fd ["SwitchIngressParser"; "parse_ethernet"] ge).
+
+Record ethernet_rec := {
+    ethernet_dst_addr: Val;
+    ethernet_src_addr: Val;
+    ethernet_ether_type: Val;
+  }.
+
+Definition ethernet_repr_val (ether: ethernet_rec) : Val :=
+  ValBaseHeader
+    [("dst_addr", ethernet_dst_addr ether);
+     ("src_addr", ethernet_src_addr ether);
+     ("ether_type", ethernet_ether_type ether)] true.
+
+Definition ethernet_extract_result
+  (hsample: header_sample_rec) (ether: ethernet_rec) (ipv4: ipv4_rec)
+  (result: Val): Sval :=
+  protocol_extract_result ipv4 result
+    (update "ipv4" (eval_val_to_sval (ipv4_repr_val ipv4))
+       (update "ethernet" (eval_val_to_sval (ethernet_repr_val ether))
+          (hdr hsample))).
+
+Definition ETHERTYPE_IPV4: Z := 0x800.
+
+Definition parser_parse_ethernet_spec: func_spec :=
+  WITH,
+    PATH p
+    MOD (Some [["hdr"]]) [["packet_in"]]
+    WITH (pin pin2 pin3 pin4: packet_in) ether ipv4 hsample result
+         (_: extract ethernet_h pin =
+               Some (ethernet_repr_val ether, SReturnNull, pin2))
+         (_: extract ipv4_h pin2 =
+               Some (ipv4_repr_val ipv4, SReturnNull, pin3))
+         (_: protocol_extract_cond ipv4 pin3 pin4 result)
+         (_: ethernet_ether_type ether = P4BitV 16 ETHERTYPE_IPV4),
+      PRE
+        (ARG []
+        (MEM [(["hdr"], (hdr hsample))]
+        (EXT [ExtPred.singleton ["packet_in"] (ObjPin pin)])))
+      POST
+        (ARG_RET [] ValBaseNull
+           (MEM [(["hdr"], ethernet_extract_result
+                             hsample ether ipv4 result)]
+              (EXT [ExtPred.singleton ["packet_in"] (ObjPin pin4)]))).
+
+Lemma abs_ether_eq_eq: forall ether hsample w v,
+    abs_eq
+      (get "ether_type"
+         (get "ethernet"
+            (update "ethernet" (eval_val_to_sval (ethernet_repr_val ether))
+               (hdr hsample))))
+      (build_abs_unary_op (@Ops.eval_cast Info (TypBit w))
+         (eval_val_to_sval (P4BitV w v))) =
+      eval_val_to_sval
+        (force ValBaseNull
+           (Ops.eval_binary_op Eq (ethernet_ether_type ether) (P4BitV w v))).
+Proof.
+  intros. rewrite get_update_same; auto.
+  unfold build_abs_unary_op. rewrite eval_sval_to_val_eq.
+  rewrite force_cast_P4BitV_eq. unfold ethernet_repr_val. simpl get. unfold abs_eq.
+  unfold build_abs_binary_op. rewrite !eval_sval_to_val_eq. reflexivity.
+Qed.
+
+Lemma parser_parse_ethernet_body:
+  func_sound ge parser_parse_ethernet_fundef nil parser_parse_ethernet_spec.
+Proof.
+  start_function.
+  step_call (@packet_in_extract_body Info); [ entailer | apply H |].
+  step_if; change (ValBaseBit _) with (P4BitV 16 ETHERTYPE_IPV4) in H3;
+    rewrite abs_ether_eq_eq in H3.
+  - unfold ethernet_extract_result.
+    remember (Build_header_sample_rec
+                (header_sample_bridge hsample)
+                (header_sample_sample hsample)
+                (eval_val_to_sval (ethernet_repr_val ether))
+                (header_sample_ipv4 hsample)
+                (header_sample_tcp hsample)
+                (header_sample_udp hsample)) as new_hdr.
+    assert (update "ethernet" (eval_val_to_sval (ethernet_repr_val ether))
+              (hdr hsample) = hdr new_hdr) by (rewrite Heqnew_hdr; reflexivity).
+    rewrite H4.
+    step_call parser_parse_ipv4_body; [entailer| apply H0 | apply H1].
+  - apply is_sval_false_binary_op_eq in H3.
+    rewrite Val_eqb_neq_iff in H3. exfalso. apply H3. assumption.
+Qed.
 
 Definition parser_start_fundef :=
   ltac:(get_fd ["SwitchIngressParser"; "start"] ge).
