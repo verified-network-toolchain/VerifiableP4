@@ -274,8 +274,7 @@ Definition parser_parse_ethernet_spec: func_spec :=
         (EXT [ExtPred.singleton ["packet_in"] (ObjPin pin)])))
       POST
         (ARG_RET [] ValBaseNull
-           (MEM [(["hdr"], ethernet_extract_result
-                             hsample ether ipv4 result)]
+           (MEM [(["hdr"], ethernet_extract_result hsample ether ipv4 result)]
               (EXT [ExtPred.singleton ["packet_in"] (ObjPin pin4)]))).
 
 Lemma abs_ether_eq_eq: forall ether hsample w v,
@@ -321,3 +320,157 @@ Qed.
 
 Definition parser_start_fundef :=
   ltac:(get_fd ["SwitchIngressParser"; "start"] ge).
+
+Definition sample_invalid_bridge
+  (hsample: header_sample_rec) (has_sample: Sval) : header_sample_rec :=
+  Build_header_sample_rec
+    (ValBaseHeader [("contains_sample", has_sample)] (Some false))
+    (header_sample_sample hsample)
+    (header_sample_ethernet hsample)
+    (header_sample_ipv4 hsample)
+    (header_sample_tcp hsample)
+    (header_sample_udp hsample).
+
+Definition sample_valid_bridge
+  (hsample: header_sample_rec) (has_sample: Sval) : header_sample_rec :=
+  Build_header_sample_rec
+    (ValBaseHeader [("contains_sample", has_sample)] (Some true))
+    (header_sample_sample hsample)
+    (header_sample_ethernet hsample)
+    (header_sample_ipv4 hsample)
+    (header_sample_tcp hsample)
+    (header_sample_udp hsample).
+
+Definition parser_start_spec: func_spec :=
+  WITH,
+    PATH p
+    MOD (Some [["hdr"]; ["ig_intr_md"]]) [["packet_in"]]
+    WITH (pin pin2 pin3 pin4 pin5: packet_in) ver port stamp
+         ether ipv4 hsample has_sample result
+         (_: extract ingress_intrinsic_metadata_t pin =
+             Some (iimt_repr_val 0 ver port stamp, SReturnNull, pin2))
+         (_: 64 < Zlength pin2)
+         (_: extract ethernet_h (skipn 64 pin2) =
+               Some (ethernet_repr_val ether, SReturnNull, pin3))
+         (_: extract ipv4_h pin3 =
+               Some (ipv4_repr_val ipv4, SReturnNull, pin4))
+         (_: protocol_extract_cond ipv4 pin4 pin5 result)
+         (_: ethernet_ether_type ether = P4BitV 16 ETHERTYPE_IPV4),
+      PRE
+        (ARG []
+        (MEM [(["hdr"], (hdr (sample_invalid_bridge hsample has_sample)))]
+        (EXT [ExtPred.singleton ["packet_in"] (ObjPin pin)])))
+      POST
+        (ARG_RET [] ValBaseNull
+           (MEM [(["hdr"], ethernet_extract_result
+                             ((sample_valid_bridge hsample has_sample))
+                             ether ipv4 result);
+                 (["ig_intr_md"], (iimt_repr_sval 0 ver port stamp))]
+              (EXT [ExtPred.singleton ["packet_in"] (ObjPin pin5)]))).
+
+Lemma parser_start_body:
+  func_sound ge parser_start_fundef nil parser_start_spec.
+Proof.
+  start_function.
+  step_call tofino_parser_body; [entailer | eauto.. |].
+  step. simpl eval_write_var.
+  change (ValBaseStruct _) with (hdr (sample_valid_bridge hsample has_sample)).
+  step_call parser_parse_ethernet_body;
+    [entailer | eauto.. |].
+  step. entailer.
+Qed.
+
+Definition parser_fundef :=
+  ltac:(get_fd ["SwitchIngressParser"; "apply"] ge).
+
+Definition has_sample_init := P4Bit_ 8.
+
+Definition hdr_init: header_sample_rec :=
+  Build_header_sample_rec
+    (ValBaseHeader
+       [("contains_sample", P4Bit_ 8)] (Some false))
+    (ValBaseHeader
+       [("dmac", P4Bit_ 48);
+        ("smac", P4Bit_ 48);
+        ("etype", P4Bit_ 16);
+        ("srcip", P4Bit_ 32);
+        ("dstip", P4Bit_ 32);
+        ("num_pkts", P4Bit_ 32)] (Some false))
+    (ValBaseHeader
+       [("dst_addr", P4Bit_ 48);
+        ("src_addr", P4Bit_ 48);
+        ("ether_type", P4Bit_ 16)] (Some false))
+    (ValBaseHeader
+       [("version", P4Bit_ 4);
+        ("ihl", P4Bit_ 4);
+        ("diffserv", P4Bit_ 8);
+        ("total_len", P4Bit_ 16);
+        ("identification", P4Bit_ 16);
+        ("flags", P4Bit_ 3);
+        ("frag_offset", P4Bit_ 13);
+        ("ttl", P4Bit_ 8);
+        ("protocol", P4Bit_ 8);
+        ("hdr_checksum", P4Bit_ 16);
+        ("src_addr", P4Bit_ 32);
+        ("dst_addr", P4Bit_ 32)]
+       (Some false))
+    (ValBaseHeader
+       [("src_port", P4Bit_ 16);
+        ("dst_port", P4Bit_ 16);
+        ("seq_no", P4Bit_ 32);
+        ("ack_no", P4Bit_ 32);
+        ("data_offset", P4Bit_ 4);
+        ("res", P4Bit_ 4);
+        ("flags", P4Bit_ 8);
+        ("window", P4Bit_ 16);
+        ("checksum", P4Bit_ 16);
+        ("urgent_ptr", P4Bit_ 16)]
+       (Some false))
+    (ValBaseHeader
+        [("src_port", P4Bit_ 16);
+         ("dst_port", P4Bit_ 16);
+         ("hdr_length", P4Bit_ 16);
+         ("checksum", P4Bit_ 16)]
+        (Some false)).
+
+Definition parser_spec: func_spec :=
+  WITH,
+    PATH p
+    MOD (Some [["hdr"]; ["ig_md"]; ["ig_intr_md"]]) [["packet_in"]]
+    WITH (pin pin2 pin3 pin4 pin5: packet_in) ver port stamp
+         ether ipv4 result
+         (_: extract ingress_intrinsic_metadata_t pin =
+             Some (iimt_repr_val 0 ver port stamp, SReturnNull, pin2))
+         (_: 64 < Zlength pin2)
+         (_: extract ethernet_h (skipn 64 pin2) =
+               Some (ethernet_repr_val ether, SReturnNull, pin3))
+         (_: extract ipv4_h pin3 =
+               Some (ipv4_repr_val ipv4, SReturnNull, pin4))
+         (_: protocol_extract_cond ipv4 pin4 pin5 result)
+         (_: ethernet_ether_type ether = P4BitV 16 ETHERTYPE_IPV4),
+      PRE
+        (ARG []
+        (MEM [(["hdr"], (hdr (sample_invalid_bridge hdr_init has_sample_init)))]
+        (EXT [ExtPred.singleton ["packet_in"] (ObjPin pin)])))
+      POST
+        (ARG_RET [(ethernet_extract_result
+                     ((sample_valid_bridge hdr_init has_sample_init))
+                     ether ipv4 result);
+                  (ValBaseStruct [("num_pkts", P4Bit_ 32)]);
+                  (iimt_repr_sval 0 ver port stamp)] ValBaseNull
+           (MEM []
+              (EXT [ExtPred.singleton ["packet_in"] (ObjPin pin5)]))).
+
+Lemma parser_body:
+  func_sound ge parser_fundef nil parser_spec.
+Proof.
+  start_function.
+  step.
+  replace (ValBaseStruct _) with
+    (hdr (sample_invalid_bridge hdr_init has_sample_init)) by
+    (unfold hdr; reflexivity).
+  step.
+  step.
+  step_call parser_start_body; [entailer | eauto..].
+  step. entailer.
+Qed.

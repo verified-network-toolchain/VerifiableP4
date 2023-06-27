@@ -147,7 +147,7 @@ Definition tofino_parser_fundef :=
 Definition tofino_parser_spec: func_spec :=
   WITH,
     PATH p
-    MOD None [["packet_in"]]
+    MOD (Some [["ig_intr_md"]]) [["packet_in"]]
     WITH (pin: packet_in) ver port stamp pin'
          (_: extract ingress_intrinsic_metadata_t pin =
              Some (iimt_repr_val 0 ver port stamp, SReturnNull, pin'))
