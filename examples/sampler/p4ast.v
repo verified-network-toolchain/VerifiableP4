@@ -2452,7 +2452,12 @@ Definition SwitchIngressParser := DeclParser NoInfo
                                {| stags := NoInfo; str := "apply" |})
                           (TypFunction
                            (MkFunctionType nil
-                                [(MkParameter false Out
+                                [(MkParameter false Directionless
+                                      (TypExtern
+                                       {| stags := NoInfo;
+                                          str := "packet_in" |}) None
+                                      {| stags := NoInfo; str := "pkt" |});
+                                 (MkParameter false Out
                                       (TypHeader
                                        [( {| stags := NoInfo;
                                              str := "resubmit_flag" |},
@@ -2476,6 +2481,14 @@ Definition SwitchIngressParser := DeclParser NoInfo
                                          str := "ig_intr_md" |})] FunParser
                                 TypVoid)) Directionless) nil
                      [(Some
+                       (MkExpression NoInfo
+                            (ExpName
+                             (BareName {| stags := NoInfo; str := "pkt" |})
+                             (LInstance ["pkt"]))
+                            (TypTypeName
+                             {| stags := NoInfo; str := "packet_in" |})
+                            Directionless));
+                      (Some
                        (MkExpression NoInfo
                             (ExpName
                              (BareName
