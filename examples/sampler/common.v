@@ -47,3 +47,4 @@ Definition tcp_h: P4Type := ltac:(get_type "tcp_h" ge).
 Definition udp_h: P4Type := ltac:(get_type "udp_h" ge).
 Definition ipv4_h: P4Type := ltac:(get_type "ipv4_h" ge).
 Definition ethernet_h: P4Type := ltac:(get_type "ethernet_h" ge).
+Definition MeterColor_t: P4Type := ltac:(get_type "MeterColor_t" ge).

@@ -3,6 +3,7 @@ Require Import Poulet4.P4light.Semantics.Semantics.
 Require Import ProD3.core.Core.
 Require Import Poulet4.P4light.Architecture.Tofino.
 Require Import ProD3.core.Tofino.
+Require Import ProD3.core.PacketFormat.
 Require Import ProD3.examples.sampler.ModelRepr.
 Require Import ProD3.examples.sampler.common.
 Require Import ProD3.core.ProgNotations.
@@ -22,7 +23,7 @@ Definition tofino_parser_port_metadata_spec: func_spec :=
   WITH,
     PATH p
     MOD (Some []) [["packet_in"]]
-    WITH (pin: packet_in) (_: 64 < Zlength pin),
+    WITH (pin pin': packet_in) (_: pin ⫢ [⟨64⟩; ⦑pin'⦒]),
       PRE
         (ARG []
         (MEM []
@@ -30,7 +31,7 @@ Definition tofino_parser_port_metadata_spec: func_spec :=
       POST
         (ARG_RET [] ValBaseNull
         (MEM []
-           (EXT [ExtPred.singleton ["packet_in"] (ObjPin (skipn 64 pin))]))).
+           (EXT [ExtPred.singleton ["packet_in"] (ObjPin pin')]))).
 
 (* Unset Printing Notations. *)
 
@@ -41,7 +42,8 @@ Proof.
   start_function.
   step_call (@packet_in_advance_body Info);
     [ entailer; instantiate (1 := 64); apply sval_refine_refl |
-      lia | assumption | ].
+      lia | apply format_match_size in H; assumption | ].
+  apply format_match_skipn in H. change (Z.to_nat 64) with 64%nat. rewrite H.
   step_call (@parser_accept_body Info); [entailer |].
   step.
   entailer.
@@ -56,7 +58,7 @@ Definition tofino_parser_resubmit_spec: func_spec :=
   WITH,
     PATH p
     MOD (Some []) [["packet_in"]]
-    WITH (pin: packet_in) (_: 64 < Zlength pin) (_: False),
+    WITH (pin: packet_in) (_: 64 <= Zlength pin) (_: False),
       PRE
         (ARG []
         (MEM []
@@ -115,9 +117,9 @@ Definition tofino_parser_start_spec: func_spec :=
     PATH p
     MOD (Some [["ig_intr_md"]]) [["packet_in"]]
     WITH (pin: packet_in) ver port stamp pin'
-         (_: extract ingress_intrinsic_metadata_t pin =
-             Some (iimt_repr_val 0 ver port stamp, SReturnNull, pin'))
-         (_: 64 < Zlength pin'),
+         (_: ⊫ᵥ iimt_repr_val 0 ver port stamp \:
+               ingress_intrinsic_metadata_t)
+         (_: pin ⫢ [⦑ encode (iimt_repr_val 0 ver port stamp) ⦒; ⟨64⟩; ⦑pin'⦒]),
       PRE
         (ARG []
         (MEM []
@@ -125,18 +127,20 @@ Definition tofino_parser_start_spec: func_spec :=
       POST
         (ARG_RET [] ValBaseNull
         (MEM [(["ig_intr_md"], (iimt_repr_sval 0 ver port stamp))]
-           (EXT [ExtPred.singleton ["packet_in"] (ObjPin (skipn 64 pin'))]))).
+           (EXT [ExtPred.singleton ["packet_in"] (ObjPin pin')]))).
 
 Lemma tofino_parser_start_body:
   func_sound ge tofino_parser_start_fundef nil
     tofino_parser_start_spec.
 Proof.
   start_function.
-  step_call (@packet_in_extract_body Info); [entailer | apply H |].
-  step_if; simpl in H1. 1: exfalso; auto.
-  clear H1. step_if; simpl in H1. 2: exfalso; auto.
+  simpl_format_list.
+  step_call (@packet_in_extract_body Info);
+    [entailer | apply extract_encode; [assumption | reflexivity] |].
+  step_if; simpl in H0. 1: exfalso; auto.
+  clear H0. step_if; simpl in H0. 2: exfalso; auto.
   rewrite iimt_repr_eq.
-  step_call tofino_parser_port_metadata_body; auto. entailer.
+  step_call tofino_parser_port_metadata_body; eauto. entailer.
 Qed.
 
 #[export] Hint Extern 5 (func_modifies _ _ _ _ _) => (apply tofino_parser_start_body) : func_specs.
@@ -149,9 +153,9 @@ Definition tofino_parser_spec: func_spec :=
     PATH p
     MOD (Some [["ig_intr_md"]]) [["packet_in"]]
     WITH (pin: packet_in) ver port stamp pin'
-         (_: extract ingress_intrinsic_metadata_t pin =
-             Some (iimt_repr_val 0 ver port stamp, SReturnNull, pin'))
-         (_: 64 < Zlength pin'),
+         (_: ⊫ᵥ iimt_repr_val 0 ver port stamp \:
+               ingress_intrinsic_metadata_t)
+         (_: pin ⫢ [⦑ encode (iimt_repr_val 0 ver port stamp) ⦒; ⟨64⟩; ⦑pin'⦒]),
       PRE
         (ARG []
         (MEM []
@@ -159,14 +163,14 @@ Definition tofino_parser_spec: func_spec :=
       POST
         (ARG_RET [iimt_repr_sval 0 ver port stamp] ValBaseNull
         (MEM []
-           (EXT [ExtPred.singleton ["packet_in"] (ObjPin (skipn 64 pin'))]))).
+           (EXT [ExtPred.singleton ["packet_in"] (ObjPin pin')]))).
 
 Lemma tofino_parser_body:
   func_sound ge tofino_parser_fundef nil tofino_parser_spec.
 Proof.
   start_function.
   step.
-  step_call tofino_parser_start_body; [ entailer | apply H | assumption | ].
+  step_call tofino_parser_start_body; [ entailer | apply H | apply H0 | ].
   step.
   entailer.
 Qed.

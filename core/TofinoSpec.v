@@ -322,7 +322,7 @@ Definition packet_in_advance_spec (p: path): func_spec :=
     PATH p
     MOD None [p]
     WITH (pin: packet_in) (size: Z) (_: 0 <= size < 2 ^ 32)
-         (_: size < Zlength pin),
+         (_: size <= Zlength pin),
     PRE (ARG [P4Bit 32 size]
            (MEM []
               (EXT [ExtPred.singleton p (ObjPin pin)])))
