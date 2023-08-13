@@ -521,7 +521,7 @@ Definition MyParser := DeclParser NoInfo
                                     (ExpName
                                      (BareName
                                       {| stags := NoInfo; str := "packet" |})
-                                     NoLocator)
+                                     (LInstance ["packet"]))
                                     (TypTypeName
                                      {| stags := NoInfo;
                                         str := "packet_in" |}) Directionless)
@@ -545,7 +545,7 @@ Definition MyParser := DeclParser NoInfo
                                       (ExpName
                                        (BareName
                                         {| stags := NoInfo; str := "hdr" |})
-                                       NoLocator)
+                                       (LInstance ["hdr"]))
                                       (TypTypeName
                                        {| stags := NoInfo;
                                           str := "headers" |}) Out)

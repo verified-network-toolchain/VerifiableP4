@@ -761,13 +761,16 @@ Ltac refine_function func_spec :=
   | _ => fail "The goal is not in the form of (func_sound _ _ _)"
   end.
 
+Ltac sval_refine :=
+  try apply sval_refine_refl.
+
 Ltac Forall2_sval_refine :=
   lazymatch goal with
   | |- Forall2 sval_refine _ _ =>
       first [
         apply Forall2_nil
       | apply Forall2_cons;
-        [ try apply sval_refine_refl
+        [ sval_refine
         | Forall2_sval_refine
         ]
       ]
