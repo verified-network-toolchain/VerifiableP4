@@ -544,17 +544,10 @@ Proof.
 Qed.
 
 Lemma sval_to_val_n_eval_val_to_sval_eq : forall v1 v2,
-  sval_to_val read_ndetbit (eval_val_to_sval v1) v2 ->
-  v2 = v1.
+  sval_to_val read_ndetbit (eval_val_to_sval v1) v2 -> v2 = v1.
 Proof.
-  intros.
-  pose proof (proj2 (val_to_sval_iff v1 _) ltac:(eauto)).
-  eapply exec_val_trans with (h := eq) in H; only 3 : eassumption.
-  2 : {
-    clear; unfold rel_trans; sauto lq: on.
-  }
-  eapply exec_val_eq in H.
-  auto.
+  intros. apply sval_to_val_eval_val_to_sval_eq in H; auto.
+  intros. now inv H0.
 Qed.
 
 Lemma eval_sval_to_val_eq:

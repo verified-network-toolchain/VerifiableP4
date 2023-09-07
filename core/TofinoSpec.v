@@ -362,6 +362,43 @@ Proof.
     inv H; rewrite PathMap.get_set_diff; auto.
 Qed.
 
+Definition packet_out_emit_spec (p: path): func_spec :=
+  WITH,
+    PATH p
+    MOD None [p]
+    WITH (pout pout': packet_out) x hdr (_: emit hdr pout = (inl pout', x)),
+    PRE (ARG [eval_val_to_sval hdr]
+           (MEM []
+              (EXT [ExtPred.singleton p (ObjPout pout)])))
+    POST (ARG_RET [] ValBaseNull
+         (MEM []
+         (EXT [ExtPred.singleton p (ObjPout pout')]))).
+
+Lemma packet_out_emit_body: forall (p: path) (typ: P4Type),
+    func_sound ge (FExternal "packet_out" "emit") [typ]
+      (packet_out_emit_spec p).
+Proof.
+  intros. unfold packet_out_emit_spec. simpl. split.
+  - intros pout pout' x hdr H. repeat intro.
+    destruct H0. hnf in H0. inv H0. inv H7.
+    apply exec_val_eval_val_to_sval_eq in H5. 2: intros; now inv H0. subst y.
+    inv H1. simpl in H2. destruct H2 as [_ ?]. hnf in H0. destruct H0 as [? _].
+    simpl in H0. inv H7. simpl in H1. inv H1. rewrite H0 in H3. inversion H3.
+    subst pout0. clear H3. red in H4. inv H4. clear H7.
+    apply sval_to_val_n_eval_val_to_sval_eq in H5. subst v. rewrite H in H8.
+    inversion H8. subst x0. subst pout'0. clear H8. hnf in H13. inv H13.
+    constructor. 1: constructor. split.
+    + apply eval_val_to_sval_ret_denote. reflexivity.
+    + split. 1: constructor. split; simpl; auto. apply PathMap.get_set_same.
+  - red. split; simpl; auto.
+    (* + intros. inv H. simpl. reflexivity. *)
+    repeat intro. inv H. inv H6. simpl in *.
+    assert (q <> p). {
+      intro. apply H0. subst. rewrite Bool.orb_false_r. red.
+      unfold in_scope. apply is_prefix_refl. }
+    inv H; rewrite PathMap.get_set_diff; auto.
+Qed.
+
 Definition parser_accept_spec (p: path): func_spec :=
   WITH,
     PATH p
@@ -1014,3 +1051,5 @@ End TofinoSpec.
 #[export] Hint Extern 5 (func_modifies _ _ _ _ _) => (refine (proj2 (packet_in_extract_body _ _ _)); exact TypBool) : func_specs.
 
 #[export] Hint Extern 5 (func_modifies _ _ _ _ _) => (apply parser_reject_body) : func_specs.
+
+#[export] Hint Extern 5 (func_modifies _ _ _ _ _) => (refine (proj2 (packet_out_emit_body _ _ _)); exact TypBool) : func_specs.

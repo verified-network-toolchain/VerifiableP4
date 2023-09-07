@@ -3,6 +3,7 @@ Require Import Poulet4.P4light.Semantics.Semantics.
 Require Import Poulet4.P4light.Architecture.Tofino.
 Require Import ProD3.core.Core.
 Require Export ProD3.core.TofinoSpec.
+Import ListNotations.
 
 #[export] Instance target : @Target Info (@Expression Info) := Tofino.
 
@@ -199,3 +200,45 @@ Ltac hoare_table_action_cases' ::=
       hoare_table_action_cases'
     ]
   ].
+
+Definition ingress_intrinsic_metadata_t: P4Type :=
+  TypHeader
+    [({| P4String.tags := NoInfo; str := "resubmit_flag" |}, TypBit 1);
+     ({| P4String.tags := NoInfo; str := "_pad1" |}, TypBit 1);
+     ({| P4String.tags := NoInfo; str := "packet_version" |}, TypBit 2);
+     ({| P4String.tags := NoInfo; str := "_pad2" |}, TypBit 3);
+     ({| P4String.tags := NoInfo; str := "ingress_port" |}, TypBit 9);
+     ({| P4String.tags := NoInfo; str := "ingress_mac_tstamp" |}, TypBit 48)].
+
+Definition ingress_intrinsic_metadata_from_parser_t: P4Type :=
+  TypStruct
+    [({| P4String.tags := NoInfo; str := "global_tstamp" |}, TypBit 48);
+     ({| P4String.tags := NoInfo; str := "global_ver" |}, TypBit 32);
+     ({| P4String.tags := NoInfo; str := "parser_err" |}, TypBit 16)].
+
+Definition ingress_intrinsic_metadata_for_deparser_t: P4Type :=
+  TypStruct
+    [({| P4String.tags := NoInfo; str := "drop_ctl" |}, TypBit 3);
+     ({| P4String.tags := NoInfo; str := "digest_type" |}, TypBit 3);
+     ({| P4String.tags := NoInfo; str := "resubmit_type" |}, TypBit 3);
+     ({| P4String.tags := NoInfo; str := "mirror_type" |}, TypBit 3)].
+
+Definition ingress_intrinsic_metadata_for_tm_t: P4Type :=
+  TypStruct
+    [({| P4String.tags := NoInfo; str := "ucast_egress_port" |}, TypBit 9);
+     ({| P4String.tags := NoInfo; str := "bypass_egress" |}, TypBit 1);
+     ({| P4String.tags := NoInfo; str := "deflect_on_drop" |}, TypBit 1);
+     ({| P4String.tags := NoInfo; str := "ingress_cos" |}, TypBit 3);
+     ({| P4String.tags := NoInfo; str := "qid" |}, TypBit 5);
+     ({| P4String.tags := NoInfo; str := "icos_for_copy_to_cpu" |}, TypBit 3);
+     ({| P4String.tags := NoInfo; str := "copy_to_cpu" |}, TypBit 1);
+     ({| P4String.tags := NoInfo; str := "packet_color" |}, TypBit 2);
+     ({| P4String.tags := NoInfo; str := "disable_ucast_cutthru" |}, TypBit 1);
+     ({| P4String.tags := NoInfo; str := "enable_mcast_cutthru" |}, TypBit 1);
+     ({| P4String.tags := NoInfo; str := "mcast_grp_a" |}, TypBit 16);
+     ({| P4String.tags := NoInfo; str := "mcast_grp_b" |}, TypBit 16);
+     ({| P4String.tags := NoInfo; str := "level1_mcast_hash" |}, TypBit 13);
+     ({| P4String.tags := NoInfo; str := "level2_mcast_hash" |}, TypBit 13);
+     ({| P4String.tags := NoInfo; str := "level1_exclusion_id" |}, TypBit 16);
+     ({| P4String.tags := NoInfo; str := "level2_exclusion_id" |}, TypBit 9);
+     ({| P4String.tags := NoInfo; str := "rid" |}, TypBit 16)].

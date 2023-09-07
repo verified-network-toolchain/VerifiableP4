@@ -1,6 +1,6 @@
 Require Import Poulet4.P4light.Syntax.P4defs.
 Require Import Poulet4.P4light.Architecture.Tofino.
-Require Import Poulet4.P4light.Semantics.Typing.ValueTyping.
+Require Export Poulet4.P4light.Semantics.Typing.ValueTyping.
 
 Notation packet := (list bool).
 
@@ -47,6 +47,7 @@ Section PacketFormat.
     | [ |- context [Packet.packet_bind]] => unfold Packet.packet_bind
     | [ |- context [Packet.packet_ret]] => unfold Packet.packet_ret
     | [ |- context [ExceptionState.state_bind]] => unfold ExceptionState.state_bind
+    | [ |- context [ExceptionState.get_state]] => unfold ExceptionState.get_state
     | [ |- context [ExceptionState.state_return]] =>
         unfold ExceptionState.state_return
       end.
@@ -116,6 +117,52 @@ Section PacketFormat.
       is_packet_typ typ = true ->
       extract typ (encode val ++ pkt) = Some (val, SReturnNull, pkt).
   Proof. intros. unfold extract. rewrite extract_encode_raw; auto. Qed.
+
+  Lemma emit_encode_raw: forall (typ: P4Type) (val: Val) pkt,
+      ⊢ᵥ val \: typ  ->
+      is_packet_typ typ = true ->
+      Extract.emit val pkt = (inl tt, pkt ++ encode val).
+  Proof.
+    intros ? ? ? ? ?. revert pkt.
+    induction H using custom_val_typ_ind;
+      try discriminate; intros; simpl; rewrite ?Nat2N.id; auto_unfold;
+      try reflexivity.
+    - revert pkt. induction H; intros; simpl. 1: now rewrite app_nil_r.
+      auto_unfold. inv H1. simpl_more. rewrite H6.
+      specialize (IHForall2 (pkt ++ encode x)).
+      remember (sequence (map Extract.emit l) (pkt ++ encode x)).
+      destruct p, s; inversion IHForall2. rewrite app_assoc. reflexivity.
+    - simpl_more. clear H H0. remember (clear_AList_tags ts) as cs.
+      revert pkt. revert dependent ts.
+      induction H1; intros; destruct ts as [|[k v] ts]; try discriminate.
+      1: simpl; rewrite app_nil_r; reflexivity.
+      simpl in *. auto_unfold. inv Heqcs. inv H2. simpl_more.
+      destruct x. simpl in *. subst s. clear H3. rewrite H4.
+      specialize (IHForall2 ts ltac:(reflexivity) H2 (pkt ++ encode v0)).
+      remember (asequence (map (fun '(k0, v1) => (k0, Extract.emit v1)) l)
+                  (pkt ++ encode v0)).
+      destruct p, s; inversion IHForall2. rewrite app_assoc. reflexivity.
+    - simpl_more. clear H H0. remember (clear_AList_tags ts) as cs.
+      revert pkt. revert dependent ts.
+      induction H1; intros; destruct ts as [|[k v] ts];
+        try discriminate; simpl_more; destruct b; simpl;
+        rewrite ?app_nil_r; try reflexivity.
+      simpl in *. auto_unfold. inv Heqcs. inv H2. simpl_more.
+      destruct x. simpl in *. subst s. clear H4. rewrite H5.
+      specialize (IHForall2 ts ltac:(reflexivity) H3 (pkt ++ encode v0)).
+      remember (asequence (map (fun '(k0, v1) => (k0, Extract.emit v1)) l)
+                  (pkt ++ encode v0)).
+      destruct p, s; inversion IHForall2. rewrite app_assoc. reflexivity.
+  Qed.
+
+  Lemma emit_encode: forall (typ: P4Type) (val: Val) pkt,
+      ⊢ᵥ val \: typ  ->
+      is_packet_typ typ = true ->
+      emit val pkt = (inl (pkt ++ encode val), pkt ++ encode val).
+  Proof.
+    intros. unfold emit. simpl. auto_unfold.
+    erewrite emit_encode_raw; eauto.
+  Qed.
 
 End PacketFormat.
 

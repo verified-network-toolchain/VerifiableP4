@@ -15,7 +15,7 @@ Notation "x := y" := (StatAssignment x y) (at level 98, only printing, x at leve
 Notation "x ()" := (StatMethodCall x _ nil) (at level 98, only printing, x at level 99, format "x ()").
 Notation "x ( y )" := (StatMethodCall x _ y) (at level 98, only printing, x at level 99, y at level 99, format "x ( y )").
 Notation "'if' '(' cond ')' x 'else' y" := (StatConditional cond x (Some y)) (at level 98, only printing, x at level 99, y at level 99).
-Notation "x == y" := (ExpBinaryOp Eq x y) (at level 98, only printing, x at level 99, y at level 99).
+Notation "x =:= y" := (ExpBinaryOp Eq x y) (at level 98, only printing, x at level 99, y at level 99).
 Notation "x" := (MkExpression _ x _ _) (at level 98, only printing, x at level 99).
 Notation "x" := (MkStatement _ x _) (at level 98, only printing, x at level 99).
 Notation "⟦ x ⟧" := (BlockCons x (BlockEmpty _)) (only printing).

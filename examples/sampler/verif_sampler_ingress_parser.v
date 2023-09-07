@@ -1,3 +1,4 @@
+Require Import ProD3.core.PacketFormat.
 Require Import Poulet4.P4light.Syntax.P4defs.
 Require Import Poulet4.P4light.Semantics.Semantics.
 Require Import ProD3.core.Core.
@@ -7,7 +8,6 @@ Require Import ProD3.examples.sampler.ModelRepr.
 Require Import ProD3.examples.sampler.common.
 Require Import ProD3.examples.sampler.verif_sampler_tofino_parser.
 Require Import ProD3.core.ProgNotations.
-Require Import ProD3.core.PacketFormat.
 Require Import Poulet4.P4light.Syntax.P4Notations.
 Require Import Hammer.Plugin.Hammer.
 Require Export Coq.Program.Program.
