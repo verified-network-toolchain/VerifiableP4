@@ -6,7 +6,7 @@ Require Import Poulet4.P4light.Architecture.Tofino.
 Require Import ProD3.core.Tofino.
 Require Import ProD3.examples.sampler.ModelRepr.
 Require Import ProD3.examples.sampler.common.
-Require Import ProD3.examples.sampler.verif_sampler_tofino_parser.
+Require Import ProD3.examples.sampler.verif_tofino_ingress_parser.
 Require Import ProD3.core.ProgNotations.
 Require Import Poulet4.P4light.Syntax.P4Notations.
 Require Import Hammer.Plugin.Hammer.
