@@ -153,8 +153,7 @@ Definition tofino_parser_spec: func_spec :=
     PATH p
     MOD (Some [["ig_intr_md"]]) [["packet_in"]]
     WITH (pin: packet_in) ver port stamp pin'
-         (_: ⊫ᵥ iimt_repr_val 0 ver port stamp \:
-               ingress_intrinsic_metadata_t)
+         (_: ⊫ᵥ iimt_repr_val 0 ver port stamp \: ingress_intrinsic_metadata_t)
          (_: pin ⫢ [⦑ encode (iimt_repr_val 0 ver port stamp) ⦒; ⟨64⟩; ⦑pin'⦒]),
       PRE
         (ARG []

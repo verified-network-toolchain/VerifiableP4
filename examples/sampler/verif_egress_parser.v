@@ -6,17 +6,17 @@ Require Import Poulet4.P4light.Architecture.Tofino.
 Require Import ProD3.core.Tofino.
 Require Import ProD3.examples.sampler.ModelRepr.
 Require Import ProD3.examples.sampler.common.
-Require Import ProD3.examples.sampler.verif_tofino_ingress_parser.
+Require Import ProD3.examples.sampler.verif_tofino_egress_parser.
 Require Import ProD3.core.ProgNotations.
 Require Import Poulet4.P4light.Syntax.P4Notations.
 Require Import Hammer.Plugin.Hammer.
 Require Export Coq.Program.Program.
 Import ListNotations.
 
-Definition p := ["pipe"; "ingress_parser"].
+Definition p := ["pipe"; "egress_parser"].
 
 Definition parser_parse_udp_fundef :=
-  ltac:(get_fd ["SwitchIngressParser"; "parse_udp"] ge).
+  ltac:(get_fd ["SwitchEgressParser"; "parse_udp"] ge).
 
 Definition parser_parse_udp_spec: func_spec :=
   WITH,
@@ -38,17 +38,15 @@ Lemma parser_parse_udp_body:
   func_sound ge parser_parse_udp_fundef nil parser_parse_udp_spec.
 Proof.
   start_function.
-  simpl_format_list.
+  do 3 simpl_format_list. rewrite app_nil_r.
   step_call (@packet_in_extract_body Info);
     [ entailer | apply extract_encode; [assumption | reflexivity] |].
-  simpl_format_list.
-  apply format_match_nil in H2. subst p0. rewrite app_nil_r.
   step_call (@parser_accept_body Info). entailer.
   step. entailer.
 Qed.
 
 Definition parser_parse_tcp_fundef :=
-  ltac:(get_fd ["SwitchIngressParser"; "parse_tcp"] ge).
+  ltac:(get_fd ["SwitchEgressParser"; "parse_tcp"] ge).
 
 Definition parser_parse_tcp_spec: func_spec :=
   WITH,
@@ -70,16 +68,15 @@ Lemma parser_parse_tcp_body:
   func_sound ge parser_parse_tcp_fundef nil parser_parse_tcp_spec.
 Proof.
   start_function.
-  simpl_format_list.
+  do 3 simpl_format_list. rewrite app_nil_r.
   step_call (@packet_in_extract_body Info);
     [ entailer | apply extract_encode; [assumption | reflexivity] |].
-  do 2 simpl_format_list. rewrite app_nil_r.
   step_call (@parser_accept_body Info). entailer.
   step. entailer.
 Qed.
 
 Definition parser_parse_ipv4_fundef :=
-  ltac:(get_fd ["SwitchIngressParser"; "parse_ipv4"] ge).
+  ltac:(get_fd ["SwitchEgressParser"; "parse_ipv4"] ge).
 
 Definition parser_parse_ipv4_spec: func_spec :=
   WITH,
@@ -133,7 +130,7 @@ Proof.
 Qed.
 
 Definition parser_parse_ethernet_fundef :=
-  ltac:(get_fd ["SwitchIngressParser"; "parse_ethernet"] ge).
+  ltac:(get_fd ["SwitchEgressParser"; "parse_ethernet"] ge).
 
 Definition parser_parse_ethernet_spec: func_spec :=
   WITH,
@@ -184,42 +181,97 @@ Proof.
     rewrite Val_eqb_neq_iff in H2. exfalso. apply H2. assumption.
 Qed.
 
-Definition parser_start_fundef :=
-  ltac:(get_fd ["SwitchIngressParser"; "start"] ge).
+Definition parser_parse_sample_fundef :=
+  ltac:(get_fd ["SwitchEgressParser"; "parse_sample"] ge).
 
-Definition sample_invalid_bridge
-  (hsample: header_sample_rec) (has_sample: Sval) : header_sample_rec :=
-  Build_header_sample_rec
-    (ValBaseHeader [("contains_sample", has_sample)] (Some false))
-    (header_sample_sample hsample)
-    (header_sample_ethernet hsample)
-    (header_sample_ipv4 hsample)
-    (header_sample_tcp hsample)
-    (header_sample_udp hsample).
+Definition sample_extract_result
+  (header: Sval) (sample: Val) (ether: ethernet_rec)
+  (ipv4: ipv4_rec) (result: Val): Sval :=
+  ethernet_extract_result
+    (update "sample" (eval_val_to_sval sample) header) ether ipv4 result.
 
-Definition sample_valid_bridge
-  (hsample: header_sample_rec) (has_sample: Sval) : header_sample_rec :=
-  Build_header_sample_rec
-    (ValBaseHeader [("contains_sample", has_sample)] (Some true))
-    (header_sample_sample hsample)
-    (header_sample_ethernet hsample)
-    (header_sample_ipv4 hsample)
-    (header_sample_tcp hsample)
-    (header_sample_udp hsample).
-
-Definition parser_start_spec: func_spec :=
+Definition parser_parse_sample_spec: func_spec :=
   WITH,
     PATH p
-    MOD (Some [["hdr"]; ["ig_intr_md"]]) [["packet_in"]]
-    WITH (pin pin': packet_in) ver port stamp ether ipv4 hsample has_sample result
-         (_: ⊫ᵥ iimt_repr_val 0 ver port stamp \: ingress_intrinsic_metadata_t)
+    MOD (Some [["hdr"]]) [["packet_in"]]
+    WITH (pin pin': packet_in) sample ether ipv4 hsample result
+         (_: ⊫ᵥ sample \: sample_t)
          (_: ⊫ᵥ ethernet_repr_val ether \: ethernet_h)
          (_: ⊫ᵥ ipv4_repr_val ipv4 \: ipv4_h)
          (_: if is_tcp ipv4 then ⊫ᵥ result \: tcp_h
              else if is_udp ipv4 then ⊫ᵥ result \: udp_h
                   else result = ValBaseNull)
-         (_: pin ⫢ [⦑ encode (iimt_repr_val 0 ver port stamp) ⦒;
-                    ⟨64⟩;
+         (_: pin ⫢ [ ⦑ encode sample ⦒;
+                     ⦑ encode (ethernet_repr_val ether) ⦒;
+                     ⦑ encode (ipv4_repr_val ipv4) ⦒;
+                     ⦃ is_tcp ipv4 ? ⦑ encode result ⦒ |
+                       ⦃ is_udp ipv4 ? ⦑ encode result ⦒ | ε ⦄ ⦄; ⦑ pin' ⦒] )
+         (_: ethernet_ether_type ether = P4BitV 16 ETHERTYPE_IPV4),
+      PRE
+        (ARG []
+        (MEM [(["hdr"], (hdr hsample))]
+        (EXT [ExtPred.singleton ["packet_in"] (ObjPin pin)])))
+      POST
+        (ARG_RET [] ValBaseNull
+           (MEM [(["hdr"], sample_extract_result (hdr hsample) sample ether
+                             ipv4 result)]
+              (EXT [ExtPred.singleton ["packet_in"] (ObjPin pin')]))).
+
+Lemma parser_parse_sample_body:
+  func_sound ge parser_parse_sample_fundef nil parser_parse_sample_spec.
+Proof.
+  start_function.
+  simpl_format_list.
+  step_call (@packet_in_extract_body Info);
+    [ entailer | apply extract_encode; [assumption | reflexivity] |].
+  unfold sample_extract_result.
+  remember (Build_header_sample_rec
+              (header_sample_bridge hsample)
+              (eval_val_to_sval sample)
+              (header_sample_ethernet hsample)
+              (header_sample_ipv4 hsample)
+              (header_sample_tcp hsample)
+              (header_sample_udp hsample)) as new_hdr.
+  replace (update "sample" (eval_val_to_sval sample) (hdr hsample)) with
+    (hdr new_hdr) by (rewrite Heqnew_hdr; reflexivity).
+  step_call parser_parse_ethernet_body; [entailer | eauto..].
+  step. entailer.
+Qed.
+
+Definition parser_start_fundef :=
+  ltac:(get_fd ["SwitchEgressParser"; "start"] ge).
+
+Definition bridge_repr_val (has_sample: Val): Val :=
+  ValBaseHeader [("contains_sample", has_sample)] true.
+
+Definition contains_sample (has_sample: Val): bool := Val_eqb has_sample (P4BitV 8 1).
+
+Definition start_extract_result (has_sample: Val) (hsample : header_sample_rec)
+  (sample : Val) (ether : ethernet_rec) (ipv4 : ipv4_rec) (result : Val) :=
+  let bridge := eval_val_to_sval (bridge_repr_val has_sample) in
+  let header := update "bridge" bridge (hdr hsample) in
+  if contains_sample has_sample
+  then sample_extract_result header sample ether ipv4 result
+  else ethernet_extract_result header ether ipv4 result.
+
+Definition parser_start_spec: func_spec :=
+  WITH,
+    PATH p
+    MOD (Some [["hdr"]; ["eg_intr_md"]]) [["packet_in"]]
+    WITH (pin pin': packet_in) eg_intr_md has_sample sample
+         hsample ether ipv4 result
+         (_: ⊫ᵥ eg_intr_md \: egress_intrinsic_metadata_t)
+         (_: ⊫ᵥ bridge_repr_val has_sample \: bridge_t)
+         (_: if contains_sample has_sample then ⊫ᵥ sample \: sample_t
+             else sample = ValBaseNull)
+         (_: ⊫ᵥ ethernet_repr_val ether \: ethernet_h)
+         (_: ⊫ᵥ ipv4_repr_val ipv4 \: ipv4_h)
+         (_: if is_tcp ipv4 then ⊫ᵥ result \: tcp_h
+             else if is_udp ipv4 then ⊫ᵥ result \: udp_h
+                  else result = ValBaseNull)
+         (_: pin ⫢ [⦑ encode eg_intr_md ⦒;
+                    ⦑ encode (bridge_repr_val has_sample) ⦒;
+                    ⦃ contains_sample has_sample ? ⦑ encode sample ⦒ | ε ⦄;
                     ⦑ encode (ethernet_repr_val ether) ⦒;
                      ⦑ encode (ipv4_repr_val ipv4) ⦒;
                      ⦃ is_tcp ipv4 ? ⦑ encode result ⦒ |
@@ -227,58 +279,83 @@ Definition parser_start_spec: func_spec :=
          (_: ethernet_ether_type ether = P4BitV 16 ETHERTYPE_IPV4),
       PRE
         (ARG []
-        (MEM [(["hdr"], (hdr (sample_invalid_bridge hsample has_sample)))]
+        (MEM [(["hdr"], hdr hsample)]
         (EXT [ExtPred.singleton ["packet_in"] (ObjPin pin)])))
       POST
         (ARG_RET [] ValBaseNull
-           (MEM [(["hdr"], ethernet_extract_result
-                             (hdr (sample_valid_bridge hsample has_sample))
-                             ether ipv4 result);
-                 (["ig_intr_md"], (iimt_repr_sval 0 ver port stamp))]
+           (MEM [(["eg_intr_md"], eval_val_to_sval eg_intr_md);
+                 (["hdr"], start_extract_result has_sample hsample
+                             sample ether ipv4 result)]
               (EXT [ExtPred.singleton ["packet_in"] (ObjPin pin')]))).
+
+Lemma abs_eq_eq: forall v1 v2,
+    abs_eq (eval_val_to_sval v1) (eval_val_to_sval v2) =
+      eval_val_to_sval (force ValBaseNull (Ops.eval_binary_op Eq v1 v2)).
+Proof.
+  intros. unfold abs_eq, build_abs_binary_op. simpl.
+  rewrite !eval_sval_to_val_eq. reflexivity.
+Qed.
 
 Lemma parser_start_body:
   func_sound ge parser_start_fundef nil parser_start_spec.
 Proof.
   start_function.
-  change [⦑ encode (iimt_repr_val 0 ver port stamp) ⦒;
-          ⟨ 64 ⟩; ⦑ encode (ethernet_repr_val ether) ⦒;
-          ⦑ encode (ipv4_repr_val ipv4) ⦒;
-          ⦃ is_tcp ipv4 ? ⦑ encode result ⦒
-          | ⦃ is_udp ipv4 ? ⦑ encode result ⦒ | ε ⦄ ⦄;
-          ⦑ pin' ⦒] with
-    ([⦑ encode (iimt_repr_val 0 ver port stamp) ⦒; ⟨ 64 ⟩] ++
-       [⦑ encode (ethernet_repr_val ether) ⦒;
-        ⦑ encode (ipv4_repr_val ipv4) ⦒;
-        ⦃ is_tcp ipv4 ? ⦑ encode result ⦒
-        | ⦃ is_udp ipv4 ? ⦑ encode result ⦒ | ε ⦄ ⦄;
-        ⦑ pin' ⦒]) in H3. rewrite format_match_app_iff' in H3.
-  destruct H3 as [p1 [p2 [? [? ?]]]].
-  step_call tofino_parser_body; [ entailer | apply H | apply H5 | ].
-  step. simpl eval_write_var.
-  change (ValBaseStruct _) with (hdr (sample_valid_bridge hsample has_sample)).
-  step_call parser_parse_ethernet_body; [entailer | eauto.. |].
-  step. entailer.
+  remember [⦑ encode (bridge_repr_val has_sample) ⦒;
+            ⦃ contains_sample has_sample ? ⦑ encode sample ⦒ | ε ⦄;
+            ⦑ encode (ethernet_repr_val ether) ⦒; ⦑ encode (ipv4_repr_val ipv4) ⦒;
+            ⦃ is_tcp ipv4 ? ⦑ encode result ⦒
+            | ⦃ is_udp ipv4 ? ⦑ encode result ⦒ | ε ⦄ ⦄;
+            ⦑ pin' ⦒].
+  change (⦑ encode eg_intr_md ⦒ :: l) with ([⦑ encode eg_intr_md ⦒] ++ l) in H5.
+  rewrite format_match_app_iff' in H5. destruct H5 as [p1 [p2 [? [? ?]]]].
+  step_call tofino_parser_body; [ entailer | eauto | apply H7 | ]. subst l.
+  clear dependent pin. clear p1.
+  simpl_format_list.
+  step_call (@packet_in_extract_body Info);
+    [entailer | apply extract_encode; [assumption | reflexivity] | ].
+  remember (Build_header_sample_rec
+              (eval_val_to_sval (bridge_repr_val has_sample))
+              (header_sample_sample hsample)
+              (header_sample_ethernet hsample)
+              (header_sample_ipv4 hsample)
+              (header_sample_tcp hsample)
+              (header_sample_udp hsample)) as new_hdr.
+  assert (Hu: update "bridge" (eval_val_to_sval (bridge_repr_val has_sample))
+            (hdr hsample) = hdr new_hdr) by (subst new_hdr; reflexivity).
+  rewrite Hu; step_if; rewrite Heqnew_hdr in H5; simpl in H5;
+    change (P4Bit 8 1) with (eval_val_to_sval (P4BitV 8 1)) in H5;
+    rewrite abs_eq_eq in H5.
+  - apply is_sval_true_binary_op_eq in H5.
+    change (Val_eqb _ _) with (contains_sample has_sample) in H5.
+    unfold start_extract_result. rewrite H5 in *. rewrite Hu. simpl_format_list.
+    step_call parser_parse_sample_body; [entailer | eauto..].
+  - apply is_sval_false_binary_op_eq in H5.
+    change (Val_eqb _ _) with (contains_sample has_sample) in H5.
+    unfold start_extract_result. rewrite H5 in *. rewrite Hu.
+    do 2 simpl_format_list.
+    step_call parser_parse_ethernet_body; [entailer | eauto..].
 Qed.
 
 Definition parser_fundef :=
-  ltac:(get_fd ["SwitchIngressParser"; "apply"] ge).
-
-Definition has_sample_init := P4Bit_ 8.
+  ltac:(get_fd ["SwitchEgressParser"; "apply"] ge).
 
 Definition parser_spec: func_spec :=
   WITH,
     PATH p
-    MOD (Some [["hdr"]; ["ig_md"]; ["ig_intr_md"]]) [["packet_in"]]
-    WITH (pin pin': packet_in) ver port stamp ether ipv4 result
-         (_: ⊫ᵥ iimt_repr_val 0 ver port stamp \: ingress_intrinsic_metadata_t)
+    MOD (Some [["hdr"]; ["eg_md"]; ["eg_intr_md"]]) [["packet_in"]]
+    WITH (pin pin': packet_in) eg_intr_md has_sample sample ether ipv4 result
+         (_: ⊫ᵥ eg_intr_md \: egress_intrinsic_metadata_t)
+         (_: ⊫ᵥ bridge_repr_val has_sample \: bridge_t)
+         (_: if contains_sample has_sample then ⊫ᵥ sample \: sample_t
+             else sample = ValBaseNull)
          (_: ⊫ᵥ ethernet_repr_val ether \: ethernet_h)
          (_: ⊫ᵥ ipv4_repr_val ipv4 \: ipv4_h)
          (_: if is_tcp ipv4 then ⊫ᵥ result \: tcp_h
              else if is_udp ipv4 then ⊫ᵥ result \: udp_h
                   else result = ValBaseNull)
-         (_: pin ⫢ [⦑ encode (iimt_repr_val 0 ver port stamp) ⦒;
-                    ⟨64⟩;
+         (_: pin ⫢ [⦑ encode eg_intr_md ⦒;
+                    ⦑ encode (bridge_repr_val has_sample) ⦒;
+                    ⦃ contains_sample has_sample ? ⦑ encode sample ⦒ | ε ⦄;
                     ⦑ encode (ethernet_repr_val ether) ⦒;
                      ⦑ encode (ipv4_repr_val ipv4) ⦒;
                      ⦃ is_tcp ipv4 ? ⦑ encode result ⦒ |
@@ -286,14 +363,13 @@ Definition parser_spec: func_spec :=
          (_: ethernet_ether_type ether = P4BitV 16 ETHERTYPE_IPV4),
       PRE
         (ARG []
-        (MEM [(["hdr"], (hdr (sample_invalid_bridge hdr_init has_sample_init)))]
+        (MEM [(["hdr"], hdr hdr_init)]
         (EXT [ExtPred.singleton ["packet_in"] (ObjPin pin)])))
       POST
-        (ARG_RET [(ethernet_extract_result
-                     (hdr (sample_valid_bridge hdr_init has_sample_init))
-                     ether ipv4 result);
-                  (ValBaseStruct [("num_pkts", P4Bit_ 32)]);
-                  (iimt_repr_sval 0 ver port stamp)] ValBaseNull
+        (ARG_RET [start_extract_result has_sample hdr_init
+                             sample ether ipv4 result;
+                  ValBaseStruct [("num_pkts", P4Bit_ 32)];
+                  eval_val_to_sval eg_intr_md] ValBaseNull
            (MEM []
               (EXT [ExtPred.singleton ["packet_in"] (ObjPin pin')]))).
 
@@ -302,9 +378,7 @@ Lemma parser_body:
 Proof.
   start_function.
   step.
-  replace (ValBaseStruct _) with
-    (hdr (sample_invalid_bridge hdr_init has_sample_init)) by
-    (unfold hdr; reflexivity).
+  replace (ValBaseStruct _) with (hdr hdr_init) by (unfold hdr; reflexivity).
   step.
   step.
   step_call parser_start_body; [entailer | eauto..].
