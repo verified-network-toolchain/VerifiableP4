@@ -60,9 +60,6 @@ Qed.
 Definition act_sample_fundef :=
   ltac:(get_fd ["SwitchIngress"; "act_sample"] ge).
 
-Definition set_field_valid (h: Sval) (fld: ident): Sval :=
-  (update fld (EvalBuiltin.setValid (get fld h)) h).
-
 Record ipv4_rec := {
     ipv4_version: Sval;
     ipv4_ihl: Sval;

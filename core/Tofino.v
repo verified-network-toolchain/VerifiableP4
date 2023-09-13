@@ -270,3 +270,22 @@ Definition egress_intrinsic_metadata_t :=
      ({| P4String.tags := NoInfo; str := "_pad10" |}, TypBit 7);
      ({| P4String.tags := NoInfo; str := "deflection_flag" |}, TypBit 1);
      ({| P4String.tags := NoInfo; str := "pkt_length" |}, TypBit 16)].
+
+Definition egress_intrinsic_metadata_from_parser_t: P4Type :=
+  TypStruct
+    [({| P4String.tags := NoInfo; str := "global_tstamp" |}, TypBit 48);
+     ({| P4String.tags := NoInfo; str := "global_ver" |}, TypBit 32);
+     ({| P4String.tags := NoInfo; str := "parser_err" |}, TypBit 16)].
+
+Definition egress_intrinsic_metadata_for_deparser_t: P4Type :=
+  TypStruct
+    [({| P4String.tags := NoInfo; str := "drop_ctl" |}, TypBit 3);
+     ({| P4String.tags := NoInfo; str := "mirror_type" |}, TypBit 3);
+     ({| P4String.tags := NoInfo; str := "coalesce_flush" |}, TypBit 1);
+     ({| P4String.tags := NoInfo; str := "coalesce_length" |}, TypBit 7)].
+
+Definition egress_intrinsic_metadata_for_output_port_t: P4Type :=
+  TypStruct
+    [({| P4String.tags := NoInfo; str := "capture_tstamp_on_tx" |}, TypBit 1);
+     ({| P4String.tags := NoInfo; str := "update_delay_on_tx" |}, TypBit 1);
+     ({| P4String.tags := NoInfo; str := "force_tx_error" |}, TypBit 1)].
