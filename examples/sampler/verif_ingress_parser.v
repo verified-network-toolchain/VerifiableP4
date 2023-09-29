@@ -6,7 +6,7 @@ Require Import Poulet4.P4light.Architecture.Tofino.
 Require Import ProD3.core.Tofino.
 Require Import ProD3.examples.sampler.ModelRepr.
 Require Import ProD3.examples.sampler.common.
-Require Import ProD3.examples.sampler.verif_tofino_ingress_parser.
+Require Export ProD3.examples.sampler.verif_tofino_ingress_parser.
 Require Import ProD3.core.ProgNotations.
 Require Import Poulet4.P4light.Syntax.P4Notations.
 Require Import Hammer.Plugin.Hammer.
@@ -297,7 +297,7 @@ Definition parser_spec: func_spec :=
            (MEM []
               (EXT [ExtPred.singleton ["packet_in"] (ObjPin pin')]))).
 
-Lemma parser_body:
+Lemma ingress_parser_body:
   func_sound ge parser_fundef nil parser_spec.
 Proof.
   start_function.

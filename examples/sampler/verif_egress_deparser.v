@@ -33,7 +33,7 @@ Definition deparser_spec: func_spec :=
               (EXT [ExtPred.singleton ["packet_out"]
                       (ObjPout (pout ++ encode hdr))]))).
 
-Lemma parser_start_body:
+Lemma egress_deparser_body:
   func_sound ge deparser_fundef nil deparser_spec.
 Proof.
   start_function.

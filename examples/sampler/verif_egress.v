@@ -126,7 +126,7 @@ Definition eg_intr_md_rep (eg_intr_md: egress_intrinsic_metadata_rec): Val  :=
      ("deflection_flag", eg_intr_md_deflection_flag eg_intr_md);
      ("pkt_length", eg_intr_md_pkt_length eg_intr_md)] true.
 
-Definition Egress_fd :=
+Definition egress_fd :=
   ltac:(get_fd ["SwitchEgress"; "apply"] ge).
 
 Definition egress_rid_zero eg_intr_md: bool :=
@@ -138,7 +138,7 @@ Definition conditional_update
   then invalidate_fields (hdr hsample) ["bridge"; "sample"]
   else invalidate_fields (hdr hsample) ["bridge"; "ethernet"; "ipv4"].
 
-Definition Egress_spec : func_spec :=
+Definition egress_spec : func_spec :=
   WITH (* p *),
     PATH p
     MOD None [p]
@@ -160,8 +160,8 @@ Definition Egress_spec : func_spec :=
         (MEM []
         (EXT []))).
 
-Lemma Egress_body:
-  func_sound ge Egress_fd nil Egress_spec.
+Lemma egress_body:
+  func_sound ge egress_fd nil egress_spec.
 Proof.
   start_function.
   step_if; change (P4Bit _ _) with (eval_val_to_sval (P4BitV 16 0)) in H;

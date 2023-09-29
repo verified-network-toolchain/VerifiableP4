@@ -60,19 +60,13 @@ Qed.
 Definition act_sample_fundef :=
   ltac:(get_fd ["SwitchIngress"; "act_sample"] ge).
 
-Record ipv4_rec := {
-    ipv4_version: Sval;
-    ipv4_ihl: Sval;
-    ipv4_diffserv: Sval;
-    ipv4_total_len: Sval;
-    ipv4_identification: Sval;
-    ipv4_flags: Sval;
-    ipv4_frag_offset: Sval;
-    ipv4_ttl: Sval;
-    ipv4_protocol: Sval;
-    ipv4_hdr_checksum: Sval;
-    ipv4_src_addr: Sval;
-    ipv4_dst_addr: Sval;
+Record sample_rec := {
+    sample_dmac: Z;
+    sample_smac: Z;
+    sample_etype: Z;
+    sample_srcip: Z;
+    sample_dstip: Z;
+    sample_num_pkts: Z;
   }.
 
 Definition hdr (ethernet tcp udp: Sval) (ipv4: ipv4_rec): Sval :=
@@ -87,22 +81,22 @@ Definition hdr (ethernet tcp udp: Sval) (ipv4: ipv4_rec): Sval :=
           ("etype", P4Bit_ 16);
           ("srcip", P4Bit_ 32);
           ("dstip", P4Bit_ 32);
-          ("num_pkts", P4Bit_ 32)] None);
+          ("num_pkts", P4Bit_ 32)] (Some false));
      ("ethernet", ethernet);
      ("ipv4",
        ValBaseHeader
-         [("version", ipv4_version ipv4);
-          ("ihl", ipv4_ihl ipv4);
-          ("diffserv", ipv4_diffserv ipv4);
-          ("total_len", ipv4_total_len ipv4);
-          ("identification", ipv4_identification ipv4);
-          ("flags", ipv4_flags ipv4);
-          ("frag_offset", ipv4_frag_offset ipv4);
-          ("ttl", ipv4_ttl ipv4);
-          ("protocol", ipv4_protocol ipv4);
-          ("hdr_checksum", ipv4_hdr_checksum ipv4);
-          ("src_addr", ipv4_src_addr ipv4);
-          ("dst_addr", ipv4_dst_addr ipv4)] (Some true));
+         [("version", eval_val_to_sval(ipv4_version ipv4));
+          ("ihl", eval_val_to_sval(ipv4_ihl ipv4));
+          ("diffserv", eval_val_to_sval(ipv4_diffserv ipv4));
+          ("total_len", eval_val_to_sval(ipv4_total_len ipv4));
+          ("identification", eval_val_to_sval(ipv4_identification ipv4));
+          ("flags", eval_val_to_sval(ipv4_flags ipv4));
+          ("frag_offset", eval_val_to_sval(ipv4_frag_offset ipv4));
+          ("ttl", eval_val_to_sval(ipv4_ttl ipv4));
+          ("protocol", eval_val_to_sval(ipv4_protocol ipv4));
+          ("hdr_checksum", eval_val_to_sval(ipv4_hdr_checksum ipv4));
+          ("src_addr", eval_val_to_sval(ipv4_src_addr ipv4));
+          ("dst_addr", eval_val_to_sval(ipv4_dst_addr ipv4))] (Some true));
      ("tcp", tcp);
      ("udp", udp)].
 
@@ -110,7 +104,8 @@ Definition ig_md (num_pkts: Z) := ValBaseStruct [("num_pkts", P4Bit 32 num_pkts)
 
 Definition update_hdr ethernet tcp udp ipv4 num_pkts :=
   update "sample"
-    (sample_repr (ipv4_src_addr ipv4) (ipv4_dst_addr ipv4) num_pkts)
+    (sample_repr (eval_val_to_sval (ipv4_src_addr ipv4))
+       (eval_val_to_sval (ipv4_dst_addr ipv4)) num_pkts)
     (update "bridge" (bridge_repr 1) (hdr ethernet tcp udp ipv4)).
 
 Definition act_sample_spec : func_spec :=
@@ -307,10 +302,10 @@ Qed.
 
 #[local] Hint Extern 5 (func_modifies _ _ _ _ _) => (apply tbl_sample_body) : func_specs.
 
-Definition Ingress_fd :=
+Definition ingress_fd :=
   ltac:(get_fd ["SwitchIngress"; "apply"] ge).
 
-Definition Ingress_spec : func_spec :=
+Definition ingress_spec : func_spec :=
   WITH (* p *),
     PATH p
     MOD None [p]
@@ -349,8 +344,8 @@ Proof.
     rewrite Z.mul_comm, Z.mod_mul; lia.
 Qed.
 
-Lemma Ingress_body:
-  func_sound ge Ingress_fd nil Ingress_spec.
+Lemma ingress_body:
+  func_sound ge ingress_fd nil ingress_spec.
 Proof.
   start_function.
   step_call act_set_egress_port_body. 1: entailer.

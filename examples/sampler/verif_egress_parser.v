@@ -373,7 +373,7 @@ Definition parser_spec: func_spec :=
            (MEM []
               (EXT [ExtPred.singleton ["packet_in"] (ObjPin pin')]))).
 
-Lemma parser_body:
+Lemma egress_parser_body:
   func_sound ge parser_fundef nil parser_spec.
 Proof.
   start_function.
