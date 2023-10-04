@@ -2523,7 +2523,40 @@ Definition SwitchIngressParser := DeclParser NoInfo
                                {| stags := NoInfo; str := "setValid" |})
                           (TypFunction
                            (MkFunctionType nil nil FunBuiltin TypVoid))
-                          Directionless) nil nil) StmUnit)]
+                          Directionless) nil nil) StmUnit);
+           (MkStatement NoInfo
+                (StatAssignment
+                     (MkExpression NoInfo
+                          (ExpExpressionMember
+                               (MkExpression NoInfo
+                                    (ExpExpressionMember
+                                         (MkExpression NoInfo
+                                              (ExpName
+                                               (BareName
+                                                {| stags := NoInfo;
+                                                   str := "hdr" |})
+                                               (LInstance ["hdr"]))
+                                              (TypTypeName
+                                               {| stags := NoInfo;
+                                                  str := "header_sample_t" |})
+                                              Out)
+                                         {| stags := NoInfo;
+                                            str := "bridge" |})
+                                    (TypHeader
+                                     [( {| stags := NoInfo;
+                                           str := "contains_sample" |},
+                                        (TypBit 8%N) )]) Directionless)
+                               {| stags := NoInfo;
+                                  str := "contains_sample" |}) (TypBit 8%N)
+                          Directionless)
+                     (MkExpression NoInfo
+                          (ExpCast (TypBit 8%N)
+                               (MkExpression NoInfo
+                                    (ExpInt
+                                     {| itags := NoInfo; value := 0;
+                                        width_signed := None |}) TypInteger
+                                    Directionless)) (TypBit 8%N)
+                          Directionless)) StmUnit)]
           (ParserDirect NoInfo
                {| stags := NoInfo; str := "parse_ethernet" |}));
      (MkParserState NoInfo {| stags := NoInfo; str := "parse_ethernet" |}

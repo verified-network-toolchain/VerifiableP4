@@ -2368,23 +2368,13 @@ Proof.
     lia.
 Qed.
 
-Lemma Forall2_read_ndetbit_map_Some : forall l l',
-  Forall2 read_ndetbit (map Some l) l' ->
-  l' = l.
-Proof.
-  rename H into target.
-  induction l; intros.
-  - inv H; auto.
-  - inv H. inv H2. f_equal; eauto.
-Qed.
-
 Lemma sval_to_val_P4Bit : forall w v y,
   sval_to_val read_ndetbit (P4Bit w v) y ->
   y = ValBaseBit (P4Arith.to_lbool w v).
 Proof.
   inversion 1; subst.
   f_equal.
-  apply Forall2_read_ndetbit_map_Some; auto.
+  symmetry. apply ValueUtil.Forall2_ndetbit. auto.
 Qed.
 
 Lemma to_lbool_lbool_to_val : forall bs,

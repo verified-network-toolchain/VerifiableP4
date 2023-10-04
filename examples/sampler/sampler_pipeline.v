@@ -41,7 +41,7 @@ Inductive inprsr_block: programmable_block_sem :=
              ⦃ is_tcp ipv4 ? ⦑ encode result ⦒ |
                ⦃ is_udp ipv4 ? ⦑ encode result ⦒ | ε ⦄ ⦄; ⦑ pin' ⦒] ->
       PathMap.get ["hdr"] m =
-        Some (common.hdr (sample_invalid_bridge hdr_init has_sample_init)) ->
+        Some (common.hdr hdr_init) ->
       PathMap.get ["packet_in"] es = Some (ObjPin pin) ->
       programmable_block ge inst_path "ingress_parser" fd ->
       extern_contains es' ["pipe"; "ingress"] counter ->
@@ -96,16 +96,56 @@ Proof.
   rewrite PathMap.get_set_same. reflexivity.
 Qed.
 
+Lemma hdr_init_type:
+  ⊢ᵥ common.hdr (sample_valid_bridge hdr_init) \: header_sample_t.
+Proof. vm_compute. repeat constructor. Qed.
+
+Lemma protocol_extract_result_typ: forall ipv4 result header,
+    (if is_tcp ipv4 then ⊫ᵥ result \: tcp_h
+     else if is_udp ipv4 then ⊫ᵥ result \: udp_h
+          else result = ValBaseNull) ->
+    ⊢ᵥ header \: header_sample_t ->
+    ⊢ᵥ protocol_extract_result ipv4 result header \: header_sample_t.
+Proof.
+  intros. unfold protocol_extract_result.
+  destruct (is_tcp ipv4).
+  - apply update_struct_typ with tcp_h; auto.
+    apply ValueBaseMap_preserves_type. apply H.
+  - destruct (is_udp ipv4); auto.
+    apply update_struct_typ with udp_h; auto.
+    apply ValueBaseMap_preserves_type. apply H.
+Qed.
+
+Lemma ethernet_extract_result_typ:
+  forall (ether : ethernet_rec) (ipv4 : ipv4_rec) (result : Val),
+    ⊫ᵥ ethernet_repr_val ether \: ethernet_h ->
+    ⊫ᵥ ipv4_repr_val ipv4 \: ipv4_h ->
+    (if is_tcp ipv4 then ⊫ᵥ result \: tcp_h
+     else if is_udp ipv4 then ⊫ᵥ result \: udp_h
+          else result = ValBaseNull) ->
+    ⊢ᵥ ethernet_extract_result
+      (common.hdr (sample_valid_bridge hdr_init)) ether ipv4 result
+      \: header_sample_t.
+Proof.
+  intros. unfold ethernet_extract_result.
+  apply protocol_extract_result_typ; auto.
+  apply update_struct_typ with ipv4_h; auto.
+  - apply ValueBaseMap_preserves_type. apply H0.
+  - apply update_struct_typ with ethernet_h; auto.
+    + apply ValueBaseMap_preserves_type. apply H.
+    + apply hdr_init_type.
+Qed.
+
 Lemma ethernet_extract_result_hdr:
   forall (ether : ethernet_rec) (ipv4 : ipv4_rec) (result : Val),
   exists (ethernet tcp udp : Sval) (ip4 : ipv4_rec),
     ethernet_extract_result
-      (common.hdr (sample_valid_bridge hdr_init has_sample_init)) ether ipv4
+      (common.hdr (sample_valid_bridge hdr_init)) ether ipv4
       result = hdr ethernet tcp udp ip4.
 Proof.
   intros ether ipv4 result.
   unfold ethernet_extract_result. unfold protocol_extract_result.
-  unfold sample_valid_bridge, hdr_init, has_sample_init. simpl. unfold hdr.
+  unfold sample_valid_bridge, hdr_init. simpl. unfold hdr.
   destruct (is_tcp ipv4); [do 4 eexists; reflexivity |].
   destruct (is_udp ipv4); [do 4 eexists; reflexivity |].
   do 4 eexists; reflexivity.
@@ -130,14 +170,6 @@ Proof.
   - hnf in H. destruct H as [H _]. hnf in H. simpl in H.
     destruct H. split; assumption.
 Qed.
-
-Lemma hdr_exists: forall ethernet tcp udp ip4,
-  exists h, hdr ethernet tcp udp ip4 = eval_val_to_sval h /\
-         ⊢ᵥ h \: header_sample_t.
-Proof.
-  intros. eexists. split.
-  - unfold hdr.
-Abort.
 
 Lemma process_packet_ingress:
   forall es es' pin pout for_tm,

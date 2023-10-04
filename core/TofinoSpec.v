@@ -367,12 +367,47 @@ Definition packet_out_emit_spec (p: path): func_spec :=
     PATH p
     MOD None [p]
     WITH (pout pout': packet_out) x hdr (_: emit hdr pout = (inl pout', x)),
-    PRE (ARG [eval_val_to_sval hdr]
+    PRE (ARG [val_to_sval_valid_only hdr]
            (MEM []
               (EXT [ExtPred.singleton p (ObjPout pout)])))
     POST (ARG_RET [] ValBaseNull
          (MEM []
          (EXT [ExtPred.singleton p (ObjPout pout')]))).
+
+Ltac simpl_emit :=
+  unfold emit; simpl; unfold Packet.packet_bind, Packet.packet_ret,
+    ExceptionState.state_bind, ExceptionState.state_return; simpl.
+
+Lemma all_values_eval_val_to_sval:
+  forall (vs1 : list (ident * Val)) (vs2 : AList.AList ident Val eq),
+    AList.all_values (exec_val read_ndetbit)
+      (map (fun '(x, v) => (x, eval_val_to_sval v)) vs1) vs2 -> vs1 = vs2.
+Proof.
+  induction vs1; simpl; intros; inv H. reflexivity.
+  destruct a as [k v]. destruct y as [k' v']. simpl in *. destruct H2.
+  subst k'. apply sval_to_val_n_eval_val_to_sval_eq in H0. subst v'.
+  f_equal. apply IHvs1 in H4. assumption.
+Qed.
+
+Lemma emit_valid_only: forall (pout : packet_out) (v1 v2 : Val),
+    sval_to_val read_ndetbit (val_to_sval_valid_only v1) v2 ->
+    emit v1 pout = emit v2 pout.
+Proof.
+  intros. revert v2 H. induction v1 using custom_ValueBase_ind; intros; simpl in H;
+    try (inv H; reflexivity).
+  - inv H. inv H1. reflexivity.
+  - inv H. simpl_emit. apply ValueUtil.Forall2_ndetbit in H1. subst. reflexivity.
+  - inv H. simpl_emit. apply ValueUtil.Forall2_ndetbit in H1. subst. reflexivity.
+  - inv H. simpl_emit. apply ValueUtil.Forall2_ndetbit in H3. subst. reflexivity.
+  - simpl in H0. inv H0. apply svals_to_vals_n_eval_to_sval_eq in H2. subst. easy.
+  - simpl in H0. inv H0. apply all_values_eval_val_to_sval in H2. subst. easy.
+  - simpl in H0. destruct b.
+    + inv H0. inv H3. apply all_values_eval_val_to_sval in H5. subst. reflexivity.
+    + inv H0. inv H3. simpl_emit. reflexivity.
+  - simpl in H0. inv H0. apply all_values_eval_val_to_sval in H2. subst. easy.
+  - simpl in H0. inv H0. apply svals_to_vals_n_eval_to_sval_eq in H4. subst. easy.
+  - inv H. apply sval_to_val_n_eval_val_to_sval_eq in H3. subst. easy.
+Qed.
 
 Lemma packet_out_emit_body: forall (p: path) (typ: P4Type),
     func_sound ge (FExternal "packet_out" "emit") [typ]
@@ -381,17 +416,16 @@ Proof.
   intros. unfold packet_out_emit_spec. simpl. split.
   - intros pout pout' x hdr H. repeat intro.
     destruct H0. hnf in H0. inv H0. inv H7.
-    apply exec_val_eval_val_to_sval_eq in H5. 2: intros; now inv H0. subst y.
     inv H1. simpl in H2. destruct H2 as [_ ?]. hnf in H0. destruct H0 as [? _].
-    simpl in H0. inv H7. simpl in H1. inv H1. rewrite H0 in H3. inversion H3.
-    subst pout0. clear H3. red in H4. inv H4. clear H7.
-    apply sval_to_val_n_eval_val_to_sval_eq in H5. subst v. rewrite H in H8.
-    inversion H8. subst x0. subst pout'0. clear H8. hnf in H13. inv H13.
-    constructor. 1: constructor. split.
+    simpl in H0. inv H8. simpl in H1. inv H1. rewrite H0 in H3. inversion H3.
+    subst pout0. clear H3. red in H4. inv H4. clear H8. hnf in H14. inv H14.
+    assert (sval_to_val read_ndetbit (val_to_sval_valid_only hdr) v). {
+      eapply sval_refine_sval_to_val_n_trans; eauto. } clear y H5 H6.
+    apply (emit_valid_only pout) in H1. rewrite H, H9 in H1. inversion H1.
+    subst x0 pout'0. clear H1. constructor. 1: constructor. split.
     + apply eval_val_to_sval_ret_denote. reflexivity.
     + split. 1: constructor. split; simpl; auto. apply PathMap.get_set_same.
   - red. split; simpl; auto.
-    (* + intros. inv H. simpl. reflexivity. *)
     repeat intro. inv H. inv H6. simpl in *.
     assert (q <> p). {
       intro. apply H0. subst. rewrite Bool.orb_false_r. red.

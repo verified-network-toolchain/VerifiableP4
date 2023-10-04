@@ -43,6 +43,7 @@ parser SwitchIngressParser(packet_in pkt,
     state start {
         tofino_parser.apply(pkt, ig_intr_md);
         hdr.bridge.setValid();
+        hdr.bridge.contains_sample = 0;
         transition parse_ethernet;
     }
     state parse_ethernet {

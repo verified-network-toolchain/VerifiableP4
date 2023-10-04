@@ -24,11 +24,11 @@ Definition deparser_spec: func_spec :=
     WITH (pout : packet_out) hdr eg_md eg_intr_dpprsr_md
          (_: ⊢ᵥ hdr \: header_sample_t),
       PRE
-        (ARG [eval_val_to_sval hdr; eg_md; eg_intr_dpprsr_md]
+        (ARG [val_to_sval_valid_only hdr; eg_md; eg_intr_dpprsr_md]
         (MEM []
         (EXT [ExtPred.singleton ["packet_out"] (ObjPout pout)])))
       POST
-        (ARG_RET [eval_val_to_sval hdr] ValBaseNull
+        (ARG_RET [val_to_sval_valid_only hdr] ValBaseNull
            (MEM []
               (EXT [ExtPred.singleton ["packet_out"]
                       (ObjPout (pout ++ encode hdr))]))).

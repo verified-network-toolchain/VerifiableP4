@@ -5,6 +5,7 @@ Require Import Coq.NArith.BinNat.
 Require Import Poulet4.P4light.Syntax.Typed.
 Require Import Poulet4.P4light.Syntax.Syntax.
 Require Import Poulet4.P4light.Semantics.Semantics.
+Require Import Poulet4.P4light.Semantics.Typing.ValueTyping.
 Require Import Poulet4.P4light.Syntax.Value.
 Require Import ProD3.core.Coqlib.
 Require Import ProD3.core.SvalRefine.
@@ -290,7 +291,8 @@ Proof.
   eapply all_values_get_some_rel in H2; eauto.
 Qed.
 
-Lemma all_values_get_none_is_none : forall {A} (kvl kvl' : AList.StringAList A) f rel,
+Lemma all_values_get_none_is_none :
+  forall {A B} (kvl: AList.StringAList A) (kvl' : AList.StringAList B) f rel,
   AList.all_values rel kvl kvl' ->
   AList.get kvl f = None ->
   AList.get kvl' f = None.
@@ -300,11 +302,14 @@ Proof.
   destruct x as [kx vx]; destruct y as [ky vy].
   destruct H. simpl in H. subst ky.
   destruct (String.string_dec f kx) eqn:?.
-  - rewrite AList.get_eq_cons in H0 |- * by auto. inv H0.
-  - rewrite AList.get_neq_cons in H0 |- * by auto. auto.
+  - rewrite AList.get_eq_cons in H0 by auto.
+    rewrite AList.get_eq_cons by auto. inv H0.
+  - rewrite AList.get_neq_cons in H0 by auto.
+    rewrite AList.get_neq_cons by auto. auto.
 Qed.
 
-Lemma all_values_get_some_is_some' : forall {A} (kvl kvl' : AList.StringAList A) f rel v',
+Lemma all_values_get_some_is_some' :
+  forall {A B} (kvl : AList.StringAList A) (kvl' : AList.StringAList B) f rel v',
   AList.all_values rel kvl kvl' ->
   AList.get kvl' f = Some v' ->
   is_some (AList.get kvl f).
@@ -315,9 +320,11 @@ Proof.
   - destruct x as [kx vx]; destruct y as [ky vy].
     destruct H. simpl in H. subst ky.
     destruct (String.string_dec f kx) eqn:?.
-    + rewrite AList.get_eq_cons in H0 |- * by auto.
+    + rewrite AList.get_eq_cons in H0 by auto.
+      rewrite AList.get_eq_cons by auto.
       auto.
-    + rewrite AList.get_neq_cons in H0 |- * by auto.
+    + rewrite AList.get_neq_cons in H0 by auto.
+      rewrite AList.get_neq_cons by auto.
       auto.
 Qed.
 
@@ -434,6 +441,37 @@ Proof.
   rewrite H4 in H1 at 2. rewrite !P4Arith.bit_to_lbool_back in H1.
   unfold P4Arith.BitArith.mod_bound, P4Arith.BitArith.upper_bound in H1.
   rewrite !Zmod_small in H1; auto.
+Qed.
+
+Lemma update_struct_typ: forall fld f_sv sv (typ: P4Type) fields,
+    AList.get (P4String.clear_AList_tags fields) fld = Some typ ->
+    ⊢ᵥ f_sv \: typ ->
+    ⊢ᵥ sv \: TypStruct fields ->
+    ⊢ᵥ update fld f_sv sv \: TypStruct fields.
+Proof.
+  intros. inv H1. unfold update. constructor; auto.
+  rewrite <- P4String.key_unique_clear_AList_tags in H3.
+  remember (P4String.clear_AList_tags fields) as flds. clear fields Heqflds.
+  pose proof (all_values_get_some_is_some' _ _ _ _ _ H5 H).
+  destruct (AList.get vs fld) eqn: H2. 2: inversion H1. clear H1.
+  destruct (AListUtil.AList_get_some_split _ _ _ H2) as [k [l1 [l2 [? [? ?]]]]].
+  hnf in H1. subst k. subst vs.
+  rewrite AListUtil.AList_set_app_cons_some; [| reflexivity | assumption ]. simpl.
+  pose proof (firstn_skipn (length l1) flds).
+  remember (firstn (length l1) flds) as fl1.
+  remember (skipn (length l1) flds) as fl3. symmetry in H1.
+  assert (length l1 = length fl1). {
+    apply Forall2_length in H5. subst fl1.
+    rewrite firstn_length_le; auto. rewrite app_length in H5.
+    simpl in H5. rewrite <- H5. apply Nat.le_add_r. }
+  rewrite H1 in H5. apply AListUtil.all_values_app in H5; auto.
+  destruct H5. rewrite H1. apply AListUtil.all_values_app_inv; auto.
+  pose proof (all_values_get_none_is_none _ _ _ _ H5 H6).
+  rewrite H1 in H. rewrite AList.get_app_none in H; auto.
+  destruct fl3. 1: inversion H7. destruct p as [fld' typ']. inversion H7. clear H7.
+  subst x l y l'. clear Heqfl1 Heqfl3. destruct H12. simpl in H7, H9. subst fld'.
+  rewrite AList.get_eq_cons in H; [|reflexivity]. inversion H. subst typ'.
+  constructor; auto.
 Qed.
 
 End Members.

@@ -73,7 +73,7 @@ Definition hdr (ethernet tcp udp: Sval) (ipv4: ipv4_rec): Sval :=
   ValBaseStruct
     [("bridge",
        ValBaseHeader
-         [("contains_sample", P4Bit_ 8)] (Some true));
+         [("contains_sample", P4Bit 8 0)] (Some true));
      ("sample",
        ValBaseHeader
          [("dmac", P4Bit_ 48);

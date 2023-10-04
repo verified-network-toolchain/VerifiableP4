@@ -497,6 +497,13 @@ Proof.
   - constructor.
 Qed.
 
+(* Only valid header is converted to Sval, others are all converted to all None *)
+Definition val_to_sval_valid_only (val: Val): Sval :=
+  match val with
+  | ValBaseHeader l false => ValBaseHeader (kv_map val_to_liberal_sval l) (Some false)
+  | _ => eval_val_to_sval val
+  end.
+
 End SvalRefine.
 
 (* These four lemmas: Forall2_bit_refine, sval_refine_bit_to_loptbool,
@@ -548,6 +555,13 @@ Lemma sval_to_val_n_eval_val_to_sval_eq : forall v1 v2,
 Proof.
   intros. apply sval_to_val_eval_val_to_sval_eq in H; auto.
   intros. now inv H0.
+Qed.
+
+Lemma svals_to_vals_n_eval_to_sval_eq: forall l1 l2,
+    svals_to_vals read_ndetbit (map eval_val_to_sval l1) l2 -> l1 = l2.
+Proof.
+  induction l1; intros; inv H; try reflexivity.
+  apply sval_to_val_n_eval_val_to_sval_eq in H2. apply IHl1 in H4. subst. easy.
 Qed.
 
 Lemma eval_sval_to_val_eq:
