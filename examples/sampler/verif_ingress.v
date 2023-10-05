@@ -83,20 +83,7 @@ Definition hdr (ethernet tcp udp: Sval) (ipv4: ipv4_rec): Sval :=
           ("dstip", P4Bit_ 32);
           ("num_pkts", P4Bit_ 32)] (Some false));
      ("ethernet", ethernet);
-     ("ipv4",
-       ValBaseHeader
-         [("version", eval_val_to_sval(ipv4_version ipv4));
-          ("ihl", eval_val_to_sval(ipv4_ihl ipv4));
-          ("diffserv", eval_val_to_sval(ipv4_diffserv ipv4));
-          ("total_len", eval_val_to_sval(ipv4_total_len ipv4));
-          ("identification", eval_val_to_sval(ipv4_identification ipv4));
-          ("flags", eval_val_to_sval(ipv4_flags ipv4));
-          ("frag_offset", eval_val_to_sval(ipv4_frag_offset ipv4));
-          ("ttl", eval_val_to_sval(ipv4_ttl ipv4));
-          ("protocol", eval_val_to_sval(ipv4_protocol ipv4));
-          ("hdr_checksum", eval_val_to_sval(ipv4_hdr_checksum ipv4));
-          ("src_addr", eval_val_to_sval(ipv4_src_addr ipv4));
-          ("dst_addr", eval_val_to_sval(ipv4_dst_addr ipv4))] (Some true));
+     ("ipv4", eval_val_to_sval(ipv4_repr_val ipv4));
      ("tcp", tcp);
      ("udp", udp)].
 
@@ -104,8 +91,8 @@ Definition ig_md (num_pkts: Z) := ValBaseStruct [("num_pkts", P4Bit 32 num_pkts)
 
 Definition update_hdr ethernet tcp udp ipv4 num_pkts :=
   update "sample"
-    (sample_repr (eval_val_to_sval (ipv4_src_addr ipv4))
-       (eval_val_to_sval (ipv4_dst_addr ipv4)) num_pkts)
+    (sample_repr (P4Bit 32 (ipv4_src_addr ipv4))
+       (P4Bit 32 (ipv4_dst_addr ipv4)) num_pkts)
     (update "bridge" (bridge_repr 1) (hdr ethernet tcp udp ipv4)).
 
 Definition act_sample_spec : func_spec :=
@@ -131,7 +118,6 @@ Lemma act_sample_body:
 Proof.
   start_function.
   unfold hdr.
-  simpl.
   do 10 step.
   entailer.
 Qed.

@@ -375,7 +375,7 @@ Definition packet_out_emit_spec (p: path): func_spec :=
          (EXT [ExtPred.singleton p (ObjPout pout')]))).
 
 Ltac simpl_emit :=
-  unfold emit; simpl; unfold Packet.packet_bind, Packet.packet_ret,
+  simpl; unfold Packet.packet_bind, Packet.packet_ret,
     ExceptionState.state_bind, ExceptionState.state_return; simpl.
 
 Lemma all_values_eval_val_to_sval:
@@ -389,24 +389,86 @@ Proof.
   f_equal. apply IHvs1 in H4. assumption.
 Qed.
 
+Lemma emit_valid_only_map:
+  forall vs : list Val,
+    Forall
+      (fun v1 : Val =>
+         forall v2 : Val,
+           sval_to_val read_ndetbit (val_to_sval_valid_only v1) v2 ->
+           forall pout : packet_out, Extract.emit v1 pout = Extract.emit v2 pout) vs ->
+    forall (lv' : list Val) (pout : packet_out),
+      Forall2 (exec_val read_ndetbit) (map val_to_sval_valid_only vs) lv' ->
+      Monad.sequence (map Extract.emit vs) pout =
+        Monad.sequence (map Extract.emit lv') pout.
+Proof.
+  induction vs; intros.
+  - inversion H0. reflexivity.
+  - destruct lv'; inv H0. inv H. specialize (H2 _ H4). simpl_emit.
+    rewrite H2. destruct (Extract.emit v pout). destruct s; auto.
+    erewrite IHvs; eauto.
+Qed.
+
+Lemma emit_valid_only_kv_map:
+  forall vs : list (ident * Val),
+    Forall
+      (fun '(_, v) =>
+         forall v2 : Val,
+           sval_to_val read_ndetbit (val_to_sval_valid_only v) v2 ->
+           forall pout : packet_out, Extract.emit v pout = Extract.emit v2 pout) vs ->
+    forall (kvs' : AList.AList ident Val eq) (pout : packet_out),
+      AList.all_values (exec_val read_ndetbit)
+        (kv_map val_to_sval_valid_only vs) kvs' ->
+      Monad.asequence (map (fun '(k, v) => (k, Extract.emit v)) vs) pout =
+        Monad.asequence (map (fun '(k, v) => (k, Extract.emit v)) kvs') pout.
+Proof.
+  induction vs; intros.
+  - inversion H0. reflexivity.
+  - destruct kvs'; inv H0. inv H. destruct a, p. simpl fst in *. simpl snd in *.
+    destruct H4. subst s0. specialize (H2 _ H0). simpl_emit.
+    rewrite H2. destruct (Extract.emit v0 pout). destruct s0; auto.
+    erewrite IHvs; eauto.
+Qed.
+
+Lemma emit_valid_only': forall (pout : packet_out) (v1 v2 : Val),
+    sval_to_val read_ndetbit (val_to_sval_valid_only v1) v2 ->
+    Extract.emit v1 pout = Extract.emit v2 pout.
+Proof.
+  intros. revert v2 H pout.
+  induction v1 using custom_ValueBase_ind; intros; simpl in H;
+    try (inv H; reflexivity).
+  - inv H. inv H1. reflexivity.
+  - inv H. simpl. apply ValueUtil.Forall2_ndetbit in H1. subst. reflexivity.
+  - inv H. simpl. apply ValueUtil.Forall2_ndetbit in H1. subst. reflexivity.
+  - inv H. simpl. apply ValueUtil.Forall2_ndetbit in H3. subst. reflexivity.
+  - simpl in H0. inv H0. apply emit_valid_only_map with (pout := pout) in H2; eauto.
+    simpl_emit. remember (Monad.sequence (map Extract.emit vs) pout).
+    rewrite H2. reflexivity.
+  - simpl in H0. inv H0.
+    apply emit_valid_only_kv_map with (pout := pout) in H2; eauto. simpl_emit.
+    remember (Monad.asequence (map (fun '(k, v) => (k, Extract.emit v)) vs) pout).
+    rewrite H2. reflexivity.
+  - simpl in H0. destruct b.
+    + inv H0. inv H3.
+      apply emit_valid_only_kv_map with (pout := pout) in H5; eauto. simpl_emit.
+      remember (Monad.asequence (map (fun '(k, v) => (k, Extract.emit v)) vs) pout).
+      rewrite H5. reflexivity.
+    + inv H0. inv H3. simpl_emit. reflexivity.
+  - simpl in H0. inv H0.
+    apply emit_valid_only_kv_map with (pout := pout) in H2; eauto. simpl_emit.
+    remember (Monad.asequence (map (fun '(k, v) => (k, Extract.emit v)) vs) pout).
+    rewrite H2. reflexivity.
+  - simpl in H0. inv H0. apply emit_valid_only_map with (pout := pout) in H4; eauto.
+    simpl_emit. remember (Monad.sequence (map Extract.emit vs) pout).
+    rewrite H4. reflexivity.
+  - inv H. apply sval_to_val_n_eval_val_to_sval_eq in H3. subst. easy.
+Qed.
+
 Lemma emit_valid_only: forall (pout : packet_out) (v1 v2 : Val),
     sval_to_val read_ndetbit (val_to_sval_valid_only v1) v2 ->
     emit v1 pout = emit v2 pout.
 Proof.
-  intros. revert v2 H. induction v1 using custom_ValueBase_ind; intros; simpl in H;
-    try (inv H; reflexivity).
-  - inv H. inv H1. reflexivity.
-  - inv H. simpl_emit. apply ValueUtil.Forall2_ndetbit in H1. subst. reflexivity.
-  - inv H. simpl_emit. apply ValueUtil.Forall2_ndetbit in H1. subst. reflexivity.
-  - inv H. simpl_emit. apply ValueUtil.Forall2_ndetbit in H3. subst. reflexivity.
-  - simpl in H0. inv H0. apply svals_to_vals_n_eval_to_sval_eq in H2. subst. easy.
-  - simpl in H0. inv H0. apply all_values_eval_val_to_sval in H2. subst. easy.
-  - simpl in H0. destruct b.
-    + inv H0. inv H3. apply all_values_eval_val_to_sval in H5. subst. reflexivity.
-    + inv H0. inv H3. simpl_emit. reflexivity.
-  - simpl in H0. inv H0. apply all_values_eval_val_to_sval in H2. subst. easy.
-  - simpl in H0. inv H0. apply svals_to_vals_n_eval_to_sval_eq in H4. subst. easy.
-  - inv H. apply sval_to_val_n_eval_val_to_sval_eq in H3. subst. easy.
+  intros. unfold emit. simpl_emit. apply emit_valid_only' with (pout := pout) in H.
+  rewrite H. reflexivity.
 Qed.
 
 Lemma packet_out_emit_body: forall (p: path) (typ: P4Type),

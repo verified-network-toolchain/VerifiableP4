@@ -86,7 +86,6 @@ Definition parser_parse_ipv4_spec: func_spec :=
     PATH p
     MOD (Some [["hdr"]]) [["packet_in"]]
     WITH (pin: packet_in) hsample ipv4 result pin'
-         (_: ⊫ᵥ ipv4_repr_val ipv4 \: ipv4_h)
          (_: if is_tcp ipv4 then ⊫ᵥ result \: tcp_h
              else if is_udp ipv4 then ⊫ᵥ result \: udp_h
                   else result = ValBaseNull)
@@ -110,25 +109,25 @@ Proof.
   start_function.
   simpl_format_list.
   step_call (@packet_in_extract_body Info);
-    [ entailer | apply extract_encode; [assumption | reflexivity] |].
-  step_if; change (ValBaseBit _) with (P4BitV 8 IP_PROTOCOLS_TCP) in H1;
-    rewrite abs_ipv4_hdr_eq_eq in H1.
-  - apply is_sval_true_binary_op_eq in H1.
-    change (Val_eqb _ _) with (is_tcp ipv4) in H1. unfold protocol_extract_result.
-    rewrite H1 in *. simpl_format_list.
-    step_call parser_parse_tcp_body; [ entailer | assumption | apply H3 ].
-  - apply is_sval_false_binary_op_eq in H1.
-    change (Val_eqb _ _) with (is_tcp ipv4) in H1.
-    unfold protocol_extract_result. rewrite H1 in *. simpl_format_list.
-    step_if; change (ValBaseBit _) with (P4BitV 8 IP_PROTOCOLS_UDP) in H2;
-      rewrite abs_ipv4_hdr_eq_eq in H2.
-    + apply is_sval_true_binary_op_eq in H2.
-      change (Val_eqb _ _) with (is_udp ipv4) in H2.
-      rewrite H2 in *. simpl_format_list.
-      step_call parser_parse_udp_body; [ entailer | assumption | apply H3 ].
-    + apply is_sval_false_binary_op_eq in H2.
-      change (Val_eqb _ _) with (is_udp ipv4) in H2.
-      rewrite H2 in *. do 4 simpl_format_list. rewrite app_nil_r.
+    [ entailer | apply extract_encode; [apply ext_val_typ_ipv4 | reflexivity] |].
+  step_if; change (ValBaseBit _) with (P4BitV 8 IP_PROTOCOLS_TCP) in H0;
+    rewrite abs_ipv4_hdr_eq_eq in H0.
+  - apply is_sval_true_binary_op_eq in H0.
+    change (Val_eqb _ _) with (is_tcp ipv4) in H0. unfold protocol_extract_result.
+    rewrite H0 in *. simpl_format_list.
+    step_call parser_parse_tcp_body; [ entailer | assumption | apply H2 ].
+  - apply is_sval_false_binary_op_eq in H0.
+    change (Val_eqb _ _) with (is_tcp ipv4) in H0.
+    unfold protocol_extract_result. rewrite H0 in *. simpl_format_list.
+    step_if; change (ValBaseBit _) with (P4BitV 8 IP_PROTOCOLS_UDP) in H1;
+      rewrite abs_ipv4_hdr_eq_eq in H1.
+    + apply is_sval_true_binary_op_eq in H1.
+      change (Val_eqb _ _) with (is_udp ipv4) in H1.
+      rewrite H1 in *. simpl_format_list.
+      step_call parser_parse_udp_body; [ entailer | assumption | apply H2 ].
+    + apply is_sval_false_binary_op_eq in H1.
+      change (Val_eqb _ _) with (is_udp ipv4) in H1.
+      rewrite H1 in *. do 4 simpl_format_list. rewrite app_nil_r.
       step_call (@parser_accept_body Info). entailer.
 Qed.
 
@@ -140,8 +139,6 @@ Definition parser_parse_ethernet_spec: func_spec :=
     PATH p
     MOD (Some [["hdr"]]) [["packet_in"]]
     WITH (pin pin': packet_in) ether ipv4 hsample result
-         (_: ⊫ᵥ ethernet_repr_val ether \: ethernet_h)
-         (_: ⊫ᵥ ipv4_repr_val ipv4 \: ipv4_h)
          (_: if is_tcp ipv4 then ⊫ᵥ result \: tcp_h
              else if is_udp ipv4 then ⊫ᵥ result \: udp_h
                   else result = ValBaseNull)
@@ -149,7 +146,7 @@ Definition parser_parse_ethernet_spec: func_spec :=
                      ⦑ encode (ipv4_repr_val ipv4) ⦒;
                      ⦃ is_tcp ipv4 ? ⦑ encode result ⦒ |
                        ⦃ is_udp ipv4 ? ⦑ encode result ⦒ | ε ⦄ ⦄; ⦑ pin' ⦒] )
-         (_: ethernet_ether_type ether = P4BitV 16 ETHERTYPE_IPV4),
+         (_: P4BitV 16 (ethernet_ether_type ether) = P4BitV 16 ETHERTYPE_IPV4),
       PRE
         (ARG []
         (MEM [(["hdr"], (hdr hsample))]
@@ -165,9 +162,9 @@ Proof.
   start_function.
   simpl_format_list.
   step_call (@packet_in_extract_body Info);
-    [ entailer | apply extract_encode; [assumption | reflexivity] |].
-  step_if; change (ValBaseBit _) with (P4BitV 16 ETHERTYPE_IPV4) in H2;
-    rewrite abs_ether_eq_eq in H2.
+    [ entailer | apply extract_encode; [apply ext_val_typ_ethernet | reflexivity]|].
+  step_if; change (ValBaseBit _) with (P4BitV 16 ETHERTYPE_IPV4) in H0;
+    rewrite abs_ether_eq_eq in H0.
   - unfold ethernet_extract_result.
     remember (Build_header_sample_rec
                 (header_sample_bridge hsample)
@@ -178,10 +175,10 @@ Proof.
                 (header_sample_udp hsample)) as new_hdr.
     assert (update "ethernet" (eval_val_to_sval (ethernet_repr_val ether))
               (hdr hsample) = hdr new_hdr) by (rewrite Heqnew_hdr; reflexivity).
-    rewrite H4.
-    step_call parser_parse_ipv4_body; [entailer | apply H0 | apply H1 | apply H5].
-  - apply is_sval_false_binary_op_eq in H2.
-    rewrite Val_eqb_neq_iff in H2. exfalso. apply H2. assumption.
+    rewrite H2.
+    step_call parser_parse_ipv4_body; [entailer | apply H | apply H3].
+  - apply is_sval_false_binary_op_eq in H0.
+    rewrite Val_eqb_neq_iff in H0. exfalso. apply H0. assumption.
 Qed.
 
 Definition parser_start_fundef :=
@@ -203,8 +200,6 @@ Definition parser_start_spec: func_spec :=
     MOD (Some [["hdr"]; ["ig_intr_md"]]) [["packet_in"]]
     WITH (pin pin': packet_in) ver port stamp ether ipv4 hsample result
          (_: ⊫ᵥ iimt_repr_val 0 ver port stamp \: ingress_intrinsic_metadata_t)
-         (_: ⊫ᵥ ethernet_repr_val ether \: ethernet_h)
-         (_: ⊫ᵥ ipv4_repr_val ipv4 \: ipv4_h)
          (_: if is_tcp ipv4 then ⊫ᵥ result \: tcp_h
              else if is_udp ipv4 then ⊫ᵥ result \: udp_h
                   else result = ValBaseNull)
@@ -214,7 +209,7 @@ Definition parser_start_spec: func_spec :=
                      ⦑ encode (ipv4_repr_val ipv4) ⦒;
                      ⦃ is_tcp ipv4 ? ⦑ encode result ⦒ |
                        ⦃ is_udp ipv4 ? ⦑ encode result ⦒ | ε ⦄ ⦄; ⦑ pin' ⦒] )
-         (_: ethernet_ether_type ether = P4BitV 16 ETHERTYPE_IPV4),
+         (_: P4BitV 16 (ethernet_ether_type ether) = P4BitV 16 ETHERTYPE_IPV4),
       PRE
         (ARG []
         (MEM [(["hdr"], (hdr hsample))]
@@ -242,9 +237,9 @@ Proof.
         ⦑ encode (ipv4_repr_val ipv4) ⦒;
         ⦃ is_tcp ipv4 ? ⦑ encode result ⦒
         | ⦃ is_udp ipv4 ? ⦑ encode result ⦒ | ε ⦄ ⦄;
-        ⦑ pin' ⦒]) in H3. rewrite format_match_app_iff' in H3.
-  destruct H3 as [p1 [p2 [? [? ?]]]].
-  step_call tofino_parser_body; [ entailer | apply H | apply H5 | ].
+        ⦑ pin' ⦒]) in H1. rewrite format_match_app_iff' in H1.
+  destruct H1 as [p1 [p2 [? [? ?]]]].
+  step_call tofino_parser_body; [ entailer | apply H | apply H3 | ].
   step. simpl eval_write_var.
   step.
   change (ValBaseStruct _) with (hdr (sample_valid_bridge hsample)).
@@ -261,8 +256,6 @@ Definition parser_spec: func_spec :=
     MOD (Some [["hdr"]; ["ig_md"]; ["ig_intr_md"]]) [["packet_in"]]
     WITH (pin pin': packet_in) ver port stamp ether ipv4 result
          (_: ⊫ᵥ iimt_repr_val 0 ver port stamp \: ingress_intrinsic_metadata_t)
-         (_: ⊫ᵥ ethernet_repr_val ether \: ethernet_h)
-         (_: ⊫ᵥ ipv4_repr_val ipv4 \: ipv4_h)
          (_: if is_tcp ipv4 then ⊫ᵥ result \: tcp_h
              else if is_udp ipv4 then ⊫ᵥ result \: udp_h
                   else result = ValBaseNull)
@@ -272,7 +265,7 @@ Definition parser_spec: func_spec :=
                      ⦑ encode (ipv4_repr_val ipv4) ⦒;
                      ⦃ is_tcp ipv4 ? ⦑ encode result ⦒ |
                        ⦃ is_udp ipv4 ? ⦑ encode result ⦒ | ε ⦄ ⦄; ⦑ pin' ⦒] )
-         (_: ethernet_ether_type ether = P4BitV 16 ETHERTYPE_IPV4),
+         (_: P4BitV 16 (ethernet_ether_type ether) = P4BitV 16 ETHERTYPE_IPV4),
       PRE
         (ARG []
         (MEM [(["hdr"], hdr hdr_init)]

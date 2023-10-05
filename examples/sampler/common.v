@@ -1,6 +1,7 @@
 Require Import Poulet4.P4light.Syntax.P4defs.
 Require Import Poulet4.P4light.Semantics.Semantics.
 Require Import Coq.Program.Program.
+Require Import ProD3.core.PacketFormat.
 Require Import ProD3.core.Core.
 Require Import ProD3.core.Tofino.
 Require Import ProD3.examples.sampler.p4ast.
@@ -47,40 +48,40 @@ Definition IP_PROTOCOLS_TCP: Z := 6.
 Definition IP_PROTOCOLS_UDP: Z := 17.
 
 Record ipv4_rec := {
-    ipv4_version: Val;
-    ipv4_ihl: Val;
-    ipv4_diffserv: Val;
-    ipv4_total_len: Val;
-    ipv4_identification: Val;
-    ipv4_flags: Val;
-    ipv4_frag_offset: Val;
-    ipv4_ttl: Val;
-    ipv4_protocol: Val;
-    ipv4_hdr_checksum: Val;
-    ipv4_src_addr: Val;
-    ipv4_dst_addr: Val;
+    ipv4_version: Z;
+    ipv4_ihl: Z;
+    ipv4_diffserv: Z;
+    ipv4_total_len: Z;
+    ipv4_identification: Z;
+    ipv4_flags: Z;
+    ipv4_frag_offset: Z;
+    ipv4_ttl: Z;
+    ipv4_protocol: Z;
+    ipv4_hdr_checksum: Z;
+    ipv4_src_addr: Z;
+    ipv4_dst_addr: Z;
   }.
 
 Definition ipv4_repr_val (ipv4: ipv4_rec): Val :=
   ValBaseHeader
-    [("version", ipv4_version ipv4);
-     ("ihl", ipv4_ihl ipv4);
-     ("diffserv", ipv4_diffserv ipv4);
-     ("total_len", ipv4_total_len ipv4);
-     ("identification", ipv4_identification ipv4);
-     ("flags", ipv4_flags ipv4);
-     ("frag_offset", ipv4_frag_offset ipv4);
-     ("ttl", ipv4_ttl ipv4);
-     ("protocol", ipv4_protocol ipv4);
-     ("hdr_checksum", ipv4_hdr_checksum ipv4);
-     ("src_addr", ipv4_src_addr ipv4);
-     ("dst_addr", ipv4_dst_addr ipv4)] true.
+    [("version", P4BitV 4 (ipv4_version ipv4));
+     ("ihl", P4BitV 4 (ipv4_ihl ipv4));
+     ("diffserv", P4BitV 8 (ipv4_diffserv ipv4));
+     ("total_len", P4BitV 16 (ipv4_total_len ipv4));
+     ("identification", P4BitV 16 (ipv4_identification ipv4));
+     ("flags", P4BitV 3 (ipv4_flags ipv4));
+     ("frag_offset", P4BitV 13 (ipv4_frag_offset ipv4));
+     ("ttl", P4BitV 8 (ipv4_ttl ipv4));
+     ("protocol", P4BitV 8 (ipv4_protocol ipv4));
+     ("hdr_checksum", P4BitV 16 (ipv4_hdr_checksum ipv4));
+     ("src_addr", P4BitV 32 (ipv4_src_addr ipv4));
+     ("dst_addr", P4BitV 32 (ipv4_dst_addr ipv4))] true.
 
 Definition is_tcp ipv4: bool :=
-  Val_eqb (ipv4_protocol ipv4) (P4BitV 8 IP_PROTOCOLS_TCP).
+  Val_eqb (P4BitV 8 (ipv4_protocol ipv4)) (P4BitV 8 IP_PROTOCOLS_TCP).
 
 Definition is_udp ipv4: bool :=
-  Val_eqb (ipv4_protocol ipv4) (P4BitV 8 IP_PROTOCOLS_UDP).
+  Val_eqb (P4BitV 8 (ipv4_protocol ipv4)) (P4BitV 8 IP_PROTOCOLS_UDP).
 
 Definition protocol_extract_result
   (ipv4: ipv4_rec) (result: Val) (header: Sval): Sval :=
@@ -125,11 +126,12 @@ Lemma abs_ipv4_hdr_eq_eq: forall ipv4 hsample w v,
          (eval_val_to_sval (P4BitV w v))) =
       eval_val_to_sval
         (force ValBaseNull
-           (Ops.eval_binary_op Eq (ipv4_protocol ipv4) (P4BitV w v))).
+           (Ops.eval_binary_op Eq (P4BitV 8 (ipv4_protocol ipv4)) (P4BitV w v))).
 Proof.
   intros. rewrite get_update_same; auto.
   unfold build_abs_unary_op. rewrite eval_sval_to_val_eq.
-  rewrite force_cast_P4BitV_eq. unfold ipv4_repr_val. simpl get. unfold abs_eq.
+  rewrite force_cast_P4BitV_eq. unfold ipv4_repr_val.
+  Opaque P4BitV. simpl get. Transparent P4BitV. unfold abs_eq.
   unfold build_abs_binary_op. rewrite !eval_sval_to_val_eq. reflexivity.
 Qed.
 
@@ -159,16 +161,16 @@ Proof.
 Qed.
 
 Record ethernet_rec := {
-    ethernet_dst_addr: Val;
-    ethernet_src_addr: Val;
-    ethernet_ether_type: Val;
+    ethernet_dst_addr: Z;
+    ethernet_src_addr: Z;
+    ethernet_ether_type: Z;
   }.
 
 Definition ethernet_repr_val (ether: ethernet_rec) : Val :=
   ValBaseHeader
-    [("dst_addr", ethernet_dst_addr ether);
-     ("src_addr", ethernet_src_addr ether);
-     ("ether_type", ethernet_ether_type ether)] true.
+    [("dst_addr", P4BitV 48 (ethernet_dst_addr ether));
+     ("src_addr", P4BitV 48 (ethernet_src_addr ether));
+     ("ether_type", P4BitV 16 (ethernet_ether_type ether))] true.
 
 Definition ethernet_extract_result
   (header: Sval) (ether: ethernet_rec) (ipv4: ipv4_rec)
@@ -190,11 +192,13 @@ Lemma abs_ether_eq_eq: forall ether hsample w v,
          (eval_val_to_sval (P4BitV w v))) =
       eval_val_to_sval
         (force ValBaseNull
-           (Ops.eval_binary_op Eq (ethernet_ether_type ether) (P4BitV w v))).
+           (Ops.eval_binary_op Eq (P4BitV 16 (ethernet_ether_type ether))
+              (P4BitV w v))).
 Proof.
   intros. rewrite get_update_same; auto.
   unfold build_abs_unary_op. rewrite eval_sval_to_val_eq.
-  rewrite force_cast_P4BitV_eq. unfold ethernet_repr_val. simpl get. unfold abs_eq.
+  rewrite force_cast_P4BitV_eq. unfold ethernet_repr_val.
+  Opaque P4BitV. simpl get. Transparent P4BitV. unfold abs_eq.
   unfold build_abs_binary_op. rewrite !eval_sval_to_val_eq. reflexivity.
 Qed.
 
@@ -245,3 +249,9 @@ Definition hdr_init: header_sample_rec :=
          ("hdr_length", P4Bit_ 16);
          ("checksum", P4Bit_ 16)]
         (Some false)).
+
+Lemma ext_val_typ_ipv4: forall ipv4, ⊫ᵥ ipv4_repr_val ipv4 \: ipv4_h.
+Proof. intros. split; [repeat constructor | reflexivity]. Qed.
+
+Lemma ext_val_typ_ethernet: forall ether, ⊫ᵥ ethernet_repr_val ether \: ethernet_h.
+Proof. intros. split; [repeat constructor | reflexivity]. Qed.

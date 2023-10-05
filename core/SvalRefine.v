@@ -498,9 +498,19 @@ Proof.
 Qed.
 
 (* Only valid header is converted to Sval, others are all converted to all None *)
-Definition val_to_sval_valid_only (val: Val): Sval :=
+Fixpoint val_to_sval_valid_only (val: Val): Sval :=
+  let val_to_svals (sl: list Val): list Sval :=
+    map val_to_sval_valid_only sl in
+  let val_to_asvals (sl: AList.StringAList Val): AList.StringAList Sval :=
+    kv_map val_to_sval_valid_only sl in
   match val with
-  | ValBaseHeader l false => ValBaseHeader (kv_map val_to_liberal_sval l) (Some false)
+  | ValBaseTuple l => ValBaseTuple (val_to_svals l)
+  | ValBaseStack l n => ValBaseStack (val_to_svals l) n
+  | ValBaseUnion l => ValBaseUnion (val_to_asvals l)
+  | ValBaseStruct l => ValBaseStruct (val_to_asvals l)
+  | ValBaseHeader l true => ValBaseHeader (val_to_asvals l) (Some true)
+  | ValBaseHeader l false =>
+      ValBaseHeader (kv_map val_to_liberal_sval l) (Some false)
   | _ => eval_val_to_sval val
   end.
 

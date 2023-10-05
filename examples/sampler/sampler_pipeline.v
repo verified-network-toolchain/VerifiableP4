@@ -29,25 +29,23 @@ Inductive inprsr_block: programmable_block_sem :=
     hdr ig_md ig_intr_md signal counter,
     extern_contains es ["pipe"; "ingress"] counter ->
     ⊫ᵥ iimt_repr_val 0 ver port stamp \: ingress_intrinsic_metadata_t ->
-    ⊫ᵥ ethernet_repr_val ether \: ethernet_h ->
-    ⊫ᵥ ipv4_repr_val ipv4 \: ipv4_h ->
     (if is_tcp ipv4 then ⊫ᵥ result \: tcp_h else
       (if is_udp ipv4 then ⊫ᵥ result \: udp_h else result = ValBaseNull)) ->
-      ethernet_ether_type ether = P4BitV 16 ETHERTYPE_IPV4 ->
-      pin ⫢ [⦑ encode (iimt_repr_val 0 ver port stamp) ⦒;
-             ⟨64⟩;
-             ⦑ encode (ethernet_repr_val ether) ⦒;
-             ⦑ encode (ipv4_repr_val ipv4) ⦒;
-             ⦃ is_tcp ipv4 ? ⦑ encode result ⦒ |
-               ⦃ is_udp ipv4 ? ⦑ encode result ⦒ | ε ⦄ ⦄; ⦑ pin' ⦒] ->
-      PathMap.get ["hdr"] m =
-        Some (common.hdr hdr_init) ->
-      PathMap.get ["packet_in"] es = Some (ObjPin pin) ->
-      programmable_block ge inst_path "ingress_parser" fd ->
-      extern_contains es' ["pipe"; "ingress"] counter ->
-      exec_func ge read_ndetbit inst_path (m, es) fd nil [] (m', es')
-        [hdr; ig_md; ig_intr_md] signal ->
-      inprsr_block es [] es' [hdr; ig_md; ig_intr_md] signal.
+    P4BitV 16 (ethernet_ether_type ether) = P4BitV 16 ETHERTYPE_IPV4 ->
+    pin ⫢ [⦑ encode (iimt_repr_val 0 ver port stamp) ⦒;
+           ⟨64⟩;
+           ⦑ encode (ethernet_repr_val ether) ⦒;
+           ⦑ encode (ipv4_repr_val ipv4) ⦒;
+           ⦃ is_tcp ipv4 ? ⦑ encode result ⦒ |
+             ⦃ is_udp ipv4 ? ⦑ encode result ⦒ | ε ⦄ ⦄; ⦑ pin' ⦒] ->
+    PathMap.get ["hdr"] m =
+      Some (common.hdr hdr_init) ->
+    PathMap.get ["packet_in"] es = Some (ObjPin pin) ->
+    programmable_block ge inst_path "ingress_parser" fd ->
+    extern_contains es' ["pipe"; "ingress"] counter ->
+    exec_func ge read_ndetbit inst_path (m, es) fd nil [] (m', es')
+      [hdr; ig_md; ig_intr_md] signal ->
+    inprsr_block es [] es' [hdr; ig_md; ig_intr_md] signal.
 
 Inductive ingress_block: programmable_block_sem :=
 | ingress_block_intro:
@@ -145,11 +143,36 @@ Lemma ethernet_extract_result_hdr:
 Proof.
   intros ether ipv4 result.
   unfold ethernet_extract_result. unfold protocol_extract_result.
-  unfold sample_valid_bridge, hdr_init. simpl. unfold hdr.
+  unfold sample_valid_bridge, hdr_init. simpl common.hdr. unfold hdr.
   destruct (is_tcp ipv4); [do 4 eexists; reflexivity |].
   destruct (is_udp ipv4); [do 4 eexists; reflexivity |].
   do 4 eexists; reflexivity.
 Qed.
+
+Lemma ethernet_extract_result_valid_only:
+  forall (ether : ethernet_rec) (ipv4 : ipv4_rec) (result : Val),
+  exists h, ethernet_extract_result
+         (common.hdr (sample_valid_bridge hdr_init)) ether ipv4 result =
+         val_to_sval_valid_only h.
+Proof.
+  intros. unfold ethernet_extract_result, protocol_extract_result.
+  unfold sample_valid_bridge, hdr_init. simpl common.hdr. destruct (is_tcp ipv4).
+  exists (ValBaseStruct
+       [("bridge", ValBaseHeader [("contains_sample", P4BitV 8 0)] true);
+        ("sample",
+          ValBaseHeader
+            [("dmac", P4BitV 48 0); ("smac", P4BitV 48 0);
+             ("etype", P4BitV 16 0); ("srcip", P4BitV 32 0);
+             ("dstip", P4BitV 32 0); ("num_pkts", P4BitV 32 0)]
+          false);
+       ("ethernet", ethernet_repr_val ether);
+       ("ipv4", ipv4_repr_val ipv4);
+       ("udp",
+        ValBaseHeader
+          [("src_port", P4BitV 16 0); ("dst_port", P4BitV 16 0);
+           ("hdr_length", P4BitV 16 0); ("checksum", P4BitV 16 0)]
+          false)]).
+Abort.
 
 Lemma sval_refine_iimt_repr_sval: forall ver port stamp,
   sval_refine
@@ -177,8 +200,8 @@ Lemma process_packet_ingress:
       inprsr_block ingress_block indeprsr_block parser_ingress_cond
       ingress_deprsr_cond es pin es' pout for_tm -> False.
 Proof.
-  intros. inversion H. subst. inv H1. rewrite get_packet in H18.
-  inversion H18. subst pin0; clear H18. inv H20. inv H0. inv H1. inv H8.
+  intros. inversion H. subst. inv H1. rewrite get_packet in H16.
+  inversion H16. subst pin0; clear H16. inv H20. inv H0. inv H1. inv H8.
   eapply (proj1 ingress_parser_body) in H24; eauto.
   2: { hnf. split. 1: constructor. hnf. split.
        - hnf. simpl. rewrite H17. split; auto. apply sval_refine_refl.
