@@ -14,6 +14,22 @@ Notation Val := (@ValueBase bool).
 Notation Sval := (@ValueBase (option bool)).
 Notation Val_eqb := (val_eqb Bool.eqb).
 
+Lemma extract_encode: forall {tags_t: Type} (typ: @P4Type tags_t) (val: Val) pkt,
+    ext_val_typ val typ  ->
+    is_packet_typ typ = true ->
+    Tofino.extract typ (encode val ++ pkt) = Some (val, SReturnNull, pkt).
+Proof. intros. unfold Tofino.extract. rewrite extract_encode_raw; auto. Qed.
+
+Lemma emit_encode: forall {tags_t: Type} (typ: @P4Type tags_t) (val: Val) pkt,
+    ⊢ᵥ val \: typ  ->
+    is_packet_typ typ = true ->
+    Tofino.emit val pkt = (inl (app pkt (encode val)), app pkt (encode val)).
+Proof.
+  intros. unfold Tofino.emit. simpl.
+  unfold ExceptionState.get_state, Packet.packet_bind, ExceptionState.state_bind.
+  erewrite emit_encode_raw; eauto.
+Qed.
+
 Lemma Val_eqb_eq_iff: forall (v1 v2: Val), Val_eqb v1 v2 = true <-> v1 = v2.
 Proof.
   intros. split; intros.

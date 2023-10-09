@@ -1,5 +1,6 @@
 Require Import Poulet4.P4light.Syntax.P4defs.
-Require Import Poulet4.P4light.Architecture.Tofino.
+Require Import Poulet4.Monads.Packet.
+Require Import Poulet4.P4light.Semantics.Extract.
 Require Export Poulet4.P4light.Semantics.Typing.ValueTyping.
 
 Notation packet := (list bool).
@@ -112,12 +113,6 @@ Section PacketFormat.
       destruct p, s; inversion IHForall2. reflexivity.
   Qed.
 
-  Lemma extract_encode: forall (typ: P4Type) (val: Val) pkt,
-      ext_val_typ val typ  ->
-      is_packet_typ typ = true ->
-      extract typ (encode val ++ pkt) = Some (val, SReturnNull, pkt).
-  Proof. intros. unfold extract. rewrite extract_encode_raw; auto. Qed.
-
   Lemma emit_encode_raw: forall (typ: P4Type) (val: Val) pkt,
       ⊢ᵥ val \: typ  ->
       is_packet_typ typ = true ->
@@ -153,15 +148,6 @@ Section PacketFormat.
       remember (asequence (map (fun '(k0, v1) => (k0, Extract.emit v1)) l)
                   (pkt ++ encode v0)).
       destruct p, s; inversion IHForall2. rewrite app_assoc. reflexivity.
-  Qed.
-
-  Lemma emit_encode: forall (typ: P4Type) (val: Val) pkt,
-      ⊢ᵥ val \: typ  ->
-      is_packet_typ typ = true ->
-      emit val pkt = (inl (pkt ++ encode val), pkt ++ encode val).
-  Proof.
-    intros. unfold emit. simpl. auto_unfold.
-    erewrite emit_encode_raw; eauto.
   Qed.
 
 End PacketFormat.
@@ -201,7 +187,7 @@ Definition format_match (f: list format) (p: packet): Prop :=
   exists l, concat l = p /\ Forall2 match_one f l.
 
 Lemma format_match_size: forall p n f,
-    format_match (unspecified n :: f) p -> (Z.of_nat n) <= Zlength p.
+    format_match (unspecified n :: f) p -> ((Z.of_nat n) <= Zlength p)%Z.
 Proof.
   intros. destruct H as [l [? ?]]. destruct l; inv H0. inv H4.
   simpl. rewrite Zlength_app, <- Zlength_correct.

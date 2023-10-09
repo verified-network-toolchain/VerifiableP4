@@ -51,7 +51,7 @@ Definition register_read_spec (p : path) (reg_s : register_static) : func_spec :
       POST
         (ARG_RET [eval_val_to_sval (Znth i reg)] ValBaseNull
         (MEM []
-        (EXT []))).
+           (EXT []))).
 
 Lemma register_read_body : forall (p : path) (reg_s : register_static),
   PathMap.get p (ge_ext ge) = Some (EnvRegister reg_s) ->

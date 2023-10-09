@@ -7,6 +7,7 @@ Require Import Poulet4.P4light.Syntax.Typed.
 Require Import Poulet4.P4light.Syntax.Syntax.
 Require Import Poulet4.P4light.Syntax.Value.
 Require Import Poulet4.P4light.Semantics.Semantics.
+Require Import ProD3.core.PacketFormat.
 Require Import ProD3.core.Coqlib.
 Require Import Poulet4.P4light.Syntax.SyntaxUtil.
 Require Import Hammer.Plugin.Hammer.
@@ -589,3 +590,118 @@ Proof.
   [inversion IHvs; reflexivity | discriminate].
   rewrite IHv. reflexivity.
 Qed.
+
+Lemma ext_val_typ_to_sval_map_eq: forall {tags_t : Type} vs,
+    Forall
+      (fun v : ValueBase =>
+         forall (typ: @P4Type tags_t),
+           ⊫ᵥ v \: typ -> is_packet_typ typ ->
+           eval_val_to_sval v = val_to_sval_valid_only v) vs ->
+    forallb header_is_valid vs = true ->
+    forall ts,
+      forallb is_packet_typ ts ->
+      Forall2 (@val_typ _ tags_t) vs ts ->
+      map eval_val_to_sval vs = map val_to_sval_valid_only vs.
+Proof.
+  intros tags_t vs. induction vs; intros; inv H2; auto. simpl. inv H.
+  simpl in H0, H1. apply andb_prop in H0, H1. destruct H0, H1.
+  rewrite (H4 y); [| split; assumption | assumption]. rewrite IHvs with l'; auto.
+Qed.
+
+Lemma ext_val_typ_to_sval_kv_map_eq:
+  forall (tags_t : Type) (vs : list (string * ValueBase)),
+    Forall
+      (fun '(_, v) =>
+         forall (typ: @P4Type tags_t),
+           ⊫ᵥ v \: typ -> is_packet_typ typ ->
+           eval_val_to_sval v = val_to_sval_valid_only v) vs ->
+    forall ts,
+      forallb (is_packet_typ ∘ snd) ts ->
+      forallb (header_is_valid ∘ snd) vs = true ->
+      AList.all_values (@val_typ _ tags_t) vs ts ->
+      kv_map eval_val_to_sval vs = kv_map val_to_sval_valid_only vs.
+Proof.
+  intros tags_t vs. induction vs; intros; inv H2; auto.
+  destruct a as [fa ta]. destruct y as [fy ty]. inv H. simpl in *.
+  destruct H5. subst fy. apply andb_prop in H0, H1. destruct H0, H1.
+  unfold Basics.compose in H, H0. simpl in H, H1.
+  rewrite (H4 ty); [|split; assumption | assumption].
+  rewrite IHvs with l'; auto.
+Qed.
+
+Lemma forallb_snd_clear_tags_eq:
+  forall {tags_t : Type}
+    (ts : AList.AList (P4String.t tags_t) P4Type (P4String.equiv (tags_t:=tags_t))),
+    forallb ((@is_packet_typ tags_t) ∘ snd) (P4String.clear_AList_tags ts) =
+      forallb (is_packet_typ ∘ snd) ts.
+Proof.
+  intro tgt. induction ts; simpl; [|destruct a as [x v]; rewrite IHts]; reflexivity.
+Qed.
+
+Lemma ext_val_typ_to_sval_eq: forall {tags_t: Type} v (typ: @P4Type tags_t),
+    ⊫ᵥ v \: typ -> is_packet_typ typ ->
+    eval_val_to_sval v = val_to_sval_valid_only v.
+Proof.
+  intros tags_t v. induction v using custom_ValueBase_ind; intros;
+    lazymatch goal with
+    | [H: ⊫ᵥ _ \: _ |- _] => destruct H as [Ht ?H]; inv Ht; try reflexivity
+    end; simpl in *; try discriminate.
+  - f_equal. eapply ext_val_typ_to_sval_map_eq; eauto.
+  - f_equal. eapply ext_val_typ_to_sval_kv_map_eq; eauto.
+    rewrite forallb_snd_clear_tags_eq. apply andb_prop in H1. destruct H1. apply H2.
+  - destruct b; [| discriminate].
+    f_equal. eapply ext_val_typ_to_sval_kv_map_eq; eauto.
+    rewrite forallb_snd_clear_tags_eq. apply andb_prop in H1. destruct H1. apply H2.
+Qed.
+
+Lemma to_sval_valid_only_typ_inv_all_values:
+  forall {tags : Type} (vs : list (string * ValueBase)),
+    Forall
+      (fun '(_, v) =>
+         forall typ : (@P4Type tags), ⊢ᵥ val_to_sval_valid_only v \: typ -> ⊢ᵥ v \: typ) vs ->
+    forall ts : AList.AList (P4String.t tags) P4Type (P4String.equiv (tags_t:=tags)),
+      AList.all_values val_typ (kv_map val_to_sval_valid_only vs)
+        (P4String.clear_AList_tags ts) ->
+      AList.all_values (@val_typ _ tags) vs (P4String.clear_AList_tags ts).
+Proof.
+  intros. remember (P4String.clear_AList_tags ts).
+  clear ts Heqs. rename s into ts. revert dependent ts.
+  revert H. induction vs; intros; simpl in H0; inv H0. 1: constructor.
+  destruct a as [ka va]. destruct y as [ky vy]. simpl in *. destruct H3.
+  subst ky. inv H. constructor.
+  - simpl. split; auto.
+  - apply IHvs; auto.
+Qed.
+
+Lemma to_sval_valid_only_typ_inv: forall {tags_t: Type} v (typ: @P4Type tags_t),
+    ⊢ᵥ val_to_sval_valid_only v \: typ -> ⊢ᵥ v \: typ.
+Proof.
+  intros tags v. induction v using custom_ValueBase_ind; intros; simpl in *.
+  - inv H.
+  - inv H. constructor.
+  - inv H. constructor.
+  - inv H. rewrite map_length. constructor.
+  - inv H. rewrite map_length. constructor.
+  - inv H. rewrite map_length in H3. constructor; assumption.
+  - inv H. constructor.
+  - inv H0. constructor. revert dependent ts. revert H. induction vs; intros.
+    + simpl in H2. inversion H2. constructor.
+    + inv H. simpl in H2. inv H2. constructor.
+      * apply H3; assumption.
+      * apply IHvs; auto.
+  - inv H. constructor.
+  - inv H.
+  - inv H0. constructor; auto. eapply to_sval_valid_only_typ_inv_all_values; eauto.
+  - destruct b; inv H0; constructor; auto.
+    + eapply to_sval_valid_only_typ_inv_all_values; eauto.
+    + remember (P4String.clear_AList_tags ts). clear ts H3 Heqs. rename s into ts.
+      admit.
+  - inv H0. constructor; auto.
+    + admit.
+    + eapply to_sval_valid_only_typ_inv_all_values; eauto.
+  - inv H0. rewrite map_length in *. constructor; auto. clear H3 i.
+    revert dependent vs. induction vs; intros; simpl in *; auto. inv H. inv H5.
+    constructor; [apply H2 | apply IHvs]; auto.
+  - inv H. constructor. auto.
+  - inv H. constructor.
+Abort.

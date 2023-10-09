@@ -116,8 +116,6 @@ Qed.
 
 Lemma ethernet_extract_result_typ:
   forall (ether : ethernet_rec) (ipv4 : ipv4_rec) (result : Val),
-    ⊫ᵥ ethernet_repr_val ether \: ethernet_h ->
-    ⊫ᵥ ipv4_repr_val ipv4 \: ipv4_h ->
     (if is_tcp ipv4 then ⊫ᵥ result \: tcp_h
      else if is_udp ipv4 then ⊫ᵥ result \: udp_h
           else result = ValBaseNull) ->
@@ -128,9 +126,9 @@ Proof.
   intros. unfold ethernet_extract_result.
   apply protocol_extract_result_typ; auto.
   apply update_struct_typ with ipv4_h; auto.
-  - apply ValueBaseMap_preserves_type. apply H0.
+  - apply ValueBaseMap_preserves_type. apply ext_val_typ_ipv4.
   - apply update_struct_typ with ethernet_h; auto.
-    + apply ValueBaseMap_preserves_type. apply H.
+    + apply ValueBaseMap_preserves_type. apply ext_val_typ_ethernet.
     + apply hdr_init_type.
 Qed.
 
@@ -149,30 +147,80 @@ Proof.
   do 4 eexists; reflexivity.
 Qed.
 
+Opaque eval_val_to_sval ipv4_repr_val ethernet_repr_val.
+
 Lemma ethernet_extract_result_valid_only:
   forall (ether : ethernet_rec) (ipv4 : ipv4_rec) (result : Val),
+    (if is_tcp ipv4
+     then ⊫ᵥ result \: tcp_h
+     else if is_udp ipv4 then ⊫ᵥ result \: udp_h else result = ValBaseNull) ->
   exists h, ethernet_extract_result
          (common.hdr (sample_valid_bridge hdr_init)) ether ipv4 result =
          val_to_sval_valid_only h.
 Proof.
   intros. unfold ethernet_extract_result, protocol_extract_result.
-  unfold sample_valid_bridge, hdr_init. simpl common.hdr. destruct (is_tcp ipv4).
-  exists (ValBaseStruct
-       [("bridge", ValBaseHeader [("contains_sample", P4BitV 8 0)] true);
-        ("sample",
-          ValBaseHeader
-            [("dmac", P4BitV 48 0); ("smac", P4BitV 48 0);
-             ("etype", P4BitV 16 0); ("srcip", P4BitV 32 0);
-             ("dstip", P4BitV 32 0); ("num_pkts", P4BitV 32 0)]
-          false);
-       ("ethernet", ethernet_repr_val ether);
-       ("ipv4", ipv4_repr_val ipv4);
-       ("udp",
-        ValBaseHeader
-          [("src_port", P4BitV 16 0); ("dst_port", P4BitV 16 0);
-           ("hdr_length", P4BitV 16 0); ("checksum", P4BitV 16 0)]
-          false)]).
-Abort.
+  unfold sample_valid_bridge, hdr_init.
+  simpl. destruct (is_tcp ipv4).
+  - exists (ValBaseStruct
+         [("bridge", ValBaseHeader [("contains_sample", P4BitV 8 0)] true);
+          ("sample",
+            ValBaseHeader
+              [("dmac", P4BitV 48 0); ("smac", P4BitV 48 0);
+               ("etype", P4BitV 16 0); ("srcip", P4BitV 32 0);
+               ("dstip", P4BitV 32 0); ("num_pkts", P4BitV 32 0)]
+              false);
+          ("ethernet", ethernet_repr_val ether);
+          ("ipv4", ipv4_repr_val ipv4);
+          ("tcp", result);
+          ("udp",
+            ValBaseHeader
+              [("src_port", P4BitV 16 0); ("dst_port", P4BitV 16 0);
+               ("hdr_length", P4BitV 16 0); ("checksum", P4BitV 16 0)]
+              false)]). simpl. erewrite (ext_val_typ_to_sval_eq result); eauto.
+  - destruct (is_udp ipv4).
+    + exists (ValBaseStruct
+         [("bridge", ValBaseHeader [("contains_sample", P4BitV 8 0)] true);
+          ("sample",
+            ValBaseHeader
+              [("dmac", P4BitV 48 0); ("smac", P4BitV 48 0);
+               ("etype", P4BitV 16 0); ("srcip", P4BitV 32 0);
+               ("dstip", P4BitV 32 0); ("num_pkts", P4BitV 32 0)]
+              false);
+          ("ethernet", ethernet_repr_val ether);
+          ("ipv4", ipv4_repr_val ipv4);
+          ("tcp", ValBaseHeader
+                    [("src_port", P4BitV 16 0); ("dst_port", P4BitV 16 0);
+                     ("seq_no", P4BitV 32 0); ("ack_no", P4BitV 32 0);
+                     ("data_offset", P4BitV 4 0); ("res", P4BitV 4 0);
+                     ("flags", P4BitV 8 0); ("window", P4BitV 16 0);
+                     ("checksum", P4BitV 16 0); ("urgent_ptr", P4BitV 16 0)]
+                    false);
+          ("udp", result)]). simpl. erewrite (ext_val_typ_to_sval_eq result); eauto.
+    + exists (ValBaseStruct
+         [("bridge", ValBaseHeader [("contains_sample", P4BitV 8 0)] true);
+          ("sample",
+            ValBaseHeader
+              [("dmac", P4BitV 48 0); ("smac", P4BitV 48 0);
+               ("etype", P4BitV 16 0); ("srcip", P4BitV 32 0);
+               ("dstip", P4BitV 32 0); ("num_pkts", P4BitV 32 0)]
+              false);
+          ("ethernet", ethernet_repr_val ether);
+          ("ipv4", ipv4_repr_val ipv4);
+          ("tcp", ValBaseHeader
+                    [("src_port", P4BitV 16 0); ("dst_port", P4BitV 16 0);
+                     ("seq_no", P4BitV 32 0); ("ack_no", P4BitV 32 0);
+                     ("data_offset", P4BitV 4 0); ("res", P4BitV 4 0);
+                     ("flags", P4BitV 8 0); ("window", P4BitV 16 0);
+                     ("checksum", P4BitV 16 0); ("urgent_ptr", P4BitV 16 0)]
+                    false);
+          ("udp",
+            ValBaseHeader
+              [("src_port", P4BitV 16 0); ("dst_port", P4BitV 16 0);
+               ("hdr_length", P4BitV 16 0); ("checksum", P4BitV 16 0)]
+              false)]). reflexivity.
+Qed.
+
+Transparent eval_val_to_sval ipv4_repr_val ethernet_repr_val.
 
 Lemma sval_refine_iimt_repr_sval: forall ver port stamp,
   sval_refine
@@ -201,18 +249,18 @@ Lemma process_packet_ingress:
       ingress_deprsr_cond es pin es' pout for_tm -> False.
 Proof.
   intros. inversion H. subst. inv H1. rewrite get_packet in H16.
-  inversion H16. subst pin0; clear H16. inv H20. inv H0. inv H1. inv H8.
-  eapply (proj1 ingress_parser_body) in H24; eauto.
+  inversion H16. subst pin0; clear H16. inv H18. inv H0. inv H1. inv H8.
+  eapply (proj1 ingress_parser_body) in H22; eauto.
   2: { hnf. split. 1: constructor. hnf. split.
-       - hnf. simpl. rewrite H17. split; auto. apply sval_refine_refl.
+       - hnf. simpl. rewrite H15. split; auto. apply sval_refine_refl.
        - hnf. simpl. rewrite get_packet. intuition. }
-  destruct H24. hnf in H0. inv H0. inv H21. inv H23. clear H24.
+  destruct H22. hnf in H0. inv H0. inv H19. inv H21. clear H22.
   destruct H1 as [_ [_ [H1 _]]]. hnf in H1. rewrite H1 in H2.
-  inv H2. inv H4. inv H3. inv H27. inv H0. inv H2. inv H3.
+  inv H2. inv H4. inv H3. inv H25. inv H0. inv H2. inv H3.
   destruct (ethernet_extract_result_hdr ether ipv4 result) as
-    [ethernet [tcp [udp [ip4 ?H]]]]. rewrite H0 in H19.
+    [ethernet [tcp [udp [ip4 ?H]]]]. rewrite H0 in H17.
   eapply (proj1 ingress_body counter ethernet
-            tcp udp ip4 ig_intr_tm_md1) in H28; eauto.
+            tcp udp ip4 ig_intr_tm_md1) in H26; eauto.
   2: { split.
        - hnf. do 2 (constructor; [assumption |]).
          constructor.
@@ -223,10 +271,19 @@ Proof.
          constructor; [apply sval_refine_refl | constructor].
        - split. hnf. auto. hnf. split. 2: simpl; auto.
          rewrite <- counter_iff. assumption. }
-  destruct H28. hnf in H2. inv H2. inv H24. inv H25. inv H26. clear H27.
+  destruct H26. hnf in H2. inv H2. inv H22. inv H23. inv H24. clear H25.
   destruct H3 as [_ [_ [H3 _]]]. rewrite <- counter_iff in H3.
-  inv H6. inv H5. inv H30. inv H2. inv H4. inv H5.
-  eapply (proj1 ingress_deparser_body []) in H31; eauto.
+  inv H6. inv H5. inv H28. inv H2. inv H4. inv H5.
+  assert (Hv: exists h, (if counter mod 1024 =? 0
+                then update_hdr ethernet tcp udp ip4 (counter + 1)
+                else hdr ethernet tcp udp ip4) = val_to_sval_valid_only h /\
+                 ⊢ᵥ h \: header_sample_t). {
+    unfold update_hdr. remember (hdr ethernet tcp udp ip4) as header.
+    pose proof (ethernet_extract_result_typ ether _ _ H12). rewrite H0 in H2.
+    pose proof (ethernet_extract_result_valid_only ether _ _ H12).
+    rewrite H0 in H4. admit.
+  }
+  eapply (proj1 ingress_deparser_body []) in H29; eauto.
   3: { split.
        - hnf. constructor.
          apply sval_refine_trans with
@@ -234,6 +291,6 @@ Proof.
            then update_hdr ethernet tcp udp ip4 (counter + 1)
            else hdr ethernet tcp udp ip4). 2: assumption.
          admit. constructor. apply H9.
-         constructor. apply H23. constructor.
+         constructor. apply H21. constructor.
        - split. 1: hnf; auto. hnf. split. 2: simpl; auto. simpl. assumption. }
 Abort.
