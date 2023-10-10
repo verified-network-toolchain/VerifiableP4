@@ -12,6 +12,9 @@ Require Import ProD3.core.Coqlib.
 Require Import Poulet4.P4light.Syntax.SyntaxUtil.
 Require Import Hammer.Plugin.Hammer.
 
+Definition val_sim {A B : Type} (v : @ValueBase A) (v' : @ValueBase B) : Prop :=
+  exec_val (fun _ _ => True) v v'.
+
 Section SvalRefine.
 
 Context {tags_t: Type} {tags_t_inhabitant : Inhabitant tags_t}.
@@ -515,6 +518,67 @@ Fixpoint val_to_sval_valid_only (val: Val): Sval :=
   | _ => eval_val_to_sval val
   end.
 
+Lemma sval_refine_liberal:
+  forall v1 v2, val_sim v1 v2 -> sval_refine (val_to_liberal_sval v1) v2.
+Proof.
+  remember (fun (sl : list Val) =>
+              map val_to_liberal_sval sl
+           ) as to_vals. rename Heqto_vals into Hvals.
+  remember (fun (sl : AList.StringAList Val) =>
+              kv_map val_to_liberal_sval sl
+           ) as to_avals. rename Heqto_avals into Havals.
+  induction v1 using custom_ValueBase_ind; intros;
+    try (inv H; simpl; now constructor).
+  - inv H. simpl. constructor. constructor.
+  - inv H. simpl. constructor. induction H1; unfold bool_to_none in *;
+      simpl; constructor; auto. constructor.
+  - inv H. simpl. constructor. induction H1; unfold bool_to_none in *;
+      simpl; constructor; auto. constructor.
+  - inv H. simpl. constructor. induction H3; unfold bool_to_none in *;
+      simpl; constructor; auto. constructor.
+  - inversion H0. subst lv v2. clear H0. simpl. constructor.
+    rewrite <- (equal_f Hvals). revert H lv' H2.
+    induction vs; intros; inversion H2; subst lv'; clear H2;
+      rewrite Hvals; constructor; inversion H; subst x0 l0; clear H.
+    1: now apply H6. rewrite <- (equal_f Hvals). subst x l. apply IHvs; auto.
+  - inversion H0. subst kvs v2. clear H0. simpl. constructor.
+    rewrite <- (equal_f Havals). revert kvs' H2.
+    induction H; intros; inversion H2; subst kvs'; rewrite Havals.
+    1: constructor. subst x0 l0. destruct x. simpl in *. constructor.
+    + simpl. destruct H4. split; auto. apply H. auto.
+    + rewrite <- (equal_f Havals). apply IHForall. auto.
+  - inversion H0. subst kvs b0 v2. clear H0 H3. simpl. constructor.
+    1: unfold bool_to_none; constructor.
+    rewrite <- (equal_f Havals). revert kvs' H5.
+    induction H; intros; inversion H5; subst kvs'; rewrite Havals.
+    1: constructor. subst x0 l0. destruct x. simpl in *. constructor.
+    + simpl. destruct H3; split; auto. apply H. auto.
+    + rewrite <- (equal_f Havals). apply IHForall; auto.
+  - inversion H0. subst kvs v2. clear H0. simpl. constructor.
+    rewrite <- (equal_f Havals).
+    revert kvs' H2. induction H; intros; inversion H2; subst kvs'; rewrite Havals.
+    1: constructor. subst x0 l0. destruct x. simpl in *. constructor.
+    + simpl. destruct H4. split; auto. apply H. auto.
+    + rewrite <- (equal_f Havals). apply IHForall. auto.
+  - inversion H0. subst lv next v2. clear H0. simpl. constructor.
+    rewrite <- (equal_f Hvals).
+    revert H lv' H4. induction vs; intros; inversion H4; subst lv'; clear H4;
+      rewrite Hvals; constructor; inversion H; subst x0 l0; clear H.
+    1: now apply H6.  rewrite <- (equal_f Hvals). subst x l. apply IHvs; auto.
+  - inversion H. subst typ_name v v2. clear H. simpl. constructor. apply IHv1. auto.
+Qed.
+
+Lemma val_sim_on_top: forall {A B: Type} (c: A -> B -> Prop) v1 v2,
+    exec_val c v1 v2 -> val_sim v1 v2.
+Proof. intros. eapply exec_val_impl; eauto. Qed.
+
+Lemma eval_val_to_sval_val_sim: forall v, val_sim v (eval_val_to_sval v).
+Proof. intros. apply (val_sim_on_top read_detbit). now rewrite val_to_sval_iff. Qed.
+
+Lemma sval_refine_liberal_eval:
+  forall v : Val, sval_refine (val_to_liberal_sval v) (eval_val_to_sval v).
+Proof. intros. apply sval_refine_liberal. apply eval_val_to_sval_val_sim. Qed.
+
 End SvalRefine.
 
 (* These four lemmas: Forall2_bit_refine, sval_refine_bit_to_loptbool,
@@ -654,54 +718,57 @@ Proof.
     rewrite forallb_snd_clear_tags_eq. apply andb_prop in H1. destruct H1. apply H2.
 Qed.
 
-Lemma to_sval_valid_only_typ_inv_all_values:
-  forall {tags : Type} (vs : list (string * ValueBase)),
-    Forall
-      (fun '(_, v) =>
-         forall typ : (@P4Type tags), ⊢ᵥ val_to_sval_valid_only v \: typ -> ⊢ᵥ v \: typ) vs ->
-    forall ts : AList.AList (P4String.t tags) P4Type (P4String.equiv (tags_t:=tags)),
-      AList.all_values val_typ (kv_map val_to_sval_valid_only vs)
-        (P4String.clear_AList_tags ts) ->
-      AList.all_values (@val_typ _ tags) vs (P4String.clear_AList_tags ts).
+Lemma to_sval_typ_inv: forall {tags_t: Type} v (typ: @P4Type tags_t),
+    ⊢ᵥ eval_val_to_sval v \: typ -> ⊢ᵥ v \: typ.
 Proof.
-  intros. remember (P4String.clear_AList_tags ts).
-  clear ts Heqs. rename s into ts. revert dependent ts.
-  revert H. induction vs; intros; simpl in H0; inv H0. 1: constructor.
-  destruct a as [ka va]. destruct y as [ky vy]. simpl in *. destruct H3.
-  subst ky. inv H. constructor.
-  - simpl. split; auto.
-  - apply IHvs; auto.
+  intros. assert (sval_to_val read_ndetbit (eval_val_to_sval v) v). {
+    rewrite sval_to_val_eval_val_to_sval_iff; auto. intros.
+    split; intros. inv H0; auto. subst. constructor. }
+  eapply exec_val_preserves_typ; [apply H0 | apply H].
+Qed.
+
+Lemma to_liberal_sval_typ_inv: forall {tags_t: Type} v (typ: @P4Type tags_t),
+    ⊢ᵥ val_to_liberal_sval v \: typ -> ⊢ᵥ v \: typ.
+Proof.
+  intros. assert (sval_to_val read_ndetbit (eval_val_to_sval v) v). {
+    rewrite sval_to_val_eval_val_to_sval_iff; auto. intros.
+    split; intros. inv H0; auto. subst. constructor. }
+  pose proof (sval_refine_liberal_eval v).
+  assert (val_sim (val_to_liberal_sval v) v). {
+    eapply exec_val_trans; eauto. repeat intro; auto. }
+  eapply exec_val_preserves_typ; [apply H2 | apply H].
+Qed.
+
+Lemma sval_to_val_to_liberal_sval : forall v,
+    sval_to_val read_ndetbit (val_to_liberal_sval v) v.
+Proof.
+  intros. induction v using custom_ValueBase_ind; simpl; try constructor; auto;
+    try unfold bool_to_none; try constructor.
+  1-3: rewrite Forall2_map1, Forall2_Forall, Forall_forall; intros; constructor.
+  1,5: induction H; simpl; constructor; assumption.
+  1-3: induction H; simpl; constructor;[| assumption];
+  destruct x; simpl in *; split; auto.
+Qed.
+
+Lemma sval_to_val_to_sval_valid_only : forall v,
+    sval_to_val read_ndetbit (val_to_sval_valid_only v) v.
+Proof.
+  intros. induction v using custom_ValueBase_ind; simpl; try repeat constructor.
+  1-3: rewrite Forall2_map1, Forall2_Forall, Forall_forall; intros; constructor.
+  1,5: induction H; simpl; constructor; assumption.
+  1,3: (induction H; simpl; constructor; [| assumption];
+        destruct x; simpl in *; split; auto).
+  - destruct b; constructor; try constructor.
+    + induction H; simpl; constructor. 2: assumption.
+      destruct x. simpl in *. split; auto.
+    + clear H. induction vs; simpl; constructor. 2: assumption.
+      destruct a. simpl. split; auto. apply sval_to_val_to_liberal_sval.
+  - apply sval_to_val_eval_val_to_sval. intros. constructor.
 Qed.
 
 Lemma to_sval_valid_only_typ_inv: forall {tags_t: Type} v (typ: @P4Type tags_t),
     ⊢ᵥ val_to_sval_valid_only v \: typ -> ⊢ᵥ v \: typ.
 Proof.
-  intros tags v. induction v using custom_ValueBase_ind; intros; simpl in *.
-  - inv H.
-  - inv H. constructor.
-  - inv H. constructor.
-  - inv H. rewrite map_length. constructor.
-  - inv H. rewrite map_length. constructor.
-  - inv H. rewrite map_length in H3. constructor; assumption.
-  - inv H. constructor.
-  - inv H0. constructor. revert dependent ts. revert H. induction vs; intros.
-    + simpl in H2. inversion H2. constructor.
-    + inv H. simpl in H2. inv H2. constructor.
-      * apply H3; assumption.
-      * apply IHvs; auto.
-  - inv H. constructor.
-  - inv H.
-  - inv H0. constructor; auto. eapply to_sval_valid_only_typ_inv_all_values; eauto.
-  - destruct b; inv H0; constructor; auto.
-    + eapply to_sval_valid_only_typ_inv_all_values; eauto.
-    + remember (P4String.clear_AList_tags ts). clear ts H3 Heqs. rename s into ts.
-      admit.
-  - inv H0. constructor; auto.
-    + admit.
-    + eapply to_sval_valid_only_typ_inv_all_values; eauto.
-  - inv H0. rewrite map_length in *. constructor; auto. clear H3 i.
-    revert dependent vs. induction vs; intros; simpl in *; auto. inv H. inv H5.
-    constructor; [apply H2 | apply IHvs]; auto.
-  - inv H. constructor. auto.
-  - inv H. constructor.
-Abort.
+  intros. eapply exec_val_preserves_typ in H; eauto.
+  apply sval_to_val_to_sval_valid_only.
+Qed.

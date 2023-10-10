@@ -281,7 +281,11 @@ Proof.
     unfold update_hdr. remember (hdr ethernet tcp udp ip4) as header.
     pose proof (ethernet_extract_result_typ ether _ _ H12). rewrite H0 in H2.
     pose proof (ethernet_extract_result_valid_only ether _ _ H12).
-    rewrite H0 in H4. admit.
+    rewrite H0 in H4. destruct H4 as [orig_h ?]. rewrite H4 in H2.
+    assert (⊢ᵥ orig_h \: header_sample_t) by
+      (apply to_sval_valid_only_typ_inv; assumption).
+    destruct (counter mod 1024 =? 0). 2: (exists orig_h; split; assumption).
+    admit.
   }
   eapply (proj1 ingress_deparser_body []) in H29; eauto.
   3: { split.

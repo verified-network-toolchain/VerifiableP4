@@ -22,9 +22,6 @@ Lemma lift_option_map_some: forall {A: Type} (al: list A),
     lift_option (map Some al) = Some al.
 Proof. intros. induction al; simpl; [|rewrite IHal]; easy. Qed.
 
-Definition val_sim {A B : Type} (v : @ValueBase A) (v' : @ValueBase B) : Prop :=
-  exec_val (fun _ _ => True) v v'.
-
 Lemma Forall2_to_lbool: forall w v1 v2, Forall2 (fun _ _ => True) (to_lbool w v1) (to_lbool w v2).
 Proof.
   intros. apply Forall2_True. rewrite <- !ZtoNat_Zlength. rewrite !Zlength_to_lbool. auto.
@@ -40,10 +37,6 @@ Lemma val_sim_trans:
   forall {A B C} (v1: @ValueBase A) (v2: @ValueBase B) (v3: @ValueBase C),
     val_sim v1 v2 -> val_sim v2 v3 -> val_sim v1 v3.
 Proof. intros. eapply exec_val_trans; eauto. repeat intro; auto. Qed.
-
-Lemma val_sim_on_top: forall {A B: Type} (c: A -> B -> Prop) v1 v2,
-    exec_val c v1 v2 -> val_sim v1 v2.
-Proof. intros. eapply exec_val_impl; eauto. Qed.
 
 Section EvalExpr.
 
@@ -687,58 +680,6 @@ Section eval_sval_to_val_sval_to_val.
       apply IHsv; auto.
   Qed.
 End eval_sval_to_val_sval_to_val.
-
-Lemma eval_val_to_sval_val_sim: forall v, val_sim v (eval_val_to_sval v).
-Proof. intros. apply (val_sim_on_top read_detbit). now rewrite val_to_sval_iff. Qed.
-
-Lemma sval_refine_liberal:
-  forall v1 v2, val_sim v1 v2 -> sval_refine (val_to_liberal_sval v1) v2.
-Proof.
-  remember (fun (sl : list Val) =>
-              map val_to_liberal_sval sl
-           ) as to_vals. rename Heqto_vals into Hvals.
-  remember (fun (sl : AList.StringAList Val) =>
-              kv_map val_to_liberal_sval sl
-           ) as to_avals. rename Heqto_avals into Havals.
-  induction v1 using custom_ValueBase_ind; intros;
-    try (inv H0; simpl; now constructor).
-  - inv H0. simpl. constructor. constructor.
-  - inv H0. simpl. constructor. induction H2; unfold bool_to_none in *;
-      simpl; constructor; auto. constructor.
-  - inv H0. simpl. constructor. induction H2; unfold bool_to_none in *;
-      simpl; constructor; auto. constructor.
-  - inv H0. simpl. constructor. induction H4; unfold bool_to_none in *;
-      simpl; constructor; auto. constructor.
-  - inversion H1. subst lv v2. clear H1. simpl. constructor. rewrite <- (equal_f Hvals).
-    revert H0 lv' H3. induction vs; intros; inversion H3; subst lv'; clear H3;
-      rewrite Hvals; constructor; inversion H0; subst x0 l0; clear H0. 1: now apply H7.
-    rewrite <- (equal_f Hvals). subst x l. apply IHvs; auto.
-  - inversion H1. subst kvs v2. clear H1. simpl. constructor. rewrite <- (equal_f Havals).
-    revert kvs' H3. induction H0; intros; inversion H3; subst kvs'; rewrite Havals.
-    1: constructor. subst x0 l0. destruct x. simpl in *. constructor.
-    + simpl. destruct H5. split; auto. apply H0. auto.
-    + rewrite <- (equal_f Havals). apply IHForall. auto.
-  - inversion H1. subst kvs b0 v2. clear H1 H4. simpl. constructor.
-    1: unfold bool_to_none; constructor. rewrite <- (equal_f Havals). revert kvs' H6.
-    induction H0; intros; inversion H6; subst kvs'; rewrite Havals.
-    1: constructor. subst x0 l0. destruct x. simpl in *. constructor.
-    + simpl. destruct H4; split; auto. apply H0. auto.
-    + rewrite <- (equal_f Havals). apply IHForall; auto.
-  - inversion H1. subst kvs v2. clear H1. simpl. constructor. rewrite <- (equal_f Havals).
-    revert kvs' H3. induction H0; intros; inversion H3; subst kvs'; rewrite Havals.
-    1: constructor. subst x0 l0. destruct x. simpl in *. constructor.
-    + simpl. destruct H5. split; auto. apply H0. auto.
-    + rewrite <- (equal_f Havals). apply IHForall. auto.
-  - inversion H1. subst lv next v2. clear H1. simpl. constructor. rewrite <- (equal_f Hvals).
-    revert H0 lv' H5. induction vs; intros; inversion H5; subst lv'; clear H5;
-      rewrite Hvals; constructor; inversion H0; subst x0 l0; clear H0. 1: now apply H7.
-    rewrite <- (equal_f Hvals). subst x l. apply IHvs; auto.
-  - inversion H0. subst typ_name v v2. clear H0. simpl. constructor. apply IHv1. auto.
-Qed.
-
-Lemma sval_refine_liberal_eval:
-  forall v : Val, sval_refine (val_to_liberal_sval v) (eval_val_to_sval v).
-Proof. intros. apply sval_refine_liberal. apply eval_val_to_sval_val_sim. Qed.
 
 Lemma sval_refine_map_bool_to_none: forall l1 l2,
     length l1 = length l2 -> Forall2 bit_refine (map bool_to_none l1) l2.
