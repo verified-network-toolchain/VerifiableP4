@@ -274,27 +274,38 @@ Proof.
   destruct H26. hnf in H2. inv H2. inv H22. inv H23. inv H24. clear H25.
   destruct H3 as [_ [_ [H3 _]]]. rewrite <- counter_iff in H3.
   inv H6. inv H5. inv H28. inv H2. inv H4. inv H5.
-  assert (Hv: exists h, (if counter mod 1024 =? 0
-                then update_hdr ethernet tcp udp ip4 (counter + 1)
-                else hdr ethernet tcp udp ip4) = val_to_sval_valid_only h /\
-                 ⊢ᵥ h \: header_sample_t). {
-    unfold update_hdr. remember (hdr ethernet tcp udp ip4) as header.
-    pose proof (ethernet_extract_result_typ ether _ _ H12). rewrite H0 in H2.
+  remember (if counter mod 1024 =? 0
+            then update_hdr ethernet tcp udp ip4 (counter + 1)
+            else hdr ethernet tcp udp ip4) as igrs_hdr.
+  assert (⊢ᵥ hdr ethernet tcp udp ip4 \: header_sample_t). {
+    rewrite <- H0. apply ethernet_extract_result_typ; assumption. }
+  assert (⊢ᵥ igrs_hdr \: header_sample_t). {
+    subst igrs_hdr. destruct (counter mod 1024 =? 0); [|assumption].
+    unfold update_hdr.
+    apply update_struct_typ with sample_t; [reflexivity | repeat constructor |].
+    apply update_struct_typ with bridge_t; [reflexivity | repeat constructor |].
+    apply H2. }
+  assert (Hv: exists h, igrs_hdr = val_to_sval_valid_only h). {
     pose proof (ethernet_extract_result_valid_only ether _ _ H12).
-    rewrite H0 in H4. destruct H4 as [orig_h ?]. rewrite H4 in H2.
-    assert (⊢ᵥ orig_h \: header_sample_t) by
-      (apply to_sval_valid_only_typ_inv; assumption).
-    destruct (counter mod 1024 =? 0). 2: (exists orig_h; split; assumption).
-    admit.
-  }
-  eapply (proj1 ingress_deparser_body []) in H29; eauto.
-  3: { split.
+    rewrite H0 in H5. destruct H5 as [orig_h ?]. subst igrs_hdr.
+    destruct (counter mod 1024 =? 0). 2: (exists orig_h; assumption). unfold update_hdr.
+    assert (⊢ᵥ orig_h \: header_sample_t). {
+      apply to_sval_valid_only_typ_inv. rewrite H5 in H2. assumption. }
+    assert (⊢ᵥ updatev "bridge" (bridge_reprv 1) orig_h \: header_sample_t). {
+      eapply updatev_struct_typ; eauto; [reflexivity | repeat constructor]. }
+    exists (updatev "sample"
+             (sample_reprv (P4BitV 32 (ipv4_src_addr ip4))
+                (P4BitV 32 (ipv4_dst_addr ip4))
+                (counter + 1)) (updatev "bridge" (bridge_reprv 1) orig_h)).
+    erewrite !update_struct_valid_only; eauto; [|reflexivity..].
+    rewrite H5. reflexivity. } destruct Hv as [h Hv].
+  assert (⊢ᵥ h \: header_sample_t). {
+    apply to_sval_valid_only_typ_inv. rewrite Hv in H4; assumption. }
+  eapply (proj1 ingress_deparser_body [] h) in H29; eauto.
+  2: { split.
        - hnf. constructor.
-         apply sval_refine_trans with
-           (if counter mod 1024 =? 0
-           then update_hdr ethernet tcp udp ip4 (counter + 1)
-           else hdr ethernet tcp udp ip4). 2: assumption.
-         admit. constructor. apply H9.
-         constructor. apply H21. constructor.
+         apply sval_refine_trans with igrs_hdr;
+           [rewrite Hv; apply sval_refine_refl | assumption].
+         constructor. apply H9. constructor. apply H21. constructor.
        - split. 1: hnf; auto. hnf. split. 2: simpl; auto. simpl. assumption. }
 Abort.

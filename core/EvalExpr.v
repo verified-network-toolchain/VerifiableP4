@@ -58,11 +58,17 @@ Context `{@Target tags_t Expression}.
 Definition P4Bit (w : N) (v : Z) : Sval :=
   ValBaseBit (to_loptbool w v).
 
+Definition P4BitV (w : N) (v : Z) : Val :=
+  ValBaseBit (to_lbool w v).
+
 Definition P4Bit_ (w : N) : Sval :=
   ValBaseBit (Zrepeat None (Z.of_N w)).
 
 Definition P4Int (w : N) (v : Z) : Sval :=
   ValBaseInt (to_loptbool w v).
+
+Definition P4IntV (w : N) (v : Z) : Val :=
+  ValBaseInt (to_lbool w v).
 
 Definition P4Int_ (w : N) : Sval :=
   ValBaseInt (Zrepeat None (Z.of_N w)).

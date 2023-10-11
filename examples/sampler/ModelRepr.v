@@ -29,6 +29,9 @@ Qed.
 Definition bridge_repr (data: Z): ValueBase :=
   ValBaseHeader [("contains_sample", P4Bit 8 data)] (Some true).
 
+Definition bridge_reprv (data: Z): ValueBase :=
+  ValBaseHeader [("contains_sample", P4BitV 8 data)] true.
+
 Definition COLLECTOR_MAC: Z := 2.
 Definition MY_MAC: Z := 1.
 Definition SAMPLE_ETYPE := 0x1234.
@@ -41,3 +44,12 @@ Definition sample_repr srcip dstip (num_pkts: Z): ValueBase :=
      ("srcip", srcip);
      ("dstip", dstip);
      ("num_pkts", P4Bit 32 num_pkts)] (Some true).
+
+Definition sample_reprv srcip dstip (num_pkts: Z): ValueBase :=
+  ValBaseHeader
+    [("dmac", P4BitV 48 COLLECTOR_MAC);
+     ("smac", P4BitV 48 MY_MAC);
+     ("etype", P4BitV 16 SAMPLE_ETYPE);
+     ("srcip", srcip);
+     ("dstip", dstip);
+     ("num_pkts", P4BitV 32 num_pkts)] true.

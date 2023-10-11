@@ -45,8 +45,6 @@ Proof.
     apply H. assumption.
 Qed.
 
-Definition P4BitV (w : N) (v : Z) : Val := ValBaseBit (P4Arith.to_lbool w v).
-
 Definition am_ge := ltac:(get_am_ge prog).
 Definition ge := ltac:(get_ge am_ge prog).
 

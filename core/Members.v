@@ -58,6 +58,15 @@ Definition get (f : ident) (sv : Sval) : Sval :=
   | _ => ValBaseNull
   end.
 
+Definition updatev (f : ident) (f_sv : Val) (sv : Val) : Val :=
+  match sv with
+  | ValBaseStruct fields =>
+      ValBaseStruct (force fields (AList.set fields f f_sv))
+  | ValBaseHeader fields is_valid =>
+      ValBaseHeader (force fields (AList.set fields f f_sv)) is_valid
+  | _ => sv
+  end.
+
 Definition update (f : ident) (f_sv : Sval) (sv : Sval) : Sval :=
   match sv with
   | ValBaseStruct fields =>
@@ -443,17 +452,18 @@ Proof.
   rewrite !Zmod_small in H1; auto.
 Qed.
 
-Lemma update_struct_typ: forall fld f_sv sv (typ: P4Type) fields,
-    AList.get (P4String.clear_AList_tags fields) fld = Some typ ->
+Lemma all_values_val_typ_set {bit: Type}:
+  forall (fld : ident) (f_sv : @ValueBase bit) (typ : P4Type)
+    (flds : AList.StringAList P4Type),
+    AList.get flds fld = Some typ ->
     ⊢ᵥ f_sv \: typ ->
-    ⊢ᵥ sv \: TypStruct fields ->
-    ⊢ᵥ update fld f_sv sv \: TypStruct fields.
+    forall vs : AList.AList ident (@ValueBase bit) eq,
+      AList.all_values val_typ vs flds ->
+      AList.all_values val_typ (force vs (AList.set vs fld f_sv)) flds.
 Proof.
-  intros. inv H1. unfold update. constructor; auto.
-  rewrite <- P4String.key_unique_clear_AList_tags in H3.
-  remember (P4String.clear_AList_tags fields) as flds. clear fields Heqflds.
-  pose proof (all_values_get_some_is_some' _ _ _ _ _ H5 H).
-  destruct (AList.get vs fld) eqn: H2. 2: inversion H1. clear H1.
+  intros fld f_sv typ flds H Ht vs H0.
+  pose proof (all_values_get_some_is_some' _ _ _ _ _ H0 H).
+  destruct (AList.get vs fld) eqn: ?H. 2: inversion H1. clear H1.
   destruct (AListUtil.AList_get_some_split _ _ _ H2) as [k [l1 [l2 [? [? ?]]]]].
   hnf in H1. subst k. subst vs.
   rewrite AListUtil.AList_set_app_cons_some; [| reflexivity | assumption ]. simpl.
@@ -461,17 +471,58 @@ Proof.
   remember (firstn (length l1) flds) as fl1.
   remember (skipn (length l1) flds) as fl3. symmetry in H1.
   assert (length l1 = length fl1). {
-    apply Forall2_length in H5. subst fl1.
-    rewrite firstn_length_le; auto. rewrite app_length in H5.
-    simpl in H5. rewrite <- H5. apply Nat.le_add_r. }
-  rewrite H1 in H5. apply AListUtil.all_values_app in H5; auto.
-  destruct H5. rewrite H1. apply AListUtil.all_values_app_inv; auto.
-  pose proof (all_values_get_none_is_none _ _ _ _ H5 H6).
+    apply Forall2_length in H0. subst fl1.
+    rewrite firstn_length_le; auto. rewrite app_length in H0.
+    simpl in H0. rewrite <- H0. apply Nat.le_add_r. }
+  rewrite H1 in H0. apply AListUtil.all_values_app in H0; auto.
+  destruct H0. rewrite H1. apply AListUtil.all_values_app_inv; auto.
+  pose proof (all_values_get_none_is_none _ _ _ _ H0 H4).
   rewrite H1 in H. rewrite AList.get_app_none in H; auto.
-  destruct fl3. 1: inversion H7. destruct p as [fld' typ']. inversion H7. clear H7.
-  subst x l y l'. clear Heqfl1 Heqfl3. destruct H12. simpl in H7, H9. subst fld'.
+  destruct fl3. 1: inversion H5. destruct p as [fld' typ']. inversion H5. clear H5.
+  subst x l y l'. clear Heqfl1 Heqfl3. destruct H10. simpl in H5, H7. subst fld'.
   rewrite AList.get_eq_cons in H; [|reflexivity]. inversion H. subst typ'.
   constructor; auto.
+Qed.
+
+Lemma update_struct_typ: forall fld f_sv sv (typ: P4Type) fields,
+    AList.get (P4String.clear_AList_tags fields) fld = Some typ ->
+    ⊢ᵥ f_sv \: typ ->
+    ⊢ᵥ sv \: TypStruct fields ->
+    ⊢ᵥ update fld f_sv sv \: TypStruct fields.
+Proof.
+  intros. inv H1. unfold update. constructor; auto.
+  eapply all_values_val_typ_set; eauto.
+Qed.
+
+Lemma update_struct_valid_only: forall fld f_sv sv (typ: P4Type) fields,
+    AList.get (P4String.clear_AList_tags fields) fld = Some typ ->
+    ⊢ᵥ sv \: TypStruct fields ->
+    val_to_sval_valid_only (updatev fld f_sv sv) =
+      update fld (val_to_sval_valid_only f_sv) (val_to_sval_valid_only sv).
+Proof.
+  intros. inv H0. unfold updatev, update. simpl.
+  rewrite <- P4String.key_unique_clear_AList_tags in H2.
+  remember (P4String.clear_AList_tags fields) as flds. clear fields Heqflds.
+  pose proof (all_values_get_some_is_some' _ _ _ _ _ H4 H).
+  destruct (AList.get vs fld) eqn: ?H. 2: inversion H0. clear H0.
+  destruct (AListUtil.AList_get_some_split _ _ _ H1) as [k [l1 [l2 [? [? ?]]]]].
+  hnf in H0. subst k. subst vs.
+  rewrite AListUtil.AList_set_app_cons_some; [| reflexivity | assumption ]. simpl.
+  rewrite !kv_map_app. simpl kv_map.
+  rewrite AListUtil.AList_set_app_cons_some; [reflexivity..|].
+  apply AListUtil.not_in_fst_get_none. intros. hnf in H0. subst k'.
+  pose proof (AListUtil.get_none_not_in_fst _ _ H5).
+  rewrite kv_map_fst. apply H0. reflexivity.
+Qed.
+
+Lemma updatev_struct_typ: forall fld f_sv sv (typ: P4Type) fields,
+    AList.get (P4String.clear_AList_tags fields) fld = Some typ ->
+    ⊢ᵥ f_sv \: typ ->
+    ⊢ᵥ sv \: TypStruct fields ->
+    ⊢ᵥ updatev fld f_sv sv \: TypStruct fields.
+Proof.
+  intros. inv H1. unfold update. constructor; auto.
+  eapply all_values_val_typ_set; eauto.
 Qed.
 
 End Members.
