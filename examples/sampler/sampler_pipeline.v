@@ -19,9 +19,37 @@ Require Import Hammer.Plugin.Hammer.
 Require Export Coq.Program.Program.
 Import ListNotations.
 
-Definition extern_contains (es: extern_state) (p: path) (counter: Z) :=
+Definition extern_contains (es: extern_state) (p: path) (counter: Z): Prop :=
   PathMap.get (p ++ ["reg_count"]) es =
-      Some (ObjRegister [Z_to_val counter]) /\ 0 <= counter.
+    Some (ObjRegister [Z_to_val counter]) /\ 0 <= counter.
+
+Lemma extern_contains_congruence: forall es p z1 z2,
+    extern_contains es p z1 -> extern_contains es p z2 ->
+    P4Arith.BitArith.mod_bound 32 z1 = P4Arith.BitArith.mod_bound 32 z2 /\
+      0 <= z1 /\ 0 <= z2.
+Proof.
+  unfold extern_contains. intros es p z1 z2 [] []. rewrite H in H1.
+  unfold Z_to_val in H1. split; [|split]; auto.
+  apply P4Arith.to_lbool_inj_bit_mod. congruence.
+Qed.
+
+Lemma congruence_extern_contains:
+  forall es p z1 z2,
+    P4Arith.BitArith.mod_bound 32 z1 = P4Arith.BitArith.mod_bound 32 z2 ->
+    0 <= z2 ->
+    extern_contains es p z1 -> extern_contains es p z2.
+Proof.
+  unfold extern_contains. intros. split; auto. destruct H1. rewrite H1.
+  unfold Z_to_val. do 4 f_equal. apply P4Arith.bit_mod_inj_to_lbool. assumption.
+Qed.
+
+Lemma extern_contains_trans: forall es1 es2 p z1 z2,
+    extern_contains es1 p z1 -> extern_contains es1 p z2 ->
+    extern_contains es2 p z2 -> extern_contains es2 p z1.
+Proof.
+  intros. destruct (extern_contains_congruence _ _ _ _ H H0) as [? []].
+  symmetry in H2. eapply congruence_extern_contains; eauto.
+Qed.
 
 Inductive inprsr_block: programmable_block_sem :=
 | parser_block_intro:
@@ -68,9 +96,11 @@ Inductive ingress_block: programmable_block_sem :=
 
 Inductive indeprsr_block: programmable_block_sem :=
 | indeprsr_block_intro:
-  forall inst_path m m' es es' fd hdr1 hdr2 ig_md ig_intr_dprsr_md signal,
+  forall inst_path m m' es es' fd hdr1 hdr2 ig_md ig_intr_dprsr_md signal counter,
     PathMap.get ["packet_out"] es = Some (ObjPout []) ->
+    extern_contains es ["pipe"; "ingress"] counter ->
     programmable_block ge inst_path "ingress_deparser" fd ->
+    extern_contains es' ["pipe"; "ingress"] counter ->
     exec_func ge read_ndetbit inst_path (m, es) fd nil
       [hdr1; ig_md; ig_intr_dprsr_md] (m', es') [hdr2] signal ->
     indeprsr_block es [hdr1; ig_md; ig_intr_dprsr_md] es' [hdr2] signal.
@@ -301,11 +331,15 @@ Proof.
     rewrite H5. reflexivity. } destruct Hv as [h Hv].
   assert (⊢ᵥ h \: header_sample_t). {
     apply to_sval_valid_only_typ_inv. rewrite Hv in H4; assumption. }
-  eapply (proj1 ingress_deparser_body [] h) in H29; eauto.
+  eapply (proj1 ingress_deparser_body [] h) in H31; eauto.
   2: { split.
        - hnf. constructor.
          apply sval_refine_trans with igrs_hdr;
            [rewrite Hv; apply sval_refine_refl | assumption].
          constructor. apply H9. constructor. apply H21. constructor.
        - split. 1: hnf; auto. hnf. split. 2: simpl; auto. simpl. assumption. }
+  destruct H31. hnf in H6. inv H6. clear H31. destruct H8 as [_ [_ ?]].
+  simpl in H6. hnf in H6. destruct H6 as [? _]. hnf in H6. rewrite H7 in H6. inv H6.
+  assert (extern_contains es' ["pipe"; "ingress"] (counter + 1)) by
+    (eapply extern_contains_trans; eauto). clear dependent counter0.
 Abort.
