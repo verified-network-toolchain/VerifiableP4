@@ -269,3 +269,11 @@ Proof. intros. split; [repeat constructor | reflexivity]. Qed.
 
 Lemma ext_val_typ_ethernet: forall ether, ⊫ᵥ ethernet_repr_val ether \: ethernet_h.
 Proof. intros. split; [repeat constructor | reflexivity]. Qed.
+
+Definition ig_intr_tm_md := Eval vm_compute in
+    update "mcast_grp_a" (P4Bit 16 0)
+      (update "mcast_grp_b" (P4Bit 16 0)
+         (update "ucast_egress_port" (P4Bit 9 0)
+            (force ValBaseNull
+               (uninit_sval_of_typ None
+                  Tofino.ingress_intrinsic_metadata_for_tm_t)))).

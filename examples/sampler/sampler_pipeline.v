@@ -2,6 +2,8 @@ Require Import Poulet4.P4light.Syntax.P4defs.
 Require Import Poulet4.P4light.Semantics.Semantics.
 Require Import ProD3.core.Core.
 Require Import Poulet4.P4light.Architecture.Tofino.
+Require Import Poulet4.P4light.Architecture.Queue.
+Require Import Poulet4.P4light.Architecture.TrafficManager.
 Require Import ProD3.core.Tofino.
 Require Import ProD3.core.TofinoPipeline.
 Require Import ProD3.examples.sampler.ModelRepr.
@@ -12,6 +14,7 @@ Require Import ProD3.examples.sampler.verif_ingress_deparser.
 Require Import ProD3.examples.sampler.verif_egress_parser.
 Require Import ProD3.examples.sampler.verif_egress.
 Require Import ProD3.examples.sampler.verif_egress_deparser.
+Require Import ProD3.examples.sampler.traffic_manager.
 Require Import ProD3.core.ProgNotations.
 Require Import ProD3.core.PacketFormat.
 Require Import Poulet4.P4light.Syntax.P4Notations.
@@ -51,6 +54,14 @@ Proof.
   symmetry in H2. eapply congruence_extern_contains; eauto.
 Qed.
 
+Lemma extern_contains_diff: forall es p1 p2 o z,
+    p1 <> p2 ++ ["reg_count"] ->
+    extern_contains (PathMap.set p1 o es) p2 z <-> extern_contains es p2 z.
+Proof.
+  intros. split; unfold extern_contains; intros;
+    rewrite PathMap.get_set_diff in *; auto.
+Qed.
+
 Inductive inprsr_block: programmable_block_sem :=
 | parser_block_intro:
   forall inst_path m m' es es' fd (pin pin': packet_in) ver port stamp ether ipv4 result
@@ -78,7 +89,7 @@ Inductive inprsr_block: programmable_block_sem :=
 Inductive ingress_block: programmable_block_sem :=
 | ingress_block_intro:
   forall inst_path m m' es es' fd hdr1 hdr2 ig_md1 ig_md2 ig_intr_md
-    ig_intr_dprsr_md2 ig_intr_tm_md1 ig_intr_tm_md2 signal,
+    ig_intr_dprsr_md2 ig_intr_tm_md2 signal,
     programmable_block ge inst_path "ingress" fd ->
     let ig_intr_prsr_md :=
       force ValBaseNull
@@ -88,10 +99,10 @@ Inductive ingress_block: programmable_block_sem :=
         (uninit_sval_of_typ None ingress_intrinsic_metadata_for_deparser_t) in
     exec_func ge read_ndetbit inst_path (m, es) fd nil
       [hdr1; ig_md1; ig_intr_md; ig_intr_prsr_md;
-       ig_intr_dprsr_md1; ig_intr_tm_md1] (m', es')
+       ig_intr_dprsr_md1; ig_intr_tm_md] (m', es')
       [hdr2; ig_md2; ig_intr_dprsr_md2; ig_intr_tm_md2] signal ->
     ingress_block es
-      [hdr1; ig_md1; ig_intr_md; ig_intr_prsr_md; ig_intr_dprsr_md1; ig_intr_tm_md1]
+      [hdr1; ig_md1; ig_intr_md; ig_intr_prsr_md; ig_intr_dprsr_md1; ig_intr_tm_md]
       es' [hdr2; ig_md2; ig_intr_dprsr_md2; ig_intr_tm_md2] signal.
 
 Inductive indeprsr_block: programmable_block_sem :=
@@ -115,6 +126,11 @@ Inductive ingress_deprsr_cond: list Sval -> list Sval -> Prop :=
 | ingress_deprsr_cond_intro:
   forall ig_intr_dprsr_md ig_intr_tm_md,
     ingress_deprsr_cond [ig_intr_dprsr_md; ig_intr_tm_md] [ig_intr_dprsr_md].
+
+Inductive ingress_tm_cond: list Sval -> Sval -> Prop :=
+| ingress_tm_cond_intro:
+  forall ig_intr_dprsr_md ig_intr_tm_md,
+    ingress_tm_cond [ig_intr_dprsr_md; ig_intr_tm_md] ig_intr_tm_md.
 
 Lemma get_packet: forall v1 v2 (es: extern_state),
     PathMap.get ["packet_in"]
@@ -272,13 +288,74 @@ Proof.
     destruct H. split; assumption.
 Qed.
 
+Lemma sampler_tofino_tm:
+  forall (for_tm : Sval) (counter : Z) (pkt : packet),
+    sval_refine
+      (if counter mod 1024 =? 0
+       then
+         update "mcast_grp_a" (P4Bit 16 COLLECTOR_MULTICAST_GROUP)
+           (update_outport OUT_PORT ig_intr_tm_md)
+       else update_outport OUT_PORT ig_intr_tm_md) for_tm ->
+    qlength (tofino_tm for_tm pkt) =
+      (if counter mod 1024 =? 0 then 2%nat else 1%nat).
+Proof.
+  intros. unfold update_outport in H. destruct (counter mod 1024 =? 0).
+  - assert (intr_tm_md_to_input_md for_tm =
+              Build_InputMetadata (Some OUT_PORT)
+                (Some COLLECTOR_MULTICAST_GROUP) None 0 0 0). {
+      unfold intr_tm_md_to_input_md. f_equal.
+      + apply sval_refine_get with (f := "ucast_egress_port") in H.
+        rewrite get_update_diff in H; [| repeat constructor | discriminate].
+        rewrite get_update_same in H; [| repeat constructor].
+        unfold P4Bit in H. inv H. apply Forall2_bit_refine_Some_same' in H2.
+        subst lb'. reflexivity.
+      + apply sval_refine_get with (f := "mcast_grp_a") in H.
+        rewrite get_update_same in H; [| repeat constructor].
+        unfold P4Bit in H. inv H. apply Forall2_bit_refine_Some_same' in H2.
+        subst lb'. reflexivity.
+      + apply sval_refine_get with (f := "mcast_grp_b") in H.
+        rewrite get_update_diff in H; [| repeat constructor | discriminate].
+        rewrite get_update_diff in H; [| repeat constructor | discriminate].
+        simpl in H.
+        change (ValBaseBit _) with (ValBaseBit (map Some (repeat false 16))) in H.
+        remember (repeat false 16) as l. inv H.
+        apply Forall2_bit_refine_Some_same' in H2. subst lb'. reflexivity. }
+    unfold tofino_tm. rewrite H0. simpl. reflexivity.
+  - assert (intr_tm_md_to_input_md for_tm =
+              Build_InputMetadata (Some OUT_PORT) None None 0 0 0). {
+      unfold intr_tm_md_to_input_md. f_equal.
+      + apply sval_refine_get with (f := "ucast_egress_port") in H.
+        rewrite get_update_same in H; [| repeat constructor].
+        unfold P4Bit in H. inv H. apply Forall2_bit_refine_Some_same' in H2.
+        subst lb'. reflexivity.
+      + apply sval_refine_get with (f := "mcast_grp_a") in H.
+        rewrite get_update_diff in H; [| repeat constructor | discriminate].
+        simpl in H.
+        change (ValBaseBit _) with (ValBaseBit (map Some (repeat false 16))) in H.
+        remember (repeat false 16) as l. inv H.
+        apply Forall2_bit_refine_Some_same' in H2. subst lb'. reflexivity.
+      + apply sval_refine_get with (f := "mcast_grp_b") in H.
+        rewrite get_update_diff in H; [| repeat constructor | discriminate].
+        simpl in H.
+        change (ValBaseBit _) with (ValBaseBit (map Some (repeat false 16))) in H.
+        remember (repeat false 16) as l. inv H.
+        apply Forall2_bit_refine_Some_same' in H2. subst lb'. reflexivity. }
+    unfold tofino_tm. rewrite H0. simpl. reflexivity.
+Qed.
+
+Opaque ig_intr_tm_md.
+
 Lemma process_packet_ingress:
-  forall es es' pin pout for_tm,
+  forall es es' pin pout for_tm counter que,
+    extern_contains es ["pipe"; "ingress"] counter ->
     ingress_pipeline
       inprsr_block ingress_block indeprsr_block parser_ingress_cond
-      ingress_deprsr_cond es pin es' pout for_tm -> False.
+      ingress_deprsr_cond ingress_tm_cond es pin es' pout for_tm ->
+    que = tofino_tm for_tm pout ->
+    qlength que = if (counter mod 1024 =? 0) then 2%nat else 1%nat.
 Proof.
-  intros. inversion H. subst. inv H1. rewrite get_packet in H16.
+  intros es es' pin pout for_tm counter que Hext H Hq.
+  inversion H. subst. rename H8 into Htm. inv H1. rewrite get_packet in H16.
   inversion H16. subst pin0; clear H16. inv H18. inv H0. inv H1. inv H8.
   eapply (proj1 ingress_parser_body) in H22; eauto.
   2: { hnf. split. 1: constructor. hnf. split.
@@ -289,8 +366,12 @@ Proof.
   inv H2. inv H4. inv H3. inv H25. inv H0. inv H2. inv H3.
   destruct (ethernet_extract_result_hdr ether ipv4 result) as
     [ethernet [tcp [udp [ip4 ?H]]]]. rewrite H0 in H17.
+  rewrite !extern_contains_diff in H10 by discriminate.
+  assert (extern_contains s2 ["pipe"; "ingress"] counter). {
+    eapply extern_contains_trans; eauto. } clear dependent counter0.
+  rename Hext into H10. rename H2 into H20.
   eapply (proj1 ingress_body counter ethernet
-            tcp udp ip4 ig_intr_tm_md1) in H26; eauto.
+            tcp udp ip4) in H26; eauto.
   2: { split.
        - hnf. do 2 (constructor; [assumption |]).
          constructor.
@@ -342,4 +423,5 @@ Proof.
   simpl in H6. hnf in H6. destruct H6 as [? _]. hnf in H6. rewrite H7 in H6. inv H6.
   assert (extern_contains es' ["pipe"; "ingress"] (counter + 1)) by
     (eapply extern_contains_trans; eauto). clear dependent counter0.
-Abort.
+  inv Htm. apply sampler_tofino_tm. assumption.
+Qed.

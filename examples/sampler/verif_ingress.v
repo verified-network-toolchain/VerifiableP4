@@ -295,14 +295,14 @@ Definition ingress_spec : func_spec :=
   WITH (* p *),
     PATH p
     MOD None [p]
-    WITH (counter : Z) ethernet tcp udp ipv4 ig_intr_tm_md,
+    WITH (counter : Z) ethernet tcp udp ipv4 tm_md,
       PRE
         (ARG [hdr ethernet tcp udp ipv4;
               ValBaseStruct [("num_pkts", P4Bit_ 32)];
               force ValBaseNull (uninit_sval_of_typ None ingress_intrinsic_metadata_t);
               force ValBaseNull (uninit_sval_of_typ None ingress_intrinsic_metadata_from_parser_t);
               force ValBaseNull (uninit_sval_of_typ None ingress_intrinsic_metadata_for_deparser_t);
-              ig_intr_tm_md]
+              tm_md]
         (MEM []
         (EXT [counter_repr p counter])))
       POST
@@ -313,8 +313,8 @@ Definition ingress_spec : func_spec :=
                   force ValBaseNull (uninit_sval_of_typ None ingress_intrinsic_metadata_for_deparser_t);
                   if (counter mod 1024 =? 0) then
                     update "mcast_grp_a" (P4Bit 16 COLLECTOR_MULTICAST_GROUP)
-                      (update_outport OUT_PORT ig_intr_tm_md)
-                  else update_outport OUT_PORT ig_intr_tm_md
+                      (update_outport OUT_PORT tm_md)
+                  else update_outport OUT_PORT tm_md
          ] ValBaseNull
         (MEM []
         (EXT [counter_repr p (counter + 1)]))).

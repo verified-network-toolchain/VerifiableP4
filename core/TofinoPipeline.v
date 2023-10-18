@@ -91,8 +91,9 @@ Section Pipeline.
 End Pipeline.
 
 Inductive ingress_pipeline (inprsr ingress indeprsr: programmable_block_sem)
-  (parser_ingress_cond ingress_deprsr_cond: list Sval -> list Sval -> Prop) :
-  extern_state -> packet_in -> extern_state -> packet_out -> list Sval -> Prop :=
+  (parser_ingress_cond ingress_deprsr_cond: list Sval -> list Sval -> Prop)
+  (ingress_tm_cond: list Sval -> Sval -> Prop):
+  extern_state -> packet_in -> extern_state -> packet_out -> Sval -> Prop :=
 | ingress_pipeline_intro:
   forall pin pout s0 s1 s2 s3 s4 hdr1 hdr2 hdr3 ig_md1 ig_md2 payload
     rest1 rest2 rest3 rest4 for_tm,
@@ -105,8 +106,9 @@ Inductive ingress_pipeline (inprsr ingress indeprsr: programmable_block_sem)
     ingress_deprsr_cond rest3 rest4 ->
     indeprsr s3 (hdr2 :: ig_md2 :: rest4) s4 [hdr3] SReturnNull ->
     PathMap.get ["packet_out"] s4 = Some (ObjPout pout) ->
+    ingress_tm_cond rest3 for_tm ->
     ingress_pipeline inprsr ingress indeprsr parser_ingress_cond
-      ingress_deprsr_cond s0 pin s4 (pout ++ payload) for_tm.
+      ingress_deprsr_cond ingress_tm_cond s0 pin s4 (pout ++ payload) for_tm.
 
 Inductive egress_pipeline (eprsr egress edeprsr: programmable_block_sem)
   (parser_egress_cond egress_deprsr_cond: list Sval -> list Sval -> Prop) :
