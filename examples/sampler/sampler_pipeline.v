@@ -63,7 +63,7 @@ Proof.
 Qed.
 
 Inductive inprsr_block: programmable_block_sem :=
-| parser_block_intro:
+| inprsr_block_intro:
   forall inst_path m m' es es' fd (pin pin': packet_in) ver port stamp ether ipv4 result
     hdr ig_md ig_intr_md signal counter,
     extern_contains es ["pipe"; "ingress"] counter ->
@@ -77,8 +77,7 @@ Inductive inprsr_block: programmable_block_sem :=
            ⦑ encode (ipv4_repr_val ipv4) ⦒;
            ⦃ is_tcp ipv4 ? ⦑ encode result ⦒ |
              ⦃ is_udp ipv4 ? ⦑ encode result ⦒ | ε ⦄ ⦄; ⦑ pin' ⦒] ->
-    PathMap.get ["hdr"] m =
-      Some (common.hdr hdr_init) ->
+    PathMap.get ["hdr"] m = Some (common.hdr hdr_init) ->
     PathMap.get ["packet_in"] es = Some (ObjPin pin) ->
     programmable_block ge inst_path "ingress_parser" fd ->
     extern_contains es' ["pipe"; "ingress"] counter ->
@@ -425,3 +424,90 @@ Proof.
     (eapply extern_contains_trans; eauto). clear dependent counter0.
   inv Htm. apply sampler_tofino_tm. assumption.
 Qed.
+
+Transparent ig_intr_tm_md.
+
+Inductive eprsr_block: programmable_block_sem :=
+| eprsr_block_intro:
+  forall inst_path m m' es es' fd (pin pin': packet_in) eg_intr_md has_sample sample
+    ether ipv4 result hdr eg_md intr_md signal counter,
+    extern_contains es ["pipe"; "ingress"] counter ->
+    ⊫ᵥ eg_intr_md \: egress_intrinsic_metadata_t ->
+    (if contains_sample has_sample then ⊫ᵥ sample \: sample_t else sample = ValBaseNull) ->
+    (if is_tcp ipv4 then ⊫ᵥ result \: tcp_h
+     else if is_udp ipv4 then ⊫ᵥ result \: udp_h else result = ValBaseNull) ->
+    pin ⫢ [⦑ encode eg_intr_md ⦒;
+           ⦑ encode (bridge_repr_val has_sample) ⦒;
+           ⦃ contains_sample has_sample ? ⦑ encode sample ⦒ | ε ⦄;
+           ⦑ encode (ethernet_repr_val ether) ⦒;
+           ⦑ encode (ipv4_repr_val ipv4) ⦒;
+           ⦃ is_tcp ipv4 ? ⦑ encode result ⦒ |
+             ⦃ is_udp ipv4 ? ⦑ encode result ⦒ | ε ⦄ ⦄; ⦑ pin' ⦒] ->
+    P4BitV 16 (ethernet_ether_type ether) = P4BitV 16 ETHERTYPE_IPV4 ->
+    PathMap.get ["hdr"] m = Some (common.hdr hdr_init) ->
+    PathMap.get ["packet_in"] es = Some (ObjPin pin) ->
+    programmable_block ge inst_path "egress_parser" fd ->
+    extern_contains es' ["pipe"; "ingress"] counter ->
+    exec_func ge read_ndetbit inst_path (m, es) fd nil [] (m', es')
+      [hdr; eg_md; intr_md] signal ->
+    eprsr_block es [] es' [hdr; eg_md; intr_md] signal.
+
+Inductive egress_block: programmable_block_sem :=
+| egress_block_intro:
+  forall inst_path m m' es es' fd hsample hdr1 hdr2 eg_md1 eg_md2 eg_intr_md
+    eg_intr_from_prsr eg_intr_md_for_dprsr1 eg_intr_md_for_dprsr2
+    eg_intr_md_for_oport1 eg_intr_md_for_oport2 signal counter,
+    PathMap.get ["hdr"] m = Some (common.hdr hsample) ->
+    extern_contains es ["pipe"; "ingress"] counter ->
+    programmable_block ge inst_path "egress" fd ->
+    exec_func ge read_ndetbit inst_path (m, es) fd nil
+      [hdr1; eg_md1; eg_intr_md; eg_intr_from_prsr;
+       eg_intr_md_for_dprsr1; eg_intr_md_for_oport1]
+      (m', es') [hdr2; eg_md2; eg_intr_md_for_dprsr2; eg_intr_md_for_oport2] signal ->
+    extern_contains es' ["pipe"; "ingress"] counter ->
+    egress_block es
+      [hdr1; eg_md1; eg_intr_md; eg_intr_from_prsr;
+       eg_intr_md_for_dprsr1; eg_intr_md_for_oport1]
+      es' [hdr2; eg_md2; eg_intr_md_for_dprsr2; eg_intr_md_for_oport2] signal.
+
+Inductive edeprsr_block: programmable_block_sem :=
+| edeprsr_block_intro:
+  forall inst_path m m' es es' fd hdr1 hdr2 eg_md eg_intr_dprsr_md signal counter,
+    PathMap.get ["packet_out"] es = Some (ObjPout []) ->
+    extern_contains es ["pipe"; "ingress"] counter ->
+    programmable_block ge inst_path "ingress_deparser" fd ->
+    extern_contains es' ["pipe"; "ingress"] counter ->
+    exec_func ge read_ndetbit inst_path (m, es) fd nil
+      [hdr1; eg_md; eg_intr_dprsr_md] (m', es') [hdr2] signal ->
+    edeprsr_block es [hdr1; eg_md; eg_intr_dprsr_md] es' [hdr2] signal.
+
+Inductive parser_egress_cond: list Sval -> list Sval -> Prop :=
+| parser_egress_cond_intro:
+  forall eg_intr_md eg_intr_from_prsr eg_intr_md_for_dprsr eg_intr_md_for_oport,
+    parser_egress_cond [eg_intr_md]
+      [eg_intr_md; eg_intr_from_prsr; eg_intr_md_for_dprsr; eg_intr_md_for_oport].
+
+Inductive egress_deprsr_cond: list Sval -> list Sval -> Prop :=
+| egress_deprsr_cond_intro:
+  forall eg_intr_md_for_dprsr eg_intr_md_for_oport,
+    egress_deprsr_cond [eg_intr_md_for_dprsr; eg_intr_md_for_oport] [eg_intr_md_for_dprsr].
+
+Lemma process_packet_egress:
+  forall es es' pin pout,
+    egress_pipeline eprsr_block egress_block edeprsr_block parser_egress_cond
+      egress_deprsr_cond es pin es' pout -> False.
+Proof.
+  intros. inv H. inv H1. rewrite get_packet in H16. inversion H16. subst pin0. clear H16.
+  inv H18. inv H. inv H0. inv H1. eapply (proj1 egress_parser_body) in H22; eauto.
+  2: { hnf. split. 1: constructor. hnf. split; hnf; simpl.
+       - rewrite H15. split; auto. apply sval_refine_refl.
+       - rewrite get_packet. intuition. }
+  destruct H22. hnf in H. inv H. inv H19. inv H21. clear H22.
+  destruct H0 as [_ [_ [H0 _]]]. hnf in H0. rewrite H0 in H2.
+  inv H2. inv H4. inv H3. assert (eg_intr_md0 = eval_val_to_sval eg_intr_md). {
+    apply exec_val_eval_val_to_sval_eq in H18; auto. intros. inv H. reflexivity. }
+  subst eg_intr_md0. clear H18. inv H27. inv H. inv H1. inv H2.
+  eapply (proj1 egress_body) in H28; eauto.
+
+
+Abort.
