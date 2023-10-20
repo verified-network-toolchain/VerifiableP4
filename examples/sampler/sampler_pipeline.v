@@ -475,7 +475,7 @@ Inductive edeprsr_block: programmable_block_sem :=
   forall inst_path m m' es es' fd hdr1 hdr2 eg_md eg_intr_dprsr_md signal counter,
     PathMap.get ["packet_out"] es = Some (ObjPout []) ->
     extern_contains es ["pipe"; "ingress"] counter ->
-    programmable_block ge inst_path "ingress_deparser" fd ->
+    programmable_block ge inst_path "egress_deparser" fd ->
     extern_contains es' ["pipe"; "ingress"] counter ->
     exec_func ge read_ndetbit inst_path (m, es) fd nil
       [hdr1; eg_md; eg_intr_dprsr_md] (m', es') [hdr2] signal ->
@@ -492,6 +492,85 @@ Inductive egress_deprsr_cond: list Sval -> list Sval -> Prop :=
   forall eg_intr_md_for_dprsr eg_intr_md_for_oport,
     egress_deprsr_cond [eg_intr_md_for_dprsr; eg_intr_md_for_oport] [eg_intr_md_for_dprsr].
 
+Opaque hdr_init eval_val_to_sval.
+
+Lemma start_extract_result_hdr: forall has_sample sample ether ipv4 result,
+  exists h, start_extract_result has_sample hdr_init sample ether ipv4 result = common.hdr h.
+Proof.
+  intros. unfold start_extract_result. destruct (contains_sample has_sample).
+  - unfold sample_extract_result, ethernet_extract_result, protocol_extract_result. simpl.
+    destruct (is_tcp ipv4).
+    + exists (Build_header_sample_rec
+           (eval_val_to_sval (bridge_repr_val has_sample))
+           (eval_val_to_sval sample)
+           (eval_val_to_sval (ethernet_repr_val ether))
+           (eval_val_to_sval (ipv4_repr_val ipv4))
+           (eval_val_to_sval result)
+           (header_sample_udp hdr_init)). reflexivity.
+    + destruct (is_udp ipv4).
+      * exists (Build_header_sample_rec
+           (eval_val_to_sval (bridge_repr_val has_sample))
+           (eval_val_to_sval sample)
+           (eval_val_to_sval (ethernet_repr_val ether))
+           (eval_val_to_sval (ipv4_repr_val ipv4))
+           (header_sample_tcp hdr_init)
+           (eval_val_to_sval result)). reflexivity.
+      * exists (Build_header_sample_rec
+           (eval_val_to_sval (bridge_repr_val has_sample))
+           (eval_val_to_sval sample)
+           (eval_val_to_sval (ethernet_repr_val ether))
+           (eval_val_to_sval (ipv4_repr_val ipv4))
+           (header_sample_tcp hdr_init)
+           (header_sample_udp hdr_init)). reflexivity.
+  - unfold ethernet_extract_result, protocol_extract_result. simpl. destruct (is_tcp ipv4).
+    + exists (Build_header_sample_rec
+           (eval_val_to_sval (bridge_repr_val has_sample))
+           (header_sample_sample hdr_init)
+           (eval_val_to_sval (ethernet_repr_val ether))
+           (eval_val_to_sval (ipv4_repr_val ipv4))
+           (eval_val_to_sval result)
+           (header_sample_udp hdr_init)). reflexivity.
+    + destruct (is_udp ipv4).
+      * exists (Build_header_sample_rec
+           (eval_val_to_sval (bridge_repr_val has_sample))
+           (header_sample_sample hdr_init)
+           (eval_val_to_sval (ethernet_repr_val ether))
+           (eval_val_to_sval (ipv4_repr_val ipv4))
+           (header_sample_tcp hdr_init)
+           (eval_val_to_sval result)). reflexivity.
+      * exists (Build_header_sample_rec
+           (eval_val_to_sval (bridge_repr_val has_sample))
+           (header_sample_sample hdr_init)
+           (eval_val_to_sval (ethernet_repr_val ether))
+           (eval_val_to_sval (ipv4_repr_val ipv4))
+           (header_sample_tcp hdr_init)
+           (header_sample_udp hdr_init)). reflexivity.
+Qed.
+
+Transparent hdr_init eval_val_to_sval.
+
+Lemma eg_intr_rep_exists: forall eg_intr_md,
+    ⊫ᵥ eg_intr_md \: egress_intrinsic_metadata_t -> exists md, eg_intr_md = eg_intr_md_rep md.
+Proof.
+  intros ? [? ?]. inv H. simpl in *. destruct b; [|discriminate]. clear H2.
+  do 25 (inversion_clear H4 as [| [s ?] y ? ? Hr Ha]; simpl in *; destruct Hr as [Hs Hv];
+         subst; inversion_clear Hv; rename Ha into H4; clear -H4). inversion H4.
+  exists (Build_egress_intrinsic_metadata_rec
+       (ValBaseBit v0) (ValBaseBit v1) (ValBaseBit v2) (ValBaseBit v3)
+       (ValBaseBit v4) (ValBaseBit v5) (ValBaseBit v6) (ValBaseBit v7)
+       (ValBaseBit v8) (ValBaseBit v9) (ValBaseBit v10) (ValBaseBit v11)
+       (ValBaseBit v12) (ValBaseBit v13) (ValBaseBit v14) (ValBaseBit v15)
+       (ValBaseBit v16) (ValBaseBit v17) (ValBaseBit v18) (ValBaseBit v19)
+       (ValBaseBit v20) (ValBaseBit v21) (ValBaseBit v22) (ValBaseBit v23)
+       (ValBaseBit v24)). reflexivity.
+Qed.
+
+Lemma conditional_update_ex_valid_only: forall md h,
+  exists hd, conditional_update md h = val_to_sval_valid_only hd.
+Proof.
+  intros.
+Abort.
+
 Lemma process_packet_egress:
   forall es es' pin pout,
     egress_pipeline eprsr_block egress_block edeprsr_block parser_egress_cond
@@ -507,7 +586,17 @@ Proof.
   inv H2. inv H4. inv H3. assert (eg_intr_md0 = eval_val_to_sval eg_intr_md). {
     apply exec_val_eval_val_to_sval_eq in H18; auto. intros. inv H. reflexivity. }
   subst eg_intr_md0. clear H18. inv H27. inv H. inv H1. inv H2.
-  eapply (proj1 egress_body) in H28; eauto.
-
-
+  destruct (start_extract_result_hdr has_sample sample ether ipv4 result) as [h ?H].
+  destruct (eg_intr_rep_exists _ H10) as [md ?H]. subst.
+  eapply (proj1 egress_body h eg_md1 md) in H28; eauto.
+  2: { split; [hnf | split; hnf; auto]. constructor; [rewrite <- H; assumption |].
+       do 5 (constructor; [apply sval_refine_refl|]). constructor. }
+  destruct H28 as [? _]. hnf in H1. inv H1. inv H19. inv H21. inv H22. clear H23.
+  assert (extern_contains s3 ["pipe"; "ingress"] counter). {
+    eapply extern_contains_trans; eauto. } clear dependent counter0.
+  inv H6.   assert (extern_contains es' ["pipe"; "ingress"] counter). {
+    eapply extern_contains_trans; eauto. } clear dependent counter0.
+  inv H28. inv H3. inv H6. inv H21.
+  eapply (proj1 egress_deparser_body) in H31.
+  3: { hnf. split. constructor.
 Abort.

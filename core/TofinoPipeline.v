@@ -114,7 +114,7 @@ Inductive egress_pipeline (eprsr egress edeprsr: programmable_block_sem)
   (parser_egress_cond egress_deprsr_cond: list Sval -> list Sval -> Prop) :
   extern_state -> packet_in -> extern_state -> packet_out -> Prop :=
 | egress_pipeline_intro:
-  forall pin pout s0 s1 s2 s3 s4 hdr1 hdr2 hdr3 hdr4 eg_md1 eg_md2 payload
+  forall pin pout s0 s1 s2 s3 s4 hdr1 hdr2 hdr3 eg_md1 eg_md2 payload
     rest1 rest2 rest3 rest4,
     PathMap.set ["packet_out"] (ObjPout [])
       (PathMap.set ["packet_in"] (ObjPin pin) s0) = s1 ->
@@ -123,7 +123,7 @@ Inductive egress_pipeline (eprsr egress edeprsr: programmable_block_sem)
     parser_egress_cond rest1 rest2 ->
     egress s2 (hdr1 :: eg_md1 :: rest2) s3 (hdr2 :: eg_md2 :: rest3) SReturnNull ->
     egress_deprsr_cond rest3 rest4 ->
-    edeprsr s3 (hdr3 :: eg_md2 :: rest4) s4 [hdr4] SReturnNull ->
+    edeprsr s3 (hdr2 :: eg_md2 :: rest4) s4 [hdr3] SReturnNull ->
     PathMap.get ["packet_out"] s4 = Some (ObjPout pout) ->
     egress_pipeline eprsr egress edeprsr parser_egress_cond egress_deprsr_cond
       s0 pin s4 (pout ++ payload).
