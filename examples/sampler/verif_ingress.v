@@ -60,15 +60,6 @@ Qed.
 Definition act_sample_fundef :=
   ltac:(get_fd ["SwitchIngress"; "act_sample"] ge).
 
-Record sample_rec := {
-    sample_dmac: Z;
-    sample_smac: Z;
-    sample_etype: Z;
-    sample_srcip: Z;
-    sample_dstip: Z;
-    sample_num_pkts: Z;
-  }.
-
 Definition hdr (ethernet tcp udp: Sval) (ipv4: ipv4_rec): Sval :=
   ValBaseStruct
     [("bridge",

@@ -719,12 +719,15 @@ Proof.
 Qed.
 
 Lemma to_sval_typ_inv: forall {tags_t: Type} v (typ: @P4Type tags_t),
-    ⊢ᵥ eval_val_to_sval v \: typ -> ⊢ᵥ v \: typ.
+    ⊢ᵥ eval_val_to_sval v \: typ <-> ⊢ᵥ v \: typ.
 Proof.
   intros. assert (sval_to_val read_ndetbit (eval_val_to_sval v) v). {
     rewrite sval_to_val_eval_val_to_sval_iff; auto. intros.
-    split; intros. inv H0; auto. subst. constructor. }
-  eapply exec_val_preserves_typ; [apply H0 | apply H].
+    split; intros. inv H; auto. subst. constructor. } split; intros.
+  - eapply exec_val_preserves_typ; [apply H | apply H0].
+  - assert (val_to_sval v (eval_val_to_sval v)). {
+      rewrite val_to_sval_iff. reflexivity. }
+    eapply exec_val_preserves_typ; [apply H1 | apply H0].
 Qed.
 
 Lemma to_liberal_sval_typ_inv: forall {tags_t: Type} v (typ: @P4Type tags_t),

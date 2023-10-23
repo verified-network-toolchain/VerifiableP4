@@ -194,7 +194,116 @@ Qed.
 
 Opaque eval_val_to_sval ipv4_repr_val ethernet_repr_val.
 
+Lemma hdr_init_bridge_valid_only:
+  exists h, common.hdr (sample_valid_bridge hdr_init) = val_to_sval_valid_only h.
+Proof.
+  unfold sample_valid_bridge, hdr_init, common.hdr. simpl.
+  exists (ValBaseStruct
+      [("bridge", ValBaseHeader [("contains_sample", P4BitV 8 0)] true);
+       ("sample",
+        ValBaseHeader
+          [("dmac", P4BitV 48 0); ("smac", P4BitV 48 0); ("etype", P4BitV 16 0);
+           ("srcip", P4BitV 32 0); ("dstip", P4BitV 32 0); ("num_pkts", P4BitV 32 0)]
+          false);
+       ("ethernet",
+        ValBaseHeader
+          [("dst_addr", P4BitV 48 0); ("src_addr", P4BitV 48 0); ("ether_type", P4BitV 16 0)]
+          false);
+       ("ipv4",
+        ValBaseHeader
+          [("version", P4BitV 4 0); ("ihl", P4BitV 4 0); ("diffserv", P4BitV 8 0);
+           ("total_len", P4BitV 16 0); ("identification", P4BitV 16 0); (
+           "flags", P4BitV 3 0); ("frag_offset", P4BitV 13 0); ("ttl", P4BitV 8 0);
+           ("protocol", P4BitV 8 0); ("hdr_checksum", P4BitV 16 0); (
+           "src_addr", P4BitV 32 0); ("dst_addr", P4BitV 32 0)] false);
+       ("tcp",
+        ValBaseHeader
+          [("src_port", P4BitV 16 0); ("dst_port", P4BitV 16 0); ("seq_no", P4BitV 32 0);
+           ("ack_no", P4BitV 32 0); ("data_offset", P4BitV 4 0); ("res", P4BitV 4 0);
+           ("flags", P4BitV 8 0); ("window", P4BitV 16 0); ("checksum", P4BitV 16 0);
+           ("urgent_ptr", P4BitV 16 0)] false);
+       ("udp",
+        ValBaseHeader
+          [("src_port", P4BitV 16 0); ("dst_port", P4BitV 16 0); ("hdr_length", P4BitV 16 0);
+           ("checksum", P4BitV 16 0)] false)]). reflexivity.
+Qed.
+
+Lemma hdr_init_valid_only:
+  exists h, common.hdr hdr_init = val_to_sval_valid_only h.
+Proof.
+  unfold hdr_init, common.hdr. simpl.
+  exists (ValBaseStruct
+      [("bridge", ValBaseHeader [("contains_sample", P4BitV 8 0)] false);
+       ("sample",
+        ValBaseHeader
+          [("dmac", P4BitV 48 0); ("smac", P4BitV 48 0); ("etype", P4BitV 16 0);
+           ("srcip", P4BitV 32 0); ("dstip", P4BitV 32 0); ("num_pkts", P4BitV 32 0)]
+          false);
+       ("ethernet",
+        ValBaseHeader
+          [("dst_addr", P4BitV 48 0); ("src_addr", P4BitV 48 0); ("ether_type", P4BitV 16 0)]
+          false);
+       ("ipv4",
+        ValBaseHeader
+          [("version", P4BitV 4 0); ("ihl", P4BitV 4 0); ("diffserv", P4BitV 8 0);
+           ("total_len", P4BitV 16 0); ("identification", P4BitV 16 0); (
+           "flags", P4BitV 3 0); ("frag_offset", P4BitV 13 0); ("ttl", P4BitV 8 0);
+           ("protocol", P4BitV 8 0); ("hdr_checksum", P4BitV 16 0); (
+           "src_addr", P4BitV 32 0); ("dst_addr", P4BitV 32 0)] false);
+       ("tcp",
+        ValBaseHeader
+          [("src_port", P4BitV 16 0); ("dst_port", P4BitV 16 0); ("seq_no", P4BitV 32 0);
+           ("ack_no", P4BitV 32 0); ("data_offset", P4BitV 4 0); ("res", P4BitV 4 0);
+           ("flags", P4BitV 8 0); ("window", P4BitV 16 0); ("checksum", P4BitV 16 0);
+           ("urgent_ptr", P4BitV 16 0)] false);
+       ("udp",
+        ValBaseHeader
+          [("src_port", P4BitV 16 0); ("dst_port", P4BitV 16 0); ("hdr_length", P4BitV 16 0);
+           ("checksum", P4BitV 16 0)] false)]). reflexivity.
+Qed.
+
 Lemma ethernet_extract_result_valid_only:
+  forall (ether : ethernet_rec) (ipv4 : ipv4_rec) (result : Val) header,
+    (if is_tcp ipv4
+     then ⊫ᵥ result \: tcp_h
+     else if is_udp ipv4 then ⊫ᵥ result \: udp_h else result = ValBaseNull) ->
+    ⊢ᵥ header \: header_sample_t ->
+    (exists vh, header = val_to_sval_valid_only vh) ->
+    exists h, ethernet_extract_result header ether ipv4 result = val_to_sval_valid_only h.
+Proof.
+  intros. destruct H1 as [vh ?]. subst. pose proof (to_sval_valid_only_typ_inv _ _ H0).
+  unfold ethernet_extract_result, protocol_extract_result.
+  assert (⊢ᵥ updatev "ethernet" (ethernet_repr_val ether) vh \: header_sample_t). {
+    eapply updatev_struct_typ; eauto; [reflexivity | apply ext_val_typ_ethernet]. }
+  assert (⊢ᵥ updatev "ipv4" (ipv4_repr_val ipv4)
+            (updatev "ethernet" (ethernet_repr_val ether) vh) \: header_sample_t). {
+    eapply updatev_struct_typ; eauto; [reflexivity | apply ext_val_typ_ipv4 ]. }
+  assert (exists ieh : Val,
+             update "ipv4" (eval_val_to_sval (ipv4_repr_val ipv4))
+               (update "ethernet" (eval_val_to_sval (ethernet_repr_val ether))
+                  (val_to_sval_valid_only vh)) = val_to_sval_valid_only ieh). {
+    rewrite (ext_val_typ_to_sval_eq (ethernet_repr_val ether) ethernet_h);
+      [|apply ext_val_typ_ethernet | reflexivity].
+    erewrite <- (update_struct_valid_only "ethernet"); eauto. 2: reflexivity.
+    rewrite (ext_val_typ_to_sval_eq (ipv4_repr_val ipv4) ipv4_h);
+      [|apply ext_val_typ_ipv4 | reflexivity].
+    erewrite <- (update_struct_valid_only "ipv4"); eauto. reflexivity. }
+  destruct H4 as [ieh ?]. rewrite H4.
+  assert (⊢ᵥ ieh \: header_sample_t). {
+    apply to_sval_valid_only_typ_inv. rewrite <- H4.
+    eapply update_struct_typ. reflexivity. rewrite to_sval_typ_inv. apply ext_val_typ_ipv4.
+    eapply update_struct_typ. reflexivity. rewrite to_sval_typ_inv.
+    apply ext_val_typ_ethernet. assumption. }
+  destruct (is_tcp ipv4).
+  - erewrite ext_val_typ_to_sval_eq with (typ := tcp_h); [| assumption | reflexivity ].
+    erewrite <- (update_struct_valid_only "tcp"); eauto. reflexivity.
+  - destruct (is_udp ipv4).
+    + erewrite ext_val_typ_to_sval_eq with (typ := udp_h); [| assumption | reflexivity ].
+      erewrite <- (update_struct_valid_only "udp"); eauto. reflexivity.
+    + eexists. reflexivity.
+Qed.
+
+Lemma ethernet_extract_result_valid_only_vb:
   forall (ether : ethernet_rec) (ipv4 : ipv4_rec) (result : Val),
     (if is_tcp ipv4
      then ⊫ᵥ result \: tcp_h
@@ -203,66 +312,9 @@ Lemma ethernet_extract_result_valid_only:
          (common.hdr (sample_valid_bridge hdr_init)) ether ipv4 result =
          val_to_sval_valid_only h.
 Proof.
-  intros. unfold ethernet_extract_result, protocol_extract_result.
-  unfold sample_valid_bridge, hdr_init.
-  simpl. destruct (is_tcp ipv4).
-  - exists (ValBaseStruct
-         [("bridge", ValBaseHeader [("contains_sample", P4BitV 8 0)] true);
-          ("sample",
-            ValBaseHeader
-              [("dmac", P4BitV 48 0); ("smac", P4BitV 48 0);
-               ("etype", P4BitV 16 0); ("srcip", P4BitV 32 0);
-               ("dstip", P4BitV 32 0); ("num_pkts", P4BitV 32 0)]
-              false);
-          ("ethernet", ethernet_repr_val ether);
-          ("ipv4", ipv4_repr_val ipv4);
-          ("tcp", result);
-          ("udp",
-            ValBaseHeader
-              [("src_port", P4BitV 16 0); ("dst_port", P4BitV 16 0);
-               ("hdr_length", P4BitV 16 0); ("checksum", P4BitV 16 0)]
-              false)]). simpl. erewrite (ext_val_typ_to_sval_eq result); eauto.
-  - destruct (is_udp ipv4).
-    + exists (ValBaseStruct
-         [("bridge", ValBaseHeader [("contains_sample", P4BitV 8 0)] true);
-          ("sample",
-            ValBaseHeader
-              [("dmac", P4BitV 48 0); ("smac", P4BitV 48 0);
-               ("etype", P4BitV 16 0); ("srcip", P4BitV 32 0);
-               ("dstip", P4BitV 32 0); ("num_pkts", P4BitV 32 0)]
-              false);
-          ("ethernet", ethernet_repr_val ether);
-          ("ipv4", ipv4_repr_val ipv4);
-          ("tcp", ValBaseHeader
-                    [("src_port", P4BitV 16 0); ("dst_port", P4BitV 16 0);
-                     ("seq_no", P4BitV 32 0); ("ack_no", P4BitV 32 0);
-                     ("data_offset", P4BitV 4 0); ("res", P4BitV 4 0);
-                     ("flags", P4BitV 8 0); ("window", P4BitV 16 0);
-                     ("checksum", P4BitV 16 0); ("urgent_ptr", P4BitV 16 0)]
-                    false);
-          ("udp", result)]). simpl. erewrite (ext_val_typ_to_sval_eq result); eauto.
-    + exists (ValBaseStruct
-         [("bridge", ValBaseHeader [("contains_sample", P4BitV 8 0)] true);
-          ("sample",
-            ValBaseHeader
-              [("dmac", P4BitV 48 0); ("smac", P4BitV 48 0);
-               ("etype", P4BitV 16 0); ("srcip", P4BitV 32 0);
-               ("dstip", P4BitV 32 0); ("num_pkts", P4BitV 32 0)]
-              false);
-          ("ethernet", ethernet_repr_val ether);
-          ("ipv4", ipv4_repr_val ipv4);
-          ("tcp", ValBaseHeader
-                    [("src_port", P4BitV 16 0); ("dst_port", P4BitV 16 0);
-                     ("seq_no", P4BitV 32 0); ("ack_no", P4BitV 32 0);
-                     ("data_offset", P4BitV 4 0); ("res", P4BitV 4 0);
-                     ("flags", P4BitV 8 0); ("window", P4BitV 16 0);
-                     ("checksum", P4BitV 16 0); ("urgent_ptr", P4BitV 16 0)]
-                    false);
-          ("udp",
-            ValBaseHeader
-              [("src_port", P4BitV 16 0); ("dst_port", P4BitV 16 0);
-               ("hdr_length", P4BitV 16 0); ("checksum", P4BitV 16 0)]
-              false)]). reflexivity.
+  intros. apply ethernet_extract_result_valid_only; auto.
+  - apply hdr_init_type.
+  - apply hdr_init_bridge_valid_only.
 Qed.
 
 Transparent eval_val_to_sval ipv4_repr_val ethernet_repr_val.
@@ -396,7 +448,7 @@ Proof.
     apply update_struct_typ with bridge_t; [reflexivity | repeat constructor |].
     apply H2. }
   assert (Hv: exists h, igrs_hdr = val_to_sval_valid_only h). {
-    pose proof (ethernet_extract_result_valid_only ether _ _ H12).
+    pose proof (ethernet_extract_result_valid_only_vb ether _ _ H12).
     rewrite H0 in H5. destruct H5 as [orig_h ?]. subst igrs_hdr.
     destruct (counter mod 1024 =? 0). 2: (exists orig_h; assumption). unfold update_hdr.
     assert (⊢ᵥ orig_h \: header_sample_t). {
@@ -433,12 +485,11 @@ Inductive eprsr_block: programmable_block_sem :=
     ether ipv4 result hdr eg_md intr_md signal counter,
     extern_contains es ["pipe"; "ingress"] counter ->
     ⊫ᵥ eg_intr_md \: egress_intrinsic_metadata_t ->
-    (if contains_sample has_sample then ⊫ᵥ sample \: sample_t else sample = ValBaseNull) ->
     (if is_tcp ipv4 then ⊫ᵥ result \: tcp_h
      else if is_udp ipv4 then ⊫ᵥ result \: udp_h else result = ValBaseNull) ->
     pin ⫢ [⦑ encode eg_intr_md ⦒;
            ⦑ encode (bridge_repr_val has_sample) ⦒;
-           ⦃ contains_sample has_sample ? ⦑ encode sample ⦒ | ε ⦄;
+           ⦃ contains_sample has_sample ? ⦑ encode (sample_repr_val sample) ⦒ | ε ⦄;
            ⦑ encode (ethernet_repr_val ether) ⦒;
            ⦑ encode (ipv4_repr_val ipv4) ⦒;
            ⦃ is_tcp ipv4 ? ⦑ encode result ⦒ |
@@ -502,7 +553,7 @@ Proof.
     destruct (is_tcp ipv4).
     + exists (Build_header_sample_rec
            (eval_val_to_sval (bridge_repr_val has_sample))
-           (eval_val_to_sval sample)
+           (eval_val_to_sval (sample_repr_val sample))
            (eval_val_to_sval (ethernet_repr_val ether))
            (eval_val_to_sval (ipv4_repr_val ipv4))
            (eval_val_to_sval result)
@@ -510,14 +561,14 @@ Proof.
     + destruct (is_udp ipv4).
       * exists (Build_header_sample_rec
            (eval_val_to_sval (bridge_repr_val has_sample))
-           (eval_val_to_sval sample)
+           (eval_val_to_sval (sample_repr_val sample))
            (eval_val_to_sval (ethernet_repr_val ether))
            (eval_val_to_sval (ipv4_repr_val ipv4))
            (header_sample_tcp hdr_init)
            (eval_val_to_sval result)). reflexivity.
       * exists (Build_header_sample_rec
            (eval_val_to_sval (bridge_repr_val has_sample))
-           (eval_val_to_sval sample)
+           (eval_val_to_sval (sample_repr_val sample))
            (eval_val_to_sval (ethernet_repr_val ether))
            (eval_val_to_sval (ipv4_repr_val ipv4))
            (header_sample_tcp hdr_init)
@@ -565,10 +616,65 @@ Proof.
        (ValBaseBit v24)). reflexivity.
 Qed.
 
-Lemma conditional_update_ex_valid_only: forall md h,
-  exists hd, conditional_update md h = val_to_sval_valid_only hd.
+Lemma start_extract_result_typ: forall has_sample sample ether ipv4 result,
+    (if is_tcp ipv4
+     then ⊫ᵥ result \: tcp_h
+     else if is_udp ipv4 then ⊫ᵥ result \: udp_h else result = ValBaseNull) ->
+    ⊢ᵥ start_extract_result has_sample hdr_init sample ether ipv4 result \: header_sample_t.
 Proof.
-  intros.
+  intros. unfold start_extract_result. destruct (contains_sample has_sample).
+  - unfold sample_extract_result, ethernet_extract_result.
+    apply protocol_extract_result_typ; auto.
+    apply update_struct_typ with ipv4_h; [reflexivity | repeat constructor |].
+    apply update_struct_typ with ethernet_h; [reflexivity | repeat constructor |].
+    apply update_struct_typ with sample_t; [reflexivity | repeat constructor |].
+    apply update_struct_typ with bridge_t; [reflexivity | repeat constructor |].
+    repeat constructor.
+  - unfold ethernet_extract_result.
+    apply protocol_extract_result_typ; auto.
+    apply update_struct_typ with ipv4_h; [reflexivity | repeat constructor |].
+    apply update_struct_typ with ethernet_h; [reflexivity | repeat constructor |].
+    apply update_struct_typ with bridge_t; [reflexivity | repeat constructor |].
+    repeat constructor.
+Qed.
+
+Lemma start_extract_result_valid_only: forall has_sample sample ether ipv4 result,
+    (if is_tcp ipv4
+     then ⊫ᵥ result \: tcp_h
+     else if is_udp ipv4 then ⊫ᵥ result \: udp_h else result = ValBaseNull) ->
+    exists h, start_extract_result has_sample hdr_init sample ether ipv4 result =
+           val_to_sval_valid_only h.
+Proof.
+  intros. unfold start_extract_result. destruct hdr_init_valid_only as [vh ?H].
+  assert (⊢ᵥ common.hdr hdr_init \: header_sample_t) by repeat constructor.
+  rewrite H0 in *. pose proof (to_sval_valid_only_typ_inv _ _ H1).
+  assert (⊢ᵥ updatev "bridge" (bridge_repr_val has_sample) vh \: header_sample_t). {
+    eapply updatev_struct_typ; eauto. reflexivity. apply ext_val_typ_bridge. }
+  destruct (contains_sample has_sample).
+  - unfold sample_extract_result. apply ethernet_extract_result_valid_only; auto.
+    + apply update_struct_typ with sample_t. 1: reflexivity.
+      * rewrite to_sval_typ_inv. apply ext_val_typ_sample.
+      * apply update_struct_typ with bridge_t; [reflexivity | | assumption].
+        rewrite to_sval_typ_inv. apply ext_val_typ_bridge.
+    + rewrite (ext_val_typ_to_sval_eq (bridge_repr_val has_sample) bridge_t);
+        [|apply ext_val_typ_bridge | reflexivity].
+      erewrite <- (update_struct_valid_only "bridge"); eauto. 2: reflexivity.
+      rewrite ext_val_typ_to_sval_eq with (typ := sample_t);
+        [| apply ext_val_typ_sample | reflexivity].
+      erewrite <- update_struct_valid_only; eauto. reflexivity.
+  - apply ethernet_extract_result_valid_only; auto.
+    + apply update_struct_typ with bridge_t; [reflexivity | | assumption].
+      rewrite to_sval_typ_inv. apply ext_val_typ_bridge.
+    + rewrite ext_val_typ_to_sval_eq with (typ := bridge_t);
+        [|apply ext_val_typ_bridge | reflexivity].
+      erewrite <- (update_struct_valid_only "bridge"); eauto. reflexivity.
+Qed.
+
+Lemma conditional_update_ex_valid_only: forall md h,
+    ⊢ᵥ common.hdr h \: header_sample_t ->
+    exists hd, conditional_update md h = val_to_sval_valid_only hd.
+Proof.
+  intros. unfold conditional_update.
 Abort.
 
 Lemma process_packet_egress:
@@ -576,27 +682,29 @@ Lemma process_packet_egress:
     egress_pipeline eprsr_block egress_block edeprsr_block parser_egress_cond
       egress_deprsr_cond es pin es' pout -> False.
 Proof.
-  intros. inv H. inv H1. rewrite get_packet in H16. inversion H16. subst pin0. clear H16.
-  inv H18. inv H. inv H0. inv H1. eapply (proj1 egress_parser_body) in H22; eauto.
+  intros. inv H. inv H1. rewrite get_packet in H15. inversion H15. subst pin0. clear H15.
+  inv H17. inv H. inv H0. inv H1. eapply (proj1 egress_parser_body) in H21; eauto.
   2: { hnf. split. 1: constructor. hnf. split; hnf; simpl.
-       - rewrite H15. split; auto. apply sval_refine_refl.
+       - rewrite H14. split; auto. apply sval_refine_refl.
        - rewrite get_packet. intuition. }
-  destruct H22. hnf in H. inv H. inv H19. inv H21. clear H22.
+  destruct H21. hnf in H. inv H. inv H18. inv H20. clear H21.
   destruct H0 as [_ [_ [H0 _]]]. hnf in H0. rewrite H0 in H2.
   inv H2. inv H4. inv H3. assert (eg_intr_md0 = eval_val_to_sval eg_intr_md). {
-    apply exec_val_eval_val_to_sval_eq in H18; auto. intros. inv H. reflexivity. }
-  subst eg_intr_md0. clear H18. inv H27. inv H. inv H1. inv H2.
+    apply exec_val_eval_val_to_sval_eq in H17; auto. intros. inv H. reflexivity. }
+  subst eg_intr_md0. clear H17. inv H26. inv H. inv H1. inv H2.
   destruct (start_extract_result_hdr has_sample sample ether ipv4 result) as [h ?H].
   destruct (eg_intr_rep_exists _ H10) as [md ?H]. subst.
-  eapply (proj1 egress_body h eg_md1 md) in H28; eauto.
+  eapply (proj1 egress_body h eg_md1 md) in H27; eauto.
   2: { split; [hnf | split; hnf; auto]. constructor; [rewrite <- H; assumption |].
        do 5 (constructor; [apply sval_refine_refl|]). constructor. }
-  destruct H28 as [? _]. hnf in H1. inv H1. inv H19. inv H21. inv H22. clear H23.
+  destruct H27 as [? _]. hnf in H1. inv H1. inv H18. inv H20. inv H21. clear H22.
   assert (extern_contains s3 ["pipe"; "ingress"] counter). {
     eapply extern_contains_trans; eauto. } clear dependent counter0.
-  inv H6.   assert (extern_contains es' ["pipe"; "ingress"] counter). {
+  inv H6. assert (extern_contains es' ["pipe"; "ingress"] counter). {
     eapply extern_contains_trans; eauto. } clear dependent counter0.
-  inv H28. inv H3. inv H6. inv H21.
-  eapply (proj1 egress_deparser_body) in H31.
-  3: { hnf. split. constructor.
+  inv H27. inv H5. inv H3. inv H6. inv H20.
+  assert (⊢ᵥ common.hdr h \: header_sample_t). {
+    rewrite <- H. apply start_extract_result_typ; assumption. }
+  eapply (proj1 egress_deparser_body) in H30.
+  3: { hnf. split. constructor. Search h.
 Abort.

@@ -277,3 +277,24 @@ Definition ig_intr_tm_md := Eval vm_compute in
             (force ValBaseNull
                (uninit_sval_of_typ None
                   Tofino.ingress_intrinsic_metadata_for_tm_t)))).
+
+Record sample_rec := {
+    sample_dmac: Z;
+    sample_smac: Z;
+    sample_etype: Z;
+    sample_srcip: Z;
+    sample_dstip: Z;
+    sample_num_pkts: Z;
+  }.
+
+Definition sample_repr_val (smpl: sample_rec): Val :=
+  ValBaseHeader
+    [("dmac", P4BitV 48 (sample_dmac smpl));
+     ("smac", P4BitV 48 (sample_smac smpl));
+     ("etype", P4BitV 16 (sample_etype smpl));
+     ("srcip", P4BitV 32 (sample_srcip smpl));
+     ("dstip", P4BitV 32 (sample_dstip smpl));
+     ("num_pkts", P4BitV 32 (sample_num_pkts smpl))] true.
+
+Lemma ext_val_typ_sample: forall sample, ⊫ᵥ sample_repr_val sample \: sample_t.
+Proof. intros. split; [repeat constructor | reflexivity]. Qed.
