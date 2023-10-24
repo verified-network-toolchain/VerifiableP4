@@ -254,7 +254,8 @@ Proof.
   induction l1; intros; destruct l2; simpl in H; inv H; constructor; auto.
 Qed.
 
-Lemma all_values_get_some_rel : forall {A} (kvl kvl' : AList.StringAList A) f rel v v',
+Lemma all_values_get_some_rel :
+  forall {A B} (kvl : AList.StringAList A) (kvl' : AList.StringAList B) f rel v v',
   AList.all_values rel kvl kvl' ->
   AList.get kvl f = Some v ->
   AList.get kvl' f = Some v' ->
@@ -266,10 +267,12 @@ Proof.
   - destruct x as [kx vx]; destruct y as [ky vy].
     destruct H. simpl in H. subst ky.
     destruct (String.string_dec f kx) eqn:?.
-    + rewrite AList.get_eq_cons in H1, H0 by auto.
+    + rewrite AList.get_eq_cons in H1 by auto.
+      rewrite AList.get_eq_cons in H0 by auto.
       inv H1; inv H0.
       auto.
-    + rewrite AList.get_neq_cons in H1, H0 by auto.
+    + rewrite AList.get_neq_cons in H1 by auto.
+      rewrite AList.get_neq_cons in H0 by auto.
       auto.
 Qed.
 

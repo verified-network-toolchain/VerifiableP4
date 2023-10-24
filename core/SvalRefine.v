@@ -718,16 +718,29 @@ Proof.
     rewrite forallb_snd_clear_tags_eq. apply andb_prop in H1. destruct H1. apply H2.
 Qed.
 
+Lemma val_sim_sym: forall {A B: Type} (v1: @ValueBase A) (v2: @ValueBase B),
+    val_sim v1 v2 -> val_sim v2 v1.
+Proof. intros; eapply exec_val_sym; eauto. Qed.
+
+Lemma val_sim_trans:
+  forall {A B C} (v1: @ValueBase A) (v2: @ValueBase B) (v3: @ValueBase C),
+    val_sim v1 v2 -> val_sim v2 v3 -> val_sim v1 v3.
+Proof. intros. eapply exec_val_trans; eauto. repeat intro; auto. Qed.
+
+Lemma val_sim_typ_inv:
+  forall {tags_t A B: Type} (v1: @ValueBase A) (v2: @ValueBase B) (typ: @P4Type tags_t),
+    val_sim v1 v2 -> ⊢ᵥ v1 \: typ <-> ⊢ᵥ v2 \: typ.
+Proof.
+  intros. split; intros.
+  - eapply exec_val_preserves_typ; [apply H | apply H0 ].
+  - apply val_sim_sym in H. eapply exec_val_preserves_typ; [apply H | apply H0 ].
+Qed.
+
 Lemma to_sval_typ_inv: forall {tags_t: Type} v (typ: @P4Type tags_t),
     ⊢ᵥ eval_val_to_sval v \: typ <-> ⊢ᵥ v \: typ.
 Proof.
-  intros. assert (sval_to_val read_ndetbit (eval_val_to_sval v) v). {
-    rewrite sval_to_val_eval_val_to_sval_iff; auto. intros.
-    split; intros. inv H; auto. subst. constructor. } split; intros.
-  - eapply exec_val_preserves_typ; [apply H | apply H0].
-  - assert (val_to_sval v (eval_val_to_sval v)). {
-      rewrite val_to_sval_iff. reflexivity. }
-    eapply exec_val_preserves_typ; [apply H1 | apply H0].
+  intros. pose proof (eval_val_to_sval_val_sim v). apply val_sim_sym in H.
+  apply val_sim_typ_inv. assumption.
 Qed.
 
 Lemma to_liberal_sval_typ_inv: forall {tags_t: Type} v (typ: @P4Type tags_t),
@@ -770,8 +783,14 @@ Proof.
 Qed.
 
 Lemma to_sval_valid_only_typ_inv: forall {tags_t: Type} v (typ: @P4Type tags_t),
-    ⊢ᵥ val_to_sval_valid_only v \: typ -> ⊢ᵥ v \: typ.
+    ⊢ᵥ val_to_sval_valid_only v \: typ <-> ⊢ᵥ v \: typ.
 Proof.
-  intros. eapply exec_val_preserves_typ in H; eauto.
-  apply sval_to_val_to_sval_valid_only.
+  intros. apply val_sim_typ_inv. eapply val_sim_on_top. apply sval_to_val_to_sval_valid_only.
+Qed.
+
+Lemma sval_refine_liberal_valid_only: forall v,
+    sval_refine (val_to_liberal_sval v) (val_to_sval_valid_only v).
+Proof.
+  intros. apply sval_refine_liberal. apply val_sim_sym.
+  eapply val_sim_on_top. apply sval_to_val_to_sval_valid_only.
 Qed.

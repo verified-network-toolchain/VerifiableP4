@@ -271,7 +271,8 @@ Lemma ethernet_extract_result_valid_only:
     (exists vh, header = val_to_sval_valid_only vh) ->
     exists h, ethernet_extract_result header ether ipv4 result = val_to_sval_valid_only h.
 Proof.
-  intros. destruct H1 as [vh ?]. subst. pose proof (to_sval_valid_only_typ_inv _ _ H0).
+  intros. destruct H1 as [vh ?]. subst. pose proof H0.
+  rewrite to_sval_valid_only_typ_inv in H1.
   unfold ethernet_extract_result, protocol_extract_result.
   assert (⊢ᵥ updatev "ethernet" (ethernet_repr_val ether) vh \: header_sample_t). {
     eapply updatev_struct_typ; eauto; [reflexivity | apply ext_val_typ_ethernet]. }
@@ -647,7 +648,7 @@ Lemma start_extract_result_valid_only: forall has_sample sample ether ipv4 resul
 Proof.
   intros. unfold start_extract_result. destruct hdr_init_valid_only as [vh ?H].
   assert (⊢ᵥ common.hdr hdr_init \: header_sample_t) by repeat constructor.
-  rewrite H0 in *. pose proof (to_sval_valid_only_typ_inv _ _ H1).
+  rewrite H0 in *. pose proof H1. rewrite to_sval_valid_only_typ_inv in H2.
   assert (⊢ᵥ updatev "bridge" (bridge_repr_val has_sample) vh \: header_sample_t). {
     eapply updatev_struct_typ; eauto. reflexivity. apply ext_val_typ_bridge. }
   destruct (contains_sample has_sample).
@@ -671,7 +672,7 @@ Proof.
 Qed.
 
 Lemma conditional_update_ex_valid_only: forall md h,
-    ⊢ᵥ common.hdr h \: header_sample_t ->
+    (exists vh, common.hdr h = val_to_sval_valid_only vh) ->
     exists hd, conditional_update md h = val_to_sval_valid_only hd.
 Proof.
   intros. unfold conditional_update.

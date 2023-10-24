@@ -15,12 +15,6 @@ Definition p := ["pipe"; "egress"].
 
 Open Scope func_spec.
 
-Definition invalidate_field (h: Sval) (fld: ident): Sval :=
-  (update fld (EvalBuiltin.setInvalid (get fld h)) h).
-
-Definition invalidate_fields (h: Sval) (flds: list ident): Sval :=
-  fold_left invalidate_field flds h.
-
 Definition act_delete_sample_hdrs_fundef :=
   ltac:(get_fd ["SwitchEgress"; "act_delete_sample_hdrs"] ge).
 

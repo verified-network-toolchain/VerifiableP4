@@ -27,17 +27,6 @@ Proof.
   intros. apply Forall2_True. rewrite <- !ZtoNat_Zlength. rewrite !Zlength_to_lbool. auto.
 Qed.
 
-Lemma val_sim_sym: forall {A B: Type} (v1: @ValueBase A) (v2: @ValueBase B),
-    val_sim v1 v2 -> val_sim v2 v1.
-Proof.
-  intros; eapply exec_val_sym; eauto.
-Qed.
-
-Lemma val_sim_trans:
-  forall {A B C} (v1: @ValueBase A) (v2: @ValueBase B) (v3: @ValueBase C),
-    val_sim v1 v2 -> val_sim v2 v3 -> val_sim v1 v3.
-Proof. intros. eapply exec_val_trans; eauto. repeat intro; auto. Qed.
-
 Section EvalExpr.
 
 Context {tags_t: Type} {tags_t_inhabitant : Inhabitant tags_t}.
