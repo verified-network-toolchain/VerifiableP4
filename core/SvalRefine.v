@@ -727,7 +727,7 @@ Lemma val_sim_trans:
     val_sim v1 v2 -> val_sim v2 v3 -> val_sim v1 v3.
 Proof. intros. eapply exec_val_trans; eauto. repeat intro; auto. Qed.
 
-Lemma val_sim_typ_inv:
+Lemma val_sim_prsv_typ:
   forall {tags_t A B: Type} (v1: @ValueBase A) (v2: @ValueBase B) (typ: @P4Type tags_t),
     val_sim v1 v2 -> ⊢ᵥ v1 \: typ <-> ⊢ᵥ v2 \: typ.
 Proof.
@@ -736,23 +736,11 @@ Proof.
   - apply val_sim_sym in H. eapply exec_val_preserves_typ; [apply H | apply H0 ].
 Qed.
 
-Lemma to_sval_typ_inv: forall {tags_t: Type} v (typ: @P4Type tags_t),
+Lemma to_sval_typ_iff: forall {tags_t: Type} v (typ: @P4Type tags_t),
     ⊢ᵥ eval_val_to_sval v \: typ <-> ⊢ᵥ v \: typ.
 Proof.
   intros. pose proof (eval_val_to_sval_val_sim v). apply val_sim_sym in H.
-  apply val_sim_typ_inv. assumption.
-Qed.
-
-Lemma to_liberal_sval_typ_inv: forall {tags_t: Type} v (typ: @P4Type tags_t),
-    ⊢ᵥ val_to_liberal_sval v \: typ -> ⊢ᵥ v \: typ.
-Proof.
-  intros. assert (sval_to_val read_ndetbit (eval_val_to_sval v) v). {
-    rewrite sval_to_val_eval_val_to_sval_iff; auto. intros.
-    split; intros. inv H0; auto. subst. constructor. }
-  pose proof (sval_refine_liberal_eval v).
-  assert (val_sim (val_to_liberal_sval v) v). {
-    eapply exec_val_trans; eauto. repeat intro; auto. }
-  eapply exec_val_preserves_typ; [apply H2 | apply H].
+  apply val_sim_prsv_typ. assumption.
 Qed.
 
 Lemma sval_to_val_to_liberal_sval : forall v,
@@ -764,6 +752,12 @@ Proof.
   1,5: induction H; simpl; constructor; assumption.
   1-3: induction H; simpl; constructor;[| assumption];
   destruct x; simpl in *; split; auto.
+Qed.
+
+Lemma to_liberal_sval_typ_iff: forall {tags_t: Type} v (typ: @P4Type tags_t),
+    ⊢ᵥ val_to_liberal_sval v \: typ <-> ⊢ᵥ v \: typ.
+Proof.
+  intros. apply val_sim_prsv_typ. eapply val_sim_on_top. apply sval_to_val_to_liberal_sval.
 Qed.
 
 Lemma sval_to_val_to_sval_valid_only : forall v,
@@ -782,10 +776,10 @@ Proof.
   - apply sval_to_val_eval_val_to_sval. intros. constructor.
 Qed.
 
-Lemma to_sval_valid_only_typ_inv: forall {tags_t: Type} v (typ: @P4Type tags_t),
+Lemma to_sval_valid_only_typ_iff: forall {tags_t: Type} v (typ: @P4Type tags_t),
     ⊢ᵥ val_to_sval_valid_only v \: typ <-> ⊢ᵥ v \: typ.
 Proof.
-  intros. apply val_sim_typ_inv. eapply val_sim_on_top. apply sval_to_val_to_sval_valid_only.
+  intros. apply val_sim_prsv_typ. eapply val_sim_on_top. apply sval_to_val_to_sval_valid_only.
 Qed.
 
 Lemma sval_refine_liberal_valid_only: forall v,
@@ -794,3 +788,7 @@ Proof.
   intros. apply sval_refine_liberal. apply val_sim_sym.
   eapply val_sim_on_top. apply sval_to_val_to_sval_valid_only.
 Qed.
+
+Lemma sval_refine_prsv_typ: forall {tags_t: Type} v1 v2 (typ: @P4Type tags_t),
+    sval_refine v1 v2 -> ⊢ᵥ v1 \: typ <-> ⊢ᵥ v2 \: typ.
+Proof. intros. apply val_sim_prsv_typ. eapply val_sim_on_top. apply H. Qed.

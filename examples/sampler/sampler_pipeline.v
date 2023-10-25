@@ -139,8 +139,12 @@ Proof.
   rewrite PathMap.get_set_same. reflexivity.
 Qed.
 
-Lemma hdr_init_type:
+Lemma hdr_init_bridge_type:
   ⊢ᵥ common.hdr (sample_valid_bridge hdr_init) \: header_sample_t.
+Proof. vm_compute. repeat constructor. Qed.
+
+Lemma hdr_init_type:
+  ⊢ᵥ common.hdr hdr_init \: header_sample_t.
 Proof. vm_compute. repeat constructor. Qed.
 
 Lemma protocol_extract_result_typ: forall ipv4 result header,
@@ -174,7 +178,7 @@ Proof.
   - apply ValueBaseMap_preserves_type. apply ext_val_typ_ipv4.
   - apply update_struct_typ with ethernet_h; auto.
     + apply ValueBaseMap_preserves_type. apply ext_val_typ_ethernet.
-    + apply hdr_init_type.
+    + apply hdr_init_bridge_type.
 Qed.
 
 Lemma ethernet_extract_result_hdr:
@@ -272,7 +276,7 @@ Lemma ethernet_extract_result_valid_only:
     exists h, ethernet_extract_result header ether ipv4 result = val_to_sval_valid_only h.
 Proof.
   intros. destruct H1 as [vh ?]. subst. pose proof H0.
-  rewrite to_sval_valid_only_typ_inv in H1.
+  rewrite to_sval_valid_only_typ_iff in H1.
   unfold ethernet_extract_result, protocol_extract_result.
   assert (⊢ᵥ updatev "ethernet" (ethernet_repr_val ether) vh \: header_sample_t). {
     eapply updatev_struct_typ; eauto; [reflexivity | apply ext_val_typ_ethernet]. }
@@ -291,9 +295,9 @@ Proof.
     erewrite <- (update_struct_valid_only "ipv4"); eauto. reflexivity. }
   destruct H4 as [ieh ?]. rewrite H4.
   assert (⊢ᵥ ieh \: header_sample_t). {
-    apply to_sval_valid_only_typ_inv. rewrite <- H4.
-    eapply update_struct_typ. reflexivity. rewrite to_sval_typ_inv. apply ext_val_typ_ipv4.
-    eapply update_struct_typ. reflexivity. rewrite to_sval_typ_inv.
+    apply to_sval_valid_only_typ_iff. rewrite <- H4.
+    eapply update_struct_typ. reflexivity. rewrite to_sval_typ_iff. apply ext_val_typ_ipv4.
+    eapply update_struct_typ. reflexivity. rewrite to_sval_typ_iff.
     apply ext_val_typ_ethernet. assumption. }
   destruct (is_tcp ipv4).
   - erewrite ext_val_typ_to_sval_eq with (typ := tcp_h); [| assumption | reflexivity ].
@@ -314,7 +318,7 @@ Lemma ethernet_extract_result_valid_only_vb:
          val_to_sval_valid_only h.
 Proof.
   intros. apply ethernet_extract_result_valid_only; auto.
-  - apply hdr_init_type.
+  - apply hdr_init_bridge_type.
   - apply hdr_init_bridge_valid_only.
 Qed.
 
@@ -453,7 +457,7 @@ Proof.
     rewrite H0 in H5. destruct H5 as [orig_h ?]. subst igrs_hdr.
     destruct (counter mod 1024 =? 0). 2: (exists orig_h; assumption). unfold update_hdr.
     assert (⊢ᵥ orig_h \: header_sample_t). {
-      apply to_sval_valid_only_typ_inv. rewrite H5 in H2. assumption. }
+      apply to_sval_valid_only_typ_iff. rewrite H5 in H2. assumption. }
     assert (⊢ᵥ updatev "bridge" (bridge_reprv 1) orig_h \: header_sample_t). {
       eapply updatev_struct_typ; eauto; [reflexivity | repeat constructor]. }
     exists (updatev "sample"
@@ -463,7 +467,7 @@ Proof.
     erewrite !update_struct_valid_only; eauto; [|reflexivity..].
     rewrite H5. reflexivity. } destruct Hv as [h Hv].
   assert (⊢ᵥ h \: header_sample_t). {
-    apply to_sval_valid_only_typ_inv. rewrite Hv in H4; assumption. }
+    apply to_sval_valid_only_typ_iff. rewrite Hv in H4; assumption. }
   eapply (proj1 ingress_deparser_body [] h) in H31; eauto.
   2: { split.
        - hnf. constructor.
@@ -630,13 +634,13 @@ Proof.
     apply update_struct_typ with ethernet_h; [reflexivity | repeat constructor |].
     apply update_struct_typ with sample_t; [reflexivity | repeat constructor |].
     apply update_struct_typ with bridge_t; [reflexivity | repeat constructor |].
-    repeat constructor.
+    apply hdr_init_type.
   - unfold ethernet_extract_result.
     apply protocol_extract_result_typ; auto.
     apply update_struct_typ with ipv4_h; [reflexivity | repeat constructor |].
     apply update_struct_typ with ethernet_h; [reflexivity | repeat constructor |].
     apply update_struct_typ with bridge_t; [reflexivity | repeat constructor |].
-    repeat constructor.
+    apply hdr_init_type.
 Qed.
 
 Lemma start_extract_result_valid_only: forall has_sample sample ether ipv4 result,
@@ -648,15 +652,15 @@ Lemma start_extract_result_valid_only: forall has_sample sample ether ipv4 resul
 Proof.
   intros. unfold start_extract_result. destruct hdr_init_valid_only as [vh ?H].
   assert (⊢ᵥ common.hdr hdr_init \: header_sample_t) by repeat constructor.
-  rewrite H0 in *. pose proof H1. rewrite to_sval_valid_only_typ_inv in H2.
+  rewrite H0 in *. pose proof H1. rewrite to_sval_valid_only_typ_iff in H2.
   assert (⊢ᵥ updatev "bridge" (bridge_repr_val has_sample) vh \: header_sample_t). {
     eapply updatev_struct_typ; eauto. reflexivity. apply ext_val_typ_bridge. }
   destruct (contains_sample has_sample).
   - unfold sample_extract_result. apply ethernet_extract_result_valid_only; auto.
     + apply update_struct_typ with sample_t. 1: reflexivity.
-      * rewrite to_sval_typ_inv. apply ext_val_typ_sample.
+      * rewrite to_sval_typ_iff. apply ext_val_typ_sample.
       * apply update_struct_typ with bridge_t; [reflexivity | | assumption].
-        rewrite to_sval_typ_inv. apply ext_val_typ_bridge.
+        rewrite to_sval_typ_iff. apply ext_val_typ_bridge.
     + rewrite (ext_val_typ_to_sval_eq (bridge_repr_val has_sample) bridge_t);
         [|apply ext_val_typ_bridge | reflexivity].
       erewrite <- (update_struct_valid_only "bridge"); eauto. 2: reflexivity.
@@ -665,18 +669,29 @@ Proof.
       erewrite <- update_struct_valid_only; eauto. reflexivity.
   - apply ethernet_extract_result_valid_only; auto.
     + apply update_struct_typ with bridge_t; [reflexivity | | assumption].
-      rewrite to_sval_typ_inv. apply ext_val_typ_bridge.
+      rewrite to_sval_typ_iff. apply ext_val_typ_bridge.
     + rewrite ext_val_typ_to_sval_eq with (typ := bridge_t);
         [|apply ext_val_typ_bridge | reflexivity].
       erewrite <- (update_struct_valid_only "bridge"); eauto. reflexivity.
 Qed.
 
 Lemma conditional_update_ex_valid_only: forall md h,
+    ⊢ᵥ common.hdr h \: header_sample_t ->
     (exists vh, common.hdr h = val_to_sval_valid_only vh) ->
-    exists hd, conditional_update md h = val_to_sval_valid_only hd.
+    exists hd, sval_refine (val_to_sval_valid_only hd) (conditional_update md h).
 Proof.
-  intros. unfold conditional_update.
-Abort.
+  intros ? ? ? [vh ?]. unfold conditional_update. rewrite H0.
+  assert (⊢ᵥ vh \: header_sample_t). {
+    rewrite <- to_sval_valid_only_typ_iff, <- H0. assumption. }
+  destruct (egress_rid_zero md); eapply invalidate_fields_valid_only; eauto; reflexivity.
+Qed.
+
+Lemma conditional_update_typ: forall md h,
+    ⊢ᵥ common.hdr h \: header_sample_t -> ⊢ᵥ conditional_update md h \: header_sample_t.
+Proof.
+  intros. unfold conditional_update. destruct (egress_rid_zero md);
+    apply invalidate_fields_typ; [reflexivity | assumption | reflexivity | assumption].
+Qed.
 
 Lemma process_packet_egress:
   forall es es' pin pout,
@@ -706,6 +721,17 @@ Proof.
   inv H27. inv H5. inv H3. inv H6. inv H20.
   assert (⊢ᵥ common.hdr h \: header_sample_t). {
     rewrite <- H. apply start_extract_result_typ; assumption. }
-  eapply (proj1 egress_deparser_body) in H30.
-  3: { hnf. split. constructor. Search h.
+  assert (exists vh, common.hdr h = val_to_sval_valid_only vh). {
+    rewrite <- H. apply start_extract_result_valid_only. assumption. }
+  destruct (conditional_update_ex_valid_only md _ H3 H5) as [hd ?H].
+  assert (⊢ᵥ hd \: header_sample_t). {
+    rewrite <- to_sval_valid_only_typ_iff. apply val_sim_on_top in H6.
+    rewrite (val_sim_prsv_typ _ _ _ H6). apply conditional_update_typ. assumption. }
+  eapply (proj1 egress_deparser_body _ hd eg_md1 eg_intr_md_for_dprsr1) in H30; auto.
+  2: { hnf. split.
+       - constructor. eapply sval_refine_trans; eauto.
+         do 2 (constructor; [assumption|]). constructor.
+       - split; hnf; auto. split; simpl; auto. apply H22. }
+  destruct H30. inv H21. clear H30. destruct H24 as [_ [_ ?]]. destruct H21 as [? _].
+  simpl in H21.
 Abort.

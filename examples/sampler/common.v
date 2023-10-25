@@ -367,14 +367,46 @@ Proof.
   induction H using custom_val_typ_ind; simpl; try constructor; try assumption.
 Qed.
 
+Lemma invalidate_fields_typ: forall {tags_t: Type} flds h fields,
+    forallb (fun fld => is_some (AList.get (clear_AList_tags fields) fld)) flds ->
+    ⊢ᵥ h \: @TypStruct tags_t fields ->
+    ⊢ᵥ invalidate_fields h flds \: @TypStruct tags_t fields.
+Proof.
+  intros ? ?. induction flds; simpl; intros; auto.
+  rewrite Reflect.andE in H. destruct H. apply IHflds; auto.
+  eapply invalidate_field_typ; eauto.
+Qed.
+
 Lemma sval_refine_invalidate_field: forall {tags_t: Type} h1 h2 fld fields,
     is_some (AList.get (clear_AList_tags fields) fld) ->
     ⊢ᵥ h1 \: @TypStruct tags_t fields ->
     sval_refine h1 h2 ->
-    sval_refine (invalidate_field h2 fld) (invalidate_field h2 fld).
+    sval_refine (invalidate_field h1 fld) (invalidate_field h2 fld).
 Proof.
-  intros. unfold invalidate_field. eapply update_sound; eauto.
-Abort.
+  intros. unfold invalidate_field. inv H0. inv H1. simpl.
+  remember (P4String.clear_AList_tags fields) as flds.
+  destruct (AList.get flds fld) eqn:?H. 2: discriminate. clear H.
+  pose proof (all_values_get_some_is_some' _ _ _ _ _ H5 H0).
+  destruct (AList.get vs fld) eqn:?H. 2: discriminate. clear H. simpl.
+  pose proof (all_values_get_some_is_some _ _ _ _ _ H2 H1).
+  destruct (AList.get kvs' fld) eqn:?H. 2: discriminate. clear H. simpl.
+  constructor. erewrite !AList.get_some_set; eauto. simpl.
+  eapply all_values_set_some_rel; [apply H2| eapply AList.get_some_set; eauto..|].
+  assert (sval_refine v v0) by (eapply all_values_get_some_rel; eauto).
+  induction H using custom_exec_val_ind; simpl; try constructor; try assumption. constructor.
+Qed.
+
+Lemma sval_refine_invalidate_fields: forall {tags_t: Type} flds h1 h2  fields,
+    forallb (fun fld => is_some (AList.get (clear_AList_tags fields) fld)) flds ->
+    ⊢ᵥ h1 \: @TypStruct tags_t fields ->
+    sval_refine h1 h2 ->
+    sval_refine (invalidate_fields h1 flds) (invalidate_fields h2 flds).
+Proof.
+  intros ? ?. induction flds; simpl; intros; auto.
+  rewrite Reflect.andE in H. destruct H. eapply IHflds; eauto.
+  - apply invalidate_field_typ; assumption.
+  - eapply sval_refine_invalidate_field; eauto.
+Qed.
 
 Lemma invalidate_fields_valid_only: forall {tags_t: Type} flds h fields,
     forallb (fun fld => is_some (AList.get (clear_AList_tags fields) fld)) flds ->
@@ -387,10 +419,10 @@ Proof.
   - rewrite Reflect.andE in H. destruct H.
     destruct (invalidate_field_valid_only _ _ _ H H0) as [mh ?H].
     assert (⊢ᵥ mh \: TypStruct fields). {
-      rewrite <- to_sval_valid_only_typ_inv in H0. eapply invalidate_field_typ in H0; eauto.
+      rewrite <- to_sval_valid_only_typ_iff in H0. eapply invalidate_field_typ in H0; eauto.
       apply val_sim_on_top, val_sim_sym in H2.
-      rewrite <- to_sval_valid_only_typ_inv. erewrite val_sim_typ_inv in H0; eauto. }
+      rewrite <- to_sval_valid_only_typ_iff. erewrite val_sim_prsv_typ in H0; eauto. }
     specialize (IHflds _ _ H1 H3). destruct IHflds as [vh ?H]. exists vh.
-    eapply sval_refine_trans; eauto.
-
-Abort.
+    eapply sval_refine_trans; eauto. eapply sval_refine_invalidate_fields; eauto.
+    rewrite to_sval_valid_only_typ_iff. assumption.
+Qed.
