@@ -42,6 +42,24 @@ Definition intr_tm_md_to_input_md (ig_intr_tm_md: Sval): InputMetadata Port :=
     (validityP4Bit_to_Z mcast_grp_a)
     (validityP4Bit_to_Z mcast_grp_b) 0 0 0.
 
-Definition tofino_tm {PT: Type} (ig_intr_tm_md: Sval) (packet: PT) :=
-  traffic_manager mcast_tbl excl_table
-    (intr_tm_md_to_input_md ig_intr_tm_md, packet).
+Definition output_md_to_egress_intr_md (md: OutputMetadata Port) : Val :=
+  ValBaseHeader
+    [("_pad0", P4BitV 7 0); ("egress_port", P4BitV 9 md.(out_meta_egress_port));
+     ("_pad1", P4BitV 5 0); ("enq_qdepth", P4BitV 19 0); ("_pad2", P4BitV 6 0);
+     ("enq_congest_stat", P4BitV 2 0); ("_pad3", P4BitV 14 0); ("enq_tstamp", P4BitV 18 0);
+     ("_pad4", P4BitV 5 0); ("deq_qdepth", P4BitV 19 0); ("_pad5", P4BitV 6 0);
+     ("deq_congest_stat", P4BitV 2 0); ("app_pool_congest_stat", P4BitV 8 0);
+     ("_pad6", P4BitV 14 0); ("deq_timedelta", P4BitV 18 0);
+     ("egress_rid", P4BitV 16 md.(out_meta_egress_rid)); ("_pad7", P4BitV 7 0);
+     ("egress_rid_first", P4BitV 1 0); ("_pad8", P4BitV 3 0); ("egress_qid", P4BitV 5 0);
+     ("_pad9", P4BitV 5 0); ("egress_cos", P4BitV 3 0); ("_pad10", P4BitV 7 0);
+     ("deflection_flag", P4BitV 1 0); ("pkt_length", P4BitV 16 0)] true.
+
+Definition encode_tm_output (elem: EgressPacketDescriptor Port packet) : packet :=
+  match elem with
+  | (md, pkt) => PacketFormat.encode (output_md_to_egress_intr_md md) ++ pkt
+  end.
+
+Definition tofino_tm (ig_intr_tm_md: Sval) (pkt: packet) :=
+  qmap encode_tm_output
+    (traffic_manager mcast_tbl excl_table (intr_tm_md_to_input_md ig_intr_tm_md, pkt)).
