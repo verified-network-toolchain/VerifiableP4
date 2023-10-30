@@ -402,15 +402,19 @@ Qed.
 Opaque ig_intr_tm_md.
 
 Lemma process_packet_ingress:
-  forall es es' pin pout for_tm counter que,
+  forall es es' pin pout for_tm counter,
     extern_contains es ["pipe"; "ingress"] counter ->
     ingress_pipeline
       inprsr_block ingress_block indeprsr_block parser_ingress_cond
       ingress_deprsr_cond ingress_tm_cond es pin es' pout for_tm ->
-    que = tofino_tm for_tm pout ->
-    qlength que = if (counter mod 1024 =? 0) then 2%nat else 1%nat.
+    extern_contains es' ["pipe"; "ingress"] (counter + 1) /\
+    sval_refine
+      (if counter mod 1024 =? 0
+       then update "mcast_grp_a" (P4Bit 16 COLLECTOR_MULTICAST_GROUP)
+              (update_outport OUT_PORT ig_intr_tm_md)
+       else update_outport OUT_PORT ig_intr_tm_md) for_tm.
 Proof.
-  intros es es' pin pout for_tm counter que Hext H Hq.
+  intros es es' pin pout for_tm counter Hext H.
   inversion H. subst. rename H8 into Htm. inv H1. rewrite get_packet in H16.
   inversion H16. subst pin0; clear H16. inv H18. inv H0. inv H1. inv H8.
   eapply (proj1 ingress_parser_body) in H22; eauto.
@@ -477,12 +481,25 @@ Proof.
        - split. 1: hnf; auto. hnf. split. 2: simpl; auto. simpl. assumption. }
   destruct H31. hnf in H6. inv H6. clear H31. destruct H8 as [_ [_ ?]].
   simpl in H6. hnf in H6. destruct H6 as [? _]. hnf in H6. rewrite H7 in H6. inv H6.
-  assert (extern_contains es' ["pipe"; "ingress"] (counter + 1)) by
-    (eapply extern_contains_trans; eauto). clear dependent counter0.
-  inv Htm. apply sampler_tofino_tm. assumption.
+  split.
+  - eapply extern_contains_trans; eauto.
+  - inv Htm. assumption.
 Qed.
 
 Transparent ig_intr_tm_md.
+
+Lemma process_packet_ingress_queue:
+  forall es es' pin pout for_tm counter que,
+    extern_contains es ["pipe"; "ingress"] counter ->
+    ingress_pipeline
+      inprsr_block ingress_block indeprsr_block parser_ingress_cond
+      ingress_deprsr_cond ingress_tm_cond es pin es' pout for_tm ->
+    que = tofino_tm for_tm pout ->
+    qlength que = if (counter mod 1024 =? 0) then 2%nat else 1%nat.
+Proof.
+  intros. eapply process_packet_ingress in H0; eauto. destruct H0. subst que.
+  apply sampler_tofino_tm. assumption.
+Qed.
 
 Inductive eprsr_block: programmable_block_sem :=
 | eprsr_block_intro:
@@ -694,44 +711,49 @@ Proof.
 Qed.
 
 Lemma process_packet_egress:
-  forall es es' pin pout,
+  forall es es' pin pout counter,
+    extern_contains es ["pipe"; "ingress"] counter ->
     egress_pipeline eprsr_block egress_block edeprsr_block parser_egress_cond
-      egress_deprsr_cond es pin es' pout -> False.
+      egress_deprsr_cond es pin es' pout ->
+    extern_contains es' ["pipe"; "ingress"] counter.
 Proof.
-  intros. inv H. inv H1. rewrite get_packet in H15. inversion H15. subst pin0. clear H15.
-  inv H17. inv H. inv H0. inv H1. eapply (proj1 egress_parser_body) in H21; eauto.
+  intros es es' pin pout counter Hct H.
+  inv H. inv H1. rewrite get_packet in H15. inversion H15. subst pin0. clear H15.
+  inv H17. inv H. inv H0. inv H1. rewrite !extern_contains_diff in H9 by discriminate.
+  assert (extern_contains s2 ["pipe"; "ingress"] counter). {
+    eapply extern_contains_trans; eauto. } clear dependent counter0.
+  eapply (proj1 egress_parser_body) in H21; eauto.
   2: { hnf. split. 1: constructor. hnf. split; hnf; simpl.
        - rewrite H14. split; auto. apply sval_refine_refl.
        - rewrite get_packet. intuition. }
-  destruct H21. hnf in H. inv H. inv H18. inv H20. clear H21.
-  destruct H0 as [_ [_ [H0 _]]]. hnf in H0. rewrite H0 in H2.
+  destruct H21. hnf in H0. inv H0. inv H18. inv H19. clear H20.
+  destruct H1 as [_ [_ [H1 _]]]. hnf in H1. rewrite H1 in H2.
   inv H2. inv H4. inv H3. assert (eg_intr_md0 = eval_val_to_sval eg_intr_md). {
-    apply exec_val_eval_val_to_sval_eq in H17; auto. intros. inv H. reflexivity. }
-  subst eg_intr_md0. clear H17. inv H26. inv H. inv H1. inv H2.
+    apply exec_val_eval_val_to_sval_eq in H17; auto. intros. inv H0. reflexivity. }
+  subst eg_intr_md0. clear H17. inv H25. inv H0. inv H2. inv H3.
   destruct (start_extract_result_hdr has_sample sample ether ipv4 result) as [h ?H].
   destruct (eg_intr_rep_exists _ H10) as [md ?H]. subst.
-  eapply (proj1 egress_body h eg_md1 md) in H27; eauto.
-  2: { split; [hnf | split; hnf; auto]. constructor; [rewrite <- H; assumption |].
+  eapply (proj1 egress_body h eg_md1 md) in H26; eauto.
+  2: { split; [hnf | split; hnf; auto]. constructor; [rewrite <- H0; assumption |].
        do 5 (constructor; [apply sval_refine_refl|]). constructor. }
-  destruct H27 as [? _]. hnf in H1. inv H1. inv H18. inv H20. inv H21. clear H22.
+  destruct H26 as [? _]. hnf in H2. inv H2. inv H18. inv H19. inv H20. clear H21.
   assert (extern_contains s3 ["pipe"; "ingress"] counter). {
     eapply extern_contains_trans; eauto. } clear dependent counter0.
-  inv H6. assert (extern_contains es' ["pipe"; "ingress"] counter). {
-    eapply extern_contains_trans; eauto. } clear dependent counter0.
-  inv H27. inv H5. inv H3. inv H6. inv H20.
+  inv H6. inv H26. inv H3. inv H4. inv H6. inv H21. inv H5.
   assert (⊢ᵥ common.hdr h \: header_sample_t). {
-    rewrite <- H. apply start_extract_result_typ; assumption. }
+    rewrite <- H0. apply start_extract_result_typ; assumption. }
   assert (exists vh, common.hdr h = val_to_sval_valid_only vh). {
-    rewrite <- H. apply start_extract_result_valid_only. assumption. }
+    rewrite <- H0. apply start_extract_result_valid_only. assumption. }
   destruct (conditional_update_ex_valid_only md _ H3 H5) as [hd ?H].
   assert (⊢ᵥ hd \: header_sample_t). {
     rewrite <- to_sval_valid_only_typ_iff. apply val_sim_on_top in H6.
     rewrite (val_sim_prsv_typ _ _ _ H6). apply conditional_update_typ. assumption. }
-  eapply (proj1 egress_deparser_body _ hd eg_md1 eg_intr_md_for_dprsr1) in H30; auto.
+  eapply (proj1 egress_deparser_body _ hd eg_md1 eg_intr_md_for_dprsr1) in H29; auto.
   2: { hnf. split.
        - constructor. eapply sval_refine_trans; eauto.
          do 2 (constructor; [assumption|]). constructor.
-       - split; hnf; auto. split; simpl; auto. apply H22. }
-  destruct H30. inv H21. clear H30. destruct H24 as [_ [_ ?]]. destruct H21 as [? _].
-  simpl in H21.
-Abort.
+       - split; hnf; auto. split; simpl; auto. apply H4. }
+  destruct H29. inv H20. clear H30. destruct H21 as [_ [_ ?]]. destruct H20 as [? _].
+  simpl in H20. assert (extern_contains es' ["pipe"; "ingress"] counter). {
+    eapply extern_contains_trans; eauto. } clear dependent counter0. assumption.
+Qed.
