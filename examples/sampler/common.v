@@ -426,3 +426,40 @@ Proof.
     eapply sval_refine_trans; eauto. eapply sval_refine_invalidate_fields; eauto.
     rewrite to_sval_valid_only_typ_iff. assumption.
 Qed.
+
+Definition encode_field (h: Val) (fld: ident): packet := encode (getv fld h).
+
+Lemma encode_struct_getv: forall {tags_t: Type} {fields h},
+    ⊢ᵥ h \: @TypStruct tags_t fields ->
+    encode h = flat_map (encode_field h) (map fst (clear_AList_tags fields)).
+Proof.
+  intros. inv H. unfold encode_field. simpl. rewrite flat_map_concat_map, map_map. f_equal.
+  rewrite <- key_unique_clear_AList_tags in H1. remember (clear_AList_tags fields) as flds.
+  clear Heqflds. revert H1. induction H3; intros; try reflexivity.
+  rewrite !map_cons. destruct x as [fx vx]. destruct y as [fld vy]. simpl in H |- *.
+  destruct H. subst fx. rewrite AList.get_eq_cons by reflexivity. simpl. f_equal.
+  simpl in H1. destruct (AList.get l' fld) eqn: ?. 1: discriminate.
+  rewrite IHForall2 by assumption. rewrite map_ext_in_iff. intros.
+  rewrite AList.get_neq_cons. 1: reflexivity. destruct a as [k v]. simpl in *. symmetry.
+  intro. pose proof (AList.get_in_not_none _ _ _ _ H2 H). contradiction.
+Qed.
+
+Lemma encode_field_updatev_eq: forall {tags_t: Type} fields f fv v,
+    ⊢ᵥ v \: @TypStruct tags_t fields ->
+    existsb (String.eqb f) (map fst (clear_AList_tags fields)) = true ->
+    encode_field (updatev f fv v) f = encode fv.
+Proof.
+  intros. inv H. unfold encode_field. simpl.
+  rewrite existsb_exists in H0. destruct H0 as [x []]. rewrite String.eqb_eq in H0.
+  subst x. apply AList.in_fst_get_some in H. destruct H.
+  pose proof (all_values_get_some_is_some' _ _ _ _ _ H4 H).
+  destruct (AList.get vs f) eqn: ?. 2: discriminate.
+  erewrite get_some_get_set_same; eauto.
+Qed.
+
+Lemma encode_field_updatev_neq: forall f1 f2 fv v,
+    f1 <> f2 -> encode_field (updatev f1 fv v) f2 = encode_field v f2.
+Proof.
+  intros. unfold encode_field; destruct v; simpl; try reflexivity.
+  all: rewrite get_set_diff; auto.
+Qed.

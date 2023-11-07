@@ -58,6 +58,14 @@ Definition get (f : ident) (sv : Sval) : Sval :=
   | _ => ValBaseNull
   end.
 
+Definition getv (f : ident) (v : Val) : Val :=
+  match v with
+  | ValBaseStruct fields
+  | ValBaseHeader fields _
+  | ValBaseUnion fields => force ValBaseNull (AList.get fields f)
+  | _ => ValBaseNull
+  end.
+
 Definition updatev (f : ident) (f_sv : Val) (sv : Val) : Val :=
   match sv with
   | ValBaseStruct fields =>
@@ -526,6 +534,71 @@ Lemma updatev_struct_typ: forall fld f_sv sv (typ: P4Type) fields,
 Proof.
   intros. inv H1. unfold update. constructor; auto.
   eapply all_values_val_typ_set; eauto.
+Qed.
+
+Lemma updatev_fld_diff_comm: forall fld1 fld2 fsv1 fsv2 v,
+    fld1 <> fld2 ->
+    updatev fld1 fsv1 (updatev fld2 fsv2 v) = updatev fld2 fsv2 (updatev fld1 fsv1 v).
+Proof.
+  intros.
+  assert (forall fields, force (force fields (AList.set fields fld2 fsv2))
+                      (AList.set (force fields (AList.set fields fld2 fsv2)) fld1 fsv1) =
+                      force (force fields (AList.set fields fld1 fsv1))
+                        (AList.set (force fields (AList.set fields fld1 fsv1)) fld2 fsv2)). {
+    intros. destruct (AList.get fields fld1) eqn:?; destruct (AList.get fields fld2) eqn:?.
+    - destruct (AListUtil.AList_get_some_split _ _ _ Heqo) as [k [l1 [l2 [? [? ?]]]]].
+      hnf in H0. symmetry in H0. subst.
+      rewrite (AListUtil.AList_set_app_cons_some l1 fld1 fld1); auto. 2: reflexivity. simpl.
+      destruct (AList.get l1 fld2) eqn:?.
+      + destruct (AListUtil.AList_get_some_split _ _ _ Heqo1) as [k [l3 [l4 [? [? ?]]]]].
+        hnf in H0. symmetry in H0. subst. rewrite <- !app_assoc, <- !app_comm_cons in *.
+        rewrite AList.get_app_none in Heqo0 by assumption.
+        rewrite AList.get_eq_cons in Heqo0 by reflexivity. inv Heqo0.
+        rewrite !AListUtil.AList_set_app_cons_some with (k2 := fld2); auto. 2,3: reflexivity.
+        simpl. rewrite app_comm_cons, app_assoc, AListUtil.AList_set_app_cons_some.
+        * simpl. rewrite <- app_assoc, <- app_comm_cons. reflexivity.
+        * reflexivity.
+        * apply AListUtil.AList_get_app_none_inv in H2. destruct H2.
+          apply AListUtil.AList_get_cons_none_inv in H1. destruct H1.
+          rewrite AList.get_app_none by assumption. rewrite AList.get_neq_cons; assumption.
+      + rewrite AList.get_app_none in Heqo0 by assumption.
+        rewrite AList.get_neq_cons in Heqo0 by (symmetry; apply H).
+        destruct (AListUtil.AList_get_some_split _ _ _ Heqo0) as [k [l3 [l4 [? [? ?]]]]].
+        hnf in H0. symmetry in H0. subst.
+        assert (forall fv, AList.get (l1 ++ (fld1, fv) :: l3) fld2 = None). {
+          intros. rewrite AList.get_app_none by assumption. rewrite AList.get_neq_cons; auto.
+          symmetry. apply H. }
+        rewrite !app_comm_cons, !app_assoc, !AListUtil.AList_set_app_cons_some; auto.
+        2, 3: reflexivity. simpl. rewrite <- !app_assoc, <- !app_comm_cons.
+        rewrite AListUtil.AList_set_app_cons_some; auto. reflexivity.
+    - rewrite (AList.get_none_set fields _ fsv2); auto. simpl.
+      rewrite !(AList.get_some_set fields _ v0 fsv1); auto. simpl.
+      rewrite (AList.get_none_set (AList.set_some _ _ _) fld2). 1: reflexivity.
+      rewrite <- Heqo0. apply AList.set_some_get_miss. apply H.
+    - rewrite (AList.get_none_set fields _ fsv1); auto. simpl.
+      rewrite (AList.get_some_set fields _ v0 fsv2); auto. simpl.
+      rewrite (AList.get_none_set (AList.set_some _ _ _) fld1). 1: reflexivity.
+      rewrite <- Heqo. apply AList.set_some_get_miss. symmetry. apply H.
+    - rewrite (AList.get_none_set fields _ fsv1); auto. simpl.
+      rewrite (AList.get_none_set fields _ fsv2); auto. simpl.
+      rewrite (AList.get_none_set fields _ fsv1); auto. }
+  destruct v; simpl; try reflexivity; f_equal; apply H0.
+Qed.
+
+Lemma updatev_fld_same: forall fld fsv1 fsv2 v,
+    updatev fld fsv1 (updatev fld fsv2 v) = updatev fld fsv1 v.
+Proof.
+  intros.
+  assert (forall fields, force (force fields (AList.set fields fld fsv2))
+                      (AList.set (force fields (AList.set fields fld fsv2)) fld fsv1) =
+                      force fields (AList.set fields fld fsv1)). {
+    intros. destruct (AList.get fields fld) eqn:?.
+    - destruct (AListUtil.AList_get_some_split _ _ _ Heqo) as [k [l1 [l2 [? [? ?]]]]].
+      hnf in H. symmetry in H. subst.
+      rewrite !AListUtil.AList_set_app_cons_some; auto. 2, 3: reflexivity. simpl.
+      rewrite AListUtil.AList_set_app_cons_some; auto. reflexivity.
+    - rewrite !AList.get_none_set; auto. }
+  destruct v; simpl; try reflexivity; f_equal; apply H.
 Qed.
 
 End Members.

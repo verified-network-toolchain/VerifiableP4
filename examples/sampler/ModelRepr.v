@@ -29,8 +29,8 @@ Qed.
 Definition bridge_repr (data: Z): ValueBase :=
   ValBaseHeader [("contains_sample", P4Bit 8 data)] (Some true).
 
-Definition bridge_reprv (data: Z): ValueBase :=
-  ValBaseHeader [("contains_sample", P4BitV 8 data)] true.
+Definition bridge_repr_val (has_sample: Z): ValueBase :=
+  ValBaseHeader [("contains_sample", P4BitV 8 has_sample)] true.
 
 Definition COLLECTOR_MAC: Z := 2.
 Definition MY_MAC: Z := 1.

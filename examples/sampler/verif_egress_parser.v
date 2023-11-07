@@ -234,9 +234,6 @@ Qed.
 Definition parser_start_fundef :=
   ltac:(get_fd ["SwitchEgressParser"; "start"] ge).
 
-Definition bridge_repr_val (has_sample: Z): Val :=
-  ValBaseHeader [("contains_sample", P4BitV 8 has_sample)] true.
-
 Lemma ext_val_typ_bridge: forall has_sample, ⊫ᵥ bridge_repr_val has_sample \: bridge_t.
 Proof. intros. split; [repeat constructor | reflexivity]. Qed.
 

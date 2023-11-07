@@ -302,3 +302,19 @@ Notation "⟨ n ⟩" := (unspecified n).
 Notation "⦃ b ? f1 | f2 ⦄" := (guarded b f1 f2).
 Notation "p ⫢ f" := (format_match f p) (at level 80, no associativity).
 Notation "'⊫ᵥ' v '\:' t" := (ext_val_typ v t) (at level 80, no associativity).
+
+Lemma format_match_singleton: forall p, p ⫢ [⦑ p ⦒].
+Proof.
+  intros. exists [p]. split.
+  - simpl. rewrite app_nil_r. reflexivity.
+  - repeat constructor.
+Qed.
+
+Lemma format_match_cons: forall p1 p2 f l,
+    match_one f p1 -> p2 ⫢ l -> p1 ++ p2 ⫢ f :: l.
+Proof. intros. rewrite format_match_cons_iff. exists p1, p2. split; auto. Qed.
+
+Lemma nil_format_match: [] ⫢ [].
+Proof. exists []. simpl. split; [reflexivity | constructor]. Qed.
+
+#[export] Hint Resolve nil_format_match: core.
