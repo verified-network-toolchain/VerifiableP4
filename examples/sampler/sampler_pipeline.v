@@ -65,8 +65,7 @@ Qed.
 Inductive inprsr_block: programmable_block_sem :=
 | inprsr_block_intro:
   forall inst_path m m' es es' fd (pin pin': packet_in) ver port stamp ether ipv4 result
-    hdr ig_md ig_intr_md signal counter,
-    extern_contains es ["pipe"; "ingress"] counter ->
+    hdr ig_md ig_intr_md signal,
     ⊫ᵥ iimt_repr_val 0 ver port stamp \: ingress_intrinsic_metadata_t ->
     (if is_tcp ipv4 then ⊫ᵥ result \: tcp_h else
       (if is_udp ipv4 then ⊫ᵥ result \: udp_h else result = ValBaseNull)) ->
@@ -80,7 +79,6 @@ Inductive inprsr_block: programmable_block_sem :=
     PathMap.get ["hdr"] m = Some (common.hdr hdr_init) ->
     PathMap.get ["packet_in"] es = Some (ObjPin pin) ->
     programmable_block ge inst_path "ingress_parser" fd ->
-    extern_contains es' ["pipe"; "ingress"] counter ->
     exec_func ge read_ndetbit inst_path (m, es) fd nil [] (m', es')
       [hdr; ig_md; ig_intr_md] signal ->
     inprsr_block es [] es' [hdr; ig_md; ig_intr_md] signal.
@@ -106,11 +104,8 @@ Inductive ingress_block: programmable_block_sem :=
 
 Inductive indeprsr_block: programmable_block_sem :=
 | indeprsr_block_intro:
-  forall inst_path m m' es es' fd hdr1 hdr2 ig_md ig_intr_dprsr_md signal counter,
-    PathMap.get ["packet_out"] es = Some (ObjPout []) ->
-    extern_contains es ["pipe"; "ingress"] counter ->
+  forall inst_path m m' es es' fd hdr1 hdr2 ig_md ig_intr_dprsr_md signal,
     programmable_block ge inst_path "ingress_deparser" fd ->
-    extern_contains es' ["pipe"; "ingress"] counter ->
     exec_func ge read_ndetbit inst_path (m, es) fd nil
       [hdr1; ig_md; ig_intr_dprsr_md] (m', es') [hdr2] signal ->
     indeprsr_block es [hdr1; ig_md; ig_intr_dprsr_md] es' [hdr2] signal.
@@ -135,7 +130,7 @@ Lemma get_packet: forall v1 v2 (es: extern_state),
     PathMap.get ["packet_in"]
       (PathMap.set ["packet_out"] v1 (PathMap.set ["packet_in"] v2 es)) = Some v2.
 Proof.
-  intros. rewrite PathMap.get_set_diff; [|intro HS; inversion HS].
+  intros. rewrite PathMap.get_set_diff; [| discriminate].
   rewrite PathMap.get_set_same. reflexivity.
 Qed.
 
@@ -391,47 +386,47 @@ Opaque ig_intr_tm_md ipv4_repr_val ethernet_repr_val bridge_repr_val sample_repr
 
 Definition empty_sample : sample_rec := Build_sample_rec 0 0 0 0 0 0.
 
+Definition ingress_counter (st: pipeline_state) (counter: Z) : Prop :=
+  extern_contains st.(control_state) ["pipe"; "ingress"] counter.
+
 Lemma process_packet_ingress:
-  forall es es' pin pout for_tm counter,
-    extern_contains es ["pipe"; "ingress"] counter ->
+  forall st st' pin pout for_tm counter,
+    ingress_counter st counter ->
     ingress_pipeline
       inprsr_block ingress_block indeprsr_block parser_ingress_cond
-      ingress_deprsr_cond ingress_tm_cond es pin es' pout for_tm ->
-    extern_contains es' ["pipe"; "ingress"] (counter + 1) /\
-    sval_refine
-      (if counter mod 1024 =? 0
-       then update "mcast_grp_a" (P4Bit 16 COLLECTOR_MULTICAST_GROUP)
-              (update_outport OUT_PORT ig_intr_tm_md)
-       else update_outport OUT_PORT ig_intr_tm_md) for_tm /\
-      (exists has_sample sample ether ipv4 result payload,
-          ((if is_tcp ipv4 then ⊫ᵥ result \: tcp_h
-            else if is_udp ipv4 then ⊫ᵥ result \: udp_h else result = ValBaseNull)) /\
-            P4BitV 16 (ethernet_ether_type ether) = P4BitV 16 ETHERTYPE_IPV4 /\
-            pout ⫢ [⦑ encode (bridge_repr_val has_sample) ⦒;
-                    ⦃ contains_sample has_sample ? ⦑ encode (sample_repr_val sample) ⦒ | ε ⦄;
-                    ⦑ encode (ethernet_repr_val ether) ⦒;
-                    ⦑ encode (ipv4_repr_val ipv4) ⦒;
-                    ⦃ is_tcp ipv4 ? ⦑ encode result ⦒ |
-                      ⦃ is_udp ipv4 ? ⦑ encode result ⦒ | ε ⦄ ⦄; ⦑ payload ⦒]).
+      ingress_deprsr_cond ingress_tm_cond st pin st' pout for_tm ->
+    ingress_counter st' (counter + 1) /\
+        sval_refine
+          (if counter mod 1024 =? 0
+           then update "mcast_grp_a" (P4Bit 16 COLLECTOR_MULTICAST_GROUP)
+                  (update_outport OUT_PORT ig_intr_tm_md)
+           else update_outport OUT_PORT ig_intr_tm_md) for_tm /\
+        (exists has_sample sample ether ipv4 result payload,
+            ((if is_tcp ipv4 then ⊫ᵥ result \: tcp_h
+              else if is_udp ipv4 then ⊫ᵥ result \: udp_h else result = ValBaseNull)) /\
+              P4BitV 16 (ethernet_ether_type ether) = P4BitV 16 ETHERTYPE_IPV4 /\
+              pout ⫢ [⦑ encode (bridge_repr_val has_sample) ⦒;
+                      ⦃ contains_sample has_sample ? ⦑ encode (sample_repr_val sample) ⦒| ε ⦄;
+                      ⦑ encode (ethernet_repr_val ether) ⦒;
+                      ⦑ encode (ipv4_repr_val ipv4) ⦒;
+                      ⦃ is_tcp ipv4 ? ⦑ encode result ⦒ |
+                        ⦃ is_udp ipv4 ? ⦑ encode result ⦒ | ε ⦄ ⦄; ⦑ payload ⦒]).
 Proof.
-  intros es es' pin pout for_tm counter Hext H.
-  inversion H. subst. rename H8 into Htm. inv H1. rewrite get_packet in H16.
-  inversion H16. subst pin0; clear H16. inv H18. inv H0. inv H1. inv H8.
-  eapply (proj1 ingress_parser_body) in H22; eauto.
+  intros st st' pin pout for_tm counter Hext H. unfold ingress_counter in Hext. simpl in Hext.
+  inversion H. subst. clear H.
+  inv H0. rewrite PathMap.get_set_same in H16. inversion H16. subst pin0; clear H16.
+  inv H18. inv H. inv H0. inv H8.
+  eapply (proj1 ingress_parser_body) in H20; eauto.
   2: { hnf. split. 1: constructor. hnf. split.
-       - hnf. simpl. rewrite H15. split; auto. apply sval_refine_refl.
-       - hnf. simpl. rewrite get_packet. intuition. }
-  destruct H22. hnf in H0. inv H0. inv H19. inv H21. clear H22.
-  destruct H1 as [_ [_ [H1 _]]]. hnf in H1. rewrite H1 in H2.
-  inv H2. inv H4. inv H3. inv H25. inv H0. inv H2. inv H3.
+       - hnf. simpl. rewrite H14. split; auto. apply sval_refine_refl.
+       - hnf. simpl. rewrite PathMap.get_set_same. intuition. }
+  destruct H20. hnf in H. inv H. inv H18. inv H19. clear H20.
+  destruct H0 as [_ [_ [H0 _]]]. hnf in H0. rewrite H0 in H1.
+  inv H1. inv H3. inv H2. inv H23. inv H. inv H1. inv H2.
   destruct (ethernet_extract_result_hdr ether ipv4 result) as
-    [ethernet [tcp [udp [ip4 ?H]]]]. rewrite H0 in H17.
-  rewrite !extern_contains_diff in H10 by discriminate.
-  assert (extern_contains s2 ["pipe"; "ingress"] counter). {
-    eapply extern_contains_trans; eauto. } clear dependent counter0.
-  rename Hext into H10. rename H2 into H20.
+    [ethernet [tcp [udp [ip4 ?H]]]]. rewrite H in H16.
   eapply (proj1 ingress_body counter ethernet
-            tcp udp ip4) in H26; eauto.
+            tcp udp ip4) in H24; eauto.
   2: { split.
        - hnf. do 2 (constructor; [assumption |]).
          constructor.
@@ -442,20 +437,20 @@ Proof.
          constructor; [apply sval_refine_refl | constructor].
        - split. hnf. auto. hnf. split. 2: simpl; auto.
          rewrite <- counter_iff. assumption. }
-  destruct H26. hnf in H2. inv H2. inv H22. inv H23. inv H24. clear H25.
-  destruct H3 as [_ [_ [H3 _]]]. rewrite <- counter_iff in H3.
-  inv H6. inv H5. inv H28. inv H2. inv H4. inv H5.
+  destruct H24. hnf in H1. inv H1. inv H20. inv H21. inv H22. clear H23.
+  destruct H2 as [_ [_ [H2 _]]]. rewrite <- counter_iff in H2.
+  inv H5. inv H4. inv H25. inv H1. inv H3. inv H4.
   remember (if counter mod 1024 =? 0
             then update_hdr ethernet tcp udp ip4 (counter + 1)
             else hdr ethernet tcp udp ip4) as igrs_hdr.
   assert (⊢ᵥ hdr ethernet tcp udp ip4 \: header_sample_t). {
-    rewrite <- H0. apply ethernet_extract_result_typ; assumption. }
+    rewrite <- H. apply ethernet_extract_result_typ; assumption. }
   assert (⊢ᵥ igrs_hdr \: header_sample_t). {
     subst igrs_hdr. destruct (counter mod 1024 =? 0); [|assumption].
     unfold update_hdr.
     apply update_struct_typ with sample_t; [reflexivity | repeat constructor |].
     apply update_struct_typ with bridge_t; [reflexivity | repeat constructor |].
-    apply H2. }
+    apply H1. }
   assert (Hv: exists h, igrs_hdr = val_to_sval_valid_only h /\
                      h = let orig_h :=
                            (let ieh :=
@@ -472,12 +467,12 @@ Proof.
                                  (P4BitV 32 (ipv4_dst_addr ip4))
                                  (counter + 1)) (updatev "bridge" (bridge_repr_val 1) orig_h))
                          else orig_h). {
-    pose proof (ethernet_extract_result_valid_only_vb ether _ _ H12).
-    rewrite H0 in H5. destruct H5 as [orig_h [? ?]]. subst igrs_hdr.
+    pose proof (ethernet_extract_result_valid_only_vb ether _ _ H11).
+    rewrite H in H4. destruct H4 as [orig_h [? ?]]. subst igrs_hdr.
     destruct (counter mod 1024 =? 0). 2: (exists orig_h; split; assumption).
-    rewrite <- H6. unfold update_hdr.
+    rewrite <- H5. unfold update_hdr.
     assert (⊢ᵥ orig_h \: header_sample_t). {
-      apply to_sval_valid_only_typ_iff. rewrite H5 in H2. assumption. }
+      apply to_sval_valid_only_typ_iff. rewrite H4 in H1. assumption. }
     assert (⊢ᵥ updatev "bridge" (bridge_repr_val 1) orig_h \: header_sample_t). {
       Transparent bridge_repr_val.
       eapply updatev_struct_typ; eauto; [reflexivity | repeat constructor].
@@ -487,21 +482,22 @@ Proof.
                 (P4BitV 32 (ipv4_dst_addr ip4))
                 (counter + 1)) (updatev "bridge" (bridge_repr_val 1) orig_h)).
     erewrite !update_struct_valid_only; eauto; [|reflexivity..].
-    rewrite H5. split; reflexivity. } destruct Hv as [h [Hv Heqh]].
+    rewrite H4. split; reflexivity. } destruct Hv as [h [Hv Heqh]].
   assert (⊢ᵥ h \: header_sample_t). {
-    apply to_sval_valid_only_typ_iff. rewrite Hv in H4; assumption. }
-  eapply (proj1 ingress_deparser_body [] h) in H31; eauto.
+    apply to_sval_valid_only_typ_iff. rewrite Hv in H3; assumption. }
+  eapply (proj1 ingress_deparser_body [] h) in H26; eauto.
   2: { split.
        - hnf. constructor.
          apply sval_refine_trans with igrs_hdr;
            [rewrite Hv; apply sval_refine_refl | assumption].
-         constructor. apply H9. constructor. apply H21. constructor.
-       - split. 1: hnf; auto. hnf. split. 2: simpl; auto. simpl. assumption. }
-  destruct H31. hnf in H6. inversion H6. subst x l y l'. clear H6 H31.
-  destruct H8 as [_ [_ ?]]. simpl in H6. hnf in H6. destruct H6 as [? _]. hnf in H6.
-  rewrite H7 in H6. inversion H6. subst pout0. clear H6. split; [|split].
-  - eapply extern_contains_trans; eauto.
-  - inv Htm. assumption.
+         constructor. apply H9. constructor. apply H19. constructor.
+       - split. 1: hnf; auto. hnf. split. 2: simpl; auto. simpl.
+         rewrite PathMap.get_set_same. reflexivity. }
+  destruct H26. hnf in H5. inversion H5. subst x l y l'. clear H5 H26.
+  destruct H8 as [_ [_ ?]]. simpl in H5. hnf in H5. destruct H5 as [? _]. hnf in H5.
+  rewrite H6 in H5. inversion H5. subst pout0. clear H5. split; [|split].
+  - apply H2.
+  - inv H7. assumption.
   - destruct (counter mod 1024 =? 0).
     + exists 1, (Build_sample_rec COLLECTOR_MAC MY_MAC SAMPLE_ETYPE (ipv4_src_addr ip4)
               (ipv4_dst_addr ip4) (counter + 1)), ether, ipv4, result, payload.
@@ -547,23 +543,22 @@ Qed.
 Transparent ig_intr_tm_md ipv4_repr_val ethernet_repr_val bridge_repr_val sample_repr_val.
 
 Lemma process_packet_ingress_queue:
-  forall es es' pin pout for_tm counter que,
-    extern_contains es ["pipe"; "ingress"] counter ->
+  forall st st' pin pout for_tm counter que,
+    ingress_counter st counter ->
     ingress_pipeline
       inprsr_block ingress_block indeprsr_block parser_ingress_cond
-      ingress_deprsr_cond ingress_tm_cond es pin es' pout for_tm ->
+      ingress_deprsr_cond ingress_tm_cond st pin st' pout for_tm ->
     que = tofino_tm for_tm pout ->
     qlength que = if (counter mod 1024 =? 0) then 2%nat else 1%nat.
 Proof.
-  intros. eapply process_packet_ingress in H0; eauto. destruct H0 as [? [? ?]]. subst que.
-  apply sampler_tofino_tm. assumption.
+  intros. eapply process_packet_ingress in H0; eauto. destruct H0 as [? [? _]].
+  subst que. apply sampler_tofino_tm. assumption.
 Qed.
 
 Inductive eprsr_block: programmable_block_sem :=
 | eprsr_block_intro:
   forall inst_path m m' es es' fd (pin pin': packet_in) eg_intr_md has_sample sample
-    ether ipv4 result hdr eg_md intr_md signal counter,
-    extern_contains es ["pipe"; "ingress"] counter ->
+    ether ipv4 result hdr eg_md intr_md signal,
     ⊫ᵥ eg_intr_md \: egress_intrinsic_metadata_t ->
     (if is_tcp ipv4 then ⊫ᵥ result \: tcp_h
      else if is_udp ipv4 then ⊫ᵥ result \: udp_h else result = ValBaseNull) ->
@@ -578,7 +573,6 @@ Inductive eprsr_block: programmable_block_sem :=
     PathMap.get ["hdr"] m = Some (common.hdr hdr_init) ->
     PathMap.get ["packet_in"] es = Some (ObjPin pin) ->
     programmable_block ge inst_path "egress_parser" fd ->
-    extern_contains es' ["pipe"; "ingress"] counter ->
     exec_func ge read_ndetbit inst_path (m, es) fd nil [] (m', es')
       [hdr; eg_md; intr_md] signal ->
     eprsr_block es [] es' [hdr; eg_md; intr_md] signal.
@@ -587,15 +581,13 @@ Inductive egress_block: programmable_block_sem :=
 | egress_block_intro:
   forall inst_path m m' es es' fd hsample hdr1 hdr2 eg_md1 eg_md2 eg_intr_md
     eg_intr_from_prsr eg_intr_md_for_dprsr1 eg_intr_md_for_dprsr2
-    eg_intr_md_for_oport1 eg_intr_md_for_oport2 signal counter,
+    eg_intr_md_for_oport1 eg_intr_md_for_oport2 signal,
     PathMap.get ["hdr"] m = Some (common.hdr hsample) ->
-    extern_contains es ["pipe"; "ingress"] counter ->
     programmable_block ge inst_path "egress" fd ->
     exec_func ge read_ndetbit inst_path (m, es) fd nil
       [hdr1; eg_md1; eg_intr_md; eg_intr_from_prsr;
        eg_intr_md_for_dprsr1; eg_intr_md_for_oport1]
       (m', es') [hdr2; eg_md2; eg_intr_md_for_dprsr2; eg_intr_md_for_oport2] signal ->
-    extern_contains es' ["pipe"; "ingress"] counter ->
     egress_block es
       [hdr1; eg_md1; eg_intr_md; eg_intr_from_prsr;
        eg_intr_md_for_dprsr1; eg_intr_md_for_oport1]
@@ -603,11 +595,8 @@ Inductive egress_block: programmable_block_sem :=
 
 Inductive edeprsr_block: programmable_block_sem :=
 | edeprsr_block_intro:
-  forall inst_path m m' es es' fd hdr1 hdr2 eg_md eg_intr_dprsr_md signal counter,
-    PathMap.get ["packet_out"] es = Some (ObjPout []) ->
-    extern_contains es ["pipe"; "ingress"] counter ->
+  forall inst_path m m' es es' fd hdr1 hdr2 eg_md eg_intr_dprsr_md signal,
     programmable_block ge inst_path "egress_deparser" fd ->
-    extern_contains es' ["pipe"; "ingress"] counter ->
     exec_func ge read_ndetbit inst_path (m, es) fd nil
       [hdr1; eg_md; eg_intr_dprsr_md] (m', es') [hdr2] signal ->
     edeprsr_block es [hdr1; eg_md; eg_intr_dprsr_md] es' [hdr2] signal.
@@ -769,49 +758,66 @@ Proof.
 Qed.
 
 Lemma process_packet_egress:
-  forall es es' pin pout counter,
-    extern_contains es ["pipe"; "ingress"] counter ->
+  forall st st' pin pout,
     egress_pipeline eprsr_block egress_block edeprsr_block parser_egress_cond
-      egress_deprsr_cond es pin es' pout ->
-    extern_contains es' ["pipe"; "ingress"] counter.
+      egress_deprsr_cond st pin st' pout -> exists hd payload, pout = encode hd ++ payload.
 Proof.
-  intros es es' pin pout counter Hct H.
-  inv H. inv H1. rewrite get_packet in H15. inversion H15. subst pin0. clear H15.
-  inv H17. inv H. inv H0. inv H1. rewrite !extern_contains_diff in H9 by discriminate.
-  assert (extern_contains s2 ["pipe"; "ingress"] counter). {
-    eapply extern_contains_trans; eauto. } clear dependent counter0.
-  eapply (proj1 egress_parser_body) in H21; eauto.
+  intros. inv H. inv H0. rewrite PathMap.get_set_same in H15. inversion H15. subst pin0.
+  clear H15. inv H17. inv H. inv H0. inv H7.
+  eapply (proj1 egress_parser_body) in H19; eauto.
   2: { hnf. split. 1: constructor. hnf. split; hnf; simpl.
-       - rewrite H14. split; auto. apply sval_refine_refl.
-       - rewrite get_packet. intuition. }
-  destruct H21. hnf in H0. inv H0. inv H18. inv H19. clear H20.
-  destruct H1 as [_ [_ [H1 _]]]. hnf in H1. rewrite H1 in H2.
-  inv H2. inv H4. inv H3. assert (eg_intr_md0 = eval_val_to_sval eg_intr_md). {
-    apply exec_val_eval_val_to_sval_eq in H17; auto. intros. inv H0. reflexivity. }
-  subst eg_intr_md0. clear H17. inv H25. inv H0. inv H2. inv H3.
+       - rewrite H13. split; auto. apply sval_refine_refl.
+       - rewrite PathMap.get_set_same. intuition. }
+  destruct H19. hnf in H. inv H. inv H17. inv H18. clear H19.
+  destruct H0 as [_ [_ [H0 _]]]. hnf in H0. rewrite H0 in H1.
+  inv H1. inv H3. inv H2. assert (eg_intr_md0 = eval_val_to_sval eg_intr_md). {
+    apply exec_val_eval_val_to_sval_eq in H16; auto. intros. inv H. reflexivity. }
+  subst eg_intr_md0. clear H16. inv H23. inv H. inv H1. inv H2.
   destruct (start_extract_result_hdr has_sample sample ether ipv4 result) as [h ?H].
-  destruct (eg_intr_rep_exists _ H10) as [md ?H]. subst.
-  eapply (proj1 egress_body h eg_md1 md) in H26; eauto.
-  2: { split; [hnf | split; hnf; auto]. constructor; [rewrite <- H0; assumption |].
+  destruct (eg_intr_rep_exists _ H9) as [md ?H]. subst.
+  eapply (proj1 egress_body h eg_md1 md) in H24; eauto.
+  2: { split; [hnf | split; hnf; auto]. constructor; [rewrite <- H; assumption |].
        do 5 (constructor; [apply sval_refine_refl|]). constructor. }
-  destruct H26 as [? _]. hnf in H2. inv H2. inv H18. inv H19. inv H20. clear H21.
-  assert (extern_contains s3 ["pipe"; "ingress"] counter). {
-    eapply extern_contains_trans; eauto. } clear dependent counter0.
-  inv H6. inv H26. inv H3. inv H4. inv H6. inv H21. inv H5.
+  destruct H24 as [? _]. hnf in H1. inv H1. inv H17. inv H18. inv H19. clear H20.
+  inv H5. inv H4. inv H23. inv H1. inv H2. inv H3.
   assert (⊢ᵥ common.hdr h \: header_sample_t). {
-    rewrite <- H0. apply start_extract_result_typ; assumption. }
+    rewrite <- H. apply start_extract_result_typ; assumption. }
   assert (exists vh, common.hdr h = val_to_sval_valid_only vh). {
-    rewrite <- H0. apply start_extract_result_valid_only. assumption. }
-  destruct (conditional_update_ex_valid_only md _ H3 H5) as [hd ?H].
+    rewrite <- H. apply start_extract_result_valid_only. assumption. }
+  destruct (conditional_update_ex_valid_only md _ H1 H2) as [hd ?H].
   assert (⊢ᵥ hd \: header_sample_t). {
-    rewrite <- to_sval_valid_only_typ_iff. apply val_sim_on_top in H6.
-    rewrite (val_sim_prsv_typ _ _ _ H6). apply conditional_update_typ. assumption. }
-  eapply (proj1 egress_deparser_body _ hd eg_md1 eg_intr_md_for_dprsr1) in H29; auto.
+    rewrite <- to_sval_valid_only_typ_iff. apply val_sim_on_top in H3.
+    rewrite (val_sim_prsv_typ _ _ _ H3). apply conditional_update_typ. assumption. }
+  eapply (proj1 egress_deparser_body _ hd eg_md1 eg_intr_md_for_dprsr1) in H24; eauto.
   2: { hnf. split.
        - constructor. eapply sval_refine_trans; eauto.
          do 2 (constructor; [assumption|]). constructor.
-       - split; hnf; auto. split; simpl; auto. apply H4. }
-  destruct H29. inv H20. clear H30. destruct H21 as [_ [_ ?]]. destruct H20 as [? _].
-  simpl in H20. assert (extern_contains es' ["pipe"; "ingress"] counter). {
-    eapply extern_contains_trans; eauto. } clear dependent counter0. assumption.
+       - split; hnf; auto. split; simpl; auto. rewrite PathMap.get_set_same; reflexivity. }
+  destruct H24. inv H5. clear H25. destruct H18 as [_ [_ ?]]. destruct H5 as [? _].
+  simpl in H5. change (@extern_object Info (@Expression Info)
+                         (@extern_sem Info (@Expression Info) target)) with
+    (@object (@Expression Info)) in H6. rewrite H6 in H5. inv H5. exists hd, payload. reflexivity.
+Qed.
+
+Lemma process_egress_packets_queue: forall est1 q1 est2 q2,
+  process_egress_packets
+    (egress_pipeline eprsr_block egress_block edeprsr_block parser_egress_cond
+       egress_deprsr_cond) est1 q1 est2 q2 -> qlength q1 = qlength q2.
+Proof.
+  intros. induction H. reflexivity.
+  rewrite !qlength_enque. rewrite IHprocess_egress_packets. reflexivity.
+Qed.
+
+Lemma process_ingress_packets_counter: forall inst1 inst2 q1 q2 counter,
+    ingress_counter inst1 counter ->
+    process_ingress_packets
+      (ingress_pipeline inprsr_block ingress_block indeprsr_block parser_ingress_cond
+         ingress_deprsr_cond ingress_tm_cond) tofino_tm inst1 q1 inst2 q2 ->
+    ingress_counter inst2 (counter + Z.of_nat (qlength q1)).
+Proof.
+  intros. revert H. induction H0; intros.
+  - simpl. rewrite Z.add_0_r. assumption.
+  - apply IHprocess_ingress_packets in H1.
+    eapply process_packet_ingress in H; eauto. destruct H as [? _].
+    rewrite qlength_enque, Nat2Z.inj_succ, <- Z.add_1_r, Z.add_assoc. assumption.
 Qed.
