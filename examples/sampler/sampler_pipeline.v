@@ -821,3 +821,66 @@ Proof.
     eapply process_packet_ingress in H; eauto. destruct H as [? _].
     rewrite qlength_enque, Nat2Z.inj_succ, <- Z.add_1_r, Z.add_assoc. assumption.
 Qed.
+
+Opaque Nat.div Z.to_nat Nat.modulo Z.of_nat Nat.mul.
+
+(* possible if we change the program: n + (m + n)/1024 *)
+(* 1025 1023 *)
+
+Lemma process_ingress_packets_queue: forall inst1 inst2 q1 q2 counter,
+    ingress_counter inst1 counter ->
+    process_ingress_packets
+      (ingress_pipeline inprsr_block ingress_block indeprsr_block parser_ingress_cond
+         ingress_deprsr_cond ingress_tm_cond) tofino_tm inst1 q1 inst2 q2 ->
+    qlength q2 = if (qlength q1 =? O)%nat then O
+                 else (qlength q1 + ((Z.to_nat counter mod 1024 + qlength q1 - 1) / 1024) +
+                         Nat.b2n (Z.to_nat counter mod 1024 =? 0))%nat.
+Proof.
+  (* intros. remember (qlength q1) as n. remember (Z.to_nat counter mod 1024)%nat as m. *)
+  intros. assert (Hlt: 0 <= counter) by (destruct H; assumption).
+  assert (Hm: forall z, 0 <= z -> (z mod 1024 =? 0) = (Z.to_nat z mod 1024 =? 0)%nat). {
+    intros. change 1024%nat with (Z.to_nat 1024). rewrite <- Z2Nat.inj_mod; [|assumption | lia].
+    assert (0 <= z mod 1024) by (apply Z.mod_pos_bound; lia).
+    destruct (z mod 1024); simpl; [reflexivity | | lia].
+    rewrite Z2Nat.inj_pos. symmetry. rewrite Nat.eqb_neq. lia. }
+  revert H. induction H0; intros.
+  - simpl. reflexivity.
+  - rewrite qlength_enque. simpl.
+    specialize (IHprocess_ingress_packets H1). rewrite qlength_concat.
+    rewrite IHprocess_ingress_packets. assert (Hs: forall a b, (a + S b - 1 = a + b)%nat) by lia.
+    destruct (qlength ps =? 0)%nat eqn:?.
+    + rewrite Nat.eqb_eq in Heqb. rewrite Heqb.
+      destruct ps. 2: simpl in Heqb; discriminate.
+      destruct ps'. 2: simpl in IHprocess_ingress_packets; discriminate.
+      inv H0. 2: destruct ps; simpl in H2; discriminate.
+      rewrite (process_packet_ingress_queue _ _ _ _ _ _ _ H1 H eq_refl).
+      simpl. rewrite Hs, Nat.add_0_r, Nat.div_small by
+        (apply Nat.mod_upper_bound; discriminate). simpl.
+      specialize (Hm _ Hlt). rewrite <- Hm. destruct (counter mod 1024 =? 0); reflexivity.
+    + assert (ingress_counter st2 (counter + Z.of_nat (qlength ps))). {
+        eapply process_ingress_packets_counter; eauto. }
+      rewrite (process_packet_ingress_queue _ _ _ _ _ _ _ H2 H eq_refl).
+      remember (qlength ps). remember (Nat.b2n (Z.to_nat counter mod 1024 =? 0)%nat) as m.
+      destruct n as [|n]. 1: rewrite Nat.eqb_neq in Heqb; contradiction.
+      rewrite !Hs. simpl. f_equal.
+      rewrite <- (Nat.add_1_r (n + (Z.to_nat counter mod 1024 + S n) / 1024 + m)).
+      rewrite <- !Nat.add_assoc. f_equal. rewrite !Nat.add_assoc.
+      rewrite !Nat.add_comm with (m := m). rewrite <- !Nat.add_assoc. f_equal.
+      rewrite <- (Nat.add_1_r n). rewrite Hm, Z2Nat.inj_add, Nat2Z.id by lia.
+      remember (Z.to_nat counter) as ct. clear -Hs.
+      pose proof (Nat.div_mod ct 1024 ltac:(lia)).
+      remember (ct mod 1024)%nat as m. remember (ct / 1024)%nat as q. clear Heqm Heqq. subst.
+      rewrite Nat.mul_comm, <- Nat.add_assoc, Nat.add_comm with (m := (m + (n + 1))%nat).
+      rewrite Nat.mod_add by discriminate. rewrite Nat.add_assoc.
+      remember (m + n)%nat as a. clear -Hs. pose proof (Nat.div_mod (a + 1) 1024 ltac:(lia)).
+      remember ((a + 1) / 1024)%nat as n.
+      pose proof (Nat.mod_upper_bound (a + 1) 1024 ltac:(lia)) as Hlt.
+      remember ((a + 1) mod 1024)%nat as r. clear -H Hs Hlt.
+      assert (a = 1024 * n + r - 1)%nat by lia. rewrite H0. destruct r; simpl.
+      * destruct n. 1: rewrite Nat.mul_0_r, Nat.add_1_r in H; discriminate.
+        rewrite Nat.add_0_r, Nat.mul_succ_r, <- Nat.add_sub_assoc by lia. simpl.
+        rewrite Nat.mul_comm, Nat.add_comm with (m := 1023%nat), Nat.div_add by lia.
+        rewrite Nat.div_small; lia.
+      * rewrite Hs. rewrite Nat.mul_comm, Nat.add_comm with (m := r), Nat.div_add by lia.
+        rewrite Nat.div_small; lia.
+Qed.
