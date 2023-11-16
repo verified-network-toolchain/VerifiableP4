@@ -158,11 +158,11 @@ Definition tbl_sample_spec : func_spec :=
       POST
         (EX retv,
         (ARG_RET [] retv
-        (MEM [(["hdr"], if (num_pkts mod 1024 =? 1) then
+        (MEM [(["hdr"], if (num_pkts mod 1024 =? 0) then
                              update_hdr ethernet tcp udp ipv4 num_pkts
                            else hdr ethernet tcp udp ipv4);
               (* (["ig_md"], ig_md num_pkts); *)
-              (["ig_intr_tm_md"], if (num_pkts mod 1024 =? 1) then
+              (["ig_intr_tm_md"], if (num_pkts mod 1024 =? 0) then
                                     update "mcast_grp_a" (P4Bit 16 COLLECTOR_MULTICAST_GROUP) ig_intr_tm_md
                                   else ig_intr_tm_md)]
         (EXT []))))%arg_ret_assr.
@@ -281,16 +281,16 @@ Lemma tbl_sample_body:
   func_sound ge tbl_sample_fd nil tbl_sample_spec.
 Proof.
   start_function; elim_trivial_cases; simpl fst; simpl snd.
-  - assert (num_pkts mod 1024 = 1) as Hm. {
-      rewrite <- table_match_helper_1_mod.
+  - assert (num_pkts mod 1024 = 0) as Hm. {
+      rewrite <- table_match_helper_0_mod.
       unfold values_match_mask. simpl.
       cbv - [Bool.eqb Z.odd Z.div Z.modulo]. easy. } clear H. simpl.
     rewrite <- Z.eqb_eq in Hm. rewrite Hm.
     table_action act_sample_body.
     + entailer.
     + entailer.
-  - assert (num_pkts mod 1024 <> 1) as Hm. {
-      intro. rewrite <- table_match_helper_1_mod in H1.
+  - assert (num_pkts mod 1024 <> 0) as Hm. {
+      intro. rewrite <- table_match_helper_0_mod in H1.
       unfold values_match_mask in H1. simpl in H1.
       cbv - [Bool.eqb Z.odd Z.div Z.modulo] in H1. rewrite H1 in H. easy. }
     rewrite <- Z.eqb_neq in Hm. rewrite Hm.
@@ -319,12 +319,12 @@ Definition ingress_spec : func_spec :=
         (MEM []
         (EXT [counter_repr p counter])))
       POST
-        (ARG_RET [if (counter mod 1024 =? 0) then
+        (ARG_RET [if ((counter + 1) mod  1024 =? 0) then
                     update_hdr ethernet tcp udp ipv4 (counter + 1)
                   else hdr ethernet tcp udp ipv4;
                   ValBaseStruct [("num_pkts", P4Bit 32 (counter + 1))];
                   force ValBaseNull (uninit_sval_of_typ None ingress_intrinsic_metadata_for_deparser_t);
-                  if (counter mod 1024 =? 0) then
+                  if ((counter + 1) mod 1024 =? 0) then
                     update "mcast_grp_a" (P4Bit 16 COLLECTOR_MULTICAST_GROUP)
                       (update_outport OUT_PORT tm_md)
                   else update_outport OUT_PORT tm_md
@@ -360,6 +360,6 @@ Proof.
     - rewrite Z.eqb_eq in Hp. rewrite Z.eqb_neq in Hm.
       rewrite <- mod_0_iff_plus1_mod_1 in Hp by lia. contradiction. }
   entailer.
-  - rewrite Hm. simpl. apply sval_refine_refl.
-  - rewrite Hm. simpl. apply sval_refine_refl.
+  (* - rewrite Hm. simpl. apply sval_refine_refl. *)
+  (* - rewrite Hm. simpl. apply sval_refine_refl. *)
 Qed.

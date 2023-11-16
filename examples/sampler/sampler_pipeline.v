@@ -330,15 +330,15 @@ Qed.
 Lemma sampler_tofino_tm:
   forall (for_tm : Sval) (counter : Z) (pkt : packet),
     sval_refine
-      (if counter mod 1024 =? 0
+      (if (counter + 1) mod 1024 =? 0
        then
          update "mcast_grp_a" (P4Bit 16 COLLECTOR_MULTICAST_GROUP)
            (update_outport OUT_PORT ig_intr_tm_md)
        else update_outport OUT_PORT ig_intr_tm_md) for_tm ->
     qlength (tofino_tm for_tm pkt) =
-      (if counter mod 1024 =? 0 then 2 else 1).
+      (if (counter + 1) mod 1024 =? 0 then 2 else 1).
 Proof.
-  intros. unfold update_outport in H. destruct (counter mod 1024 =? 0).
+  intros. unfold update_outport in H. destruct ((counter + 1) mod 1024 =? 0).
   - assert (intr_tm_md_to_input_md for_tm =
               Build_InputMetadata (Some OUT_PORT)
                 (Some COLLECTOR_MULTICAST_GROUP) None 0 0 0). {
@@ -397,7 +397,7 @@ Lemma process_packet_ingress:
       ingress_deprsr_cond ingress_tm_cond st pin st' pout for_tm ->
     ingress_counter st' (counter + 1) /\
         sval_refine
-          (if counter mod 1024 =? 0
+          (if (counter + 1) mod 1024 =? 0
            then update "mcast_grp_a" (P4Bit 16 COLLECTOR_MULTICAST_GROUP)
                   (update_outport OUT_PORT ig_intr_tm_md)
            else update_outport OUT_PORT ig_intr_tm_md) for_tm /\
@@ -440,13 +440,13 @@ Proof.
   destruct H24. hnf in H1. inv H1. inv H20. inv H21. inv H22. clear H23.
   destruct H2 as [_ [_ [H2 _]]]. rewrite <- counter_iff in H2.
   inv H5. inv H4. inv H25. inv H1. inv H3. inv H4.
-  remember (if counter mod 1024 =? 0
+  remember (if (counter + 1) mod 1024 =? 0
             then update_hdr ethernet tcp udp ip4 (counter + 1)
             else hdr ethernet tcp udp ip4) as igrs_hdr.
   assert (⊢ᵥ hdr ethernet tcp udp ip4 \: header_sample_t). {
     rewrite <- H. apply ethernet_extract_result_typ; assumption. }
   assert (⊢ᵥ igrs_hdr \: header_sample_t). {
-    subst igrs_hdr. destruct (counter mod 1024 =? 0); [|assumption].
+    subst igrs_hdr. destruct ((counter + 1) mod 1024 =? 0); [|assumption].
     unfold update_hdr.
     apply update_struct_typ with sample_t; [reflexivity | repeat constructor |].
     apply update_struct_typ with bridge_t; [reflexivity | repeat constructor |].
@@ -461,7 +461,7 @@ Proof.
                             if is_tcp ipv4
                             then updatev "tcp" result ieh
                             else if is_udp ipv4 then updatev "udp" result ieh else ieh) in
-                         if counter mod 1024 =? 0 then
+                         if (counter + 1) mod 1024 =? 0 then
                            (updatev "sample"
                               (sample_reprv (P4BitV 32 (ipv4_src_addr ip4))
                                  (P4BitV 32 (ipv4_dst_addr ip4))
@@ -469,7 +469,7 @@ Proof.
                          else orig_h). {
     pose proof (ethernet_extract_result_valid_only_vb ether _ _ H11).
     rewrite H in H4. destruct H4 as [orig_h [? ?]]. subst igrs_hdr.
-    destruct (counter mod 1024 =? 0). 2: (exists orig_h; split; assumption).
+    destruct ((counter + 1) mod 1024 =? 0). 2: (exists orig_h; split; assumption).
     rewrite <- H5. unfold update_hdr.
     assert (⊢ᵥ orig_h \: header_sample_t). {
       apply to_sval_valid_only_typ_iff. rewrite H4 in H1. assumption. }
@@ -498,7 +498,7 @@ Proof.
   rewrite H6 in H5. inversion H5. subst pout0. clear H5. split; [|split].
   - apply H2.
   - inv H7. assumption.
-  - destruct (counter mod 1024 =? 0).
+  - destruct ((counter + 1) mod 1024 =? 0).
     + exists 1, (Build_sample_rec COLLECTOR_MAC MY_MAC SAMPLE_ETYPE (ipv4_src_addr ip4)
               (ipv4_dst_addr ip4) (counter + 1)), ether, ipv4, result, payload.
       split; auto. split; auto.
@@ -549,7 +549,7 @@ Lemma process_packet_ingress_queue:
       inprsr_block ingress_block indeprsr_block parser_ingress_cond
       ingress_deprsr_cond ingress_tm_cond st pin st' pout for_tm ->
     que = tofino_tm for_tm pout ->
-    qlength que = if (counter mod 1024 =? 0) then 2 else 1.
+    qlength que = if ((counter + 1) mod 1024 =? 0) then 2 else 1.
 Proof.
   intros. eapply process_packet_ingress in H0; eauto. destruct H0 as [? [? _]].
   subst que. apply sampler_tofino_tm. assumption.
@@ -825,16 +825,55 @@ Qed.
 (* possible if we change the program: n + (m + n)/1024 *)
 (* 1025 1023 *)
 
+Definition test counter n :=
+   (if n =? 0
+   then 0
+    else n + ((counter + 1) mod 1024 + n - 1) / 1024 + Z.b2z ((counter + 1) mod 1024 =? 0)) -
+     (n + ((counter) mod 1024 + n) / 1024).
+
+Eval vm_compute in map (fun n => map (test n) [0;1;2; 1023; 1024; 1025])
+                     [0; 1; 2; 1023; 1024; 1025].
+
 Lemma process_ingress_packets_queue: forall inst1 inst2 q1 q2 counter,
     ingress_counter inst1 counter ->
     process_ingress_packets
       (ingress_pipeline inprsr_block ingress_block indeprsr_block parser_ingress_cond
          ingress_deprsr_cond ingress_tm_cond) tofino_tm inst1 q1 inst2 q2 ->
-    qlength q2 = if qlength q1 =? 0 then 0
-                 else qlength q1 + ((counter mod 1024 + qlength q1 - 1) / 1024) +
-                        Z.b2z (counter mod 1024 =? 0).
+    qlength q2 = qlength q1 + (counter mod 1024 + qlength q1) / 1024.
 Proof.
-  (* intros. remember (qlength q1) as n. remember (Z.to_nat counter mod 1024)%nat as m. *)
+  intros. assert (Hlt: 0 <= counter) by (destruct H; assumption).
+  revert H. induction H0; intros.
+  - simpl. rewrite Z.add_0_r, Z.div_small; auto. apply Z.mod_pos_bound. lia.
+  - specialize (IHprocess_ingress_packets H1).
+    rewrite qlength_concat, IHprocess_ingress_packets, qlength_enque.
+    assert (ingress_counter st2 (counter + qlength ps)). {
+        eapply process_ingress_packets_counter; eauto. }
+    rewrite (process_packet_ingress_queue _ _ _ _ _ _ _ H2 H eq_refl).
+    rewrite <- !Z.add_assoc. f_equal. rewrite !Z.add_assoc.
+    remember (qlength ps) as n. pose proof (qlength_nonneg ps). rewrite <- Heqn in H3.
+    clear -Hlt H3. pose proof (Z.div_mod counter 1024 ltac:(lia)).
+    remember (counter / 1024) as q. remember (counter mod 1024) as m. rewrite H.
+    replace (1024 * q + m + n + 1) with ((m + n + 1) + q * 1024) by lia.
+    rewrite Z_mod_plus_full.
+    pose proof (Z.mod_pos_bound counter 1024 ltac:(lia)). rewrite <- Heqm in H0.
+    assert (0 <= m + n) by lia. remember (m + n) as a. clear -H1.
+    pose proof (Z.div_mod (a + 1) 1024 ltac:(lia)). remember ((a + 1) mod 1024) as r.
+    remember ((a + 1) / 1024) as q. replace a with (r - 1 + q * 1024) by lia.
+    rewrite Z.div_add by lia. pose proof (Z.mod_pos_bound (a + 1) 1024 ltac:(lia)).
+    rewrite <- Heqr in H0. clear -H0. destruct (r =? 0) eqn:?H.
+    + rewrite Z.eqb_eq in H. subst. replace ((0 - 1) / 1024) with (-1) by reflexivity. lia.
+    + rewrite Z.eqb_neq in H. rewrite Z.div_small by lia. lia.
+Qed.
+
+Lemma process_ingress_packets_queue_ugly: forall inst1 inst2 q1 q2 counter,
+    ingress_counter inst1 counter ->
+    process_ingress_packets
+      (ingress_pipeline inprsr_block ingress_block indeprsr_block parser_ingress_cond
+         ingress_deprsr_cond ingress_tm_cond) tofino_tm inst1 q1 inst2 q2 ->
+    qlength q2 = if qlength q1 =? 0 then 0 else
+                   qlength q1 + ((counter + 1) mod 1024 + qlength q1 - 1) / 1024 +
+                     Z.b2z ((counter + 1) mod 1024 =? 0).
+Proof.
   intros. assert (Hlt: 0 <= counter) by (destruct H; assumption).
   revert H. induction H0; intros. 1: simpl; reflexivity.
   rewrite qlength_enque. assert (qlength ps + 1 =? 0 = false). {
@@ -847,18 +886,21 @@ Proof.
     inv H0. 2: destruct ps; simpl in H2; discriminate.
     rewrite (process_packet_ingress_queue _ _ _ _ _ _ _ H1 H eq_refl).
     rewrite Z.add_0_r, Z.div_small by (apply Z.mod_pos_bound; lia).
-    destruct (counter mod 1024 =? 0); simpl; reflexivity.
+    destruct ((counter + 1) mod 1024 =? 0); simpl; reflexivity.
   - assert (ingress_counter st2 (counter + qlength ps)). {
         eapply process_ingress_packets_counter; eauto. }
     rewrite (process_packet_ingress_queue _ _ _ _ _ _ _ H2 H eq_refl).
     remember (qlength ps) as n.
-    cut ((counter mod 1024 + (n - 1))/1024 + (if (counter + n) mod 1024 =? 0 then 2 else 1) =
-           1 + (counter mod 1024 + n) / 1024). 1: intros; lia. rewrite Z.eqb_neq in Heqb.
+    cut (((counter + 1) mod 1024 + (n - 1))/1024 +
+           (if (counter + n + 1) mod 1024 =? 0 then 2 else 1) =
+           1 + ((counter + 1) mod 1024 + n) / 1024). 1: intros; lia.
+    rewrite Z.eqb_neq in Heqb.
     pose proof (qlength_nonneg ps). rewrite <- Heqn in H3. assert (1 <= n) by lia.
-    clear -Hlt H4. pose proof (Z.div_mod counter 1024 ltac:(lia)).
-    remember (counter / 1024) as q. remember (counter mod 1024) as m. rewrite H.
+    clear -Hlt H4. pose proof (Z.div_mod (counter + 1) 1024 ltac:(lia)).
+    remember ((counter + 1) / 1024) as q. remember ((counter + 1) mod 1024) as m.
+    replace (counter + n + 1) with (counter + 1 + n) by lia. rewrite H.
     replace (1024 * q + m + n) with ((m + n) + q * 1024) by lia. rewrite Z_mod_plus_full.
-    pose proof (Z.mod_pos_bound counter 1024 ltac:(lia)). rewrite <- Heqm in H0.
+    pose proof (Z.mod_pos_bound (counter + 1) 1024 ltac:(lia)). rewrite <- Heqm in H0.
     rewrite Z.add_sub_assoc. assert (0 <= m + n - 1) by lia.
     remember (m + n - 1) as a. replace (m + n) with (a + 1) by lia. clear -H1.
     pose proof (Z.div_mod (a + 1) 1024 ltac:(lia)). remember ((a + 1) mod 1024) as r.

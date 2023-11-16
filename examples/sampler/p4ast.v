@@ -3918,7 +3918,7 @@ Definition SwitchIngress := DeclControl NoInfo
                        (MatchMask
                         (MkExpression NoInfo
                              (ExpInt
-                              {| itags := NoInfo; value := 1;
+                              {| itags := NoInfo; value := 0;
                                  width_signed := (Some ( 32%N, false )) |})
                              (TypBit 32%N) Directionless) (MkExpression
                                                                NoInfo

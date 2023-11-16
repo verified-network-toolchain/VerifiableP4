@@ -112,7 +112,7 @@ control SwitchIngress(inout header_sample_t hdr,
             NoAction;
         }
         const entries = {
-            32w0x00000001 &&& 32w0x000003FF : act_sample();
+            32w0x00000000 &&& 32w0x000003FF : act_sample();
             _ : NoAction();
         }
 
