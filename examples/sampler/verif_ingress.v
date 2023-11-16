@@ -232,7 +232,29 @@ Proof.
       rewrite <- Z.pow_add_r by lia. apply Hm. lia.
 Qed.
 
-Lemma table_match_helper: forall v,
+Lemma table_match_helper_0_mod: forall v,
+    values_match_mask
+      (ValBaseBit (P4Arith.to_lbool 32 v))
+      (ValBaseBit (P4Arith.to_lbool 32 0x000))
+      (ValBaseBit (P4Arith.to_lbool 32 0x3FF)) <->
+      v mod 1024 = 0.
+Proof.
+  intros. unfold values_match_mask. simpl.
+  rewrite !Z.div_div by lia. simpl.
+  unfold is_true. rewrite !Bool.andb_true_iff, !Bool.eqb_true_iff.
+  change 2 with (2 ^ 1). change 4 with (2 ^ 2). change 8 with (2 ^ 3).
+  change 16 with (2 ^ 4). change 32 with (2 ^ 5). change 64 with (2 ^ 6).
+  change 128 with (2 ^ 7). change 256 with (2 ^ 8). change 512 with (2 ^ 9).
+  change 1024 with (2 ^ 10). rewrite mod_2_pow_0_less_iff by lia.
+  assert (Hv: v = v / 2 ^ 0) by (simpl; rewrite Z.div_1_r; reflexivity). split; intros.
+  - repeat match goal with | [H: _ /\ _ |- _] => destruct H end. clear H11.
+    rewrite Z.le_lteq in H0. destruct H0 as [Hlo |]. 2: subst; rewrite <- Hv; assumption.
+    do 9 (apply Ztac.Zlt_le_add_1 in Hlo; simpl in Hlo; rewrite Z.le_lteq in Hlo;
+          destruct Hlo as [Hlo | Hlo]; [| now rewrite <- Hlo]). lia.
+  - rewrite Hv at 10. repeat (rewrite H; only 2: lia). tauto.
+Qed.
+
+Lemma table_match_helper_1_mod: forall v,
     values_match_mask
       (ValBaseBit (P4Arith.to_lbool 32 v))
       (ValBaseBit (P4Arith.to_lbool 32 0x001))
@@ -260,7 +282,7 @@ Lemma tbl_sample_body:
 Proof.
   start_function; elim_trivial_cases; simpl fst; simpl snd.
   - assert (num_pkts mod 1024 = 1) as Hm. {
-      rewrite <- table_match_helper.
+      rewrite <- table_match_helper_1_mod.
       unfold values_match_mask. simpl.
       cbv - [Bool.eqb Z.odd Z.div Z.modulo]. easy. } clear H. simpl.
     rewrite <- Z.eqb_eq in Hm. rewrite Hm.
@@ -268,7 +290,7 @@ Proof.
     + entailer.
     + entailer.
   - assert (num_pkts mod 1024 <> 1) as Hm. {
-      intro. rewrite <- table_match_helper in H1.
+      intro. rewrite <- table_match_helper_1_mod in H1.
       unfold values_match_mask in H1. simpl in H1.
       cbv - [Bool.eqb Z.odd Z.div Z.modulo] in H1. rewrite H1 in H. easy. }
     rewrite <- Z.eqb_neq in Hm. rewrite Hm.
