@@ -14,37 +14,6 @@ Notation Val := (@ValueBase bool).
 Notation Sval := (@ValueBase (option bool)).
 Notation Val_eqb := (val_eqb Bool.eqb).
 
-Lemma extract_encode: forall {tags_t: Type} (typ: @P4Type tags_t) (val: Val) pkt,
-    ext_val_typ val typ  ->
-    is_packet_typ typ = true ->
-    Tofino.extract typ (encode val ++ pkt) = Some (val, SReturnNull, pkt).
-Proof. intros. unfold Tofino.extract. rewrite extract_encode_raw; auto. Qed.
-
-Lemma emit_encode: forall {tags_t: Type} (typ: @P4Type tags_t) (val: Val) pkt,
-    ⊢ᵥ val \: typ  ->
-    is_packet_typ typ = true ->
-    Tofino.emit val pkt = (inl (app pkt (encode val)), app pkt (encode val)).
-Proof.
-  intros. unfold Tofino.emit. simpl.
-  unfold ExceptionState.get_state, Packet.packet_bind, ExceptionState.state_bind.
-  erewrite emit_encode_raw; eauto.
-Qed.
-
-Lemma Val_eqb_eq_iff: forall (v1 v2: Val), Val_eqb v1 v2 = true <-> v1 = v2.
-Proof.
-  intros. split; intros.
-  - apply val_eqb_eq in H; auto. intros. apply Bool.eqb_prop; auto.
-  - subst. apply val_eqb_refl. exact Bool.eqb_reflx.
-Qed.
-
-Lemma Val_eqb_neq_iff: forall (v1 v2: Val), Val_eqb v1 v2 = false <-> v1 <> v2.
-Proof.
-  intros. split; intros.
-  - intro. rewrite <- Val_eqb_eq_iff, H in H0. discriminate.
-  - rewrite <- Bool.not_true_iff_false. intro. rewrite Val_eqb_eq_iff in H0.
-    apply H. assumption.
-Qed.
-
 Definition am_ge := ltac:(get_am_ge prog).
 Definition ge := ltac:(get_ge am_ge prog).
 
@@ -57,51 +26,6 @@ Definition udp_h: P4Type := ltac:(get_type "udp_h" ge).
 Definition ipv4_h: P4Type := ltac:(get_type "ipv4_h" ge).
 Definition ethernet_h: P4Type := ltac:(get_type "ethernet_h" ge).
 Definition MeterColor_t: P4Type := ltac:(get_type "MeterColor_t" ge).
-
-Definition IP_PROTOCOLS_TCP: Z := 6.
-Definition IP_PROTOCOLS_UDP: Z := 17.
-
-Record ipv4_rec := {
-    ipv4_version: Z;
-    ipv4_ihl: Z;
-    ipv4_diffserv: Z;
-    ipv4_total_len: Z;
-    ipv4_identification: Z;
-    ipv4_flags: Z;
-    ipv4_frag_offset: Z;
-    ipv4_ttl: Z;
-    ipv4_protocol: Z;
-    ipv4_hdr_checksum: Z;
-    ipv4_src_addr: Z;
-    ipv4_dst_addr: Z;
-  }.
-
-Definition ipv4_repr_val (ipv4: ipv4_rec): Val :=
-  ValBaseHeader
-    [("version", P4BitV 4 (ipv4_version ipv4));
-     ("ihl", P4BitV 4 (ipv4_ihl ipv4));
-     ("diffserv", P4BitV 8 (ipv4_diffserv ipv4));
-     ("total_len", P4BitV 16 (ipv4_total_len ipv4));
-     ("identification", P4BitV 16 (ipv4_identification ipv4));
-     ("flags", P4BitV 3 (ipv4_flags ipv4));
-     ("frag_offset", P4BitV 13 (ipv4_frag_offset ipv4));
-     ("ttl", P4BitV 8 (ipv4_ttl ipv4));
-     ("protocol", P4BitV 8 (ipv4_protocol ipv4));
-     ("hdr_checksum", P4BitV 16 (ipv4_hdr_checksum ipv4));
-     ("src_addr", P4BitV 32 (ipv4_src_addr ipv4));
-     ("dst_addr", P4BitV 32 (ipv4_dst_addr ipv4))] true.
-
-Definition is_tcp ipv4: bool :=
-  Val_eqb (P4BitV 8 (ipv4_protocol ipv4)) (P4BitV 8 IP_PROTOCOLS_TCP).
-
-Definition is_udp ipv4: bool :=
-  Val_eqb (P4BitV 8 (ipv4_protocol ipv4)) (P4BitV 8 IP_PROTOCOLS_UDP).
-
-Definition protocol_extract_result
-  (ipv4: ipv4_rec) (result: Val) (header: Sval): Sval :=
-  if is_tcp ipv4 then update "tcp" (eval_val_to_sval result) header
-  else if is_udp ipv4 then update "udp" (eval_val_to_sval result) header
-       else header.
 
 Record header_sample_rec := {
     header_sample_bridge: Sval;
@@ -148,53 +72,6 @@ Proof.
   Opaque P4BitV. simpl get. Transparent P4BitV. unfold abs_eq.
   unfold build_abs_binary_op. rewrite !eval_sval_to_val_eq. reflexivity.
 Qed.
-
-Lemma is_sval_true_binary_op_eq: forall v1 v2,
-  is_sval_true
-    (eval_val_to_sval (force ValBaseNull (Ops.eval_binary_op Eq v1 v2))) ->
-  Val_eqb v1 v2 = true.
-Proof.
-  intros. unfold Ops.eval_binary_op in H.
-  remember (Ops.eval_binary_op_eq _ _).
-  destruct o eqn:?H; simpl in H; [destruct b|]; [|exfalso; auto..].
-  symmetry in Heqo. apply Ops.eval_binary_op_eq_eq in Heqo.
-  rewrite <- Val_eqb_eq_iff in Heqo. assumption.
-Qed.
-
-Lemma is_sval_false_binary_op_eq: forall v1 v2,
-  is_sval_false
-    (eval_val_to_sval (force ValBaseNull (Ops.eval_binary_op Eq v1 v2))) ->
-  Val_eqb v1 v2 = false.
-Proof.
-  intros. unfold Ops.eval_binary_op in H.
-  remember (Ops.eval_binary_op_eq _ _).
-  destruct o eqn:?H; simpl in H; [destruct b|]. 1, 3: exfalso; assumption.
-  symmetry in Heqo. apply Ops.eval_binary_op_neq_neq in Heqo.
-  rewrite <- Val_eqb_eq_iff in Heqo. apply Bool.not_true_is_false in Heqo.
-  assumption.
-Qed.
-
-Record ethernet_rec := {
-    ethernet_dst_addr: Z;
-    ethernet_src_addr: Z;
-    ethernet_ether_type: Z;
-  }.
-
-Definition ethernet_repr_val (ether: ethernet_rec) : Val :=
-  ValBaseHeader
-    [("dst_addr", P4BitV 48 (ethernet_dst_addr ether));
-     ("src_addr", P4BitV 48 (ethernet_src_addr ether));
-     ("ether_type", P4BitV 16 (ethernet_ether_type ether))] true.
-
-Definition ethernet_extract_result
-  (header: Sval) (ether: ethernet_rec) (ipv4: ipv4_rec)
-  (result: Val): Sval :=
-  protocol_extract_result ipv4 result
-    (update "ipv4" (eval_val_to_sval (ipv4_repr_val ipv4))
-       (update "ethernet" (eval_val_to_sval (ethernet_repr_val ether))
-          header)).
-
-Definition ETHERTYPE_IPV4: Z := 0x800.
 
 Lemma abs_ether_eq_eq: forall ether hsample w v,
     abs_eq

@@ -854,7 +854,7 @@ Definition MathUnit := DeclExternObject NoInfo
     [{| stags := NoInfo; str := "T30" |}]
     [(ProtoConstructor NoInfo {| stags := NoInfo; str := "MathUnit" |}
           [(MkParameter false Directionless
-                (TypTypeName {| stags := NoInfo; str := "MathOp_t" |}) 
+                (TypTypeName {| stags := NoInfo; str := "MathOp_t" |})
                 None {| stags := NoInfo; str := "op" |});
            (MkParameter false Directionless TypInteger None
                 {| stags := NoInfo; str := "A" |});
@@ -862,7 +862,7 @@ Definition MathUnit := DeclExternObject NoInfo
                 {| stags := NoInfo; str := "B" |})]);
      (ProtoConstructor NoInfo {| stags := NoInfo; str := "MathUnit" |}
           [(MkParameter false Directionless
-                (TypTypeName {| stags := NoInfo; str := "MathOp_t" |}) 
+                (TypTypeName {| stags := NoInfo; str := "MathOp_t" |})
                 None {| stags := NoInfo; str := "op" |});
            (MkParameter false Directionless TypInteger None
                 {| stags := NoInfo; str := "factor" |})]);
@@ -1050,14 +1050,14 @@ Definition Mirror := DeclExternObject NoInfo
      (ProtoMethod NoInfo TypVoid {| stags := NoInfo; str := "emit" |}
           [{| stags := NoInfo; str := "T35" |}]
           [(MkParameter false In
-                (TypTypeName {| stags := NoInfo; str := "MirrorId_t" |}) 
+                (TypTypeName {| stags := NoInfo; str := "MirrorId_t" |})
                 None {| stags := NoInfo; str := "session_id" |});
            (MkParameter false In
                 (TypTypeName {| stags := NoInfo; str := "T35" |}) None
                 {| stags := NoInfo; str := "hdr" |})]);
      (ProtoMethod NoInfo TypVoid {| stags := NoInfo; str := "emit" |} nil
           [(MkParameter false In
-                (TypTypeName {| stags := NoInfo; str := "MirrorId_t" |}) 
+                (TypTypeName {| stags := NoInfo; str := "MirrorId_t" |})
                 None {| stags := NoInfo; str := "session_id" |})])].
 
 Definition Resubmit := DeclExternObject NoInfo
@@ -1118,7 +1118,7 @@ Definition IngressParserT := DeclParserType NoInfo
           None {| stags := NoInfo; str := "ig_md" |});
      (MkParameter true Out
           (TypTypeName
-           {| stags := NoInfo; str := "ingress_intrinsic_metadata_t" |}) 
+           {| stags := NoInfo; str := "ingress_intrinsic_metadata_t" |})
           None {| stags := NoInfo; str := "ig_intr_md" |});
      (MkParameter true Out
           (TypTypeName
@@ -1144,7 +1144,7 @@ Definition EgressParserT := DeclParserType NoInfo
           None {| stags := NoInfo; str := "eg_md" |});
      (MkParameter true Out
           (TypTypeName
-           {| stags := NoInfo; str := "egress_intrinsic_metadata_t" |}) 
+           {| stags := NoInfo; str := "egress_intrinsic_metadata_t" |})
           None {| stags := NoInfo; str := "eg_intr_md" |});
      (MkParameter true Out
           (TypTypeName
@@ -1164,7 +1164,7 @@ Definition IngressT := DeclControlType NoInfo
           {| stags := NoInfo; str := "ig_md" |});
      (MkParameter true In
           (TypTypeName
-           {| stags := NoInfo; str := "ingress_intrinsic_metadata_t" |}) 
+           {| stags := NoInfo; str := "ingress_intrinsic_metadata_t" |})
           None {| stags := NoInfo; str := "ig_intr_md" |});
      (MkParameter true In
           (TypTypeName
@@ -1174,7 +1174,7 @@ Definition IngressT := DeclControlType NoInfo
      (MkParameter true InOut
           (TypTypeName
            {| stags := NoInfo;
-              str := "ingress_intrinsic_metadata_for_deparser_t" |}) 
+              str := "ingress_intrinsic_metadata_for_deparser_t" |})
           None {| stags := NoInfo; str := "ig_intr_md_for_dprsr" |});
      (MkParameter true InOut
           (TypTypeName
@@ -1194,7 +1194,7 @@ Definition EgressT := DeclControlType NoInfo
           {| stags := NoInfo; str := "eg_md" |});
      (MkParameter true In
           (TypTypeName
-           {| stags := NoInfo; str := "egress_intrinsic_metadata_t" |}) 
+           {| stags := NoInfo; str := "egress_intrinsic_metadata_t" |})
           None {| stags := NoInfo; str := "eg_intr_md" |});
      (MkParameter true In
           (TypTypeName
@@ -1209,7 +1209,7 @@ Definition EgressT := DeclControlType NoInfo
      (MkParameter true InOut
           (TypTypeName
            {| stags := NoInfo;
-              str := "egress_intrinsic_metadata_for_output_port_t" |}) 
+              str := "egress_intrinsic_metadata_for_output_port_t" |})
           None {| stags := NoInfo; str := "eg_intr_md_for_oport" |})].
 
 Definition IngressDeparserT := DeclControlType NoInfo
@@ -1227,11 +1227,11 @@ Definition IngressDeparserT := DeclControlType NoInfo
      (MkParameter true In
           (TypTypeName
            {| stags := NoInfo;
-              str := "ingress_intrinsic_metadata_for_deparser_t" |}) 
+              str := "ingress_intrinsic_metadata_for_deparser_t" |})
           None {| stags := NoInfo; str := "ig_intr_md_for_dprsr" |});
      (MkParameter true In
           (TypTypeName
-           {| stags := NoInfo; str := "ingress_intrinsic_metadata_t" |}) 
+           {| stags := NoInfo; str := "ingress_intrinsic_metadata_t" |})
           None {| stags := NoInfo; str := "ig_intr_md" |})].
 
 Definition EgressDeparserT := DeclControlType NoInfo
@@ -1253,7 +1253,7 @@ Definition EgressDeparserT := DeclControlType NoInfo
           {| stags := NoInfo; str := "eg_intr_md_for_dprsr" |});
      (MkParameter true In
           (TypTypeName
-           {| stags := NoInfo; str := "egress_intrinsic_metadata_t" |}) 
+           {| stags := NoInfo; str := "egress_intrinsic_metadata_t" |})
           None {| stags := NoInfo; str := "eg_intr_md" |});
      (MkParameter true In
           (TypTypeName
@@ -1589,37 +1589,37 @@ Definition MultiParserPipeline := DeclPackageType NoInfo
           (TypSpecializedType
                (TypTypeName {| stags := NoInfo; str := "IngressParsers" |})
                [(TypTypeName {| stags := NoInfo; str := "IH53" |});
-                (TypTypeName {| stags := NoInfo; str := "IM54" |})]) 
+                (TypTypeName {| stags := NoInfo; str := "IM54" |})])
           None {| stags := NoInfo; str := "ig_prsr" |});
      (MkParameter false Directionless
           (TypSpecializedType
                (TypTypeName {| stags := NoInfo; str := "IngressT" |})
                [(TypTypeName {| stags := NoInfo; str := "IH53" |});
-                (TypTypeName {| stags := NoInfo; str := "IM54" |})]) 
+                (TypTypeName {| stags := NoInfo; str := "IM54" |})])
           None {| stags := NoInfo; str := "ingress" |});
      (MkParameter false Directionless
           (TypSpecializedType
                (TypTypeName {| stags := NoInfo; str := "IngressDeparserT" |})
                [(TypTypeName {| stags := NoInfo; str := "IH53" |});
-                (TypTypeName {| stags := NoInfo; str := "IM54" |})]) 
+                (TypTypeName {| stags := NoInfo; str := "IM54" |})])
           None {| stags := NoInfo; str := "ingress_deparser" |});
      (MkParameter false Directionless
           (TypSpecializedType
                (TypTypeName {| stags := NoInfo; str := "EgressParsers" |})
                [(TypTypeName {| stags := NoInfo; str := "EH55" |});
-                (TypTypeName {| stags := NoInfo; str := "EM56" |})]) 
+                (TypTypeName {| stags := NoInfo; str := "EM56" |})])
           None {| stags := NoInfo; str := "eg_prsr" |});
      (MkParameter false Directionless
           (TypSpecializedType
                (TypTypeName {| stags := NoInfo; str := "EgressT" |})
                [(TypTypeName {| stags := NoInfo; str := "EH55" |});
-                (TypTypeName {| stags := NoInfo; str := "EM56" |})]) 
+                (TypTypeName {| stags := NoInfo; str := "EM56" |})])
           None {| stags := NoInfo; str := "egress" |});
      (MkParameter false Directionless
           (TypSpecializedType
                (TypTypeName {| stags := NoInfo; str := "EgressDeparserT" |})
                [(TypTypeName {| stags := NoInfo; str := "EH55" |});
-                (TypTypeName {| stags := NoInfo; str := "EM56" |})]) 
+                (TypTypeName {| stags := NoInfo; str := "EM56" |})])
           None {| stags := NoInfo; str := "egress_deparser" |})].
 
 Definition MultiParserSwitch := DeclPackageType NoInfo
@@ -1647,7 +1647,7 @@ Definition MultiParserSwitch := DeclPackageType NoInfo
                [(TypTypeName {| stags := NoInfo; str := "IH057" |});
                 (TypTypeName {| stags := NoInfo; str := "IM058" |});
                 (TypTypeName {| stags := NoInfo; str := "EH059" |});
-                (TypTypeName {| stags := NoInfo; str := "EM060" |})]) 
+                (TypTypeName {| stags := NoInfo; str := "EM060" |})])
           None {| stags := NoInfo; str := "pipe0" |});
      (MkParameter true Directionless
           (TypSpecializedType
@@ -1656,7 +1656,7 @@ Definition MultiParserSwitch := DeclPackageType NoInfo
                [(TypTypeName {| stags := NoInfo; str := "IH161" |});
                 (TypTypeName {| stags := NoInfo; str := "IM162" |});
                 (TypTypeName {| stags := NoInfo; str := "EH163" |});
-                (TypTypeName {| stags := NoInfo; str := "EM164" |})]) 
+                (TypTypeName {| stags := NoInfo; str := "EM164" |})])
           None {| stags := NoInfo; str := "pipe1" |});
      (MkParameter true Directionless
           (TypSpecializedType
@@ -1665,7 +1665,7 @@ Definition MultiParserSwitch := DeclPackageType NoInfo
                [(TypTypeName {| stags := NoInfo; str := "IH265" |});
                 (TypTypeName {| stags := NoInfo; str := "IM266" |});
                 (TypTypeName {| stags := NoInfo; str := "EH267" |});
-                (TypTypeName {| stags := NoInfo; str := "EM268" |})]) 
+                (TypTypeName {| stags := NoInfo; str := "EM268" |})])
           None {| stags := NoInfo; str := "pipe2" |});
      (MkParameter true Directionless
           (TypSpecializedType
@@ -1674,7 +1674,7 @@ Definition MultiParserSwitch := DeclPackageType NoInfo
                [(TypTypeName {| stags := NoInfo; str := "IH369" |});
                 (TypTypeName {| stags := NoInfo; str := "IM370" |});
                 (TypTypeName {| stags := NoInfo; str := "EH371" |});
-                (TypTypeName {| stags := NoInfo; str := "EM372" |})]) 
+                (TypTypeName {| stags := NoInfo; str := "EM372" |})])
           None {| stags := NoInfo; str := "pipe3" |})].
 
 Definition mac_addr_t := DeclTypeDef NoInfo
@@ -1960,7 +1960,7 @@ Definition TofinoIngressParser := DeclParser NoInfo
           {| stags := NoInfo; str := "pkt" |});
      (MkParameter false Out
           (TypTypeName
-           {| stags := NoInfo; str := "ingress_intrinsic_metadata_t" |}) 
+           {| stags := NoInfo; str := "ingress_intrinsic_metadata_t" |})
           None {| stags := NoInfo; str := "ig_intr_md" |})] nil nil
     [(MkParserState NoInfo {| stags := NoInfo; str := "start" |}
           [(MkStatement NoInfo
@@ -2029,7 +2029,7 @@ Definition TofinoIngressParser := DeclParser NoInfo
                                                        (ExpInt
                                                         {| itags := NoInfo;
                                                            value := 1;
-                                                           width_signed := 
+                                                           width_signed :=
                                                            None |})
                                                        TypInteger
                                                        Directionless))
@@ -2042,7 +2042,7 @@ Definition TofinoIngressParser := DeclParser NoInfo
                                                        (ExpInt
                                                         {| itags := NoInfo;
                                                            value := 0;
-                                                           width_signed := 
+                                                           width_signed :=
                                                            None |})
                                                        TypInteger
                                                        Directionless))
@@ -2064,7 +2064,7 @@ Definition TofinoIngressParser := DeclParser NoInfo
                                {| stags := NoInfo; str := "advance" |})
                           (TypFunction
                            (MkFunctionType nil
-                                [(MkParameter false In (TypBit 32%N) 
+                                [(MkParameter false In (TypBit 32%N)
                                       None
                                       {| stags := NoInfo;
                                          str := "sizeInBits" |})] FunExtern
@@ -2095,7 +2095,7 @@ Definition TofinoIngressParser := DeclParser NoInfo
                                {| stags := NoInfo; str := "advance" |})
                           (TypFunction
                            (MkFunctionType nil
-                                [(MkParameter false In (TypBit 32%N) 
+                                [(MkParameter false In (TypBit 32%N)
                                       None
                                       {| stags := NoInfo;
                                          str := "sizeInBits" |})] FunExtern
@@ -2117,7 +2117,7 @@ Definition TofinoEgressParser := DeclParser NoInfo
           {| stags := NoInfo; str := "pkt" |});
      (MkParameter false Out
           (TypTypeName
-           {| stags := NoInfo; str := "egress_intrinsic_metadata_t" |}) 
+           {| stags := NoInfo; str := "egress_intrinsic_metadata_t" |})
           None {| stags := NoInfo; str := "eg_intr_md" |})] nil nil
     [(MkParserState NoInfo {| stags := NoInfo; str := "start" |}
           [(MkStatement NoInfo
@@ -2280,14 +2280,14 @@ Definition EmptyEgressParser := DeclParser NoInfo
           (TypTypeName {| stags := NoInfo; str := "packet_in" |}) None
           {| stags := NoInfo; str := "pkt" |});
      (MkParameter false Out
-          (TypTypeName {| stags := NoInfo; str := "empty_header_t" |}) 
+          (TypTypeName {| stags := NoInfo; str := "empty_header_t" |})
           None {| stags := NoInfo; str := "hdr" |});
      (MkParameter false Out
-          (TypTypeName {| stags := NoInfo; str := "empty_metadata_t" |}) 
+          (TypTypeName {| stags := NoInfo; str := "empty_metadata_t" |})
           None {| stags := NoInfo; str := "eg_md" |});
      (MkParameter false Out
           (TypTypeName
-           {| stags := NoInfo; str := "egress_intrinsic_metadata_t" |}) 
+           {| stags := NoInfo; str := "egress_intrinsic_metadata_t" |})
           None {| stags := NoInfo; str := "eg_intr_md" |})] nil nil
     [(MkParserState NoInfo {| stags := NoInfo; str := "start" |} nil
           (ParserDirect NoInfo {| stags := NoInfo; str := "accept" |}))].
@@ -2298,10 +2298,10 @@ Definition EmptyEgressDeparser := DeclControl NoInfo
           (TypTypeName {| stags := NoInfo; str := "packet_out" |}) None
           {| stags := NoInfo; str := "pkt" |});
      (MkParameter false InOut
-          (TypTypeName {| stags := NoInfo; str := "empty_header_t" |}) 
+          (TypTypeName {| stags := NoInfo; str := "empty_header_t" |})
           None {| stags := NoInfo; str := "hdr" |});
      (MkParameter false In
-          (TypTypeName {| stags := NoInfo; str := "empty_metadata_t" |}) 
+          (TypTypeName {| stags := NoInfo; str := "empty_metadata_t" |})
           None {| stags := NoInfo; str := "eg_md" |});
      (MkParameter false In
           (TypTypeName
@@ -2313,14 +2313,14 @@ Definition EmptyEgressDeparser := DeclControl NoInfo
 Definition EmptyEgress := DeclControl NoInfo
     {| stags := NoInfo; str := "EmptyEgress" |} nil
     [(MkParameter false InOut
-          (TypTypeName {| stags := NoInfo; str := "empty_header_t" |}) 
+          (TypTypeName {| stags := NoInfo; str := "empty_header_t" |})
           None {| stags := NoInfo; str := "hdr" |});
      (MkParameter false InOut
-          (TypTypeName {| stags := NoInfo; str := "empty_metadata_t" |}) 
+          (TypTypeName {| stags := NoInfo; str := "empty_metadata_t" |})
           None {| stags := NoInfo; str := "eg_md" |});
      (MkParameter false In
           (TypTypeName
-           {| stags := NoInfo; str := "egress_intrinsic_metadata_t" |}) 
+           {| stags := NoInfo; str := "egress_intrinsic_metadata_t" |})
           None {| stags := NoInfo; str := "eg_intr_md" |});
      (MkParameter false In
           (TypTypeName
@@ -2335,7 +2335,7 @@ Definition EmptyEgress := DeclControl NoInfo
      (MkParameter false InOut
           (TypTypeName
            {| stags := NoInfo;
-              str := "egress_intrinsic_metadata_for_output_port_t" |}) 
+              str := "egress_intrinsic_metadata_for_output_port_t" |})
           None {| stags := NoInfo; str := "eg_intr_oport_md" |})] nil nil
     (BlockEmpty NoInfo).
 
@@ -2524,7 +2524,7 @@ Definition EtherIPTCPUDPParser := DeclParser NoInfo
                                                           {| stags := NoInfo;
                                                              str := "ETHERTYPE_IPV4" |})
                                                          (LGlobal
-                                                              ["missing_locator"]))
+                                                              ["ETHERTYPE_IPV4"]))
                                                         (TypTypeName
                                                          {| stags := NoInfo;
                                                             str := "ether_type_t" |})
@@ -2672,7 +2672,7 @@ Definition EtherIPTCPUDPParser := DeclParser NoInfo
                                                          {| stags := NoInfo;
                                                             str := "IP_PROTOCOLS_TCP" |})
                                                         (LGlobal
-                                                             ["missing_locator"]))
+                                                             ["IP_PROTOCOLS_TCP"]))
                                                        (TypTypeName
                                                         {| stags := NoInfo;
                                                            str := "ip_protocol_t" |})
@@ -2688,7 +2688,7 @@ Definition EtherIPTCPUDPParser := DeclParser NoInfo
                                                          {| stags := NoInfo;
                                                             str := "IP_PROTOCOLS_UDP" |})
                                                         (LGlobal
-                                                             ["missing_locator"]))
+                                                             ["IP_PROTOCOLS_UDP"]))
                                                        (TypTypeName
                                                         {| stags := NoInfo;
                                                            str := "ip_protocol_t" |})
@@ -2843,7 +2843,7 @@ Definition SwitchIngressParser := DeclParser NoInfo
           {| stags := NoInfo; str := "ig_md" |});
      (MkParameter false Out
           (TypTypeName
-           {| stags := NoInfo; str := "ingress_intrinsic_metadata_t" |}) 
+           {| stags := NoInfo; str := "ingress_intrinsic_metadata_t" |})
           None {| stags := NoInfo; str := "ig_intr_md" |})] nil
     [(DeclInstantiation NoInfo
           (TypSpecializedType
@@ -2894,7 +2894,7 @@ Definition SwitchIngressParser := DeclParser NoInfo
                                                     (TypBit 9%N) );
                                                   ( {| stags := NoInfo;
                                                        str := "ingress_mac_tstamp" |},
-                                                    (TypBit 48%N) )]) 
+                                                    (TypBit 48%N) )])
                                                 None
                                                 {| stags := NoInfo;
                                                    str := "ig_intr_md" |})]))
@@ -3650,7 +3650,7 @@ Definition Bf2BloomFilterRow := DeclControl NoInfo
 Definition Bf2BloomFilterWin := DeclControl NoInfo
     {| stags := NoInfo; str := "Bf2BloomFilterWin" |} nil
     [(MkParameter false InOut
-          (TypTypeName {| stags := NoInfo; str := "bf2_win_md_t" |}) 
+          (TypTypeName {| stags := NoInfo; str := "bf2_win_md_t" |})
           None {| stags := NoInfo; str := "win_md" |})] nil
     [(DeclInstantiation NoInfo
           (TypSpecializedType
@@ -3770,14 +3770,14 @@ Definition Bf2BloomFilterWin := DeclControl NoInfo
                                   {| stags := NoInfo; str := "apply" |})
                              (TypFunction
                               (MkFunctionType nil
-                                   [(MkParameter false In (TypBit 8%N) 
+                                   [(MkParameter false In (TypBit 8%N)
                                          None
                                          {| stags := NoInfo; str := "api" |});
-                                    (MkParameter false In (TypBit 18%N) 
+                                    (MkParameter false In (TypBit 18%N)
                                          None
                                          {| stags := NoInfo;
                                             str := "index" |});
-                                    (MkParameter false Out (TypBit 8%N) 
+                                    (MkParameter false Out (TypBit 8%N)
                                          None
                                          {| stags := NoInfo; str := "rw" |})]
                                    FunControl TypVoid)) Directionless) nil
@@ -3837,17 +3837,17 @@ Definition Bf2BloomFilterWin := DeclControl NoInfo
                                             (TypControl
                                              (MkControlType nil
                                                   [(MkParameter false In
-                                                        (TypBit 8%N) 
+                                                        (TypBit 8%N)
                                                         None
                                                         {| stags := NoInfo;
                                                            str := "api" |});
                                                    (MkParameter false In
-                                                        (TypBit 18%N) 
+                                                        (TypBit 18%N)
                                                         None
                                                         {| stags := NoInfo;
                                                            str := "index" |});
                                                    (MkParameter false Out
-                                                        (TypBit 8%N) 
+                                                        (TypBit 8%N)
                                                         None
                                                         {| stags := NoInfo;
                                                            str := "rw" |})]))
@@ -3963,7 +3963,7 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                 (ExpTypeMember
                      {| stags := NoInfo; str := "HashAlgorithm_t" |}
                      {| stags := NoInfo; str := "CUSTOM" |})
-                (TypEnum {| stags := NoInfo; str := "HashAlgorithm_t" |} 
+                (TypEnum {| stags := NoInfo; str := "HashAlgorithm_t" |}
                      None
                      [{| stags := NoInfo; str := "IDENTITY" |};
                       {| stags := NoInfo; str := "RANDOM" |};
@@ -4014,7 +4014,7 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                                                [(MkParameter false In
                                                      (TypTypeName
                                                       {| stags := NoInfo;
-                                                         str := "D" |}) 
+                                                         str := "D" |})
                                                      None
                                                      {| stags := NoInfo;
                                                         str := "data" |})]
@@ -4106,7 +4106,7 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                 (ExpTypeMember
                      {| stags := NoInfo; str := "HashAlgorithm_t" |}
                      {| stags := NoInfo; str := "CUSTOM" |})
-                (TypEnum {| stags := NoInfo; str := "HashAlgorithm_t" |} 
+                (TypEnum {| stags := NoInfo; str := "HashAlgorithm_t" |}
                      None
                      [{| stags := NoInfo; str := "IDENTITY" |};
                       {| stags := NoInfo; str := "RANDOM" |};
@@ -4157,7 +4157,7 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                                                [(MkParameter false In
                                                      (TypTypeName
                                                       {| stags := NoInfo;
-                                                         str := "D" |}) 
+                                                         str := "D" |})
                                                      None
                                                      {| stags := NoInfo;
                                                         str := "data" |})]
@@ -4249,7 +4249,7 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                 (ExpTypeMember
                      {| stags := NoInfo; str := "HashAlgorithm_t" |}
                      {| stags := NoInfo; str := "CUSTOM" |})
-                (TypEnum {| stags := NoInfo; str := "HashAlgorithm_t" |} 
+                (TypEnum {| stags := NoInfo; str := "HashAlgorithm_t" |}
                      None
                      [{| stags := NoInfo; str := "IDENTITY" |};
                       {| stags := NoInfo; str := "RANDOM" |};
@@ -4300,7 +4300,7 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                                                [(MkParameter false In
                                                      (TypTypeName
                                                       {| stags := NoInfo;
-                                                         str := "D" |}) 
+                                                         str := "D" |})
                                                      None
                                                      {| stags := NoInfo;
                                                         str := "data" |})]
@@ -4582,7 +4582,7 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                 nil
                 [(MkParameter false InOut
                       (TypTypeName
-                       {| stags := NoInfo; str := "window_pair_t" |}) 
+                       {| stags := NoInfo; str := "window_pair_t" |})
                       None {| stags := NoInfo; str := "val" |});
                  (MkParameter false Out
                       (TypTypeName {| stags := NoInfo; str := "window_t" |})
@@ -4616,7 +4616,7 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                                                 {| itags := NoInfo;
                                                    value := 0;
                                                    width_signed := (Some
-                                                                    ( 
+                                                                    (
                                                                     16%N,
                                                                     false )) |})
                                                (TypBit 16%N) Directionless))
@@ -4678,7 +4678,7 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                                                                    (ExpName
                                                                     (
                                                                     BareName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "wrap" |})
                                                                     (
@@ -4702,14 +4702,14 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                                                                     NoInfo
                                                                     (ExpName
                                                                     (BareName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "val" |})
                                                                     (LInstance
                                                                     ["apply";
                                                                     "val"]))
                                                                     (TypTypeName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "window_pair_t" |})
                                                                     InOut)
@@ -4721,12 +4721,12 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                                                                     (MkExpression
                                                                     NoInfo
                                                                     (ExpInt
-                                                                    {| 
+                                                                    {|
                                                                     itags := NoInfo;
                                                                     value := 0;
                                                                     width_signed := (
                                                                     Some
-                                                                    ( 
+                                                                    (
                                                                     16%N,
                                                                     false )) |})
                                                                     (TypBit
@@ -4744,14 +4744,14 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                                                                     NoInfo
                                                                     (ExpName
                                                                     (BareName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "val" |})
                                                                     (LInstance
                                                                     ["apply";
                                                                     "val"]))
                                                                     (TypTypeName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "window_pair_t" |})
                                                                     InOut)
@@ -4763,12 +4763,12 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                                                                     (MkExpression
                                                                     NoInfo
                                                                     (ExpInt
-                                                                    {| 
+                                                                    {|
                                                                     itags := NoInfo;
                                                                     value := 0;
                                                                     width_signed := (
                                                                     Some
-                                                                    ( 
+                                                                    (
                                                                     16%N,
                                                                     false )) |})
                                                                     (TypBit
@@ -4795,14 +4795,14 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                                                                     NoInfo
                                                                     (ExpName
                                                                     (BareName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "val" |})
                                                                     (LInstance
                                                                     ["apply";
                                                                     "val"]))
                                                                     (TypTypeName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "window_pair_t" |})
                                                                     InOut)
@@ -4814,12 +4814,12 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                                                                     (MkExpression
                                                                     NoInfo
                                                                     (ExpInt
-                                                                    {| 
+                                                                    {|
                                                                     itags := NoInfo;
                                                                     value := 0;
                                                                     width_signed := (
                                                                     Some
-                                                                    ( 
+                                                                    (
                                                                     16%N,
                                                                     false )) |})
                                                                     (TypBit
@@ -4837,14 +4837,14 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                                                                     NoInfo
                                                                     (ExpName
                                                                     (BareName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "val" |})
                                                                     (LInstance
                                                                     ["apply";
                                                                     "val"]))
                                                                     (TypTypeName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "window_pair_t" |})
                                                                     InOut)
@@ -4864,14 +4864,14 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                                                                     NoInfo
                                                                     (ExpName
                                                                     (BareName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "val" |})
                                                                     (LInstance
                                                                     ["apply";
                                                                     "val"]))
                                                                     (TypTypeName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "window_pair_t" |})
                                                                     InOut)
@@ -4883,12 +4883,12 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                                                                     (MkExpression
                                                                     NoInfo
                                                                     (ExpInt
-                                                                    {| 
+                                                                    {|
                                                                     itags := NoInfo;
                                                                     value := 1;
                                                                     width_signed := (
                                                                     Some
-                                                                    ( 
+                                                                    (
                                                                     16%N,
                                                                     false )) |})
                                                                     (TypBit
@@ -4918,14 +4918,14 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                                                                     NoInfo
                                                                     (ExpName
                                                                     (BareName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "val" |})
                                                                     (LInstance
                                                                     ["apply";
                                                                     "val"]))
                                                                     (TypTypeName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "window_pair_t" |})
                                                                     InOut)
@@ -4943,14 +4943,14 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                                                                     NoInfo
                                                                     (ExpName
                                                                     (BareName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "val" |})
                                                                     (LInstance
                                                                     ["apply";
                                                                     "val"]))
                                                                     (TypTypeName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "window_pair_t" |})
                                                                     InOut)
@@ -4972,14 +4972,14 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                                                                     NoInfo
                                                                     (ExpName
                                                                     (BareName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "val" |})
                                                                     (LInstance
                                                                     ["apply";
                                                                     "val"]))
                                                                     (TypTypeName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "window_pair_t" |})
                                                                     InOut)
@@ -4996,14 +4996,14 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                                                                     NoInfo
                                                                     (ExpName
                                                                     (BareName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "val" |})
                                                                     (LInstance
                                                                     ["apply";
                                                                     "val"]))
                                                                     (TypTypeName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "window_pair_t" |})
                                                                     InOut)
@@ -5069,7 +5069,7 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                 nil
                 [(MkParameter false InOut
                       (TypTypeName
-                       {| stags := NoInfo; str := "window_pair_t" |}) 
+                       {| stags := NoInfo; str := "window_pair_t" |})
                       None {| stags := NoInfo; str := "val" |});
                  (MkParameter false Out
                       (TypTypeName {| stags := NoInfo; str := "window_t" |})
@@ -5101,7 +5101,7 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                                                {| itags := NoInfo;
                                                   value := 1;
                                                   width_signed := (Some
-                                                                   ( 
+                                                                   (
                                                                    16%N,
                                                                    false )) |})
                                               (TypBit 16%N) Directionless))
@@ -5118,7 +5118,7 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                                                                    (ExpName
                                                                     (
                                                                     BareName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "val" |})
                                                                     (
@@ -5126,7 +5126,7 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                                                                     ["apply";
                                                                     "val"]))
                                                                    (TypTypeName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "window_pair_t" |})
                                                                    InOut)
@@ -5334,7 +5334,7 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                                                                    value := 2097152;
                                                                    width_signed := (
                                                                    Some
-                                                                   ( 
+                                                                   (
                                                                    48%N,
                                                                    false )) |})
                                                                (TypBit 48%N)
@@ -5561,13 +5561,13 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                                                                  NoInfo
                                                                  (ExpName
                                                                   (BareName
-                                                                   {| 
+                                                                   {|
                                                                    stags := NoInfo;
                                                                    str := "ds_md" |})
                                                                   (LInstance
                                                                     ["ds_md"]))
                                                                  (TypTypeName
-                                                                  {| 
+                                                                  {|
                                                                   stags := NoInfo;
                                                                   str := "bf2_ds_md_t" |})
                                                                  InOut)
@@ -5626,13 +5626,13 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                                                                     NoInfo
                                                                     (ExpName
                                                                     (BareName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "ds_md" |})
                                                                     (LInstance
                                                                     ["ds_md"]))
                                                                     (TypTypeName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "bf2_ds_md_t" |})
                                                                     InOut)
@@ -5694,58 +5694,58 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                                                                     NoInfo
                                                                     (ExpName
                                                                     (BareName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "ds_md" |})
                                                                     (LInstance
                                                                     ["ds_md"]))
                                                                     (TypTypeName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "bf2_ds_md_t" |})
                                                                     InOut)
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "win_2" |})
                                                                  (TypStruct
-                                                                  [( 
-                                                                   {| 
+                                                                  [(
+                                                                   {|
                                                                    stags := NoInfo;
                                                                    str := "api" |},
                                                                    (TypBit
                                                                     8%N) );
-                                                                   ( 
-                                                                   {| 
+                                                                   (
+                                                                   {|
                                                                    stags := NoInfo;
                                                                    str := "index_1" |},
                                                                    (TypBit
                                                                     18%N) );
-                                                                   ( 
-                                                                   {| 
+                                                                   (
+                                                                   {|
                                                                    stags := NoInfo;
                                                                    str := "index_2" |},
                                                                    (TypBit
                                                                     18%N) );
-                                                                   ( 
-                                                                   {| 
+                                                                   (
+                                                                   {|
                                                                    stags := NoInfo;
                                                                    str := "index_3" |},
                                                                    (TypBit
                                                                     18%N) );
-                                                                   ( 
-                                                                   {| 
+                                                                   (
+                                                                   {|
                                                                    stags := NoInfo;
                                                                    str := "rw_1" |},
                                                                    (TypBit
                                                                     8%N) );
-                                                                   ( 
-                                                                   {| 
+                                                                   (
+                                                                   {|
                                                                    stags := NoInfo;
                                                                    str := "rw_2" |},
                                                                    (TypBit
                                                                     8%N) );
-                                                                   ( 
-                                                                   {| 
+                                                                   (
+                                                                   {|
                                                                    stags := NoInfo;
                                                                    str := "rw_3" |},
                                                                    (TypBit
@@ -5761,13 +5761,13 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                                                                  NoInfo
                                                                  (ExpName
                                                                   (BareName
-                                                                   {| 
+                                                                   {|
                                                                    stags := NoInfo;
                                                                    str := "ds_md" |})
                                                                   (LInstance
                                                                     ["ds_md"]))
                                                                  (TypTypeName
-                                                                  {| 
+                                                                  {|
                                                                   stags := NoInfo;
                                                                   str := "bf2_ds_md_t" |})
                                                                  InOut)
@@ -5788,63 +5788,63 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                                                                     NoInfo
                                                                     (ExpName
                                                                     (BareName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "ds_md" |})
                                                                     (LInstance
                                                                     ["ds_md"]))
                                                                     (TypTypeName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "bf2_ds_md_t" |})
                                                                     InOut)
                                                                     {| stags := NoInfo;
                                                                     str := "win_3" |})
                                                                     (TypStruct
-                                                                    [( 
-                                                                    {| 
+                                                                    [(
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "api" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "index_1" |},
                                                                     (
                                                                     TypBit
                                                                     18%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "index_2" |},
                                                                     (
                                                                     TypBit
                                                                     18%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "index_3" |},
                                                                     (
                                                                     TypBit
                                                                     18%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "rw_1" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "rw_2" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "rw_3" |},
                                                                     (
@@ -5861,13 +5861,13 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                                                                     NoInfo
                                                                     (ExpName
                                                                     (BareName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "ds_md" |})
                                                                     (LInstance
                                                                     ["ds_md"]))
                                                                     (TypTypeName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "bf2_ds_md_t" |})
                                                                     InOut)
@@ -5889,70 +5889,70 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                                                                     NoInfo
                                                                     (ExpName
                                                                     (BareName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "ds_md" |})
                                                                     (LInstance
                                                                     ["ds_md"]))
                                                                     (TypTypeName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "bf2_ds_md_t" |})
                                                                     InOut)
                                                                     {| stags := NoInfo;
                                                                     str := "win_3" |})
                                                                     (TypStruct
-                                                                    [( 
-                                                                    {| 
+                                                                    [(
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "api" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "index_1" |},
                                                                     (
                                                                     TypBit
                                                                     18%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "index_2" |},
                                                                     (
                                                                     TypBit
                                                                     18%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "index_3" |},
                                                                     (
                                                                     TypBit
                                                                     18%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "rw_1" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "rw_2" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "rw_3" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) )])
                                                                     Directionless)
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "index_2" |})
                                                                  (TypBit
@@ -5965,17 +5965,17 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                                                                     NoInfo
                                                                     (ExpName
                                                                     (BareName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "ds_md" |})
                                                                     (LInstance
                                                                     ["ds_md"]))
                                                                     (TypTypeName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "bf2_ds_md_t" |})
                                                                     InOut)
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "hash_index_2" |})
                                                                  (TypBit
@@ -5995,63 +5995,63 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                                                                     NoInfo
                                                                     (ExpName
                                                                     (BareName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "ds_md" |})
                                                                     (LInstance
                                                                     ["ds_md"]))
                                                                     (TypTypeName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "bf2_ds_md_t" |})
                                                                     InOut)
                                                                     {| stags := NoInfo;
                                                                     str := "win_3" |})
                                                                     (TypStruct
-                                                                    [( 
-                                                                    {| 
+                                                                    [(
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "api" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "index_1" |},
                                                                     (
                                                                     TypBit
                                                                     18%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "index_2" |},
                                                                     (
                                                                     TypBit
                                                                     18%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "index_3" |},
                                                                     (
                                                                     TypBit
                                                                     18%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "rw_1" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "rw_2" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "rw_3" |},
                                                                     (
@@ -6070,13 +6070,13 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                                                                     NoInfo
                                                                     (ExpName
                                                                     (BareName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "ds_md" |})
                                                                     (LInstance
                                                                     ["ds_md"]))
                                                                     (TypTypeName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "bf2_ds_md_t" |})
                                                                     InOut)
@@ -6100,63 +6100,63 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                                                                     NoInfo
                                                                     (ExpName
                                                                     (BareName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "ds_md" |})
                                                                     (LInstance
                                                                     ["ds_md"]))
                                                                     (TypTypeName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "bf2_ds_md_t" |})
                                                                     InOut)
                                                                     {| stags := NoInfo;
                                                                     str := "win_4" |})
                                                                     (TypStruct
-                                                                    [( 
-                                                                    {| 
+                                                                    [(
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "api" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "index_1" |},
                                                                     (
                                                                     TypBit
                                                                     18%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "index_2" |},
                                                                     (
                                                                     TypBit
                                                                     18%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "index_3" |},
                                                                     (
                                                                     TypBit
                                                                     18%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "rw_1" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "rw_2" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "rw_3" |},
                                                                     (
@@ -6175,13 +6175,13 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                                                                     NoInfo
                                                                     (ExpName
                                                                     (BareName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "ds_md" |})
                                                                     (LInstance
                                                                     ["ds_md"]))
                                                                     (TypTypeName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "bf2_ds_md_t" |})
                                                                     InOut)
@@ -6205,63 +6205,63 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                                                                     NoInfo
                                                                     (ExpName
                                                                     (BareName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "ds_md" |})
                                                                     (LInstance
                                                                     ["ds_md"]))
                                                                     (TypTypeName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "bf2_ds_md_t" |})
                                                                     InOut)
                                                                     {| stags := NoInfo;
                                                                     str := "win_4" |})
                                                                     (TypStruct
-                                                                    [( 
-                                                                    {| 
+                                                                    [(
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "api" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "index_1" |},
                                                                     (
                                                                     TypBit
                                                                     18%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "index_2" |},
                                                                     (
                                                                     TypBit
                                                                     18%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "index_3" |},
                                                                     (
                                                                     TypBit
                                                                     18%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "rw_1" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "rw_2" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "rw_3" |},
                                                                     (
@@ -6280,13 +6280,13 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                                                                     NoInfo
                                                                     (ExpName
                                                                     (BareName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "ds_md" |})
                                                                     (LInstance
                                                                     ["ds_md"]))
                                                                     (TypTypeName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "bf2_ds_md_t" |})
                                                                     InOut)
@@ -6310,63 +6310,63 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                                                                     NoInfo
                                                                     (ExpName
                                                                     (BareName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "ds_md" |})
                                                                     (LInstance
                                                                     ["ds_md"]))
                                                                     (TypTypeName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "bf2_ds_md_t" |})
                                                                     InOut)
                                                                     {| stags := NoInfo;
                                                                     str := "win_4" |})
                                                                     (TypStruct
-                                                                    [( 
-                                                                    {| 
+                                                                    [(
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "api" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "index_1" |},
                                                                     (
                                                                     TypBit
                                                                     18%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "index_2" |},
                                                                     (
                                                                     TypBit
                                                                     18%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "index_3" |},
                                                                     (
                                                                     TypBit
                                                                     18%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "rw_1" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "rw_2" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "rw_3" |},
                                                                     (
@@ -6385,13 +6385,13 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                                                                     NoInfo
                                                                     (ExpName
                                                                     (BareName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "ds_md" |})
                                                                     (LInstance
                                                                     ["ds_md"]))
                                                                     (TypTypeName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "bf2_ds_md_t" |})
                                                                     InOut)
@@ -6415,63 +6415,63 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                                                                     NoInfo
                                                                     (ExpName
                                                                     (BareName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "ds_md" |})
                                                                     (LInstance
                                                                     ["ds_md"]))
                                                                     (TypTypeName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "bf2_ds_md_t" |})
                                                                     InOut)
                                                                     {| stags := NoInfo;
                                                                     str := "win_1" |})
                                                                     (TypStruct
-                                                                    [( 
-                                                                    {| 
+                                                                    [(
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "api" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "index_1" |},
                                                                     (
                                                                     TypBit
                                                                     18%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "index_2" |},
                                                                     (
                                                                     TypBit
                                                                     18%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "index_3" |},
                                                                     (
                                                                     TypBit
                                                                     18%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "rw_1" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "rw_2" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "rw_3" |},
                                                                     (
@@ -6487,7 +6487,7 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                                                                     NoInfo
                                                                     (ExpName
                                                                     (BareName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "api_1" |})
                                                                     (LInstance
@@ -6510,63 +6510,63 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                                                                     NoInfo
                                                                     (ExpName
                                                                     (BareName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "ds_md" |})
                                                                     (LInstance
                                                                     ["ds_md"]))
                                                                     (TypTypeName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "bf2_ds_md_t" |})
                                                                     InOut)
                                                                     {| stags := NoInfo;
                                                                     str := "win_2" |})
                                                                     (TypStruct
-                                                                    [( 
-                                                                    {| 
+                                                                    [(
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "api" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "index_1" |},
                                                                     (
                                                                     TypBit
                                                                     18%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "index_2" |},
                                                                     (
                                                                     TypBit
                                                                     18%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "index_3" |},
                                                                     (
                                                                     TypBit
                                                                     18%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "rw_1" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "rw_2" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "rw_3" |},
                                                                     (
@@ -6582,7 +6582,7 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                                                                     NoInfo
                                                                     (ExpName
                                                                     (BareName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "api_2" |})
                                                                     (LInstance
@@ -6605,63 +6605,63 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                                                                     NoInfo
                                                                     (ExpName
                                                                     (BareName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "ds_md" |})
                                                                     (LInstance
                                                                     ["ds_md"]))
                                                                     (TypTypeName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "bf2_ds_md_t" |})
                                                                     InOut)
                                                                     {| stags := NoInfo;
                                                                     str := "win_3" |})
                                                                     (TypStruct
-                                                                    [( 
-                                                                    {| 
+                                                                    [(
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "api" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "index_1" |},
                                                                     (
                                                                     TypBit
                                                                     18%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "index_2" |},
                                                                     (
                                                                     TypBit
                                                                     18%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "index_3" |},
                                                                     (
                                                                     TypBit
                                                                     18%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "rw_1" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "rw_2" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "rw_3" |},
                                                                     (
@@ -6677,7 +6677,7 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                                                                     NoInfo
                                                                     (ExpName
                                                                     (BareName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "api_3" |})
                                                                     (LInstance
@@ -6700,63 +6700,63 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                                                                     NoInfo
                                                                     (ExpName
                                                                     (BareName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "ds_md" |})
                                                                     (LInstance
                                                                     ["ds_md"]))
                                                                     (TypTypeName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "bf2_ds_md_t" |})
                                                                     InOut)
                                                                     {| stags := NoInfo;
                                                                     str := "win_4" |})
                                                                     (TypStruct
-                                                                    [( 
-                                                                    {| 
+                                                                    [(
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "api" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "index_1" |},
                                                                     (
                                                                     TypBit
                                                                     18%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "index_2" |},
                                                                     (
                                                                     TypBit
                                                                     18%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "index_3" |},
                                                                     (
                                                                     TypBit
                                                                     18%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "rw_1" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "rw_2" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "rw_3" |},
                                                                     (
@@ -6772,7 +6772,7 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                                                                     NoInfo
                                                                     (ExpName
                                                                     (BareName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "api_4" |})
                                                                     (LInstance
@@ -6983,13 +6983,13 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                                                                  NoInfo
                                                                  (ExpName
                                                                   (BareName
-                                                                   {| 
+                                                                   {|
                                                                    stags := NoInfo;
                                                                    str := "ds_md" |})
                                                                   (LInstance
                                                                     ["ds_md"]))
                                                                  (TypTypeName
-                                                                  {| 
+                                                                  {|
                                                                   stags := NoInfo;
                                                                   str := "bf2_ds_md_t" |})
                                                                  InOut)
@@ -7048,13 +7048,13 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                                                                     NoInfo
                                                                     (ExpName
                                                                     (BareName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "ds_md" |})
                                                                     (LInstance
                                                                     ["ds_md"]))
                                                                     (TypTypeName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "bf2_ds_md_t" |})
                                                                     InOut)
@@ -7116,58 +7116,58 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                                                                     NoInfo
                                                                     (ExpName
                                                                     (BareName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "ds_md" |})
                                                                     (LInstance
                                                                     ["ds_md"]))
                                                                     (TypTypeName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "bf2_ds_md_t" |})
                                                                     InOut)
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "win_2" |})
                                                                  (TypStruct
-                                                                  [( 
-                                                                   {| 
+                                                                  [(
+                                                                   {|
                                                                    stags := NoInfo;
                                                                    str := "api" |},
                                                                    (TypBit
                                                                     8%N) );
-                                                                   ( 
-                                                                   {| 
+                                                                   (
+                                                                   {|
                                                                    stags := NoInfo;
                                                                    str := "index_1" |},
                                                                    (TypBit
                                                                     18%N) );
-                                                                   ( 
-                                                                   {| 
+                                                                   (
+                                                                   {|
                                                                    stags := NoInfo;
                                                                    str := "index_2" |},
                                                                    (TypBit
                                                                     18%N) );
-                                                                   ( 
-                                                                   {| 
+                                                                   (
+                                                                   {|
                                                                    stags := NoInfo;
                                                                    str := "index_3" |},
                                                                    (TypBit
                                                                     18%N) );
-                                                                   ( 
-                                                                   {| 
+                                                                   (
+                                                                   {|
                                                                    stags := NoInfo;
                                                                    str := "rw_1" |},
                                                                    (TypBit
                                                                     8%N) );
-                                                                   ( 
-                                                                   {| 
+                                                                   (
+                                                                   {|
                                                                    stags := NoInfo;
                                                                    str := "rw_2" |},
                                                                    (TypBit
                                                                     8%N) );
-                                                                   ( 
-                                                                   {| 
+                                                                   (
+                                                                   {|
                                                                    stags := NoInfo;
                                                                    str := "rw_3" |},
                                                                    (TypBit
@@ -7183,13 +7183,13 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                                                                  NoInfo
                                                                  (ExpName
                                                                   (BareName
-                                                                   {| 
+                                                                   {|
                                                                    stags := NoInfo;
                                                                    str := "ds_md" |})
                                                                   (LInstance
                                                                     ["ds_md"]))
                                                                  (TypTypeName
-                                                                  {| 
+                                                                  {|
                                                                   stags := NoInfo;
                                                                   str := "bf2_ds_md_t" |})
                                                                  InOut)
@@ -7210,63 +7210,63 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                                                                     NoInfo
                                                                     (ExpName
                                                                     (BareName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "ds_md" |})
                                                                     (LInstance
                                                                     ["ds_md"]))
                                                                     (TypTypeName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "bf2_ds_md_t" |})
                                                                     InOut)
                                                                     {| stags := NoInfo;
                                                                     str := "win_3" |})
                                                                     (TypStruct
-                                                                    [( 
-                                                                    {| 
+                                                                    [(
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "api" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "index_1" |},
                                                                     (
                                                                     TypBit
                                                                     18%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "index_2" |},
                                                                     (
                                                                     TypBit
                                                                     18%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "index_3" |},
                                                                     (
                                                                     TypBit
                                                                     18%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "rw_1" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "rw_2" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "rw_3" |},
                                                                     (
@@ -7283,13 +7283,13 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                                                                     NoInfo
                                                                     (ExpName
                                                                     (BareName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "ds_md" |})
                                                                     (LInstance
                                                                     ["ds_md"]))
                                                                     (TypTypeName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "bf2_ds_md_t" |})
                                                                     InOut)
@@ -7311,70 +7311,70 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                                                                     NoInfo
                                                                     (ExpName
                                                                     (BareName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "ds_md" |})
                                                                     (LInstance
                                                                     ["ds_md"]))
                                                                     (TypTypeName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "bf2_ds_md_t" |})
                                                                     InOut)
                                                                     {| stags := NoInfo;
                                                                     str := "win_3" |})
                                                                     (TypStruct
-                                                                    [( 
-                                                                    {| 
+                                                                    [(
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "api" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "index_1" |},
                                                                     (
                                                                     TypBit
                                                                     18%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "index_2" |},
                                                                     (
                                                                     TypBit
                                                                     18%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "index_3" |},
                                                                     (
                                                                     TypBit
                                                                     18%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "rw_1" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "rw_2" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "rw_3" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) )])
                                                                     Directionless)
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "index_2" |})
                                                                  (TypBit
@@ -7387,17 +7387,17 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                                                                     NoInfo
                                                                     (ExpName
                                                                     (BareName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "ds_md" |})
                                                                     (LInstance
                                                                     ["ds_md"]))
                                                                     (TypTypeName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "bf2_ds_md_t" |})
                                                                     InOut)
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "hash_index_2" |})
                                                                  (TypBit
@@ -7417,63 +7417,63 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                                                                     NoInfo
                                                                     (ExpName
                                                                     (BareName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "ds_md" |})
                                                                     (LInstance
                                                                     ["ds_md"]))
                                                                     (TypTypeName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "bf2_ds_md_t" |})
                                                                     InOut)
                                                                     {| stags := NoInfo;
                                                                     str := "win_3" |})
                                                                     (TypStruct
-                                                                    [( 
-                                                                    {| 
+                                                                    [(
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "api" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "index_1" |},
                                                                     (
                                                                     TypBit
                                                                     18%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "index_2" |},
                                                                     (
                                                                     TypBit
                                                                     18%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "index_3" |},
                                                                     (
                                                                     TypBit
                                                                     18%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "rw_1" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "rw_2" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "rw_3" |},
                                                                     (
@@ -7492,13 +7492,13 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                                                                     NoInfo
                                                                     (ExpName
                                                                     (BareName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "ds_md" |})
                                                                     (LInstance
                                                                     ["ds_md"]))
                                                                     (TypTypeName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "bf2_ds_md_t" |})
                                                                     InOut)
@@ -7522,63 +7522,63 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                                                                     NoInfo
                                                                     (ExpName
                                                                     (BareName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "ds_md" |})
                                                                     (LInstance
                                                                     ["ds_md"]))
                                                                     (TypTypeName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "bf2_ds_md_t" |})
                                                                     InOut)
                                                                     {| stags := NoInfo;
                                                                     str := "win_4" |})
                                                                     (TypStruct
-                                                                    [( 
-                                                                    {| 
+                                                                    [(
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "api" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "index_1" |},
                                                                     (
                                                                     TypBit
                                                                     18%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "index_2" |},
                                                                     (
                                                                     TypBit
                                                                     18%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "index_3" |},
                                                                     (
                                                                     TypBit
                                                                     18%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "rw_1" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "rw_2" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "rw_3" |},
                                                                     (
@@ -7597,13 +7597,13 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                                                                     NoInfo
                                                                     (ExpName
                                                                     (BareName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "ds_md" |})
                                                                     (LInstance
                                                                     ["ds_md"]))
                                                                     (TypTypeName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "bf2_ds_md_t" |})
                                                                     InOut)
@@ -7627,63 +7627,63 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                                                                     NoInfo
                                                                     (ExpName
                                                                     (BareName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "ds_md" |})
                                                                     (LInstance
                                                                     ["ds_md"]))
                                                                     (TypTypeName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "bf2_ds_md_t" |})
                                                                     InOut)
                                                                     {| stags := NoInfo;
                                                                     str := "win_4" |})
                                                                     (TypStruct
-                                                                    [( 
-                                                                    {| 
+                                                                    [(
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "api" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "index_1" |},
                                                                     (
                                                                     TypBit
                                                                     18%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "index_2" |},
                                                                     (
                                                                     TypBit
                                                                     18%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "index_3" |},
                                                                     (
                                                                     TypBit
                                                                     18%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "rw_1" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "rw_2" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "rw_3" |},
                                                                     (
@@ -7702,13 +7702,13 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                                                                     NoInfo
                                                                     (ExpName
                                                                     (BareName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "ds_md" |})
                                                                     (LInstance
                                                                     ["ds_md"]))
                                                                     (TypTypeName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "bf2_ds_md_t" |})
                                                                     InOut)
@@ -7732,63 +7732,63 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                                                                     NoInfo
                                                                     (ExpName
                                                                     (BareName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "ds_md" |})
                                                                     (LInstance
                                                                     ["ds_md"]))
                                                                     (TypTypeName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "bf2_ds_md_t" |})
                                                                     InOut)
                                                                     {| stags := NoInfo;
                                                                     str := "win_4" |})
                                                                     (TypStruct
-                                                                    [( 
-                                                                    {| 
+                                                                    [(
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "api" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "index_1" |},
                                                                     (
                                                                     TypBit
                                                                     18%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "index_2" |},
                                                                     (
                                                                     TypBit
                                                                     18%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "index_3" |},
                                                                     (
                                                                     TypBit
                                                                     18%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "rw_1" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "rw_2" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "rw_3" |},
                                                                     (
@@ -7807,13 +7807,13 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                                                                     NoInfo
                                                                     (ExpName
                                                                     (BareName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "ds_md" |})
                                                                     (LInstance
                                                                     ["ds_md"]))
                                                                     (TypTypeName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "bf2_ds_md_t" |})
                                                                     InOut)
@@ -7837,63 +7837,63 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                                                                     NoInfo
                                                                     (ExpName
                                                                     (BareName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "ds_md" |})
                                                                     (LInstance
                                                                     ["ds_md"]))
                                                                     (TypTypeName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "bf2_ds_md_t" |})
                                                                     InOut)
                                                                     {| stags := NoInfo;
                                                                     str := "win_1" |})
                                                                     (TypStruct
-                                                                    [( 
-                                                                    {| 
+                                                                    [(
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "api" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "index_1" |},
                                                                     (
                                                                     TypBit
                                                                     18%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "index_2" |},
                                                                     (
                                                                     TypBit
                                                                     18%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "index_3" |},
                                                                     (
                                                                     TypBit
                                                                     18%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "rw_1" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "rw_2" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "rw_3" |},
                                                                     (
@@ -7909,7 +7909,7 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                                                                     NoInfo
                                                                     (ExpName
                                                                     (BareName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "api_1" |})
                                                                     (LInstance
@@ -7932,63 +7932,63 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                                                                     NoInfo
                                                                     (ExpName
                                                                     (BareName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "ds_md" |})
                                                                     (LInstance
                                                                     ["ds_md"]))
                                                                     (TypTypeName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "bf2_ds_md_t" |})
                                                                     InOut)
                                                                     {| stags := NoInfo;
                                                                     str := "win_2" |})
                                                                     (TypStruct
-                                                                    [( 
-                                                                    {| 
+                                                                    [(
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "api" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "index_1" |},
                                                                     (
                                                                     TypBit
                                                                     18%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "index_2" |},
                                                                     (
                                                                     TypBit
                                                                     18%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "index_3" |},
                                                                     (
                                                                     TypBit
                                                                     18%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "rw_1" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "rw_2" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "rw_3" |},
                                                                     (
@@ -8004,7 +8004,7 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                                                                     NoInfo
                                                                     (ExpName
                                                                     (BareName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "api_2" |})
                                                                     (LInstance
@@ -8027,63 +8027,63 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                                                                     NoInfo
                                                                     (ExpName
                                                                     (BareName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "ds_md" |})
                                                                     (LInstance
                                                                     ["ds_md"]))
                                                                     (TypTypeName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "bf2_ds_md_t" |})
                                                                     InOut)
                                                                     {| stags := NoInfo;
                                                                     str := "win_3" |})
                                                                     (TypStruct
-                                                                    [( 
-                                                                    {| 
+                                                                    [(
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "api" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "index_1" |},
                                                                     (
                                                                     TypBit
                                                                     18%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "index_2" |},
                                                                     (
                                                                     TypBit
                                                                     18%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "index_3" |},
                                                                     (
                                                                     TypBit
                                                                     18%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "rw_1" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "rw_2" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "rw_3" |},
                                                                     (
@@ -8099,7 +8099,7 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                                                                     NoInfo
                                                                     (ExpName
                                                                     (BareName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "api_3" |})
                                                                     (LInstance
@@ -8122,63 +8122,63 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                                                                     NoInfo
                                                                     (ExpName
                                                                     (BareName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "ds_md" |})
                                                                     (LInstance
                                                                     ["ds_md"]))
                                                                     (TypTypeName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "bf2_ds_md_t" |})
                                                                     InOut)
                                                                     {| stags := NoInfo;
                                                                     str := "win_4" |})
                                                                     (TypStruct
-                                                                    [( 
-                                                                    {| 
+                                                                    [(
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "api" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "index_1" |},
                                                                     (
                                                                     TypBit
                                                                     18%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "index_2" |},
                                                                     (
                                                                     TypBit
                                                                     18%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "index_3" |},
                                                                     (
                                                                     TypBit
                                                                     18%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "rw_1" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "rw_2" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "rw_3" |},
                                                                     (
@@ -8194,7 +8194,7 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                                                                     NoInfo
                                                                     (ExpName
                                                                     (BareName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "api_4" |})
                                                                     (LInstance
@@ -8405,13 +8405,13 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                                                                  NoInfo
                                                                  (ExpName
                                                                   (BareName
-                                                                   {| 
+                                                                   {|
                                                                    stags := NoInfo;
                                                                    str := "ds_md" |})
                                                                   (LInstance
                                                                     ["ds_md"]))
                                                                  (TypTypeName
-                                                                  {| 
+                                                                  {|
                                                                   stags := NoInfo;
                                                                   str := "bf2_ds_md_t" |})
                                                                  InOut)
@@ -8470,13 +8470,13 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                                                                     NoInfo
                                                                     (ExpName
                                                                     (BareName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "ds_md" |})
                                                                     (LInstance
                                                                     ["ds_md"]))
                                                                     (TypTypeName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "bf2_ds_md_t" |})
                                                                     InOut)
@@ -8538,58 +8538,58 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                                                                     NoInfo
                                                                     (ExpName
                                                                     (BareName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "ds_md" |})
                                                                     (LInstance
                                                                     ["ds_md"]))
                                                                     (TypTypeName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "bf2_ds_md_t" |})
                                                                     InOut)
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "win_2" |})
                                                                  (TypStruct
-                                                                  [( 
-                                                                   {| 
+                                                                  [(
+                                                                   {|
                                                                    stags := NoInfo;
                                                                    str := "api" |},
                                                                    (TypBit
                                                                     8%N) );
-                                                                   ( 
-                                                                   {| 
+                                                                   (
+                                                                   {|
                                                                    stags := NoInfo;
                                                                    str := "index_1" |},
                                                                    (TypBit
                                                                     18%N) );
-                                                                   ( 
-                                                                   {| 
+                                                                   (
+                                                                   {|
                                                                    stags := NoInfo;
                                                                    str := "index_2" |},
                                                                    (TypBit
                                                                     18%N) );
-                                                                   ( 
-                                                                   {| 
+                                                                   (
+                                                                   {|
                                                                    stags := NoInfo;
                                                                    str := "index_3" |},
                                                                    (TypBit
                                                                     18%N) );
-                                                                   ( 
-                                                                   {| 
+                                                                   (
+                                                                   {|
                                                                    stags := NoInfo;
                                                                    str := "rw_1" |},
                                                                    (TypBit
                                                                     8%N) );
-                                                                   ( 
-                                                                   {| 
+                                                                   (
+                                                                   {|
                                                                    stags := NoInfo;
                                                                    str := "rw_2" |},
                                                                    (TypBit
                                                                     8%N) );
-                                                                   ( 
-                                                                   {| 
+                                                                   (
+                                                                   {|
                                                                    stags := NoInfo;
                                                                    str := "rw_3" |},
                                                                    (TypBit
@@ -8605,13 +8605,13 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                                                                  NoInfo
                                                                  (ExpName
                                                                   (BareName
-                                                                   {| 
+                                                                   {|
                                                                    stags := NoInfo;
                                                                    str := "ds_md" |})
                                                                   (LInstance
                                                                     ["ds_md"]))
                                                                  (TypTypeName
-                                                                  {| 
+                                                                  {|
                                                                   stags := NoInfo;
                                                                   str := "bf2_ds_md_t" |})
                                                                  InOut)
@@ -8632,63 +8632,63 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                                                                     NoInfo
                                                                     (ExpName
                                                                     (BareName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "ds_md" |})
                                                                     (LInstance
                                                                     ["ds_md"]))
                                                                     (TypTypeName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "bf2_ds_md_t" |})
                                                                     InOut)
                                                                     {| stags := NoInfo;
                                                                     str := "win_3" |})
                                                                     (TypStruct
-                                                                    [( 
-                                                                    {| 
+                                                                    [(
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "api" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "index_1" |},
                                                                     (
                                                                     TypBit
                                                                     18%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "index_2" |},
                                                                     (
                                                                     TypBit
                                                                     18%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "index_3" |},
                                                                     (
                                                                     TypBit
                                                                     18%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "rw_1" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "rw_2" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "rw_3" |},
                                                                     (
@@ -8705,13 +8705,13 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                                                                     NoInfo
                                                                     (ExpName
                                                                     (BareName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "ds_md" |})
                                                                     (LInstance
                                                                     ["ds_md"]))
                                                                     (TypTypeName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "bf2_ds_md_t" |})
                                                                     InOut)
@@ -8733,70 +8733,70 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                                                                     NoInfo
                                                                     (ExpName
                                                                     (BareName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "ds_md" |})
                                                                     (LInstance
                                                                     ["ds_md"]))
                                                                     (TypTypeName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "bf2_ds_md_t" |})
                                                                     InOut)
                                                                     {| stags := NoInfo;
                                                                     str := "win_3" |})
                                                                     (TypStruct
-                                                                    [( 
-                                                                    {| 
+                                                                    [(
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "api" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "index_1" |},
                                                                     (
                                                                     TypBit
                                                                     18%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "index_2" |},
                                                                     (
                                                                     TypBit
                                                                     18%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "index_3" |},
                                                                     (
                                                                     TypBit
                                                                     18%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "rw_1" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "rw_2" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "rw_3" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) )])
                                                                     Directionless)
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "index_2" |})
                                                                  (TypBit
@@ -8809,17 +8809,17 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                                                                     NoInfo
                                                                     (ExpName
                                                                     (BareName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "ds_md" |})
                                                                     (LInstance
                                                                     ["ds_md"]))
                                                                     (TypTypeName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "bf2_ds_md_t" |})
                                                                     InOut)
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "clear_index_1" |})
                                                                  (TypBit
@@ -8839,63 +8839,63 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                                                                     NoInfo
                                                                     (ExpName
                                                                     (BareName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "ds_md" |})
                                                                     (LInstance
                                                                     ["ds_md"]))
                                                                     (TypTypeName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "bf2_ds_md_t" |})
                                                                     InOut)
                                                                     {| stags := NoInfo;
                                                                     str := "win_3" |})
                                                                     (TypStruct
-                                                                    [( 
-                                                                    {| 
+                                                                    [(
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "api" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "index_1" |},
                                                                     (
                                                                     TypBit
                                                                     18%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "index_2" |},
                                                                     (
                                                                     TypBit
                                                                     18%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "index_3" |},
                                                                     (
                                                                     TypBit
                                                                     18%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "rw_1" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "rw_2" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "rw_3" |},
                                                                     (
@@ -8914,13 +8914,13 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                                                                     NoInfo
                                                                     (ExpName
                                                                     (BareName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "ds_md" |})
                                                                     (LInstance
                                                                     ["ds_md"]))
                                                                     (TypTypeName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "bf2_ds_md_t" |})
                                                                     InOut)
@@ -8944,63 +8944,63 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                                                                     NoInfo
                                                                     (ExpName
                                                                     (BareName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "ds_md" |})
                                                                     (LInstance
                                                                     ["ds_md"]))
                                                                     (TypTypeName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "bf2_ds_md_t" |})
                                                                     InOut)
                                                                     {| stags := NoInfo;
                                                                     str := "win_4" |})
                                                                     (TypStruct
-                                                                    [( 
-                                                                    {| 
+                                                                    [(
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "api" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "index_1" |},
                                                                     (
                                                                     TypBit
                                                                     18%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "index_2" |},
                                                                     (
                                                                     TypBit
                                                                     18%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "index_3" |},
                                                                     (
                                                                     TypBit
                                                                     18%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "rw_1" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "rw_2" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "rw_3" |},
                                                                     (
@@ -9019,13 +9019,13 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                                                                     NoInfo
                                                                     (ExpName
                                                                     (BareName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "ds_md" |})
                                                                     (LInstance
                                                                     ["ds_md"]))
                                                                     (TypTypeName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "bf2_ds_md_t" |})
                                                                     InOut)
@@ -9049,63 +9049,63 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                                                                     NoInfo
                                                                     (ExpName
                                                                     (BareName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "ds_md" |})
                                                                     (LInstance
                                                                     ["ds_md"]))
                                                                     (TypTypeName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "bf2_ds_md_t" |})
                                                                     InOut)
                                                                     {| stags := NoInfo;
                                                                     str := "win_4" |})
                                                                     (TypStruct
-                                                                    [( 
-                                                                    {| 
+                                                                    [(
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "api" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "index_1" |},
                                                                     (
                                                                     TypBit
                                                                     18%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "index_2" |},
                                                                     (
                                                                     TypBit
                                                                     18%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "index_3" |},
                                                                     (
                                                                     TypBit
                                                                     18%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "rw_1" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "rw_2" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "rw_3" |},
                                                                     (
@@ -9124,13 +9124,13 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                                                                     NoInfo
                                                                     (ExpName
                                                                     (BareName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "ds_md" |})
                                                                     (LInstance
                                                                     ["ds_md"]))
                                                                     (TypTypeName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "bf2_ds_md_t" |})
                                                                     InOut)
@@ -9154,63 +9154,63 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                                                                     NoInfo
                                                                     (ExpName
                                                                     (BareName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "ds_md" |})
                                                                     (LInstance
                                                                     ["ds_md"]))
                                                                     (TypTypeName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "bf2_ds_md_t" |})
                                                                     InOut)
                                                                     {| stags := NoInfo;
                                                                     str := "win_4" |})
                                                                     (TypStruct
-                                                                    [( 
-                                                                    {| 
+                                                                    [(
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "api" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "index_1" |},
                                                                     (
                                                                     TypBit
                                                                     18%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "index_2" |},
                                                                     (
                                                                     TypBit
                                                                     18%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "index_3" |},
                                                                     (
                                                                     TypBit
                                                                     18%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "rw_1" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "rw_2" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "rw_3" |},
                                                                     (
@@ -9229,13 +9229,13 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                                                                     NoInfo
                                                                     (ExpName
                                                                     (BareName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "ds_md" |})
                                                                     (LInstance
                                                                     ["ds_md"]))
                                                                     (TypTypeName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "bf2_ds_md_t" |})
                                                                     InOut)
@@ -9259,63 +9259,63 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                                                                     NoInfo
                                                                     (ExpName
                                                                     (BareName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "ds_md" |})
                                                                     (LInstance
                                                                     ["ds_md"]))
                                                                     (TypTypeName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "bf2_ds_md_t" |})
                                                                     InOut)
                                                                     {| stags := NoInfo;
                                                                     str := "win_1" |})
                                                                     (TypStruct
-                                                                    [( 
-                                                                    {| 
+                                                                    [(
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "api" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "index_1" |},
                                                                     (
                                                                     TypBit
                                                                     18%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "index_2" |},
                                                                     (
                                                                     TypBit
                                                                     18%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "index_3" |},
                                                                     (
                                                                     TypBit
                                                                     18%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "rw_1" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "rw_2" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "rw_3" |},
                                                                     (
@@ -9331,7 +9331,7 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                                                                     NoInfo
                                                                     (ExpName
                                                                     (BareName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "api_1" |})
                                                                     (LInstance
@@ -9354,63 +9354,63 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                                                                     NoInfo
                                                                     (ExpName
                                                                     (BareName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "ds_md" |})
                                                                     (LInstance
                                                                     ["ds_md"]))
                                                                     (TypTypeName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "bf2_ds_md_t" |})
                                                                     InOut)
                                                                     {| stags := NoInfo;
                                                                     str := "win_2" |})
                                                                     (TypStruct
-                                                                    [( 
-                                                                    {| 
+                                                                    [(
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "api" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "index_1" |},
                                                                     (
                                                                     TypBit
                                                                     18%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "index_2" |},
                                                                     (
                                                                     TypBit
                                                                     18%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "index_3" |},
                                                                     (
                                                                     TypBit
                                                                     18%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "rw_1" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "rw_2" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "rw_3" |},
                                                                     (
@@ -9426,7 +9426,7 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                                                                     NoInfo
                                                                     (ExpName
                                                                     (BareName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "api_2" |})
                                                                     (LInstance
@@ -9449,63 +9449,63 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                                                                     NoInfo
                                                                     (ExpName
                                                                     (BareName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "ds_md" |})
                                                                     (LInstance
                                                                     ["ds_md"]))
                                                                     (TypTypeName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "bf2_ds_md_t" |})
                                                                     InOut)
                                                                     {| stags := NoInfo;
                                                                     str := "win_3" |})
                                                                     (TypStruct
-                                                                    [( 
-                                                                    {| 
+                                                                    [(
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "api" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "index_1" |},
                                                                     (
                                                                     TypBit
                                                                     18%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "index_2" |},
                                                                     (
                                                                     TypBit
                                                                     18%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "index_3" |},
                                                                     (
                                                                     TypBit
                                                                     18%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "rw_1" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "rw_2" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "rw_3" |},
                                                                     (
@@ -9521,7 +9521,7 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                                                                     NoInfo
                                                                     (ExpName
                                                                     (BareName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "api_3" |})
                                                                     (LInstance
@@ -9544,63 +9544,63 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                                                                     NoInfo
                                                                     (ExpName
                                                                     (BareName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "ds_md" |})
                                                                     (LInstance
                                                                     ["ds_md"]))
                                                                     (TypTypeName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "bf2_ds_md_t" |})
                                                                     InOut)
                                                                     {| stags := NoInfo;
                                                                     str := "win_4" |})
                                                                     (TypStruct
-                                                                    [( 
-                                                                    {| 
+                                                                    [(
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "api" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "index_1" |},
                                                                     (
                                                                     TypBit
                                                                     18%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "index_2" |},
                                                                     (
                                                                     TypBit
                                                                     18%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "index_3" |},
                                                                     (
                                                                     TypBit
                                                                     18%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "rw_1" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "rw_2" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "rw_3" |},
                                                                     (
@@ -9616,7 +9616,7 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                                                                     NoInfo
                                                                     (ExpName
                                                                     (BareName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "api_4" |})
                                                                     (LInstance
@@ -9827,13 +9827,13 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                                                                  NoInfo
                                                                  (ExpName
                                                                   (BareName
-                                                                   {| 
+                                                                   {|
                                                                    stags := NoInfo;
                                                                    str := "ds_md" |})
                                                                   (LInstance
                                                                     ["ds_md"]))
                                                                  (TypTypeName
-                                                                  {| 
+                                                                  {|
                                                                   stags := NoInfo;
                                                                   str := "bf2_ds_md_t" |})
                                                                  InOut)
@@ -9892,13 +9892,13 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                                                                     NoInfo
                                                                     (ExpName
                                                                     (BareName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "ds_md" |})
                                                                     (LInstance
                                                                     ["ds_md"]))
                                                                     (TypTypeName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "bf2_ds_md_t" |})
                                                                     InOut)
@@ -9960,58 +9960,58 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                                                                     NoInfo
                                                                     (ExpName
                                                                     (BareName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "ds_md" |})
                                                                     (LInstance
                                                                     ["ds_md"]))
                                                                     (TypTypeName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "bf2_ds_md_t" |})
                                                                     InOut)
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "win_2" |})
                                                                  (TypStruct
-                                                                  [( 
-                                                                   {| 
+                                                                  [(
+                                                                   {|
                                                                    stags := NoInfo;
                                                                    str := "api" |},
                                                                    (TypBit
                                                                     8%N) );
-                                                                   ( 
-                                                                   {| 
+                                                                   (
+                                                                   {|
                                                                    stags := NoInfo;
                                                                    str := "index_1" |},
                                                                    (TypBit
                                                                     18%N) );
-                                                                   ( 
-                                                                   {| 
+                                                                   (
+                                                                   {|
                                                                    stags := NoInfo;
                                                                    str := "index_2" |},
                                                                    (TypBit
                                                                     18%N) );
-                                                                   ( 
-                                                                   {| 
+                                                                   (
+                                                                   {|
                                                                    stags := NoInfo;
                                                                    str := "index_3" |},
                                                                    (TypBit
                                                                     18%N) );
-                                                                   ( 
-                                                                   {| 
+                                                                   (
+                                                                   {|
                                                                    stags := NoInfo;
                                                                    str := "rw_1" |},
                                                                    (TypBit
                                                                     8%N) );
-                                                                   ( 
-                                                                   {| 
+                                                                   (
+                                                                   {|
                                                                    stags := NoInfo;
                                                                    str := "rw_2" |},
                                                                    (TypBit
                                                                     8%N) );
-                                                                   ( 
-                                                                   {| 
+                                                                   (
+                                                                   {|
                                                                    stags := NoInfo;
                                                                    str := "rw_3" |},
                                                                    (TypBit
@@ -10027,13 +10027,13 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                                                                  NoInfo
                                                                  (ExpName
                                                                   (BareName
-                                                                   {| 
+                                                                   {|
                                                                    stags := NoInfo;
                                                                    str := "ds_md" |})
                                                                   (LInstance
                                                                     ["ds_md"]))
                                                                  (TypTypeName
-                                                                  {| 
+                                                                  {|
                                                                   stags := NoInfo;
                                                                   str := "bf2_ds_md_t" |})
                                                                  InOut)
@@ -10054,63 +10054,63 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                                                                     NoInfo
                                                                     (ExpName
                                                                     (BareName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "ds_md" |})
                                                                     (LInstance
                                                                     ["ds_md"]))
                                                                     (TypTypeName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "bf2_ds_md_t" |})
                                                                     InOut)
                                                                     {| stags := NoInfo;
                                                                     str := "win_3" |})
                                                                     (TypStruct
-                                                                    [( 
-                                                                    {| 
+                                                                    [(
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "api" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "index_1" |},
                                                                     (
                                                                     TypBit
                                                                     18%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "index_2" |},
                                                                     (
                                                                     TypBit
                                                                     18%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "index_3" |},
                                                                     (
                                                                     TypBit
                                                                     18%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "rw_1" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "rw_2" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "rw_3" |},
                                                                     (
@@ -10127,13 +10127,13 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                                                                     NoInfo
                                                                     (ExpName
                                                                     (BareName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "ds_md" |})
                                                                     (LInstance
                                                                     ["ds_md"]))
                                                                     (TypTypeName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "bf2_ds_md_t" |})
                                                                     InOut)
@@ -10155,70 +10155,70 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                                                                     NoInfo
                                                                     (ExpName
                                                                     (BareName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "ds_md" |})
                                                                     (LInstance
                                                                     ["ds_md"]))
                                                                     (TypTypeName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "bf2_ds_md_t" |})
                                                                     InOut)
                                                                     {| stags := NoInfo;
                                                                     str := "win_3" |})
                                                                     (TypStruct
-                                                                    [( 
-                                                                    {| 
+                                                                    [(
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "api" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "index_1" |},
                                                                     (
                                                                     TypBit
                                                                     18%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "index_2" |},
                                                                     (
                                                                     TypBit
                                                                     18%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "index_3" |},
                                                                     (
                                                                     TypBit
                                                                     18%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "rw_1" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "rw_2" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "rw_3" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) )])
                                                                     Directionless)
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "index_2" |})
                                                                  (TypBit
@@ -10231,17 +10231,17 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                                                                     NoInfo
                                                                     (ExpName
                                                                     (BareName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "ds_md" |})
                                                                     (LInstance
                                                                     ["ds_md"]))
                                                                     (TypTypeName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "bf2_ds_md_t" |})
                                                                     InOut)
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "hash_index_2" |})
                                                                  (TypBit
@@ -10261,63 +10261,63 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                                                                     NoInfo
                                                                     (ExpName
                                                                     (BareName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "ds_md" |})
                                                                     (LInstance
                                                                     ["ds_md"]))
                                                                     (TypTypeName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "bf2_ds_md_t" |})
                                                                     InOut)
                                                                     {| stags := NoInfo;
                                                                     str := "win_3" |})
                                                                     (TypStruct
-                                                                    [( 
-                                                                    {| 
+                                                                    [(
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "api" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "index_1" |},
                                                                     (
                                                                     TypBit
                                                                     18%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "index_2" |},
                                                                     (
                                                                     TypBit
                                                                     18%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "index_3" |},
                                                                     (
                                                                     TypBit
                                                                     18%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "rw_1" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "rw_2" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "rw_3" |},
                                                                     (
@@ -10336,13 +10336,13 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                                                                     NoInfo
                                                                     (ExpName
                                                                     (BareName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "ds_md" |})
                                                                     (LInstance
                                                                     ["ds_md"]))
                                                                     (TypTypeName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "bf2_ds_md_t" |})
                                                                     InOut)
@@ -10366,63 +10366,63 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                                                                     NoInfo
                                                                     (ExpName
                                                                     (BareName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "ds_md" |})
                                                                     (LInstance
                                                                     ["ds_md"]))
                                                                     (TypTypeName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "bf2_ds_md_t" |})
                                                                     InOut)
                                                                     {| stags := NoInfo;
                                                                     str := "win_4" |})
                                                                     (TypStruct
-                                                                    [( 
-                                                                    {| 
+                                                                    [(
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "api" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "index_1" |},
                                                                     (
                                                                     TypBit
                                                                     18%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "index_2" |},
                                                                     (
                                                                     TypBit
                                                                     18%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "index_3" |},
                                                                     (
                                                                     TypBit
                                                                     18%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "rw_1" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "rw_2" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "rw_3" |},
                                                                     (
@@ -10441,13 +10441,13 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                                                                     NoInfo
                                                                     (ExpName
                                                                     (BareName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "ds_md" |})
                                                                     (LInstance
                                                                     ["ds_md"]))
                                                                     (TypTypeName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "bf2_ds_md_t" |})
                                                                     InOut)
@@ -10471,63 +10471,63 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                                                                     NoInfo
                                                                     (ExpName
                                                                     (BareName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "ds_md" |})
                                                                     (LInstance
                                                                     ["ds_md"]))
                                                                     (TypTypeName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "bf2_ds_md_t" |})
                                                                     InOut)
                                                                     {| stags := NoInfo;
                                                                     str := "win_4" |})
                                                                     (TypStruct
-                                                                    [( 
-                                                                    {| 
+                                                                    [(
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "api" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "index_1" |},
                                                                     (
                                                                     TypBit
                                                                     18%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "index_2" |},
                                                                     (
                                                                     TypBit
                                                                     18%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "index_3" |},
                                                                     (
                                                                     TypBit
                                                                     18%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "rw_1" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "rw_2" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "rw_3" |},
                                                                     (
@@ -10546,13 +10546,13 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                                                                     NoInfo
                                                                     (ExpName
                                                                     (BareName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "ds_md" |})
                                                                     (LInstance
                                                                     ["ds_md"]))
                                                                     (TypTypeName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "bf2_ds_md_t" |})
                                                                     InOut)
@@ -10576,63 +10576,63 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                                                                     NoInfo
                                                                     (ExpName
                                                                     (BareName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "ds_md" |})
                                                                     (LInstance
                                                                     ["ds_md"]))
                                                                     (TypTypeName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "bf2_ds_md_t" |})
                                                                     InOut)
                                                                     {| stags := NoInfo;
                                                                     str := "win_4" |})
                                                                     (TypStruct
-                                                                    [( 
-                                                                    {| 
+                                                                    [(
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "api" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "index_1" |},
                                                                     (
                                                                     TypBit
                                                                     18%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "index_2" |},
                                                                     (
                                                                     TypBit
                                                                     18%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "index_3" |},
                                                                     (
                                                                     TypBit
                                                                     18%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "rw_1" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "rw_2" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "rw_3" |},
                                                                     (
@@ -10651,13 +10651,13 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                                                                     NoInfo
                                                                     (ExpName
                                                                     (BareName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "ds_md" |})
                                                                     (LInstance
                                                                     ["ds_md"]))
                                                                     (TypTypeName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "bf2_ds_md_t" |})
                                                                     InOut)
@@ -10681,63 +10681,63 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                                                                     NoInfo
                                                                     (ExpName
                                                                     (BareName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "ds_md" |})
                                                                     (LInstance
                                                                     ["ds_md"]))
                                                                     (TypTypeName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "bf2_ds_md_t" |})
                                                                     InOut)
                                                                     {| stags := NoInfo;
                                                                     str := "win_1" |})
                                                                     (TypStruct
-                                                                    [( 
-                                                                    {| 
+                                                                    [(
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "api" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "index_1" |},
                                                                     (
                                                                     TypBit
                                                                     18%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "index_2" |},
                                                                     (
                                                                     TypBit
                                                                     18%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "index_3" |},
                                                                     (
                                                                     TypBit
                                                                     18%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "rw_1" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "rw_2" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "rw_3" |},
                                                                     (
@@ -10753,7 +10753,7 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                                                                     NoInfo
                                                                     (ExpName
                                                                     (BareName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "api_1" |})
                                                                     (LInstance
@@ -10776,63 +10776,63 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                                                                     NoInfo
                                                                     (ExpName
                                                                     (BareName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "ds_md" |})
                                                                     (LInstance
                                                                     ["ds_md"]))
                                                                     (TypTypeName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "bf2_ds_md_t" |})
                                                                     InOut)
                                                                     {| stags := NoInfo;
                                                                     str := "win_2" |})
                                                                     (TypStruct
-                                                                    [( 
-                                                                    {| 
+                                                                    [(
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "api" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "index_1" |},
                                                                     (
                                                                     TypBit
                                                                     18%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "index_2" |},
                                                                     (
                                                                     TypBit
                                                                     18%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "index_3" |},
                                                                     (
                                                                     TypBit
                                                                     18%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "rw_1" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "rw_2" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "rw_3" |},
                                                                     (
@@ -10848,7 +10848,7 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                                                                     NoInfo
                                                                     (ExpName
                                                                     (BareName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "api_2" |})
                                                                     (LInstance
@@ -10871,63 +10871,63 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                                                                     NoInfo
                                                                     (ExpName
                                                                     (BareName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "ds_md" |})
                                                                     (LInstance
                                                                     ["ds_md"]))
                                                                     (TypTypeName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "bf2_ds_md_t" |})
                                                                     InOut)
                                                                     {| stags := NoInfo;
                                                                     str := "win_3" |})
                                                                     (TypStruct
-                                                                    [( 
-                                                                    {| 
+                                                                    [(
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "api" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "index_1" |},
                                                                     (
                                                                     TypBit
                                                                     18%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "index_2" |},
                                                                     (
                                                                     TypBit
                                                                     18%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "index_3" |},
                                                                     (
                                                                     TypBit
                                                                     18%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "rw_1" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "rw_2" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "rw_3" |},
                                                                     (
@@ -10943,7 +10943,7 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                                                                     NoInfo
                                                                     (ExpName
                                                                     (BareName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "api_3" |})
                                                                     (LInstance
@@ -10966,63 +10966,63 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                                                                     NoInfo
                                                                     (ExpName
                                                                     (BareName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "ds_md" |})
                                                                     (LInstance
                                                                     ["ds_md"]))
                                                                     (TypTypeName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "bf2_ds_md_t" |})
                                                                     InOut)
                                                                     {| stags := NoInfo;
                                                                     str := "win_4" |})
                                                                     (TypStruct
-                                                                    [( 
-                                                                    {| 
+                                                                    [(
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "api" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "index_1" |},
                                                                     (
                                                                     TypBit
                                                                     18%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "index_2" |},
                                                                     (
                                                                     TypBit
                                                                     18%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "index_3" |},
                                                                     (
                                                                     TypBit
                                                                     18%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "rw_1" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "rw_2" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "rw_3" |},
                                                                     (
@@ -11038,7 +11038,7 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                                                                     NoInfo
                                                                     (ExpName
                                                                     (BareName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "api_4" |})
                                                                     (LInstance
@@ -11156,7 +11156,7 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                                                                    value := 7033;
                                                                    width_signed := (
                                                                    Some
-                                                                   ( 
+                                                                   (
                                                                    16%N,
                                                                    false )) |})
                                                                (TypBit 16%N)
@@ -11236,7 +11236,7 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                                                                    value := 14067;
                                                                    width_signed := (
                                                                    Some
-                                                                   ( 
+                                                                   (
                                                                    16%N,
                                                                    false )) |})
                                                                (TypBit 16%N)
@@ -11316,7 +11316,7 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                                                                    value := 21101;
                                                                    width_signed := (
                                                                    Some
-                                                                   ( 
+                                                                   (
                                                                    16%N,
                                                                    false )) |})
                                                                (TypBit 16%N)
@@ -11396,7 +11396,7 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                                                                    value := 28135;
                                                                    width_signed := (
                                                                    Some
-                                                                   ( 
+                                                                   (
                                                                    16%N,
                                                                    false )) |})
                                                                (TypBit 16%N)
@@ -11476,7 +11476,7 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                                                                    value := 7033;
                                                                    width_signed := (
                                                                    Some
-                                                                   ( 
+                                                                   (
                                                                    16%N,
                                                                    false )) |})
                                                                (TypBit 16%N)
@@ -11556,7 +11556,7 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                                                                    value := 14067;
                                                                    width_signed := (
                                                                    Some
-                                                                   ( 
+                                                                   (
                                                                    16%N,
                                                                    false )) |})
                                                                (TypBit 16%N)
@@ -11636,7 +11636,7 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                                                                    value := 21101;
                                                                    width_signed := (
                                                                    Some
-                                                                   ( 
+                                                                   (
                                                                    16%N,
                                                                    false )) |})
                                                                (TypBit 16%N)
@@ -11716,7 +11716,7 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                                                                    value := 28135;
                                                                    width_signed := (
                                                                    Some
-                                                                   ( 
+                                                                   (
                                                                    16%N,
                                                                    false )) |})
                                                                (TypBit 16%N)
@@ -11796,7 +11796,7 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                                                                    value := 7033;
                                                                    width_signed := (
                                                                    Some
-                                                                   ( 
+                                                                   (
                                                                    16%N,
                                                                    false )) |})
                                                                (TypBit 16%N)
@@ -11876,7 +11876,7 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                                                                    value := 14067;
                                                                    width_signed := (
                                                                    Some
-                                                                   ( 
+                                                                   (
                                                                    16%N,
                                                                    false )) |})
                                                                (TypBit 16%N)
@@ -11956,7 +11956,7 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                                                                    value := 21101;
                                                                    width_signed := (
                                                                    Some
-                                                                   ( 
+                                                                   (
                                                                    16%N,
                                                                    false )) |})
                                                                (TypBit 16%N)
@@ -12036,7 +12036,7 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                                                                    value := 28135;
                                                                    width_signed := (
                                                                    Some
-                                                                   ( 
+                                                                   (
                                                                    16%N,
                                                                    false )) |})
                                                                (TypBit 16%N)
@@ -13007,7 +13007,7 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                                                                 NoInfo
                                                                 (ExpName
                                                                  (BareName
-                                                                  {| 
+                                                                  {|
                                                                   stags := NoInfo;
                                                                   str := "win_1" |})
                                                                  (LInstance
@@ -13020,50 +13020,50 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                                                                     false
                                                                     InOut
                                                                     (TypStruct
-                                                                    [( 
-                                                                    {| 
+                                                                    [(
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "api" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "index_1" |},
                                                                     (
                                                                     TypBit
                                                                     18%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "index_2" |},
                                                                     (
                                                                     TypBit
                                                                     18%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "index_3" |},
                                                                     (
                                                                     TypBit
                                                                     18%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "rw_1" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "rw_2" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "rw_3" |},
                                                                     (
@@ -13080,57 +13080,57 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                                                             [(MkParameter
                                                                   false InOut
                                                                   (TypStruct
-                                                                   [( 
-                                                                    {| 
+                                                                   [(
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "api" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "index_1" |},
                                                                     (
                                                                     TypBit
                                                                     18%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "index_2" |},
                                                                     (
                                                                     TypBit
                                                                     18%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "index_3" |},
                                                                     (
                                                                     TypBit
                                                                     18%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "rw_1" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "rw_2" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "rw_3" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) )])
                                                                   None
-                                                                  {| 
+                                                                  {|
                                                                   stags := NoInfo;
                                                                   str := "win_md" |})]
                                                             FunControl
@@ -13143,13 +13143,13 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                                                                   NoInfo
                                                                   (ExpName
                                                                    (BareName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "ds_md" |})
                                                                    (LInstance
                                                                     ["ds_md"]))
                                                                   (TypTypeName
-                                                                   {| 
+                                                                   {|
                                                                    stags := NoInfo;
                                                                    str := "bf2_ds_md_t" |})
                                                                   InOut)
@@ -13188,7 +13188,7 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                                                                     NoInfo
                                                                     (ExpName
                                                                     (BareName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "win_2" |})
                                                                     (LInstance
@@ -13201,50 +13201,50 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                                                                     false
                                                                     InOut
                                                                     (TypStruct
-                                                                    [( 
-                                                                    {| 
+                                                                    [(
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "api" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "index_1" |},
                                                                     (
                                                                     TypBit
                                                                     18%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "index_2" |},
                                                                     (
                                                                     TypBit
                                                                     18%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "index_3" |},
                                                                     (
                                                                     TypBit
                                                                     18%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "rw_1" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "rw_2" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "rw_3" |},
                                                                     (
@@ -13263,50 +13263,50 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                                                                     false
                                                                     InOut
                                                                     (TypStruct
-                                                                    [( 
-                                                                    {| 
+                                                                    [(
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "api" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "index_1" |},
                                                                     (
                                                                     TypBit
                                                                     18%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "index_2" |},
                                                                     (
                                                                     TypBit
                                                                     18%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "index_3" |},
                                                                     (
                                                                     TypBit
                                                                     18%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "rw_1" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "rw_2" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "rw_3" |},
                                                                     (
@@ -13325,17 +13325,17 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                                                                     NoInfo
                                                                     (ExpName
                                                                     (BareName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "ds_md" |})
                                                                     (LInstance
                                                                     ["ds_md"]))
                                                                     (TypTypeName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "bf2_ds_md_t" |})
                                                                     InOut)
-                                                                  {| 
+                                                                  {|
                                                                   stags := NoInfo;
                                                                   str := "win_2" |})
                                                              (TypStruct
@@ -13375,7 +13375,7 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                                                                     NoInfo
                                                                     (ExpName
                                                                     (BareName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "win_3" |})
                                                                     (LInstance
@@ -13388,50 +13388,50 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                                                                     false
                                                                     InOut
                                                                     (TypStruct
-                                                                    [( 
-                                                                    {| 
+                                                                    [(
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "api" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "index_1" |},
                                                                     (
                                                                     TypBit
                                                                     18%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "index_2" |},
                                                                     (
                                                                     TypBit
                                                                     18%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "index_3" |},
                                                                     (
                                                                     TypBit
                                                                     18%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "rw_1" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "rw_2" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "rw_3" |},
                                                                     (
@@ -13441,7 +13441,7 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                                                                     {| stags := NoInfo;
                                                                     str := "win_md" |})]))
                                                                     Directionless)
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "apply" |})
                                                                 (TypFunction
@@ -13452,50 +13452,50 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                                                                     false
                                                                     InOut
                                                                     (TypStruct
-                                                                    [( 
-                                                                    {| 
+                                                                    [(
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "api" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "index_1" |},
                                                                     (
                                                                     TypBit
                                                                     18%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "index_2" |},
                                                                     (
                                                                     TypBit
                                                                     18%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "index_3" |},
                                                                     (
                                                                     TypBit
                                                                     18%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "rw_1" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "rw_2" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "rw_3" |},
                                                                     (
@@ -13516,63 +13516,63 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                                                                     NoInfo
                                                                     (ExpName
                                                                     (BareName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "ds_md" |})
                                                                     (LInstance
                                                                     ["ds_md"]))
                                                                     (TypTypeName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "bf2_ds_md_t" |})
                                                                     InOut)
                                                                     {| stags := NoInfo;
                                                                     str := "win_3" |})
                                                                   (TypStruct
-                                                                   [( 
-                                                                    {| 
+                                                                   [(
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "api" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "index_1" |},
                                                                     (
                                                                     TypBit
                                                                     18%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "index_2" |},
                                                                     (
                                                                     TypBit
                                                                     18%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "index_3" |},
                                                                     (
                                                                     TypBit
                                                                     18%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "rw_1" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "rw_2" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "rw_3" |},
                                                                     (
@@ -13590,7 +13590,7 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                                                                     NoInfo
                                                                     (ExpName
                                                                     (BareName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "win_4" |})
                                                                     (LInstance
@@ -13603,50 +13603,50 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                                                                     false
                                                                     InOut
                                                                     (TypStruct
-                                                                    [( 
-                                                                    {| 
+                                                                    [(
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "api" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "index_1" |},
                                                                     (
                                                                     TypBit
                                                                     18%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "index_2" |},
                                                                     (
                                                                     TypBit
                                                                     18%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "index_3" |},
                                                                     (
                                                                     TypBit
                                                                     18%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "rw_1" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "rw_2" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "rw_3" |},
                                                                     (
@@ -13666,50 +13666,50 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                                                                     false
                                                                     InOut
                                                                     (TypStruct
-                                                                    [( 
-                                                                    {| 
+                                                                    [(
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "api" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "index_1" |},
                                                                     (
                                                                     TypBit
                                                                     18%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "index_2" |},
                                                                     (
                                                                     TypBit
                                                                     18%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "index_3" |},
                                                                     (
                                                                     TypBit
                                                                     18%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "rw_1" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "rw_2" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "rw_3" |},
                                                                     (
@@ -13730,63 +13730,63 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                                                                     NoInfo
                                                                     (ExpName
                                                                     (BareName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "ds_md" |})
                                                                     (LInstance
                                                                     ["ds_md"]))
                                                                     (TypTypeName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "bf2_ds_md_t" |})
                                                                     InOut)
                                                                     {| stags := NoInfo;
                                                                     str := "win_4" |})
                                                                     (TypStruct
-                                                                    [( 
-                                                                    {| 
+                                                                    [(
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "api" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "index_1" |},
                                                                     (
                                                                     TypBit
                                                                     18%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "index_2" |},
                                                                     (
                                                                     TypBit
                                                                     18%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "index_3" |},
                                                                     (
                                                                     TypBit
                                                                     18%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "rw_1" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "rw_2" |},
                                                                     (
                                                                     TypBit
                                                                     8%N) );
-                                                                    ( 
-                                                                    {| 
+                                                                    (
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "rw_3" |},
                                                                     (
@@ -13805,13 +13805,13 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                                                                     NoInfo
                                                                     (ExpName
                                                                     (BareName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "tbl_merge_wins" |})
                                                                     (LInstance
                                                                     ["tbl_merge_wins"]))
                                                                     (TypTable
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "apply_result_tbl_merge_wins" |})
                                                                     Directionless)
@@ -13822,7 +13822,7 @@ Definition Bf2BloomFilter := DeclControl NoInfo
                                                                     nil nil
                                                                     FunTable
                                                                     (TypTypeName
-                                                                    {| 
+                                                                    {|
                                                                     stags := NoInfo;
                                                                     str := "apply_result_tbl_merge_wins" |})))
                                                                     Directionless)
@@ -13841,7 +13841,7 @@ Definition SwitchIngress := DeclControl NoInfo
           {| stags := NoInfo; str := "ig_md" |});
      (MkParameter false In
           (TypTypeName
-           {| stags := NoInfo; str := "ingress_intrinsic_metadata_t" |}) 
+           {| stags := NoInfo; str := "ingress_intrinsic_metadata_t" |})
           None {| stags := NoInfo; str := "ig_intr_md" |});
      (MkParameter false In
           (TypTypeName
@@ -13851,7 +13851,7 @@ Definition SwitchIngress := DeclControl NoInfo
      (MkParameter false InOut
           (TypTypeName
            {| stags := NoInfo;
-              str := "ingress_intrinsic_metadata_for_deparser_t" |}) 
+              str := "ingress_intrinsic_metadata_for_deparser_t" |})
           None {| stags := NoInfo; str := "ig_intr_dprsr_md" |});
      (MkParameter false InOut
           (TypTypeName
@@ -13950,13 +13950,13 @@ Definition SwitchIngress := DeclControl NoInfo
                                                                  NoInfo
                                                                  (ExpName
                                                                   (BareName
-                                                                   {| 
+                                                                   {|
                                                                    stags := NoInfo;
                                                                    str := "hdr" |})
                                                                   (LInstance
                                                                     ["hdr"]))
                                                                  (TypTypeName
-                                                                  {| 
+                                                                  {|
                                                                   stags := NoInfo;
                                                                   str := "header_t" |})
                                                                  InOut)
@@ -14011,13 +14011,13 @@ Definition SwitchIngress := DeclControl NoInfo
                                                                  NoInfo
                                                                  (ExpName
                                                                   (BareName
-                                                                   {| 
+                                                                   {|
                                                                    stags := NoInfo;
                                                                    str := "hdr" |})
                                                                   (LInstance
                                                                     ["hdr"]))
                                                                  (TypTypeName
-                                                                  {| 
+                                                                  {|
                                                                   stags := NoInfo;
                                                                   str := "header_t" |})
                                                                  InOut)
@@ -14119,13 +14119,13 @@ Definition SwitchIngress := DeclControl NoInfo
                                                                  NoInfo
                                                                  (ExpName
                                                                   (BareName
-                                                                   {| 
+                                                                   {|
                                                                    stags := NoInfo;
                                                                    str := "hdr" |})
                                                                   (LInstance
                                                                     ["hdr"]))
                                                                  (TypTypeName
-                                                                  {| 
+                                                                  {|
                                                                   stags := NoInfo;
                                                                   str := "header_t" |})
                                                                  InOut)
@@ -14180,13 +14180,13 @@ Definition SwitchIngress := DeclControl NoInfo
                                                                  NoInfo
                                                                  (ExpName
                                                                   (BareName
-                                                                   {| 
+                                                                   {|
                                                                    stags := NoInfo;
                                                                    str := "hdr" |})
                                                                   (LInstance
                                                                     ["hdr"]))
                                                                  (TypTypeName
-                                                                  {| 
+                                                                  {|
                                                                   stags := NoInfo;
                                                                   str := "header_t" |})
                                                                  InOut)
@@ -14342,7 +14342,7 @@ Definition SwitchIngress := DeclControl NoInfo
                                                  (ExpInt
                                                   {| itags := NoInfo;
                                                      value := 4294901760;
-                                                     width_signed := 
+                                                     width_signed :=
                                                      None |}) TypInteger
                                                  Directionless))
                        (TypBit 32%N))]
@@ -14481,7 +14481,7 @@ Definition SwitchIngress := DeclControl NoInfo
                                                    (ExpInt
                                                     {| itags := NoInfo;
                                                        value := 0;
-                                                       width_signed := 
+                                                       width_signed :=
                                                        None |}) TypInteger
                                                    Directionless))
                        (TypBit 8%N))]
@@ -14563,22 +14563,22 @@ Definition SwitchIngress := DeclControl NoInfo
                                             (TypControl
                                              (MkControlType nil
                                                   [(MkParameter false In
-                                                        (TypBit 64%N) 
+                                                        (TypBit 64%N)
                                                         None
                                                         {| stags := NoInfo;
                                                            str := "ds_key" |});
                                                    (MkParameter false In
-                                                        (TypBit 8%N) 
+                                                        (TypBit 8%N)
                                                         None
                                                         {| stags := NoInfo;
                                                            str := "api" |});
                                                    (MkParameter false In
-                                                        (TypBit 48%N) 
+                                                        (TypBit 48%N)
                                                         None
                                                         {| stags := NoInfo;
                                                            str := "ingress_mac_tstamp" |});
                                                    (MkParameter false InOut
-                                                        (TypBit 8%N) 
+                                                        (TypBit 8%N)
                                                         None
                                                         {| stags := NoInfo;
                                                            str := "query_res" |})]))
@@ -14708,7 +14708,7 @@ Definition SwitchIngressDeparser := DeclControl NoInfo
      (MkParameter false In
           (TypTypeName
            {| stags := NoInfo;
-              str := "ingress_intrinsic_metadata_for_deparser_t" |}) 
+              str := "ingress_intrinsic_metadata_for_deparser_t" |})
           None {| stags := NoInfo; str := "ig_intr_dprsr_md" |})] nil nil
     (BlockCons
          (MkStatement NoInfo
@@ -14728,7 +14728,7 @@ Definition SwitchIngressDeparser := DeclControl NoInfo
                          (MkFunctionType [{| stags := NoInfo; str := "T2" |}]
                               [(MkParameter false In
                                     (TypTypeName
-                                     {| stags := NoInfo; str := "T2" |}) 
+                                     {| stags := NoInfo; str := "T2" |})
                                     None {| stags := NoInfo; str := "hdr" |})]
                               FunExtern TypVoid)) Directionless)
                    [(TypStruct
@@ -14820,7 +14820,7 @@ Definition SwitchEgressParser := DeclParser NoInfo
           {| stags := NoInfo; str := "eg_md" |});
      (MkParameter false Out
           (TypTypeName
-           {| stags := NoInfo; str := "egress_intrinsic_metadata_t" |}) 
+           {| stags := NoInfo; str := "egress_intrinsic_metadata_t" |})
           None {| stags := NoInfo; str := "eg_intr_md" |})] nil
     [(DeclInstantiation NoInfo
           (TypSpecializedType
@@ -14928,7 +14928,7 @@ Definition SwitchEgressParser := DeclParser NoInfo
                                                     (TypBit 1%N) );
                                                   ( {| stags := NoInfo;
                                                        str := "pkt_length" |},
-                                                    (TypBit 16%N) )]) 
+                                                    (TypBit 16%N) )])
                                                 None
                                                 {| stags := NoInfo;
                                                    str := "eg_intr_md" |})]))
@@ -15300,7 +15300,7 @@ Definition SwitchEgress := DeclControl NoInfo
           {| stags := NoInfo; str := "eg_md" |});
      (MkParameter false In
           (TypTypeName
-           {| stags := NoInfo; str := "egress_intrinsic_metadata_t" |}) 
+           {| stags := NoInfo; str := "egress_intrinsic_metadata_t" |})
           None {| stags := NoInfo; str := "eg_intr_md" |});
      (MkParameter false In
           (TypTypeName
@@ -15315,7 +15315,7 @@ Definition SwitchEgress := DeclControl NoInfo
      (MkParameter false InOut
           (TypTypeName
            {| stags := NoInfo;
-              str := "egress_intrinsic_metadata_for_output_port_t" |}) 
+              str := "egress_intrinsic_metadata_for_output_port_t" |})
           None {| stags := NoInfo; str := "eg_intr_md_for_oport" |})] nil nil
     (BlockEmpty NoInfo).
 
@@ -15353,7 +15353,7 @@ Definition SwitchEgressDeparser := DeclControl NoInfo
                          (MkFunctionType [{| stags := NoInfo; str := "T2" |}]
                               [(MkParameter false In
                                     (TypTypeName
-                                     {| stags := NoInfo; str := "T2" |}) 
+                                     {| stags := NoInfo; str := "T2" |})
                                     None {| stags := NoInfo; str := "hdr" |})]
                               FunExtern TypVoid)) Directionless)
                    [(TypStruct
@@ -17581,5 +17581,3 @@ Definition prog := Program
      Bf2BloomFilterRow; Bf2BloomFilterWin; Bf2BloomFilter; SwitchIngress;
      SwitchIngressDeparser; SwitchEgressParser; SwitchEgress;
      SwitchEgressDeparser; pipe; main].
-
-

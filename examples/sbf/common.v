@@ -1,6 +1,7 @@
 Require Import Poulet4.P4light.Syntax.P4defs.
 Require Import Poulet4.P4light.Semantics.Semantics.
 Require Import Coq.Program.Program.
+Require Import ProD3.core.PacketFormat.
 Require Import ProD3.core.Core.
 Require Import ProD3.core.Tofino.
 Require Import ProD3.examples.sbf.p4ast.
@@ -12,10 +13,125 @@ Notation ident := string.
 Notation path := (list ident).
 Notation Val := (@ValueBase bool).
 Notation Sval := (@ValueBase (option bool)).
+Notation Val_eqb := (val_eqb Bool.eqb).
+
 
 Definition am_ge := ltac:(get_am_ge prog).
 (* Finished transaction in 4.375 secs (4.218u,0.156s) (successful) *)
 Definition ge := ltac:(get_ge am_ge prog).
+
+Definition tcp_h: P4Type := ltac:(get_type "tcp_h" ge).
+Definition udp_h: P4Type := ltac:(get_type "udp_h" ge).
+Definition ipv4_h: P4Type := ltac:(get_type "ipv4_h" ge).
+Definition ethernet_h: P4Type := ltac:(get_type "ethernet_h" ge).
+
+Record header_t_rec := {
+    header_t_ethernet: Sval;
+    header_t_ipv4: Sval;
+    header_t_tcp: Sval;
+    header_t_udp: Sval;
+  }.
+
+Definition hdr (hsample: header_t_rec) :=
+  ValBaseStruct
+    [("ethernet", header_t_ethernet hsample);
+     ("ipv4", header_t_ipv4 hsample);
+     ("tcp", header_t_tcp hsample);
+     ("udp", header_t_udp hsample)].
+
+Definition hdr_init: header_t_rec :=
+  Build_header_t_rec
+    (ValBaseHeader
+       [("dst_addr", P4Bit_ 48);
+        ("src_addr", P4Bit_ 48);
+        ("ether_type", P4Bit_ 16)] (Some false))
+    (ValBaseHeader
+       [("version", P4Bit_ 4);
+        ("ihl", P4Bit_ 4);
+        ("diffserv", P4Bit_ 8);
+        ("total_len", P4Bit_ 16);
+        ("identification", P4Bit_ 16);
+        ("flags", P4Bit_ 3);
+        ("frag_offset", P4Bit_ 13);
+        ("ttl", P4Bit_ 8);
+        ("protocol", P4Bit_ 8);
+        ("hdr_checksum", P4Bit_ 16);
+        ("src_addr", P4Bit_ 32);
+        ("dst_addr", P4Bit_ 32)]
+       (Some false))
+    (ValBaseHeader
+       [("src_port", P4Bit_ 16);
+        ("dst_port", P4Bit_ 16);
+        ("seq_no", P4Bit_ 32);
+        ("ack_no", P4Bit_ 32);
+        ("data_offset", P4Bit_ 4);
+        ("res", P4Bit_ 4);
+        ("flags", P4Bit_ 8);
+        ("window", P4Bit_ 16);
+        ("checksum", P4Bit_ 16);
+        ("urgent_ptr", P4Bit_ 16)]
+       (Some false))
+    (ValBaseHeader
+        [("src_port", P4Bit_ 16);
+         ("dst_port", P4Bit_ 16);
+         ("hdr_length", P4Bit_ 16);
+         ("checksum", P4Bit_ 16)]
+        (Some false)).
+
+Lemma ext_val_typ_ipv4: forall ipv4, ⊫ᵥ ipv4_repr_val ipv4 \: ipv4_h.
+Proof. intros. split; [repeat constructor | reflexivity]. Qed.
+
+Lemma force_cast_P4BitV_eq: forall w v,
+    force ValBaseNull (@Ops.eval_cast Info (TypBit w) (P4BitV w v)) = P4BitV w v.
+Proof.
+  intros. unfold P4BitV. simpl. f_equal. rewrite P4Arith.bit_to_lbool_back.
+  unfold P4Arith.BitArith.mod_bound. rewrite Zmod_mod.
+  change (v mod _) with (P4Arith.BitArith.mod_bound w v).
+  rewrite P4Arith.to_lbool_bit_mod. reflexivity.
+Qed.
+
+Lemma abs_ipv4_hdr_eq_eq: forall ipv4 hsample w v,
+    abs_eq
+      (get "protocol"
+         (get "ipv4"
+            (update "ipv4" (eval_val_to_sval (ipv4_repr_val ipv4))
+               (hdr hsample))))
+      (build_abs_unary_op (@Ops.eval_cast Info (TypBit w))
+         (eval_val_to_sval (P4BitV w v))) =
+      eval_val_to_sval
+        (force ValBaseNull
+           (Ops.eval_binary_op Eq (P4BitV 8 (ipv4_protocol ipv4)) (P4BitV w v))).
+Proof.
+  intros. rewrite get_update_same; auto.
+  unfold build_abs_unary_op. rewrite eval_sval_to_val_eq.
+  rewrite force_cast_P4BitV_eq. unfold ipv4_repr_val.
+  Opaque P4BitV. simpl get. Transparent P4BitV. unfold abs_eq.
+  unfold build_abs_binary_op. rewrite !eval_sval_to_val_eq. reflexivity.
+Qed.
+
+Lemma ext_val_typ_ethernet: forall ether, ⊫ᵥ ethernet_repr_val ether \: ethernet_h.
+Proof. intros. split; [repeat constructor | reflexivity]. Qed.
+
+Lemma abs_ether_eq_eq: forall ether hsample w v,
+    abs_eq
+      (get "ether_type"
+         (get "ethernet"
+            (update "ethernet" (eval_val_to_sval (ethernet_repr_val ether))
+               (hdr hsample))))
+      (build_abs_unary_op (@Ops.eval_cast Info (TypBit w))
+         (eval_val_to_sval (P4BitV w v))) =
+      eval_val_to_sval
+        (force ValBaseNull
+           (Ops.eval_binary_op Eq (P4BitV 16 (ethernet_ether_type ether))
+              (P4BitV w v))).
+Proof.
+  intros. rewrite get_update_same; auto.
+  unfold build_abs_unary_op. rewrite eval_sval_to_val_eq.
+  rewrite force_cast_P4BitV_eq. unfold ethernet_repr_val.
+  Opaque P4BitV. simpl get. Transparent P4BitV. unfold abs_eq.
+  unfold build_abs_binary_op. rewrite !eval_sval_to_val_eq. reflexivity.
+Qed.
+
 
 (* Constants *)
 

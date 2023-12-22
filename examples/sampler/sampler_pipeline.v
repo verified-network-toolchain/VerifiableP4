@@ -822,20 +822,6 @@ Proof.
     rewrite qlength_enque, Z.add_assoc. assumption.
 Qed.
 
-(* possible if we change the program: n + (m + n)/1024 *)
-(* 1025 1023 *)
-
-(*
-Definition test counter n :=
-   (if n =? 0
-   then 0
-    else n + ((counter + 1) mod 1024 + n - 1) / 1024 + Z.b2z ((counter + 1) mod 1024 =? 0)) -
-     (n + ((counter) mod 1024 + n) / 1024).
-
-Eval vm_compute in map (fun n => map (test n) [0;1;2; 1023; 1024; 1025])
-                     [0; 1; 2; 1023; 1024; 1025].
-
-*)
 
 Lemma process_ingress_packets_queue: forall inst1 inst2 q1 q2 counter,
     ingress_counter inst1 counter ->
