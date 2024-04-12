@@ -278,24 +278,6 @@ Proof.
       rewrite IHl1. exists p4, p2. split; auto.
 Qed.
 
-Lemma format_match_app_iff': forall l1 l2 p,
-    format_match (l1 ++ l2) p <->
-      exists p1 p2,  p = p1 ++ p2 /\
-                  format_match (l1 ++ [accurate p2]) p /\
-                  format_match l2 p2.
-Proof.
-  intros. split; intros.
-  - rewrite format_match_app_iff in H. destruct H as [p1 [p2 [? [? ?]]]]; subst.
-    exists p1, p2. split; [|split]; auto. rewrite format_match_app_iff.
-    exists p1, p2. split; [|split]; auto. exists [p2]. simpl. rewrite app_nil_r. split; auto.
-    repeat constructor.
-  - destruct H as [p1 [p2 [? [? ?]]]]; subst. rewrite format_match_app_iff.
-    exists p1, p2. split; [|split]; auto. rewrite format_match_app_iff in H0.
-    destruct H0 as [p3 [p4 [? [? ?]]]]. inv H2. destruct H3. inv H3. inv H8.
-    inv H6. simpl in H. rewrite app_nil_r in H. apply app_inv_tail in H.
-    subst. assumption.
-Qed.
-
 Notation "'ε'" := (null).
 Notation "⦑ p ⦒" := (accurate p).
 Notation "⟨ n ⟩" := (unspecified n).
@@ -316,5 +298,33 @@ Proof. intros. rewrite format_match_cons_iff. exists p1, p2. split; auto. Qed.
 
 Lemma nil_format_match: [] ⫢ [].
 Proof. exists []. simpl. split; [reflexivity | constructor]. Qed.
+
+Lemma format_match_app_iff_front: forall l1 l2 p,
+    p ⫢ l1 ++ l2 <-> exists p1 p2 : packet, p = p1 ++ p2 /\ (p1 ⫢ l1) /\ p ⫢ [⦑ p1 ⦒] ++ l2.
+Proof.
+  intros. split; intros.
+  - rewrite format_match_app_iff in H. destruct H as [p1 [p2 [? [? ?]]]]; subst.
+    exists p1, p2. split; [|split]; auto. rewrite format_match_app_iff.
+    exists p1, p2. split; [|split]; auto. apply format_match_singleton.
+  - destruct H as [p1 [p2 [? [? ?]]]]; subst. rewrite format_match_app_iff.
+    exists p1, p2. split; [|split]; auto. rewrite format_match_app_iff in H1.
+    destruct H1 as [p3 [p4 [? [? ?]]]]. inv H1. destruct H3. inv H3. inv H8.
+    inv H6. simpl in H. rewrite app_nil_r in H. apply app_inv_head in H.
+    subst. assumption.
+Qed.
+
+Lemma format_match_app_iff_rear: forall l1 l2 p,
+    p ⫢ l1 ++ l2 <-> exists p1 p2 : packet, p = p1 ++ p2 /\ (p ⫢ l1 ++ [⦑ p2 ⦒]) /\ p2 ⫢ l2.
+Proof.
+  intros. split; intros.
+  - rewrite format_match_app_iff in H. destruct H as [p1 [p2 [? [? ?]]]]; subst.
+    exists p1, p2. split; [|split]; auto. rewrite format_match_app_iff.
+    exists p1, p2. split; [|split]; auto. apply format_match_singleton.
+  - destruct H as [p1 [p2 [? [? ?]]]]; subst. rewrite format_match_app_iff.
+    exists p1, p2. split; [|split]; auto. rewrite format_match_app_iff in H0.
+    destruct H0 as [p3 [p4 [? [? ?]]]]. inv H2. destruct H3. inv H3. inv H8.
+    inv H6. simpl in H. rewrite app_nil_r in H. apply app_inv_tail in H.
+    subst. assumption.
+Qed.
 
 #[export] Hint Resolve nil_format_match: core.

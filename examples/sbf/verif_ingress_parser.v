@@ -50,18 +50,8 @@ Lemma parser_start_body:
   func_sound ge parser_start_fundef nil parser_start_spec.
 Proof.
   start_function.
-  change [⦑ encode (iimt_repr_val 0 ver port stamp) ⦒;
-          ⟨ 64 ⟩; ⦑ encode (ethernet_repr_val ether) ⦒;
-          ⦑ encode (ipv4_repr_val ipv4) ⦒;
-          ⦃ is_tcp ipv4 ? ⦑ encode result ⦒
-          | ⦃ is_udp ipv4 ? ⦑ encode result ⦒ | ε ⦄ ⦄;
-          ⦑ pin' ⦒] with
-    ([⦑ encode (iimt_repr_val 0 ver port stamp) ⦒; ⟨ 64 ⟩] ++
-       [⦑ encode (ethernet_repr_val ether) ⦒;
-        ⦑ encode (ipv4_repr_val ipv4) ⦒;
-        ⦃ is_tcp ipv4 ? ⦑ encode result ⦒
-        | ⦃ is_udp ipv4 ? ⦑ encode result ⦒ | ε ⦄ ⦄;
-        ⦑ pin' ⦒]) in H1. rewrite format_match_app_iff' in H1.
+  cut_list_n H1 2%nat.
+  rewrite format_match_app_iff_rear in H1.
   destruct H1 as [p1 [p2 [? [? ?]]]].
   step_call tofino_parser_body; [ entailer | apply H | apply H3 | ].
   step_call layer4_parser_body; [entailer | eauto.. |].

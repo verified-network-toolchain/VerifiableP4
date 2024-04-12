@@ -106,3 +106,23 @@ Ltac destruct_list xs :=
   | _ =>
       idtac "Length of" xs "is not found"
   end.
+
+Lemma list_head_app: forall {A: Type} a (l : list A), a :: l = [a] ++ l.
+Proof. list_solve. Qed.
+
+Lemma list_app_head_app: forall {A: Type} a (l1 l2 : list A), l1 ++ a :: l2 = (l1 ++ [a]) ++ l2.
+Proof. intros. rewrite <- app_assoc. f_equal. Qed.
+
+Ltac cut_list_n0 H n :=
+  match n with
+  | O => idtac
+  | S O => idtac
+  | S (S ?n') => rewrite list_app_head_app in H; unfold app in H at 2;
+               (cut_list_n0 H n')
+  end.
+
+Ltac cut_list_n H n :=
+  match type of n with
+  | nat => rewrite list_head_app in H; cut_list_n0 H n
+  | _ => idtac "Error: n must be a nat."
+  end.

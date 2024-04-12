@@ -296,7 +296,7 @@ Proof.
             | ⦃ is_udp ipv4 ? ⦑ encode result ⦒ | ε ⦄ ⦄;
             ⦑ pin' ⦒].
   change (⦑ encode eg_intr_md ⦒ :: l) with ([⦑ encode eg_intr_md ⦒] ++ l) in H1.
-  rewrite format_match_app_iff' in H1. destruct H1 as [p1 [p2 [? [? ?]]]].
+  rewrite format_match_app_iff_rear in H1. destruct H1 as [p1 [p2 [? [? ?]]]].
   step_call tofino_parser_body; [ entailer | eauto | apply H3 | ]. subst l.
   clear dependent pin. clear p1.
   simpl_format_list.
