@@ -226,7 +226,7 @@ Lemma parser_start_body:
   func_sound ge parser_start_fundef nil parser_start_spec.
 Proof.
   start_function.
-  cut_list_n H1 2%nat.
+  cut_list_n_in H1 2%nat.
   rewrite format_match_app_iff_rear in H1.
   destruct H1 as [p1 [p2 [? [? ?]]]].
   step_call tofino_parser_body; [ entailer | apply H | apply H3 | ].

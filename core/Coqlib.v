@@ -113,16 +113,28 @@ Proof. list_solve. Qed.
 Lemma list_app_head_app: forall {A: Type} a (l1 l2 : list A), l1 ++ a :: l2 = (l1 ++ [a]) ++ l2.
 Proof. intros. rewrite <- app_assoc. f_equal. Qed.
 
-Ltac cut_list_n0 H n :=
+#[local] Ltac cut_list_n0_in H n :=
   match n with
   | O => idtac
   | S O => idtac
-  | S (S ?n') => rewrite list_app_head_app in H; unfold app in H at 2;
-               (cut_list_n0 H n')
+  | S (S ?n') => rewrite list_app_head_app in H; unfold app in H at 2; (cut_list_n0_in H n')
   end.
 
-Ltac cut_list_n H n :=
+Ltac cut_list_n_in H n :=
   match type of n with
-  | nat => rewrite list_head_app in H; cut_list_n0 H n
+  | nat => rewrite list_head_app in H; cut_list_n0_in H n
+  | _ => idtac "Error: n must be a nat."
+  end.
+
+#[local] Ltac cut_list_n0 n :=
+  match n with
+  | O => idtac
+  | S O => idtac
+  | S (S ?n') => rewrite list_app_head_app; unfold app at 2; (cut_list_n0 n')
+  end.
+
+Ltac cut_list_n n :=
+  match type of n with
+  | nat => rewrite list_head_app; cut_list_n0 n
   | _ => idtac "Error: n must be a nat."
   end.

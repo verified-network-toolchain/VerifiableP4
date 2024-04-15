@@ -327,6 +327,13 @@ Proof.
     destruct H. split; assumption.
 Qed.
 
+Definition encode_out_md (port rid: Z): packet :=
+  encode
+    (output_md_to_egress_intr_md
+        {| out_meta_egress_port := port; out_meta_egress_rid := rid |}).
+
+Opaque encode.
+
 Lemma sampler_tofino_tm:
   forall (for_tm : Sval) (counter : Z) (pkt : packet),
     sval_refine
@@ -335,8 +342,10 @@ Lemma sampler_tofino_tm:
          update "mcast_grp_a" (P4Bit 16 COLLECTOR_MULTICAST_GROUP)
            (update_outport OUT_PORT ig_intr_tm_md)
        else update_outport OUT_PORT ig_intr_tm_md) for_tm ->
-    qlength (tofino_tm for_tm pkt) =
-      (if (counter + 1) mod 1024 =? 0 then 2 else 1).
+    list_rep (tofino_tm for_tm pkt) =
+      (if (counter + 1) mod 1024 =? 0 then
+         [encode_out_md 129 123 ++ pkt; encode_out_md 128 0 ++ pkt]
+       else [encode_out_md 128 0 ++ pkt]).
 Proof.
   intros. unfold update_outport in H. destruct ((counter + 1) mod 1024 =? 0).
   - assert (intr_tm_md_to_input_md for_tm =
@@ -359,7 +368,7 @@ Proof.
         change (ValBaseBit _) with (ValBaseBit (map Some (repeat false 16))) in H.
         remember (repeat false 16) as l. inv H.
         apply Forall2_bit_refine_Some_same' in H2. subst lb'. reflexivity. }
-    unfold tofino_tm. rewrite H0. simpl. reflexivity.
+    unfold tofino_tm. rewrite H0. simpl. rewrite rev'_eq. reflexivity.
   - assert (intr_tm_md_to_input_md for_tm =
               Build_InputMetadata (Some OUT_PORT) None None 0 0 0). {
       unfold intr_tm_md_to_input_md. f_equal.
@@ -382,6 +391,23 @@ Proof.
     unfold tofino_tm. rewrite H0. simpl. reflexivity.
 Qed.
 
+Transparent encode.
+
+Lemma sampler_tofino_tm_qlen:
+  forall (for_tm : Sval) (counter : Z) (pkt : packet),
+    sval_refine
+      (if (counter + 1) mod 1024 =? 0
+       then
+         update "mcast_grp_a" (P4Bit 16 COLLECTOR_MULTICAST_GROUP)
+           (update_outport OUT_PORT ig_intr_tm_md)
+       else update_outport OUT_PORT ig_intr_tm_md) for_tm ->
+    qlength (tofino_tm for_tm pkt) =
+      (if (counter + 1) mod 1024 =? 0 then 2 else 1).
+Proof.
+  intros. apply sampler_tofino_tm with (pkt := pkt) in H.
+  rewrite qlength_eq, H. destruct ((counter + 1) mod 1024 =? 0); reflexivity.
+Qed.
+
 Opaque ig_intr_tm_md ipv4_repr_val ethernet_repr_val bridge_repr_val sample_repr_val.
 
 Definition empty_sample : sample_rec := Build_sample_rec 0 0 0 0 0 0.
@@ -401,12 +427,17 @@ Lemma process_packet_ingress:
            then update "mcast_grp_a" (P4Bit 16 COLLECTOR_MULTICAST_GROUP)
                   (update_outport OUT_PORT ig_intr_tm_md)
            else update_outport OUT_PORT ig_intr_tm_md) for_tm /\
-        (exists has_sample sample ether ipv4 result payload,
+        (exists has_sample sample ether ipv4 result payload meta,
             ((if is_tcp ipv4 then ⊫ᵥ result \: tcp_h
               else if is_udp ipv4 then ⊫ᵥ result \: udp_h else result = ValBaseNull)) /\
               P4BitV 16 (ethernet_ether_type ether) = P4BitV 16 ETHERTYPE_IPV4 /\
               pout ⫢ [⦑ encode (bridge_repr_val has_sample) ⦒;
                       ⦃ contains_sample has_sample ? ⦑ encode (sample_repr_val sample) ⦒| ε ⦄;
+                      ⦑ encode (ethernet_repr_val ether) ⦒;
+                      ⦑ encode (ipv4_repr_val ipv4) ⦒;
+                      ⦃ is_tcp ipv4 ? ⦑ encode result ⦒ |
+                        ⦃ is_udp ipv4 ? ⦑ encode result ⦒ | ε ⦄ ⦄; ⦑ payload ⦒] /\
+              pin ⫢ [ ⦑ meta ⦒;
                       ⦑ encode (ethernet_repr_val ether) ⦒;
                       ⦑ encode (ipv4_repr_val ipv4) ⦒;
                       ⦃ is_tcp ipv4 ? ⦑ encode result ⦒ |
@@ -498,51 +529,42 @@ Proof.
   rewrite H6 in H5. inversion H5. subst pout0. clear H5. split; [|split].
   - apply H2.
   - inv H7. assumption.
-  - destruct ((counter + 1) mod 1024 =? 0).
-    + exists 1, (Build_sample_rec COLLECTOR_MAC MY_MAC SAMPLE_ETYPE (ipv4_src_addr ip4)
-              (ipv4_dst_addr ip4) (counter + 1)), ether, ipv4, result, payload.
-      split; auto. split; auto.
-      change (sample_repr_val _) with
-        (sample_reprv (P4BitV 32 (ipv4_src_addr ip4)) (P4BitV 32 (ipv4_dst_addr ip4))
-           (counter + 1)).
-      remember (sample_reprv (P4BitV 32 (ipv4_src_addr ip4)) (P4BitV 32 (ipv4_dst_addr ip4))
-                  (counter + 1)) as sample_r.
-      change ([_; _; _; _; _; _]) with
-        ([⦑ encode (bridge_repr_val 1) ⦒;
-          ⦃ contains_sample 1 ? ⦑ encode sample_r ⦒ | ε ⦄;
-          ⦑ encode (ethernet_repr_val ether) ⦒; ⦑ encode (ipv4_repr_val ipv4) ⦒;
-          ⦃ is_tcp ipv4 ? ⦑ encode result ⦒ | ⦃ is_udp ipv4 ? ⦑ encode result ⦒ | ε ⦄ ⦄] ++
-           [⦑ payload ⦒]). rewrite format_match_app_iff. exists (encode h), payload.
-      split; [|split]; [reflexivity | | apply format_match_singleton].
-      change (contains_sample 1) with true. subst h. simpl.
-      destruct (is_tcp ipv4); simpl.
+  - exists (if (counter + 1) mod 1024 =? 0 then 1 else 0).
+    exists (if (counter + 1) mod 1024 =? 0
+       then Build_sample_rec COLLECTOR_MAC MY_MAC SAMPLE_ETYPE (ipv4_src_addr ip4)
+              (ipv4_dst_addr ip4) (counter + 1)
+       else empty_sample).
+    exists ether, ipv4, result, payload.
+    cut_list_n_in H13 2%nat. rewrite format_match_app_iff_front in H13.
+    destruct H13 as [p1 [p2 [? [? ?]]]]. simpl app in H13.
+    exists p1. do 3 (split; auto).
+    replace (sample_repr_val _) with
+      (if (counter + 1) mod 1024 =? 0 then
+         (sample_reprv (P4BitV 32 (ipv4_src_addr ip4)) (P4BitV 32 (ipv4_dst_addr ip4))
+            (counter + 1)) else
+         (sample_repr_val empty_sample)) by (destruct ((counter + 1) mod 1024 =? 0); auto).
+    remember (sample_reprv _ _ _) as sample_r.
+    cut_list_n 8%nat. rewrite format_match_app_iff. exists (encode h), payload.
+    split; [|split]; [reflexivity | | apply format_match_singleton].
+    destruct ((counter + 1) mod 1024 =? 0), (is_tcp ipv4);
+      unfold contains_sample; simpl Val_eqb; subst h; simpl.
+    + do 5 (apply format_match_cons; [repeat constructor |]). auto.
+    + destruct (is_udp ipv4); simpl.
       * do 5 (apply format_match_cons; [repeat constructor |]). auto.
-      * destruct (is_udp ipv4); simpl.
-        -- do 5 (apply format_match_cons; [repeat constructor |]). auto.
-        -- do 4 (apply format_match_cons; [repeat constructor |]).
-           exists [[]]. split; [reflexivity | repeat constructor].
-    + exists 0, empty_sample, ether, ipv4, result, payload. split; auto. split; auto.
-      change ([_; _; _; _; _; _]) with
-        ([⦑ encode (bridge_repr_val 0) ⦒;
-          ⦃ contains_sample 0 ? ⦑ encode (sample_repr_val empty_sample) ⦒ | ε ⦄;
-          ⦑ encode (ethernet_repr_val ether) ⦒; ⦑ encode (ipv4_repr_val ipv4) ⦒;
-          ⦃ is_tcp ipv4 ? ⦑ encode result ⦒ | ⦃ is_udp ipv4 ? ⦑ encode result ⦒ | ε ⦄ ⦄] ++
-           [⦑ payload ⦒]). rewrite format_match_app_iff. exists (encode h), payload.
-      split; [|split]; [reflexivity | | apply format_match_singleton].
-      change (contains_sample 0) with false. subst h. simpl.
-      destruct (is_tcp ipv4); simpl.
-      * rewrite <- (app_nil_r (encode (bridge_repr_val 0))) at 2. rewrite <- app_assoc.
-        do 5 (apply format_match_cons; [repeat constructor |]). auto.
-      * destruct (is_udp ipv4); simpl;
-          rewrite <- (app_nil_r (encode (bridge_repr_val 0))) at 2; rewrite <- app_assoc.
-        -- do 5 (apply format_match_cons; [repeat constructor |]). auto.
-        -- do 4 (apply format_match_cons; [repeat constructor |]).
-           exists [[]]. split; [reflexivity | repeat constructor].
+      * do 4 (apply format_match_cons; [repeat constructor |]).
+        exists [[]]. split; [reflexivity | repeat constructor].
+    + rewrite <- (app_nil_r (encode (bridge_repr_val 0))) at 2. rewrite <- app_assoc.
+      do 5 (apply format_match_cons; [repeat constructor |]). auto.
+    + destruct (is_udp ipv4); simpl;
+        rewrite <- (app_nil_r (encode (bridge_repr_val 0))) at 2; rewrite <- app_assoc.
+      * do 5 (apply format_match_cons; [repeat constructor |]). auto.
+      * do 4 (apply format_match_cons; [repeat constructor |]).
+        exists [[]]. split; [reflexivity | repeat constructor].
 Qed.
 
 Transparent ig_intr_tm_md ipv4_repr_val ethernet_repr_val bridge_repr_val sample_repr_val.
 
-Lemma process_packet_ingress_queue:
+Lemma process_packet_ingress_queue_len:
   forall st st' pin pout for_tm counter que,
     ingress_counter st counter ->
     ingress_pipeline
@@ -552,7 +574,7 @@ Lemma process_packet_ingress_queue:
     qlength que = if ((counter + 1) mod 1024 =? 0) then 2 else 1.
 Proof.
   intros. eapply process_packet_ingress in H0; eauto. destruct H0 as [? [? _]].
-  subst que. apply sampler_tofino_tm. assumption.
+  subst que. apply sampler_tofino_tm_qlen. assumption.
 Qed.
 
 Inductive eprsr_block: programmable_block_sem :=
@@ -837,7 +859,7 @@ Proof.
     rewrite qlength_concat, IHprocess_ingress_packets, qlength_enque.
     assert (ingress_counter st2 (counter + qlength ps)). {
         eapply process_ingress_packets_counter; eauto. }
-    rewrite (process_packet_ingress_queue _ _ _ _ _ _ _ H2 H eq_refl).
+    rewrite (process_packet_ingress_queue_len _ _ _ _ _ _ _ H2 H eq_refl).
     rewrite <- !Z.add_assoc. f_equal. rewrite !Z.add_assoc.
     remember (qlength ps) as n. pose proof (qlength_nonneg ps). rewrite <- Heqn in H3.
     clear -Hlt H3. pose proof (Z.div_mod counter 1024 ltac:(lia)).
@@ -873,12 +895,12 @@ Proof.
   - rewrite Z.eqb_eq in Heqb. rewrite Heqb.
     apply qlength_0_iff in Heqb, IHprocess_ingress_packets. subst.
     inv H0. 2: destruct ps; simpl in H2; discriminate.
-    rewrite (process_packet_ingress_queue _ _ _ _ _ _ _ H1 H eq_refl).
+    rewrite (process_packet_ingress_queue_len _ _ _ _ _ _ _ H1 H eq_refl).
     rewrite Z.add_0_r, Z.div_small by (apply Z.mod_pos_bound; lia).
     destruct ((counter + 1) mod 1024 =? 0); simpl; reflexivity.
   - assert (ingress_counter st2 (counter + qlength ps)). {
         eapply process_ingress_packets_counter; eauto. }
-    rewrite (process_packet_ingress_queue _ _ _ _ _ _ _ H2 H eq_refl).
+    rewrite (process_packet_ingress_queue_len _ _ _ _ _ _ _ H2 H eq_refl).
     remember (qlength ps) as n.
     cut (((counter + 1) mod 1024 + (n - 1))/1024 +
            (if (counter + n + 1) mod 1024 =? 0 then 2 else 1) =
