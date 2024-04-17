@@ -42,7 +42,7 @@ Proof.
   start_function.
   step_call (@packet_in_advance_body Info);
     [ entailer; instantiate (1 := 64); apply sval_refine_refl |
-      lia | apply format_match_size in H; assumption | ].
+      lia | apply format_match_size_unspec_le in H; assumption | ].
   apply format_match_skipn in H. change (Z.to_nat 64) with 64%nat. rewrite H.
   step_call (@parser_accept_body Info); [entailer |].
   step.

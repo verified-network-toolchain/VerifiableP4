@@ -158,6 +158,17 @@ Inductive format :=
 | unspecified: nat -> format
 | guarded: bool -> format -> format -> format.
 
+Fixpoint format_length (f: format) : nat :=
+  match f with
+  | null => O
+  | accurate p => length p
+  | unspecified n => n
+  | guarded b f1 f2 => match b with
+                      | true => format_length f1
+                      | false => format_length f2
+                      end
+  end.
+
 Inductive match_one: format -> packet -> Prop :=
 | match_null: match_one null []
 | match_accurate: forall p, match_one (accurate p) p
@@ -178,21 +189,39 @@ Lemma match_one_guarded_false: forall p f1 f2,
     match_one (guarded false f1 f2) p -> match_one f2 p.
 Proof. intros. inversion H. assumption. Qed.
 
-
 Lemma match_one_size_eq: forall f p1 p2,
     match_one f p1 -> match_one f p2 -> length p1 = length p2.
 Proof. induction f; intros; inv H; inv H0; auto. Qed.
 
+Lemma match_one_size: forall f p,
+    match_one f p -> length p = format_length f.
+Proof. intros. induction H; simpl; auto. Qed.
+
 Definition format_match (f: list format) (p: packet): Prop :=
   exists l, concat l = p /\ Forall2 match_one f l.
 
-Lemma format_match_size: forall p n f,
+Lemma format_match_size_unspec_le: forall p n f,
     format_match (unspecified n :: f) p -> ((Z.of_nat n) <= Zlength p)%Z.
 Proof.
   intros. destruct H as [l [? ?]]. destruct l; inv H0. inv H4.
   simpl. rewrite Zlength_app, <- Zlength_correct.
   pose proof (Zlength_nonneg (concat l0)). lia.
 Qed.
+
+Lemma format_match_size': forall f p len,
+    format_match f p -> length p + len = fold_left Nat.add (map format_length f) len.
+Proof.
+  intros. hnf in H. destruct H as [l [? ?]]. revert len p H. induction H0.
+  - intros. simpl in *. subst p. reflexivity.
+  - simpl. intros.
+    specialize (IHForall2 (len + format_length x) (concat l') ltac:(reflexivity)).
+    rewrite <- IHForall2. subst p. rewrite app_length. apply match_one_size in H.
+    rewrite H. lia.
+Qed.
+
+Lemma format_match_size: forall f p,
+    format_match f p -> length p = fold_left Nat.add (map format_length f) O.
+Proof. intros. rewrite <- (format_match_size' f p O); auto. Qed.
 
 Lemma format_match_skipn: forall p n p',
     format_match [unspecified n ; accurate p'] p -> skipn n p = p'.

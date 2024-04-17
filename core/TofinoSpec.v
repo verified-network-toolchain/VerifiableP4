@@ -181,6 +181,12 @@ Definition is_tcp ipv4: bool :=
 Definition is_udp ipv4: bool :=
   Val_eqb (P4BitV 8 (ipv4_protocol ipv4)) (P4BitV 8 IP_PROTOCOLS_UDP).
 
+Lemma is_tcp_not_udp: forall ipv4, is_tcp ipv4 = true -> is_udp ipv4 = false.
+Proof.
+  unfold is_tcp, is_udp. intros. rewrite Val_eqb_eq_iff in H. rewrite H.
+  rewrite Val_eqb_neq_iff. intro. inversion H0.
+Qed.
+
 Definition protocol_extract_result
   (ipv4: ipv4_rec) (result: Val) (header: Sval): Sval :=
   if is_tcp ipv4 then update "tcp" (eval_val_to_sval result) header
