@@ -698,6 +698,16 @@ Proof.
        (ValBaseBit v24)). reflexivity.
 Qed.
 
+Definition val_egress_rid_zero (eg_intr_md: Val) :=
+  Val_eqb (getv "egress_rid" eg_intr_md) (P4BitV 16 0).
+
+Lemma eg_intr_rep_zero: forall eg_intr_md md,
+    eg_intr_md = eg_intr_md_rep md -> val_egress_rid_zero eg_intr_md = egress_rid_zero md.
+Proof.
+  intros. subst. unfold eg_intr_md_rep, val_egress_rid_zero, egress_rid_zero. simpl.
+  reflexivity.
+Qed.
+
 Lemma start_extract_result_typ: forall has_sample sample ether ipv4 result,
     (if is_tcp ipv4
      then ⊫ᵥ result \: tcp_h
@@ -771,12 +781,18 @@ Qed.
 Lemma conditional_update_ex_valid_only: forall md h vh,
     ⊢ᵥ common.hdr h \: header_sample_t ->
     common.hdr h = val_to_sval_valid_only vh ->
-    exists hd, sval_refine (val_to_sval_valid_only hd) (conditional_update md h).
+    exists hd, sval_refine (val_to_sval_valid_only hd) (conditional_update md h) /\
+            hd = invalidate_fieldsv vh (if egress_rid_zero md then ["bridge"; "sample"]
+                                        else ["bridge"; "ethernet"; "ipv4"]).
 Proof.
   intros. unfold conditional_update. rewrite H0.
   assert (⊢ᵥ vh \: header_sample_t). {
     rewrite <- to_sval_valid_only_typ_iff, <- H0. assumption. }
-  destruct (egress_rid_zero md); eapply invalidate_fields_valid_only; eauto; reflexivity.
+  destruct (egress_rid_zero md).
+  - exists (invalidate_fieldsv vh ["bridge"; "sample"]). split; auto.
+    eapply invalidate_fields_valid_only; eauto; reflexivity.
+  - exists (invalidate_fieldsv vh ["bridge"; "ethernet"; "ipv4"]). split; auto.
+    eapply invalidate_fields_valid_only; eauto; reflexivity.
 Qed.
 
 Lemma conditional_update_typ: forall md h,
@@ -786,18 +802,33 @@ Proof.
     apply invalidate_fields_typ; [reflexivity | assumption | reflexivity | assumption].
 Qed.
 
+Lemma encode_invalid_sample: forall sample, encode (setInvalidv (sample_repr_val sample)) = [].
+Proof. intros. reflexivity. Qed.
+
+Lemma encode_invalid_ether: forall ether, encode (setInvalidv (ethernet_repr_val ether)) = [].
+Proof. intros. reflexivity. Qed.
+
+Lemma encode_invalid_ipv4: forall ipv4, encode (setInvalidv (ipv4_repr_val ipv4)) = [].
+Proof. intros. reflexivity. Qed.
+
 Lemma process_packet_egress:
   forall st st' pin pout,
     egress_pipeline eprsr_block egress_block edeprsr_block parser_egress_cond
       egress_deprsr_cond st pin st' pout ->
-    exists eg_intr_md has_sample sample ether ipv4 result hd payload,
+    exists eg_intr_md has_sample sample ether ipv4 result payload,
     pin
       ⫢ [⦑ encode eg_intr_md ⦒; ⦑ encode (bridge_repr_val has_sample) ⦒;
          ⦃ contains_sample has_sample ? ⦑ encode (sample_repr_val sample) ⦒ | ε ⦄;
          ⦑ encode (ethernet_repr_val ether) ⦒; ⦑ encode (ipv4_repr_val ipv4) ⦒;
          ⦃ is_tcp ipv4 ? ⦑ encode result ⦒ | ⦃ is_udp ipv4 ? ⦑ encode result ⦒ | ε ⦄ ⦄;
          ⦑ payload ⦒] /\
-      pout = encode hd ++ payload.
+      if val_egress_rid_zero eg_intr_md then
+           pout ⫢ [⦑ encode (ethernet_repr_val ether) ⦒; ⦑ encode (ipv4_repr_val ipv4) ⦒;
+                   ⦃ is_tcp ipv4 ? ⦑ encode result ⦒ | ⦃ is_udp ipv4 ? ⦑ encode result ⦒ | ε ⦄ ⦄;
+                   ⦑ payload ⦒]
+      else pout ⫢ [⦃ contains_sample has_sample ? ⦑ encode (sample_repr_val sample) ⦒ | ε ⦄;
+                   ⦃ is_tcp ipv4 ? ⦑ encode result ⦒ | ⦃ is_udp ipv4 ? ⦑ encode result ⦒ | ε ⦄ ⦄;
+                   ⦑ payload ⦒].
 Proof.
   intros. inv H. inv H0. rewrite PathMap.get_set_same in H15. inversion H15. subst pin0.
   clear H15. inv H17. inv H. inv H0. inv H7.
@@ -823,7 +854,7 @@ Proof.
     rewrite <- H. apply start_extract_result_typ; assumption. }
   pose proof (start_extract_result_valid_only has_sample sample ether ipv4 result H10).
   rewrite H in H2.
-  destruct (conditional_update_ex_valid_only md _ _ H1 H2) as [hd ?H].
+  destruct (conditional_update_ex_valid_only md _ _ H1 H2) as [hd [?H Hhd]].
   assert (⊢ᵥ hd \: header_sample_t). {
     rewrite <- to_sval_valid_only_typ_iff. apply val_sim_on_top in H3.
     rewrite (val_sim_prsv_typ _ _ _ H3). apply conditional_update_typ. assumption. }
@@ -832,12 +863,28 @@ Proof.
        - constructor. eapply sval_refine_trans; eauto.
          do 2 (constructor; [assumption|]). constructor.
        - split; hnf; auto. split; simpl; auto. rewrite PathMap.get_set_same; reflexivity. }
-  destruct H24. inv H5. clear H25. destruct H18 as [_ [_ ?]]. destruct H5 as [? _].
+  destruct H24. inversion H5. subst x l y l'. clear H5 H25. destruct H18 as [_ [_ ?]]. destruct H5 as [? _].
   simpl in H5. change (@extern_object Info (@Expression Info)
                          (@extern_sem Info (@Expression Info) target)) with
-    (@object (@Expression Info)) in H6. rewrite H6 in H5. inv H5.
-  exists (eg_intr_md_rep md), has_sample, sample, ether, ipv4, result, hd, payload.
-  split; auto.
+    (@object (@Expression Info)) in H6. rewrite H6 in H5. inversion H5. subst pout0. clear H5.
+  exists (eg_intr_md_rep md), has_sample, sample, ether, ipv4, result, payload. split; auto.
+  erewrite eg_intr_rep_zero by reflexivity.
+  Opaque P4BitV ethernet_repr_val ipv4_repr_val sample_repr_val.
+  destruct (egress_rid_zero).
+  - cut_list_n 4%nat. rewrite format_match_app_iff. exists (encode hd), payload. split; auto.
+    split; [|apply format_match_singleton]. rewrite Hhd.
+    destruct (is_tcp ipv4), (contains_sample has_sample), (is_udp ipv4); simpl;
+      rewrite ?encode_invalid_sample; simpl app;
+      repeat (apply format_match_cons; [constructor|]); auto; repeat constructor;
+      rewrite !format_match_guarded_false_iff, format_match_null_iff; auto.
+  - cut_list_n 2%nat. rewrite format_match_app_iff. exists (encode hd), payload. split; auto.
+    split; [|apply format_match_singleton]. rewrite Hhd.
+    destruct (is_tcp ipv4), (contains_sample has_sample), (is_udp ipv4); simpl;
+      rewrite encode_invalid_ether, encode_invalid_ipv4; simpl app.
+    1,2,5,6: repeat (apply format_match_cons; [constructor|]); auto; repeat constructor.
+    all: rewrite !format_match_guarded_false_iff, format_match_null_iff,
+        ?format_match_guarded_false_iff, ?format_match_null_iff; auto;
+       (apply format_match_cons; [constructor|]); auto; constructor.
 Qed.
 
 Lemma process_egress_packets_queue: forall est1 q1 est2 q2,

@@ -188,11 +188,17 @@ Definition setInvalidv (v : Val) : Val :=
   | _ => v
   end.
 
+Definition invalidate_fieldv (h: Val) (fld: ident): Val :=
+  (updatev fld (setInvalidv (getv fld h)) h).
+
+Definition invalidate_fieldsv (h: Val) (flds: list ident): Val :=
+  fold_left invalidate_fieldv flds h.
+
 Lemma invalidate_field_valid_only: forall {tags_t: Type} h fld fields,
     is_some (AList.get (clear_AList_tags fields) fld) ->
     ⊢ᵥ h \: @TypStruct tags_t fields ->
-    exists vh, sval_refine (val_to_sval_valid_only vh)
-            (invalidate_field (val_to_sval_valid_only h) fld).
+    sval_refine (val_to_sval_valid_only (invalidate_fieldv h fld))
+      (invalidate_field (val_to_sval_valid_only h) fld).
 Proof.
   intros. inv H0. simpl. rewrite <- P4String.key_unique_clear_AList_tags in H2.
   remember (P4String.clear_AList_tags fields) as flds. clear fields Heqflds.
@@ -202,11 +208,10 @@ Proof.
   rewrite AList_get_kv_map with (v := v) by assumption. simpl.
   apply AListUtil.AList_get_some_split in H1. destruct H1 as [k [l1 [l2 [? [? ?]]]]].
   hnf in H. subst k. subst vs. rewrite kv_map_app. simpl kv_map.
-  rewrite AListUtil.AList_set_app_cons_some; [|reflexivity|].
+  rewrite !AListUtil.AList_set_app_cons_some; [|reflexivity| |reflexivity|assumption].
   2: { apply AListUtil.not_in_fst_get_none. intros.
        rewrite kv_map_fst. eapply AListUtil.get_none_not_in_fst; eauto. }
-  simpl force. exists (ValBaseStruct (l1 ++ (fld, setInvalidv v) :: l2)%list). simpl.
-  constructor. rewrite kv_map_app. apply AListUtil.all_values_app_inv.
+  simpl. constructor. rewrite kv_map_app. apply AListUtil.all_values_app_inv.
   - apply exec_val_refl_case2. rewrite Forall_forall. intros. destruct x.
     apply sval_refine_refl.
   - simpl. constructor.
@@ -288,19 +293,20 @@ Qed.
 Lemma invalidate_fields_valid_only: forall {tags_t: Type} flds h fields,
     forallb (fun fld => is_some (AList.get (clear_AList_tags fields) fld)) flds ->
     ⊢ᵥ h \: @TypStruct tags_t fields ->
-    exists vh, sval_refine (val_to_sval_valid_only vh)
-            (invalidate_fields (val_to_sval_valid_only h) flds).
+    sval_refine (val_to_sval_valid_only (invalidate_fieldsv h flds))
+      (invalidate_fields (val_to_sval_valid_only h) flds).
 Proof.
   intros ? ?. induction flds; simpl; intros.
-  - exists h. apply sval_refine_refl.
+  - apply sval_refine_refl.
   - rewrite Reflect.andE in H. destruct H.
-    destruct (invalidate_field_valid_only _ _ _ H H0) as [mh ?H].
+    pose proof (invalidate_field_valid_only _ _ _ H H0).
+    remember (invalidate_fieldv h a) as mh.
     assert (⊢ᵥ mh \: TypStruct fields). {
       rewrite <- to_sval_valid_only_typ_iff in H0. eapply invalidate_field_typ in H0; eauto.
       apply val_sim_on_top, val_sim_sym in H2.
       rewrite <- to_sval_valid_only_typ_iff. erewrite val_sim_prsv_typ in H0; eauto. }
-    specialize (IHflds _ _ H1 H3). destruct IHflds as [vh ?H]. exists vh.
-    eapply sval_refine_trans; eauto. eapply sval_refine_invalidate_fields; eauto.
+    specialize (IHflds _ _ H1 H3). eapply sval_refine_trans; eauto.
+    eapply sval_refine_invalidate_fields; eauto.
     rewrite to_sval_valid_only_typ_iff. assumption.
 Qed.
 

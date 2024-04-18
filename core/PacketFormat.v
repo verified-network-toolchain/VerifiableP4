@@ -181,13 +181,36 @@ Inductive match_one: format -> packet -> Prop :=
 Lemma match_one_accurate: forall a p, match_one (accurate a) p -> a = p.
 Proof. intros. inversion H. reflexivity. Qed.
 
+Lemma match_one_accurate_iff: forall a p, match_one (accurate a) p <-> a = p.
+Proof.
+  intros. split; intros.
+  - apply match_one_accurate in H; assumption.
+  - subst. constructor.
+Qed.
+
 Lemma match_one_guarded_true: forall p f1 f2,
     match_one (guarded true f1 f2) p -> match_one f1 p.
 Proof. intros. inversion H. assumption. Qed.
 
+Lemma match_one_guarded_true_iff: forall p f1 f2,
+    match_one (guarded true f1 f2) p <-> match_one f1 p.
+Proof.
+  intros; split; intros.
+  - apply match_one_guarded_true in H. assumption.
+  - constructor. assumption.
+Qed.
+
 Lemma match_one_guarded_false: forall p f1 f2,
     match_one (guarded false f1 f2) p -> match_one f2 p.
 Proof. intros. inversion H. assumption. Qed.
+
+Lemma match_one_guarded_false_iff: forall p f1 f2,
+    match_one (guarded false f1 f2) p <-> match_one f2 p.
+Proof.
+  intros; split; intros.
+  - apply match_one_guarded_false in H. assumption.
+  - constructor. assumption.
+Qed.
 
 Lemma match_one_size_eq: forall f p1 p2,
     match_one f p1 -> match_one f p2 -> length p1 = length p2.
@@ -252,6 +275,15 @@ Proof.
   exists p1, p2. split; auto.
 Qed.
 
+Lemma format_match_guarded_true_iff: forall f1 f2 l p,
+    format_match (guarded true f1 f2 :: l) p <-> format_match (f1 :: l) p.
+Proof.
+  intros. split; intros.
+  - apply format_match_guarded_true in H; assumption.
+  - rewrite format_match_cons_iff in *. destruct H as [p1 [p2 [? [? ?]]]].
+    exists p1, p2. split; auto. split; auto. rewrite match_one_guarded_true_iff. assumption.
+Qed.
+
 Lemma format_match_guarded_false: forall f1 f2 l p,
     format_match (guarded false f1 f2 :: l) p -> format_match (f2 :: l) p.
 Proof.
@@ -260,11 +292,28 @@ Proof.
   exists p1, p2. split; auto.
 Qed.
 
+Lemma format_match_guarded_false_iff: forall f1 f2 l p,
+    format_match (guarded false f1 f2 :: l) p <-> format_match (f2 :: l) p.
+Proof.
+  intros. split; intros.
+  - apply format_match_guarded_false in H; assumption.
+  - rewrite format_match_cons_iff in *. destruct H as [p1 [p2 [? [? ?]]]].
+    exists p1, p2. split; auto. split; auto. rewrite match_one_guarded_false_iff. assumption.
+Qed.
+
 Lemma format_match_null: forall l p,
     format_match (null :: l) p -> format_match l p.
 Proof.
   intros. rewrite format_match_cons_iff in H. destruct H as [p1 [p2 [? [? ?]]]].
   inversion H0. subst p1. simpl in H. subst p2. assumption.
+Qed.
+
+Lemma format_match_null_iff: forall l p,
+    format_match (null :: l) p <-> format_match l p.
+Proof.
+  intros; split; intros.
+  - apply format_match_null in H; assumption.
+  - rewrite format_match_cons_iff. exists [], p. simpl; split; auto. split; auto. constructor.
 Qed.
 
 Ltac simpl_format_list :=
