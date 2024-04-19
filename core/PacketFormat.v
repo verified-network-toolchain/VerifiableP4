@@ -406,3 +406,13 @@ Proof.
 Qed.
 
 #[export] Hint Resolve nil_format_match: core.
+
+Ltac format_match_solve :=
+  repeat lazymatch goal with
+    | |- ?A ++ _ ⫢ accurate ?A :: _ => apply format_match_cons; [apply match_accurate |]
+    | |- _ ⫢ guarded false _ _ :: _ => rewrite format_match_guarded_false_iff
+    | |- _ ⫢ guarded true _ _ :: _ => rewrite format_match_guarded_true_iff
+    | |- _ ⫢ null :: _ => rewrite format_match_null_iff
+    | |- [] ⫢ [] => apply nil_format_match
+    | |- ?A ⫢ [⦑ ?A ⦒] => apply format_match_singleton
+    end.

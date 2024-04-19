@@ -415,8 +415,9 @@ Definition empty_sample : sample_rec := Build_sample_rec 0 0 0 0 0 0.
 Definition ingress_counter (st: pipeline_state) (counter: Z) : Prop :=
   extern_contains st.(control_state) ["pipe"; "ingress"] counter.
 
-Definition packet_ingress_relation (pin pout: packet) : Prop :=
-  (exists has_sample sample ether ipv4 result payload meta,
+Definition packet_ingress_relation (pin pout: packet) (counter: Z) : Prop :=
+  let has_sample := if (counter + 1) mod 1024 =? 0 then 1 else 0 in
+  (exists sample ether ipv4 result payload meta,
       ((if is_tcp ipv4 then ⊫ᵥ result \: tcp_h
         else if is_udp ipv4 then ⊫ᵥ result \: udp_h else result = ValBaseNull)) /\
         P4BitV 16 (ethernet_ether_type ether) = P4BitV 16 ETHERTYPE_IPV4 /\
@@ -431,7 +432,7 @@ Definition packet_ingress_relation (pin pout: packet) : Prop :=
                 ⦑ encode (ipv4_repr_val ipv4) ⦒;
                 ⦃ is_tcp ipv4 ? ⦑ encode result ⦒ |
                   ⦃ is_udp ipv4 ? ⦑ encode result ⦒ | ε ⦄ ⦄; ⦑ payload ⦒] /\
-              Zlength meta = 128).
+        Zlength meta = 128).
 
 Lemma process_packet_ingress:
   forall st st' pin pout for_tm counter,
@@ -445,7 +446,7 @@ Lemma process_packet_ingress:
            then update "mcast_grp_a" (P4Bit 16 COLLECTOR_MULTICAST_GROUP)
                   (update_outport OUT_PORT ig_intr_tm_md)
            else update_outport OUT_PORT ig_intr_tm_md) for_tm /\
-      packet_ingress_relation pin pout.
+      packet_ingress_relation pin pout counter.
 Proof.
   intros st st' pin pout for_tm counter Hext H. unfold ingress_counter in Hext. simpl in Hext.
   inversion H. subst. clear H.
@@ -533,8 +534,7 @@ Proof.
   rewrite H6 in H5. inversion H5. subst pout0. clear H5. split; [|split].
   - apply H2.
   - inv H7. assumption.
-  - exists (if (counter + 1) mod 1024 =? 0 then 1 else 0).
-    exists (if (counter + 1) mod 1024 =? 0
+  - exists (if (counter + 1) mod 1024 =? 0
        then Build_sample_rec COLLECTOR_MAC MY_MAC SAMPLE_ETYPE (ipv4_src_addr ip4)
               (ipv4_dst_addr ip4) (counter + 1)
        else empty_sample).
@@ -552,20 +552,8 @@ Proof.
     remember (sample_reprv _ _ _) as sample_r.
     cut_list_n 8%nat. rewrite format_match_app_iff. exists (encode h), payload.
     split; [|split]; [reflexivity | | apply format_match_singleton].
-    destruct ((counter + 1) mod 1024 =? 0), (is_tcp ipv4);
-      unfold contains_sample; simpl Val_eqb; subst h; simpl.
-    + do 5 (apply format_match_cons; [repeat constructor |]). auto.
-    + destruct (is_udp ipv4); simpl.
-      * do 5 (apply format_match_cons; [repeat constructor |]). auto.
-      * do 4 (apply format_match_cons; [repeat constructor |]).
-        exists [[]]. split; [reflexivity | repeat constructor].
-    + rewrite <- (app_nil_r (encode (bridge_repr_val 0))) at 2. rewrite <- app_assoc.
-      do 5 (apply format_match_cons; [repeat constructor |]). auto.
-    + destruct (is_udp ipv4); simpl;
-        rewrite <- (app_nil_r (encode (bridge_repr_val 0))) at 2; rewrite <- app_assoc.
-      * do 5 (apply format_match_cons; [repeat constructor |]). auto.
-      * do 4 (apply format_match_cons; [repeat constructor |]).
-        exists [[]]. split; [reflexivity | repeat constructor].
+    destruct ((counter + 1) mod 1024 =? 0), (is_tcp ipv4), (is_udp ipv4);
+      unfold contains_sample; simpl Val_eqb; subst h; simpl; format_match_solve.
 Qed.
 
 Lemma process_packet_ingress_queue:
@@ -574,7 +562,7 @@ Lemma process_packet_ingress_queue:
     ingress_pipeline
       inprsr_block ingress_block indeprsr_block parser_ingress_cond
       ingress_deprsr_cond ingress_tm_cond st pin st' pout for_tm ->
-    packet_ingress_relation pin pout /\
+    packet_ingress_relation pin pout counter /\
     list_rep (tofino_tm for_tm pout) =
       (if (counter + 1) mod 1024 =? 0 then
          [encode_out_md 129 123 ++ pout; encode_out_md 128 0 ++ pout]
@@ -870,21 +858,10 @@ Proof.
   exists (eg_intr_md_rep md), has_sample, sample, ether, ipv4, result, payload. split; auto.
   erewrite eg_intr_rep_zero by reflexivity.
   Opaque P4BitV ethernet_repr_val ipv4_repr_val sample_repr_val.
-  destruct (egress_rid_zero).
-  - cut_list_n 4%nat. rewrite format_match_app_iff. exists (encode hd), payload. split; auto.
-    split; [|apply format_match_singleton]. rewrite Hhd.
-    destruct (is_tcp ipv4), (contains_sample has_sample), (is_udp ipv4); simpl;
-      rewrite ?encode_invalid_sample; simpl app;
-      repeat (apply format_match_cons; [constructor|]); auto; repeat constructor;
-      rewrite !format_match_guarded_false_iff, format_match_null_iff; auto.
-  - cut_list_n 2%nat. rewrite format_match_app_iff. exists (encode hd), payload. split; auto.
-    split; [|apply format_match_singleton]. rewrite Hhd.
-    destruct (is_tcp ipv4), (contains_sample has_sample), (is_udp ipv4); simpl;
-      rewrite encode_invalid_ether, encode_invalid_ipv4; simpl app.
-    1,2,5,6: repeat (apply format_match_cons; [constructor|]); auto; repeat constructor.
-    all: rewrite !format_match_guarded_false_iff, format_match_null_iff,
-        ?format_match_guarded_false_iff, ?format_match_null_iff; auto;
-       (apply format_match_cons; [constructor|]); auto; constructor.
+  destruct (egress_rid_zero); rewrite Hhd; destruct (is_tcp ipv4),
+    (contains_sample has_sample), (is_udp ipv4); simpl;
+    rewrite app_nil_r, ?encode_invalid_sample, ?encode_invalid_ether,
+    ?encode_invalid_ipv4; repeat rewrite <- app_assoc; simpl app; format_match_solve.
 Qed.
 
 Lemma process_egress_packets_queue: forall est1 q1 est2 q2,
