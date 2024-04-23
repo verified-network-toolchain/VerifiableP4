@@ -416,3 +416,297 @@ Ltac format_match_solve :=
     | |- [] ⫢ [] => apply nil_format_match
     | |- ?A ⫢ [⦑ ?A ⦒] => apply format_match_singleton
     end.
+
+Fixpoint format_equiv (f1: format) := fix format_equiv' (f2: format) : Prop :=
+    match f1 with
+    | null => match f2 with
+             | guarded true g _
+             | guarded false _ g => format_equiv' g
+             | null => True
+             | _ => False
+             end
+    | accurate p1 => match f2 with
+                    | guarded true g _
+                    | guarded false _ g => format_equiv' g
+                    | accurate p2 => p1 = p2
+                    | _ => False
+                    end
+    | unspecified n1 => match f2 with
+                       | guarded true g _
+                       | guarded false _ g => format_equiv' g
+                       | unspecified n2 => n1 = n2
+                       | _ => False
+                       end
+    | guarded true g1 _
+    | guarded false _ g1 => match f2 with
+                          | guarded true g2 _ => format_equiv g1 g2
+                          | guarded fasle _ g2 => format_equiv g1 g2
+                          | _ => format_equiv g1 f2
+                          end
+    end.
+
+Inductive format_list_equiv: list format -> list format -> Prop :=
+| list_equiv_nil : format_list_equiv [] []
+| list_equiv_epsilon_left: forall l1 l2 f, format_equiv f ε -> format_list_equiv l1 l2 -> format_list_equiv (f :: l1) l2
+| list_equiv_epsilon_right: forall l1 l2 f, format_equiv f ε -> format_list_equiv l1 l2 -> format_list_equiv l1 (f :: l2)
+| list_equiv_epsilon_cons: forall f1 f2 l1 l2,
+    format_equiv f1 f2 -> format_list_equiv l1 l2 -> format_list_equiv (f1 :: l1) (f2 :: l2).
+
+Lemma format_equiv_sym: forall f1 f2, format_equiv f1 f2 -> format_equiv f2 f1.
+Proof.
+  induction f1, f2; intros; simpl in H; try contradiction; simpl; auto.
+  - destruct b.
+    + induction f2_1; auto. simpl. destruct b; [apply IHf2_1_1 | apply IHf2_1_2]; auto.
+    + induction f2_2; auto. simpl. destruct b; [apply IHf2_2_1 | apply IHf2_2_2]; auto.
+  - destruct b.
+    + induction f2_1; auto. 1: simpl; symmetry; assumption. destruct b; [apply IHf2_1_1 | apply IHf2_1_2]; auto.
+    + induction f2_2; auto. 1: simpl; symmetry; assumption. destruct b; [apply IHf2_2_1 | apply IHf2_2_2]; auto.
+  - destruct b.
+    + induction f2_1; auto. 1: simpl; symmetry; assumption. destruct b; [apply IHf2_1_1 | apply IHf2_1_2]; auto.
+    + induction f2_2; auto. 1: simpl; symmetry; assumption. destruct b; [apply IHf2_2_1 | apply IHf2_2_2]; auto.
+  - destruct b.
+    + specialize (IHf1_1 _ H). apply IHf1_1.
+    + specialize (IHf1_2 _ H). apply IHf1_2.
+  - destruct b.
+    + specialize (IHf1_1 _ H). apply IHf1_1.
+    + specialize (IHf1_2 _ H). apply IHf1_2.
+  - destruct b.
+    + specialize (IHf1_1 _ H). apply IHf1_1.
+    + specialize (IHf1_2 _ H). apply IHf1_2.
+  - destruct b, b0; [apply IHf1_1 | apply IHf1_1 | apply IHf1_2 | apply IHf1_2]; assumption.
+Qed.
+
+Lemma format_equiv_refl: forall f, format_equiv f f.
+Proof. induction f; intros; simpl; auto. destruct b; auto. Qed.
+
+Lemma format_equiv_true:
+  forall f1 f2: format, format_equiv ⦃ true ? f1 | f2 ⦄ f1.
+Proof. induction f1; simpl; intros; auto. destruct b; [apply IHf1_1 | apply IHf1_2]; assumption. Qed.
+
+Lemma format_equiv_false:
+  forall f1 f2: format, format_equiv ⦃ false ? f1 | f2 ⦄ f2.
+Proof. intros. induction f2; simpl; intros; auto. destruct b; [apply IHf2_1 | apply IHf2_2]; assumption. Qed.
+
+Lemma format_equiv_true_false_iff:
+  forall f1 f2 f3 : format, format_equiv ⦃ true ? f1 | f2 ⦄ f3 <-> format_equiv ⦃ false ? f2 | f1 ⦄ f3.
+Proof. simpl; split; intros; apply H. Qed.
+
+Lemma format_equiv_true_swap:
+  forall f1 f2 f3 : format, format_equiv f1 ⦃ true ? f2 | f3 ⦄ <-> format_equiv ⦃ true ? f1 | f3 ⦄ f2.
+Proof.
+  intros. split; intros.
+  - revert f1 f2 f3 H. induction f1, f2; simpl; intros; auto; try contradiction. destruct b, b0.
+    + apply IHf1_1 with (f3 := f2_2). apply H.
+    + apply IHf1_1 with (f3 := f2_1). apply format_equiv_sym in H. rewrite <- format_equiv_true_false_iff in H.
+      apply format_equiv_sym, H.
+    + apply IHf1_2 with (f3 := f2_2). apply H.
+    + apply IHf1_2 with (f3 := f2_1). apply format_equiv_sym in H. rewrite <- format_equiv_true_false_iff in H.
+      apply format_equiv_sym, H.
+  - revert f1 f2 f3 H. induction f1, f2; simpl; intros; auto; try contradiction. destruct b, b0.
+    + apply IHf1_1 with (f3 := f2_2). apply H.
+    + apply format_equiv_sym. rewrite <- format_equiv_true_false_iff. apply format_equiv_sym. apply IHf1_1 with (f3 := f2_1), H.
+    + apply IHf1_2 with (f3 := f2_2), H.
+    + apply format_equiv_sym. rewrite <- format_equiv_true_false_iff. apply format_equiv_sym. apply IHf1_2 with (f3 := f2_1), H.
+Qed.
+
+Lemma format_equiv_true_elim1:
+  forall f1 f2 f3 : format, format_equiv ⦃ true ? f1 | f2 ⦄ f3 -> format_equiv f1 f3.
+Proof.
+  intros f1 f2 f3. simpl. clear f2. revert f1 f3. induction f1, f3; simpl; intros; auto; try contradiction.
+  destruct b, b0; simpl in *.
+  - apply IHf1_1, H.
+  - apply IHf1_1, H.
+  - apply IHf1_2, H.
+  - apply IHf1_2, H.
+Qed.
+
+Lemma format_equiv_true_elim2:
+  forall f1 f2 f3 : format, format_equiv f1 ⦃ true ? f2 | f3 ⦄ -> format_equiv f1 f2.
+Proof. intros. rewrite format_equiv_true_swap in H. apply format_equiv_true_elim1 in H. assumption. Qed.
+
+Lemma format_equiv_false_elim1:
+  forall f1 f2 f3 : format, format_equiv ⦃ false ? f1 | f2 ⦄ f3 -> format_equiv f2 f3.
+Proof. intros. rewrite <- format_equiv_true_false_iff in H. apply format_equiv_true_elim1 in H. assumption. Qed.
+
+Lemma format_equiv_false_elim2:
+  forall f1 f2 f3 : format, format_equiv f1 ⦃ false ? f2 | f3 ⦄ -> format_equiv f1 f3.
+Proof.
+  intros. apply format_equiv_sym in H. rewrite <- format_equiv_true_false_iff in H.
+  apply format_equiv_true_elim1, format_equiv_sym in H. assumption.
+Qed.
+
+Ltac simpl_format_equiv :=
+  repeat lazymatch goal with
+  | H: format_equiv ⦃ true ? _ | _ ⦄ _ |- _ => apply format_equiv_true_elim1 in H
+  | H: format_equiv _ ⦃ true ? _ | _ ⦄ |- _ => apply format_equiv_true_elim2 in H
+  | H: format_equiv ⦃ false ? _ | _ ⦄ _ |- _ => apply format_equiv_false_elim1 in H
+  | H: format_equiv _ ⦃ false ? _ | _ ⦄ |- _ => apply format_equiv_false_elim2 in H
+  end.
+
+Lemma format_equiv_trans: forall f1 f2 f3, format_equiv f1 f2 -> format_equiv f2 f3 -> format_equiv f1 f3.
+Proof.
+  induction f1, f2, f3; simpl; intros; try contradiction; simpl; auto.
+  1,2,6,8,12,13: destruct b;
+      [ induction f2_1; simpl in H0; auto; destruct b; [apply IHf2_1_1 | apply IHf2_1_2]; auto |
+        induction f2_2; simpl in H0; auto; destruct b; [apply IHf2_2_1 | apply IHf2_2_2]; auto ].
+  - destruct b, b0.
+    + assert (format_equiv ε f2_1) by apply H. clear H. cut (format_equiv ε f3_1). 1: intros Hs; apply Hs.
+      induction f2_1; [assumption | simpl in H1; contradiction..|]. destruct b; simpl_format_equiv; auto.
+    + assert (format_equiv ε f2_1) by apply H. clear H. cut (format_equiv ε f3_2). 1: intros Hs; apply Hs.
+      induction f2_1; [assumption | simpl in H1; contradiction..|]. destruct b; simpl_format_equiv; auto.
+    + assert (format_equiv ε f2_2) by apply H. clear H. cut (format_equiv ε f3_1). 1: intros Hs; apply Hs.
+      induction f2_2; [assumption | simpl in H1; contradiction..|]. destruct b; simpl_format_equiv; auto.
+    + assert (format_equiv ε f2_2) by apply H. clear H. cut (format_equiv ε f3_2). 1: intros Hs; apply Hs.
+      induction f2_2; [assumption | simpl in H1; contradiction..|]. destruct b; simpl_format_equiv; auto.
+  - transitivity l0; auto.
+  - subst l0. apply H0.
+  - destruct b.
+    + assert (format_equiv ⦑ l ⦒ f2_1) by apply H. clear H. induction f2_1.
+      * simpl in H0; contradiction.
+      * simpl in *; transitivity l1; auto.
+      * simpl in H0; contradiction.
+      * destruct b; simpl_format_equiv; auto.
+    + assert (format_equiv ⦑ l ⦒ f2_2) by apply H. clear H. induction f2_2.
+      * simpl in H0; contradiction.
+      * simpl in *; transitivity l1; auto.
+      * simpl in H0; contradiction.
+      * destruct b; simpl_format_equiv; auto.
+  - destruct b, b0.
+    + assert (format_equiv ⦑ l ⦒ f2_1) by apply H. clear H. cut (format_equiv ⦑ l ⦒ f3_1). 1: intros Hs; apply Hs.
+      induction f2_1; [simpl in H1; contradiction | simpl in H1; subst; assumption | simpl in H1; contradiction |].
+      destruct b; simpl_format_equiv; auto.
+    + assert (format_equiv ⦑ l ⦒ f2_1) by apply H. clear H. cut (format_equiv ⦑ l ⦒ f3_2). 1: intros Hs; apply Hs.
+      induction f2_1; [simpl in H1; contradiction | simpl in H1; subst; assumption | simpl in H1; contradiction |].
+      destruct b; simpl_format_equiv; auto.
+    + assert (format_equiv ⦑ l ⦒ f2_2) by apply H. clear H. cut (format_equiv ⦑ l ⦒ f3_1). 1: intros Hs; apply Hs.
+      induction f2_2; [simpl in H1; contradiction | simpl in H1; subst; assumption | simpl in H1; contradiction |].
+      destruct b; simpl_format_equiv; auto.
+    + assert (format_equiv ⦑ l ⦒ f2_2) by apply H. clear H. cut (format_equiv ⦑ l ⦒ f3_2). 1: intros Hs; apply Hs.
+      induction f2_2; [simpl in H1; contradiction | simpl in H1; subst; assumption | simpl in H1; contradiction |].
+      destruct b; simpl_format_equiv; auto.
+  - transitivity n0; auto.
+  - subst n0. apply H0.
+  - destruct b.
+    + assert (format_equiv ⟨ n ⟩ f2_1) by apply H. clear H. induction f2_1.
+      * simpl in H0; contradiction.
+      * simpl in H0; contradiction.
+      * simpl in *; transitivity n1; auto.
+      * destruct b; simpl_format_equiv; auto.
+    + assert (format_equiv ⟨ n ⟩ f2_2) by apply H. clear H. induction f2_2.
+      * simpl in H0; contradiction.
+      * simpl in H0; contradiction.
+      * simpl in *; transitivity n1; auto.
+      * destruct b; simpl_format_equiv; auto.
+  - destruct b, b0.
+    + assert (format_equiv ⟨ n ⟩ f2_1) by apply H. clear H. cut (format_equiv ⟨ n ⟩ f3_1). 1: intros Hs; apply Hs.
+      induction f2_1; [simpl in H1; contradiction.. | simpl in H1; subst; assumption | ].
+      destruct b; simpl_format_equiv; auto.
+    + assert (format_equiv ⟨ n ⟩ f2_1) by apply H. clear H. cut (format_equiv ⟨ n ⟩ f3_2). 1: intros Hs; apply Hs.
+      induction f2_1; [simpl in H1; contradiction.. | simpl in H1; subst; assumption | ].
+      destruct b; simpl_format_equiv; auto.
+    + assert (format_equiv ⟨ n ⟩ f2_2) by apply H. clear H. cut (format_equiv ⟨ n ⟩ f3_1). 1: intros Hs; apply Hs.
+      induction f2_2; [simpl in H1; contradiction.. | simpl in H1; subst; assumption | ].
+      destruct b; simpl_format_equiv; auto.
+    + assert (format_equiv ⟨ n ⟩ f2_2) by apply H. clear H. cut (format_equiv ⟨ n ⟩ f3_2). 1: intros Hs; apply Hs.
+      induction f2_2; [simpl in H1; contradiction.. | simpl in H1; subst; assumption | ].
+      destruct b; simpl_format_equiv; auto.
+  - destruct b, b0.
+    + eapply IHf1_1; eauto.
+    + eapply IHf1_1; eauto.
+    + eapply IHf1_2; eauto.
+    + eapply IHf1_2; eauto.
+  - subst l0. apply H.
+  - destruct b, b0.
+    + eapply IHf1_1; eauto.
+    + eapply IHf1_1; eauto.
+    + eapply IHf1_2; eauto.
+    + eapply IHf1_2; eauto.
+  - subst n0. apply H.
+  - destruct b, b0.
+    + eapply IHf1_1; eauto.
+    + eapply IHf1_1; eauto.
+    + eapply IHf1_2; eauto.
+    + eapply IHf1_2; eauto.
+  - destruct b, b0.
+    + eapply IHf1_1; eauto.
+    + eapply IHf1_1; eauto.
+    + eapply IHf1_2; eauto.
+    + eapply IHf1_2; eauto.
+  - destruct b, b0.
+    + eapply IHf1_1; eauto.
+    + eapply IHf1_1; eauto.
+    + eapply IHf1_2; eauto.
+    + eapply IHf1_2; eauto.
+  - destruct b, b0.
+    + eapply IHf1_1; eauto.
+    + eapply IHf1_1; eauto.
+    + eapply IHf1_2; eauto.
+    + eapply IHf1_2; eauto.
+  - destruct b, b0, b1.
+    + eapply IHf1_1; eauto.
+    + eapply IHf1_1; eauto.
+    + eapply IHf1_1; eauto.
+    + eapply IHf1_1; eauto.
+    + eapply IHf1_2; eauto.
+    + eapply IHf1_2; eauto.
+    + eapply IHf1_2; eauto.
+    + eapply IHf1_2; eauto.
+Qed.
+
+Lemma format_equiv_branch:
+      forall (b : bool) (f1_1 f1_2 : format) (b0 : bool) (f2_1 f2_2 : format),
+        (if b0 then format_equiv ⦃ b ? f1_1 | f1_2 ⦄ f2_1 else format_equiv ⦃ b ? f1_1 | f1_2 ⦄ f2_2) ->
+        format_equiv ⦃ b ? f1_1 | f1_2 ⦄ ⦃ b0 ? f2_1 | f2_2 ⦄.
+Proof. intros b f1_1 f1_2 b0 f2_1 f2_2 H. destruct b, b0; simpl; simpl_format_equiv; auto. Qed.
+
+Lemma format_equiv_match: forall p f1 f2, format_equiv f1 f2 -> match_one f1 p -> match_one f2 p.
+Proof.
+  intros. revert dependent f2. induction H0, f2; simpl; intros; try contradiction; try (subst; constructor; auto).
+  - destruct b; constructor.
+    + induction f2_1; try contradiction; try constructor.
+      destruct b; constructor; [apply IHf2_1_1, H | apply IHf2_1_2, H].
+    + induction f2_2; try contradiction; try constructor.
+      destruct b; constructor; [apply IHf2_2_1, H | apply IHf2_2_2, H].
+  - destruct b; constructor.
+    + induction f2_1; try contradiction. subst; constructor.
+      destruct b; constructor; [apply IHf2_1_1, H | apply IHf2_1_2, H].
+    + induction f2_2; try contradiction. subst; constructor.
+      destruct b; constructor; [apply IHf2_2_1, H | apply IHf2_2_2, H].
+  - destruct b; constructor.
+    + induction f2_1; try contradiction. subst; constructor; auto.
+      destruct b; constructor; [apply IHf2_1_1, H0 | apply IHf2_1_2, H0].
+    + induction f2_2; try contradiction. subst; constructor; auto.
+      destruct b; constructor; [apply IHf2_2_1, H0 | apply IHf2_2_2, H0].
+  - induction f1; apply IHmatch_one; clear IHmatch_one; induction f2; auto.
+    clear dependent p. destruct b, b0; simpl; simpl_format_equiv; assumption.
+  - induction f1; apply IHmatch_one; clear IHmatch_one; induction f2; auto.
+    clear dependent p. destruct b, b0; simpl; simpl_format_equiv; assumption.
+  - induction f1; apply IHmatch_one; clear IHmatch_one; induction f2; auto.
+    clear dependent p. destruct b, b0; simpl; simpl_format_equiv; assumption.
+  - induction f1; apply IHmatch_one; clear IHmatch_one; induction f2; auto.
+    clear dependent p. destruct b1, b0; simpl; simpl_format_equiv; assumption.
+  - induction f1; apply IHmatch_one; clear IHmatch_one; induction f2; auto.
+  - induction f1; apply IHmatch_one; clear IHmatch_one; induction f2; auto.
+  - induction f1; apply IHmatch_one; clear IHmatch_one; induction f2; auto.
+  - destruct b.
+    + apply IHmatch_one. assert (format_equiv ⦃ true ? ⦃ true ? f2_1 | f2_2 ⦄ | f2 ⦄ f2) by apply H.
+      apply format_equiv_true_elim1 in H1. assumption.
+    + apply IHmatch_one. assert (format_equiv ⦃ false ? f2 | ⦃ false ? f2_1 | f2_2 ⦄ ⦄ f2) by apply H.
+      apply format_equiv_false_elim1 in H1. assumption.
+Qed.
+
+Lemma format_list_equiv_match: forall p l1 l2, format_list_equiv l1 l2 -> format_match l1 p -> format_match l2 p.
+Proof.
+  intros. revert p H0. induction H; intros; auto.
+  - apply IHformat_list_equiv. destruct H1 as [l [? ?]]. destruct l; inversion H2. subst; clear H2.
+    pose proof (format_equiv_match _ _ _ H H6). inversion H1. subst l. simpl. exists l0. split; auto.
+  - apply IHformat_list_equiv in H1. destruct H1 as [l [? ?]]. exists ([] :: l). split. 1: simpl; assumption.
+    constructor; auto. assert (match_one ε []) by constructor. eapply format_equiv_match; eauto.
+    apply format_equiv_sym; assumption.
+  - assert (exists h r, p = h ++ r /\ match_one f1 h /\ r ⫢ l1). {
+      destruct H1 as [l [? ?]]. destruct l; inversion H2. subst; clear H2.
+      exists l, (concat l0). simpl. do 2 (split; auto). exists l0. split; auto. }
+    destruct H2 as [h [r [? [? ?]]]]. apply IHformat_list_equiv in H4. subst p.
+    pose proof (format_equiv_match _ _ _ H H3). destruct H4 as [l [? ?]].
+    exists (h :: l). simpl. rewrite H4. split; auto.
+Qed.
