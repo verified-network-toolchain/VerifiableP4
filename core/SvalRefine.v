@@ -661,7 +661,7 @@ Lemma ext_val_typ_to_sval_map_eq: forall {tags_t : Type} vs,
          forall (typ: @P4Type tags_t),
            ⊫ᵥ v \: typ -> is_packet_typ typ ->
            eval_val_to_sval v = val_to_sval_valid_only v) vs ->
-    forallb header_is_valid vs = true ->
+    forallb header_rec_valid vs = true ->
     forall ts,
       forallb is_packet_typ ts ->
       Forall2 (@val_typ _ tags_t) vs ts ->
@@ -681,7 +681,7 @@ Lemma ext_val_typ_to_sval_kv_map_eq:
            eval_val_to_sval v = val_to_sval_valid_only v) vs ->
     forall ts,
       forallb (is_packet_typ ∘ snd) ts ->
-      forallb (header_is_valid ∘ snd) vs = true ->
+      forallb (header_rec_valid ∘ snd) vs = true ->
       AList.all_values (@val_typ _ tags_t) vs ts ->
       kv_map eval_val_to_sval vs = kv_map val_to_sval_valid_only vs.
 Proof.

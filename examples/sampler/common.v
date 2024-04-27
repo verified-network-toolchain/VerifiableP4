@@ -312,11 +312,15 @@ Qed.
 
 Definition encode_field (h: Val) (fld: ident): packet := encode (getv fld h).
 
-Lemma encode_struct_getv: forall {tags_t: Type} {fields h},
-    ⊢ᵥ h \: @TypStruct tags_t fields ->
-    encode h = flat_map (encode_field h) (map fst (clear_AList_tags fields)).
+Lemma map_encode_eq:
+  forall (tags_t : Type) (fields : AList tags_t P4Type) (vs : AList.AList ident Val eq),
+    AList.key_unique fields = true ->
+    AList.all_values (@val_typ _ tags_t) vs (clear_AList_tags fields) ->
+    concat (map (fun '(_, v) => encode v) vs) =
+      flat_map (fun fld : ident => encode (force ValBaseNull (AList.get vs fld)))
+        (map fst (clear_AList_tags fields)).
 Proof.
-  intros. inv H. unfold encode_field. simpl. rewrite flat_map_concat_map, map_map. f_equal.
+  intros tags_t fields vs H1 H3. rewrite flat_map_concat_map, map_map. f_equal.
   rewrite <- key_unique_clear_AList_tags in H1. remember (clear_AList_tags fields) as flds.
   clear Heqflds. revert H1. induction H3; intros; try reflexivity.
   rewrite !map_cons. destruct x as [fx vx]. destruct y as [fld vy]. simpl in H |- *.
@@ -325,6 +329,27 @@ Proof.
   rewrite IHForall2 by assumption. rewrite map_ext_in_iff. intros.
   rewrite AList.get_neq_cons. 1: reflexivity. destruct a as [k v]. simpl in *. symmetry.
   intro. pose proof (AList.get_in_not_none _ _ _ _ H2 H). contradiction.
+Qed.
+
+Lemma encode_struct_encode_field: forall {tags_t: Type} {fields h},
+    ⊢ᵥ h \: @TypStruct tags_t fields ->
+    encode h = flat_map (encode_field h) (map fst (clear_AList_tags fields)).
+Proof. intros. inv H. unfold encode_field. simpl. apply map_encode_eq; auto. Qed.
+
+Definition header_is_valid (val: Val) : Prop :=
+  match val with
+  | ValBaseHeader _ false => False
+  | ValBaseHeader fields true => True
+  | _ => True
+  end.
+
+Lemma encode_header_encode_field: forall {tags_t: Type} {fields h},
+    ⊢ᵥ h \: @TypHeader tags_t fields ->
+    header_is_valid h ->
+    encode h = flat_map (encode_field h) (map fst (clear_AList_tags fields)).
+Proof.
+  intros. inv H. simpl in H0. destruct b. 2: contradiction.
+  unfold encode_field. simpl. apply map_encode_eq; auto.
 Qed.
 
 Lemma encode_field_updatev_eq: forall {tags_t: Type} fields f fv v,

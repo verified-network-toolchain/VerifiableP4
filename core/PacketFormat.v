@@ -34,12 +34,12 @@ Section PacketFormat.
     | _ => false
     end.
 
-  Fixpoint header_is_valid (val: Val) : bool :=
+  Fixpoint header_rec_valid (val: Val) : bool :=
     match val with
     | ValBaseHeader _ false => false
     | ValBaseStruct fields
-    | ValBaseHeader fields true => forallb (header_is_valid ∘ snd) fields
-    | ValBaseTuple l => forallb header_is_valid l
+    | ValBaseHeader fields true => forallb (header_rec_valid ∘ snd) fields
+    | ValBaseTuple l => forallb header_rec_valid l
     | _ => true
     end.
 
@@ -56,7 +56,7 @@ Section PacketFormat.
   Ltac simpl_more :=
     repeat match goal with
       | H: _ && _ = true |- _ => rewrite andb_true_iff in H; destruct H
-      | H: forallb header_is_valid (_ :: _) = true |- _ => simpl in H
+      | H: forallb header_rec_valid (_ :: _) = true |- _ => simpl in H
       | H: is_packet_typ (TypTuple (_ :: _)) = true |- _ => simpl in H
       | H: is_packet_typ (TypStruct _) = true |- _ => simpl in H
       | H: is_packet_typ (TypHeader _) = true |- _ => simpl in H
@@ -77,7 +77,7 @@ Section PacketFormat.
   Qed.
 
   Definition ext_val_typ (val: Val) (typ: P4Type): Prop :=
-    ⊢ᵥ val \: typ /\ header_is_valid val = true.
+    ⊢ᵥ val \: typ /\ header_rec_valid val = true.
 
   Lemma extract_encode_raw: forall (typ: P4Type) (val: Val) pkt,
       ext_val_typ val typ  ->
@@ -148,6 +148,114 @@ Section PacketFormat.
       remember (asequence (map (fun '(k0, v1) => (k0, Extract.emit v1)) l)
                   (pkt ++ encode v0)).
       destruct p, s; inversion IHForall2. rewrite app_assoc. reflexivity.
+  Qed.
+
+  Ltac make_it_clear :=
+    repeat lazymatch goal with
+      | H: _ /\ _ |- _ => destruct H
+      | H: _ && _ = true |- _ => rewrite andb_true_iff in H
+      | H: S _ = S _ |- _ => inversion H; clear H
+      | H: Forall2 _ (_ :: _) (_ :: _) |- _ => inversion H as [| x l y l' ?]; subst x l y l'; clear H
+      | H: AList.all_values _ (_ :: _) (_ :: _) |- _ => inversion H as [| x l y l' ?]; subst x l y l'; clear H
+      | H: context [fst (_, _)] |- _ => simpl fst in H
+      | H: context [snd (_, _)] |- _ => simpl snd in H
+      | H: context [(_ ∘ snd) (_, _)] |- _ => unfold Basics.compose in H
+      end.
+
+  Lemma encode_same_type_same_length: forall (typ: P4Type) (val1 val2: Val),
+      ext_val_typ val1 typ -> ext_val_typ val2 typ ->
+      length (encode val1) = length (encode val2).
+  Proof.
+    intros. destruct H as [? ?]. destruct H0 as [? ?].
+    revert dependent val2.
+    induction H using custom_val_typ_ind; intros val2 Hs ?; inv Hs; simpl; try reflexivity.
+    1,2: rewrite <- Nat2N.id, H3, Nat2N.id; reflexivity.
+    - simpl in H1, H2. remember (length ts) as n. pose proof (Forall2_length _ _ _ H).
+      pose proof (Forall2_length _ _ _ H5). rewrite <- Heqn in H3, H4. symmetry in Heqn.
+      revert dependent ts. revert dependent vs. revert dependent vs0. induction n; intros.
+      + rewrite length_zero_iff_nil in H4, H3. subst. simpl. reflexivity.
+      + destruct vs0 as [|v2 vs2]; [simpl in H4; discriminate|].
+        destruct vs as [|v1 vs1]; [simpl in H3; discriminate|].
+        destruct ts as [|t ts]; [simpl in Heqn; discriminate|]. simpl in *.
+        make_it_clear. specialize (H5 H1 _ H3 H2). rewrite !app_length, H5. f_equal. eapply IHn; eauto.
+    - simpl in H1, H3. clear H H5. rename ts into ts0.
+      remember (clear_AList_tags ts0) as ts. clear Heqts. clear ts0.
+      remember (length ts) as n. pose proof (Forall2_length _ _ _ H0).
+      pose proof (Forall2_length _ _ _ H7). rewrite <- Heqn in H, H4. symmetry in Heqn.
+      revert dependent ts. revert dependent vs. revert dependent vs0. induction n; intros.
+      + rewrite length_zero_iff_nil in *. subst. simpl. reflexivity.
+      + destruct vs0 as [|[f2 v2] vs2]; [simpl in H4; discriminate|].
+        destruct vs as [|[f1 v1] vs1]; [simpl in H3; discriminate|].
+        destruct ts as [|t ts]; [simpl in Heqn; discriminate|]. simpl in *.
+        make_it_clear. specialize (H11 H1 _ H7 H3). rewrite !app_length, H11. f_equal. eapply IHn; eauto.
+    - simpl in H1, H3. destruct b, b0; try discriminate.
+      clear H H5. rename ts into ts0.
+      remember (clear_AList_tags ts0) as ts. clear Heqts. clear ts0.
+      remember (length ts) as n. pose proof (Forall2_length _ _ _ H0).
+      pose proof (Forall2_length _ _ _ H7). rewrite <- Heqn in H, H4. symmetry in Heqn.
+      revert dependent ts. revert dependent vs. revert dependent vs0. induction n; intros.
+      + rewrite length_zero_iff_nil in H, H4. subst. simpl. reflexivity.
+      + destruct vs0 as [|[f2 v2] vs2]; [simpl in H4; discriminate|].
+        destruct vs as [|[f1 v1] vs1]; [simpl in H3; discriminate|].
+        destruct ts as [|t ts]; [simpl in Heqn; discriminate|]. simpl in *.
+        make_it_clear. specialize (H11 H1 _ H7 H3). rewrite !app_length, H11. f_equal. eapply IHn; eauto.
+  Qed.
+
+  Lemma encode_same_type_same_val: forall (typ: P4Type) (val1 val2: Val),
+      ext_val_typ val1 typ -> ext_val_typ val2 typ -> is_packet_typ typ = true ->
+      encode val1 = encode val2 -> val1 = val2.
+  Proof.
+    intros. destruct H, H0. revert dependent val2. revert H3 H1.
+    induction H using custom_val_typ_ind; intros; simpl in H1; try discriminate.
+    - inv H0. simpl in H2. inv H2. reflexivity.
+    - inv H0. simpl in H2. subst. reflexivity.
+    - inv H0. simpl in H2. subst. reflexivity.
+    - inv H2. f_equal. simpl in H3, H4, H5. remember (length ts) as n.
+      pose proof (Forall2_length _ _ _ H). pose proof (Forall2_length _ _ _ H8).
+      symmetry in Heqn. rewrite Heqn in H2, H6.
+      revert dependent ts. revert dependent vs. revert dependent vs0. induction n; intros.
+      + rewrite length_zero_iff_nil in *. subst. reflexivity.
+      + destruct vs0 as [|v2 vs2]; [simpl in *; discriminate|].
+        destruct vs as [|v1 vs1]; [simpl in *; discriminate|].
+        destruct ts as [|t ts]; [simpl in *; discriminate|]. simpl in *. make_it_clear.
+        assert (length (encode v1) = length (encode v2)) by (eapply encode_same_type_same_length; split; eauto).
+        eapply app_eq_len_eq in H; eauto. destruct H. specialize (H8 H3 H1 _ H2 H4 H). rewrite H8.
+        f_equal. eapply IHn; eauto.
+    - inv H4. f_equal. simpl in *. make_it_clear. clear H H2 H8. rewrite clear_AList_tags_forallb_snd in H4.
+      rename ts into ts0. remember (clear_AList_tags ts0) as ts. clear ts0 Heqts. remember (length ts) as n.
+      pose proof (Forall2_length _ _ _ H0). pose proof (Forall2_length _ _ _ H10).
+      symmetry in Heqn. rewrite Heqn in H, H2.
+      revert dependent ts. revert dependent vs. revert dependent vs0. induction n; intros.
+      + rewrite length_zero_iff_nil in *. subst. reflexivity.
+      + destruct vs0 as [|[f2 v2] vs2]; [simpl in *; discriminate|].
+        destruct vs as [|[f1 v1] vs1]; [simpl in *; discriminate|].
+        destruct ts as [|t ts]; [simpl in *; discriminate|]. simpl in *. make_it_clear.
+        assert (length (encode v1) = length (encode v2)) by (eapply encode_same_type_same_length; split; eauto).
+        eapply app_eq_len_eq in H18; eauto. destruct H18. unfold Basics.compose in H4. specialize (H14 H3 H4 _ H10 H5 H18).
+        rewrite H14, H0, H. f_equal. eapply IHn; eauto.
+    - simpl in H3. destruct b; try discriminate. inv H4. simpl in H5. destruct b; try discriminate.
+      f_equal. simpl in *. make_it_clear. clear H H2 H8. rewrite clear_AList_tags_forallb_snd in H4.
+      rename ts into ts0. remember (clear_AList_tags ts0) as ts. clear ts0 Heqts. remember (length ts) as n.
+      pose proof (Forall2_length _ _ _ H0). pose proof (Forall2_length _ _ _ H10).
+      symmetry in Heqn. rewrite Heqn in H, H2.
+      revert dependent ts. revert dependent vs. revert dependent vs0. induction n; intros.
+      + rewrite length_zero_iff_nil in *. subst. reflexivity.
+      + destruct vs0 as [|[f2 v2] vs2]; [simpl in *; discriminate|].
+        destruct vs as [|[f1 v1] vs1]; [simpl in *; discriminate|].
+        destruct ts as [|t ts]; [simpl in *; discriminate|]. simpl in *. make_it_clear.
+        assert (length (encode v1) = length (encode v2)) by (eapply encode_same_type_same_length; split; eauto).
+        eapply app_eq_len_eq in H18; eauto. destruct H18. unfold Basics.compose in H4. specialize (H14 H3 H4 _ H10 H5 H18).
+        rewrite H14, H0, H. f_equal. eapply IHn; eauto.
+  Qed.
+
+  Lemma encode_same_type_same_val_app: forall (typ: P4Type) (val1 val2: Val) l1 l2,
+      ext_val_typ val1 typ -> ext_val_typ val2 typ -> is_packet_typ typ = true ->
+      encode val1 ++ l1 = encode val2 ++ l2 -> val1 = val2 /\ l1 = l2.
+  Proof.
+    intros. assert (length (encode val1) = length (encode val2)) by
+      (eapply encode_same_type_same_length; eauto).
+    eapply app_eq_len_eq in H3; eauto. destruct H3. split; auto.
+    eapply encode_same_type_same_val in H3; eauto.
   Qed.
 
 End PacketFormat.
