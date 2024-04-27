@@ -1090,9 +1090,9 @@ Proof.
     + rewrite concat_queue_eq, in_app_iff, H6. right. left. reflexivity.
     + do 3 (split; auto). format_match_solve. assert (contains_sample 1 = true) by reflexivity.
       rewrite H10 in H8. eapply format_list_equiv_match; eauto.
-      apply list_equiv_epsilon_cons; [apply format_equiv_refl; auto|].
-      apply list_equiv_epsilon_cons; [apply format_equiv_true; auto|].
-      do 4 (apply list_equiv_epsilon_cons; [apply format_equiv_refl; auto|]). constructor.
+      apply list_equiv_cons; [apply format_equiv_refl|].
+      apply list_equiv_cons; [apply format_equiv_true|].
+      apply format_list_equiv_refl.
 Qed.
 
 Definition switch_queue_property1 (q1 q2: queue packet): Prop :=
@@ -1106,6 +1106,24 @@ Definition switch_queue_property1 (q1 q2: queue packet): Prop :=
                  ⫢ [⦑ encode (ethernet_repr_val ether) ⦒; ⦑ encode (ipv4_repr_val ipv4) ⦒;
                     ⦃ is_tcp ipv4 ? ⦑ encode result ⦒ | ⦃ is_udp ipv4 ? ⦑ encode result ⦒ | ε ⦄ ⦄;
                     ⦑ payload ⦒] /\
+               pin ⫢ [ ⦑ meta ⦒;
+                       ⦑ encode (ethernet_repr_val ether) ⦒;
+                       ⦑ encode (ipv4_repr_val ipv4) ⦒;
+                       ⦃ is_tcp ipv4 ? ⦑ encode result ⦒ |
+                         ⦃ is_udp ipv4 ? ⦑ encode result ⦒ | ε ⦄ ⦄; ⦑ payload ⦒] /\
+               Zlength meta = 128.
+
+Definition switch_queue_property2 (q1 q2: queue packet) (counter: Z): Prop :=
+  forall i pin, In pin (list_rep q1) -> 0 <= i < qlength q1 ->
+           Znth i (list_rep q1) = pin -> (counter + i + 1) mod 1024 = 0 ->
+           exists pout sample ether ipv4 result payload meta,
+             In pout (list_rep q2) /\
+             (if is_tcp ipv4 then ⊫ᵥ result \: tcp_h
+              else if is_udp ipv4 then ⊫ᵥ result \: udp_h else result = ValBaseNull) /\
+               P4BitV 16 (ethernet_ether_type ether) = P4BitV 16 ETHERTYPE_IPV4 /\
+               pout ⫢ [⦑ encode (sample_repr_val sample) ⦒;
+                       ⦃ is_tcp ipv4 ? ⦑ encode result ⦒ |
+                         ⦃ is_udp ipv4 ? ⦑ encode result ⦒ | ε ⦄ ⦄; ⦑ payload ⦒] /\
                pin ⫢ [ ⦑ meta ⦒;
                        ⦑ encode (ethernet_repr_val ether) ⦒;
                        ⦑ encode (ipv4_repr_val ipv4) ⦒;
@@ -1130,45 +1148,82 @@ Lemma switch_packets_queue: forall inst1 inst2 est1 est2 q1 q2 q3 counter,
     process_egress_packets
       (egress_pipeline eprsr_block egress_block edeprsr_block parser_egress_cond
          egress_deprsr_cond) est1 q2 est2 q3 ->
-    switch_queue_property1 q1 q3.
+    switch_queue_property1 q1 q3 /\ switch_queue_property2 q1 q3 counter.
 Proof.
   intros. eapply process_ingress_packets_queue in H0; eauto. destruct H0.
-  pose proof (process_egress_packets_queue _ _ _ _ H1). repeat intro. specialize (H0 _ H4).
-  destruct H0 as (pmid & has_sample & sample & ether & ipv4 & result & payload & meta & ? & ? & ? & ? & ? & ?).
-  specialize (H3 pmid H0). destruct H3 as [pout [? ?]]. hnf in H10.
-  exists pout, ether, ipv4, result, payload, meta. do 4 (split; auto).
-  destruct H10 as (eg_intr_md & has_sample' & sample' & ether' & ipv4' & result' & payload' & ? & ? & ? & ? & ?).
-  clear q1 q2 q3 meta counter H H0 H1 H2 H3 H4 H6 H8 H9 H11. destruct H7 as [l1 [Hc1 ?]]. destruct H12 as [l2 [Hc2 ?]].
-  inv H. inv H0. inv H3. inv H2. simpl in Hc2. eapply encode_same_type_same_val_app in Hc2; eauto.
-  2: apply output_is_eg_intr_md. destruct Hc2. subst. clear H14. simpl in H13.
-  inv H6. inv H7. inv H2. inv H3. simpl in H0.
-  eapply encode_same_type_same_val_app in H0; [|apply ext_val_typ_bridge..|reflexivity]. destruct H0.
-  assert (contains_sample has_sample = contains_sample has_sample'). {
-    Transparent bridge_repr_val.
-    unfold bridge_repr_val in H. do 2 remember_P4BitV.
-    inv H. unfold contains_sample. rewrite H2. Opaque bridge_repr_val. reflexivity. } rewrite <- H1 in *. clear H1 H.
-  inv H4. inv H8. simpl in H0. assert (concat l'1 = concat l'0). {
-    clear H6 H7 H13. destruct (contains_sample has_sample).
-    - inv H2. inv H3. inv H4. inv H6.
-      eapply encode_same_type_same_val_app in H0; [|apply ext_val_typ_sample..|reflexivity]. destruct H0; auto.
-    - inv H2. inv H3. inv H6. inv H4. simpl in H0. assumption. } clear dependent y0. clear dependent y.
-  inv H6. inv H7. inv H2. inv H3. simpl in H.
-  eapply encode_same_type_same_val_app in H; [|apply ext_val_typ_ethernet..|reflexivity]. destruct H. rewrite H in *.
-  clear H. inv H4. inv H8. inv H2. inv H3. simpl in H0.
-  eapply encode_same_type_same_val_app in H0; [|apply ext_val_typ_ipv4..|reflexivity]. destruct H0. rewrite H in *.
-  assert (is_tcp ipv4' = is_tcp ipv4). {
-    Transparent ipv4_repr_val. unfold ipv4_repr_val in H. unfold is_tcp. Opaque ipv4_repr_val.
-    do 24 remember_P4BitV. inversion H. reflexivity. } rewrite H1 in *.
-  assert (is_udp ipv4' = is_udp ipv4). {
-    Transparent ipv4_repr_val. unfold ipv4_repr_val in H. unfold is_udp.
-    do 24 remember_P4BitV. inversion H. reflexivity. } rewrite H2 in *. inv H6. inv H7. inv H11. inv H12.
-  inv H14. inv H15. simpl in H0. assert (result = result' /\ y0 = y). {
-    destruct (is_tcp ipv4).
-    - inv H8; inv H6; inv H11; inv H12. eapply encode_same_type_same_val_app in H0; eauto. destruct H0.
-      subst. split; auto.
-    - inv H8. inv H6. destruct (is_udp ipv4); inv H12; inv H11.
-      + inv H8; inv H12. eapply encode_same_type_same_val_app in H0; eauto. destruct H0. subst; split; auto.
-      + inv H8. inv H6. split; auto. } destruct H3. subst result'. subst y0. apply app_inv_head in H0.
-  inversion H7. subst p. subst y1. clear H7. inversion H9. subst p. subst y2. clear H9. rewrite !app_nil_r in H0.
-  rewrite H0 in *. apply H13.
+  pose proof (process_egress_packets_queue _ _ _ _ H1). split.
+  - repeat intro. specialize (H0 _ H4).
+    destruct H0 as (pmid & has_sample & sample & ether & ipv4 & result & payload & meta & ? & ? & ? & ? & ? & ?).
+    specialize (H3 pmid H0). destruct H3 as [pout [? ?]]. hnf in H10.
+    exists pout, ether, ipv4, result, payload, meta. do 4 (split; auto).
+    destruct H10 as (eg_intr_md & has_sample' & sample' & ether' & ipv4' & result' & payload' & ? & ? & ? & ? & ?).
+    clear q1 q2 q3 meta counter H H0 H1 H2 H3 H4 H6 H8 H9 H11. destruct H7 as [l1 [Hc1 ?]]. destruct H12 as [l2 [Hc2 ?]].
+    inv H. inv H0. inv H3. inv H2. simpl in Hc2. eapply encode_same_type_same_val_app in Hc2; eauto.
+    2: apply output_is_eg_intr_md. destruct Hc2. subst. clear H14. simpl in H13.
+    inv H6. inv H7. inv H2. inv H3. simpl in H0.
+    eapply encode_same_type_same_val_app in H0; [|apply ext_val_typ_bridge..|reflexivity]. destruct H0.
+    assert (contains_sample has_sample = contains_sample has_sample'). {
+      Transparent bridge_repr_val.
+      unfold bridge_repr_val in H. do 2 remember_P4BitV.
+      inv H. unfold contains_sample. rewrite H2. Opaque bridge_repr_val. reflexivity. } rewrite <- H1 in *. clear H1 H.
+    inv H4. inv H8. simpl in H0. assert (concat l'1 = concat l'0). {
+      clear H6 H7 H13. destruct (contains_sample has_sample).
+      - inv H2. inv H3. inv H4. inv H6.
+        eapply encode_same_type_same_val_app in H0; [|apply ext_val_typ_sample..|reflexivity]. destruct H0; auto.
+      - inv H2. inv H3. inv H6. inv H4. simpl in H0. assumption. } clear dependent y0. clear dependent y.
+    inv H6. inv H7. inv H2. inv H3. simpl in H.
+    eapply encode_same_type_same_val_app in H; [|apply ext_val_typ_ethernet..|reflexivity]. destruct H. rewrite H in *.
+    clear H. inv H4. inv H8. inv H2. inv H3. simpl in H0.
+    eapply encode_same_type_same_val_app in H0; [|apply ext_val_typ_ipv4..|reflexivity]. destruct H0. rewrite H in *.
+    assert (is_tcp ipv4' = is_tcp ipv4). {
+      Transparent ipv4_repr_val. unfold ipv4_repr_val in H. unfold is_tcp. Opaque ipv4_repr_val.
+      do 24 remember_P4BitV. inversion H. reflexivity. } rewrite H1 in *.
+    assert (is_udp ipv4' = is_udp ipv4). {
+      Transparent ipv4_repr_val. unfold ipv4_repr_val in H. unfold is_udp.
+      do 24 remember_P4BitV. inversion H. reflexivity. } rewrite H2 in *. inv H6. inv H7. inv H11. inv H12.
+    inv H14. inv H15. simpl in H0. assert (result = result' /\ y0 = y). {
+      destruct (is_tcp ipv4).
+      - inv H8; inv H6; inv H11; inv H12. eapply encode_same_type_same_val_app in H0; eauto. destruct H0.
+        subst. split; auto.
+      - inv H8. inv H6. destruct (is_udp ipv4); inv H12; inv H11.
+        + inv H8; inv H12. eapply encode_same_type_same_val_app in H0; eauto. destruct H0. subst; split; auto.
+        + inv H8. inv H6. split; auto. } destruct H3. subst result'. subst y0. apply app_inv_head in H0.
+    inversion H7. subst p. subst y1. clear H7. inversion H9. subst p. subst y2. clear H9. rewrite !app_nil_r in H0.
+    rewrite H0 in *. apply H13.
+  - repeat intro. specialize (H2 _ _ H4 H5 H6 H7). clear i H4 H5 H6 H7.
+    destruct H2 as (pmid & sample & ether & ipv4 & result & payload & meta & ? & ? & ? & ? & ? & ?).
+    specialize (H3 pmid H2). destruct H3 as [pout [? ?]]. hnf in H9.
+    exists pout, sample, ether, ipv4, result, payload, meta. do 4 (split; auto).
+    destruct H9 as (eg_intr_md & has_sample' & sample' & ether' & ipv4' & result' & payload' & ? & ? & ? & ? & ?).
+    clear q1 q2 q3 meta counter H H0 H1 H2 H3 H5 H7 H8 H10. destruct H6 as [l1 [Hc1 ?]]. destruct H11 as [l2 [Hc2 ?]].
+    inv H. inv H0. inv H3. inv H2. simpl in Hc2. eapply encode_same_type_same_val_app in Hc2; eauto.
+    2: apply output_is_eg_intr_md. destruct Hc2. subst. clear H13. simpl in H12.
+    inv H6. inv H7. inv H2. inv H3. simpl in H0.
+    eapply encode_same_type_same_val_app in H0; [|apply ext_val_typ_bridge..|reflexivity]. destruct H0.
+    assert (contains_sample has_sample' = true). {
+      Transparent bridge_repr_val.
+      unfold bridge_repr_val in H. do 2 remember_P4BitV.
+      inv H. unfold contains_sample. rewrite H2. Opaque bridge_repr_val. reflexivity. } rewrite H1 in *. clear H1 H.
+    inv H5. inv H8. inv H2. inv H3. inv H5. simpl in H0.
+    eapply encode_same_type_same_val_app in H0; [|apply ext_val_typ_sample..|reflexivity]. destruct H0. rewrite H in *.
+    clear H. inv H6. inv H7. inv H2. inv H3. simpl in H0.
+    eapply encode_same_type_same_val_app in H0; [|apply ext_val_typ_ethernet..|reflexivity]. destruct H0.
+    clear H. inv H5. inv H8. inv H2. inv H3. simpl in H0.
+    eapply encode_same_type_same_val_app in H0; [|apply ext_val_typ_ipv4..|reflexivity]. destruct H0.
+    assert (is_tcp ipv4' = is_tcp ipv4). {
+      Transparent ipv4_repr_val. unfold ipv4_repr_val in H. unfold is_tcp. Opaque ipv4_repr_val.
+      do 24 remember_P4BitV. inversion H. reflexivity. } rewrite H1 in *.
+    assert (is_udp ipv4' = is_udp ipv4). {
+      Transparent ipv4_repr_val. unfold ipv4_repr_val in H. unfold is_udp.
+      do 24 remember_P4BitV. inversion H. reflexivity. } rewrite H2 in *. inv H6. inv H7. inv H11. inv H13.
+    inv H14. inv H15. simpl in H0. assert (result = result' /\ y0 = y). {
+      destruct (is_tcp ipv4).
+      - inv H8; inv H6; inv H11; inv H13. eapply encode_same_type_same_val_app in H0; eauto. destruct H0.
+        subst. split; auto.
+      - inv H8. inv H6. destruct (is_udp ipv4); inv H13; inv H11.
+        + inv H8; inv H13. eapply encode_same_type_same_val_app in H0; eauto. destruct H0. subst; split; auto.
+        + inv H8. inv H6. split; auto. } destruct H3. subst result'. subst y0. apply app_inv_head in H0.
+    inversion H7. subst p. subst y1. clear H7. inversion H10. subst p. subst y2. clear H10. rewrite !app_nil_r in H0.
+    rewrite H0 in *. eapply format_list_equiv_match; eauto.
+    apply list_equiv_cons; [apply format_equiv_true | apply format_list_equiv_refl].
 Qed.

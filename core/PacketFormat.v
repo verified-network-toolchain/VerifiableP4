@@ -557,7 +557,7 @@ Inductive format_list_equiv: list format -> list format -> Prop :=
 | list_equiv_nil : format_list_equiv [] []
 | list_equiv_epsilon_left: forall l1 l2 f, format_equiv f ε -> format_list_equiv l1 l2 -> format_list_equiv (f :: l1) l2
 | list_equiv_epsilon_right: forall l1 l2 f, format_equiv f ε -> format_list_equiv l1 l2 -> format_list_equiv l1 (f :: l2)
-| list_equiv_epsilon_cons: forall f1 f2 l1 l2,
+| list_equiv_cons: forall f1 f2 l1 l2,
     format_equiv f1 f2 -> format_list_equiv l1 l2 -> format_list_equiv (f1 :: l1) (f2 :: l2).
 
 Lemma format_equiv_sym: forall f1 f2, format_equiv f1 f2 -> format_equiv f2 f1.
@@ -817,4 +817,10 @@ Proof.
     destruct H2 as [h [r [? [? ?]]]]. apply IHformat_list_equiv in H4. subst p.
     pose proof (format_equiv_match _ _ _ H H3). destruct H4 as [l [? ?]].
     exists (h :: l). simpl. rewrite H4. split; auto.
+Qed.
+
+Lemma format_list_equiv_refl: forall l, format_list_equiv l l.
+Proof.
+  induction l. 1: constructor. apply list_equiv_cons; auto.
+  apply format_equiv_refl.
 Qed.
