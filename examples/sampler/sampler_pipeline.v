@@ -799,7 +799,7 @@ Proof. intros. reflexivity. Qed.
 Lemma encode_invalid_ipv4: forall ipv4, encode (setInvalidv (ipv4_repr_val ipv4)) = [].
 Proof. intros. reflexivity. Qed.
 
-Definition packet_egress_relation (pin pout: packet) : Prop :=
+Definition egress_packet_relation (pin pout: packet) : Prop :=
   exists eg_intr_md has_sample sample ether ipv4 result payload,
     (if is_tcp ipv4 then ⊫ᵥ result \: tcp_h
      else if is_udp ipv4 then ⊫ᵥ result \: udp_h else result = ValBaseNull) /\
@@ -822,7 +822,7 @@ Definition packet_egress_relation (pin pout: packet) : Prop :=
 Lemma process_packet_egress:
   forall st st' pin pout,
     egress_pipeline eprsr_block egress_block edeprsr_block parser_egress_cond
-      egress_deprsr_cond st pin st' pout -> packet_egress_relation pin pout.
+      egress_deprsr_cond st pin st' pout -> egress_packet_relation pin pout.
 Proof.
   intros. inv H. inv H0. rewrite PathMap.get_set_same in H15. inversion H15. subst pin0.
   clear H15. inv H17. inv H. inv H0. inv H7.
@@ -875,7 +875,7 @@ Lemma process_egress_packets_queue: forall est1 q1 est2 q2,
   process_egress_packets
     (egress_pipeline eprsr_block egress_block edeprsr_block parser_egress_cond
        egress_deprsr_cond) est1 q1 est2 q2 ->
-  forall pin, In pin (list_rep q1) -> exists pout, In pout (list_rep q2) /\ packet_egress_relation pin pout.
+  forall pin, In pin (list_rep q1) -> exists pout, In pout (list_rep q2) /\ egress_packet_relation pin pout.
 Proof.
   intros. induction H. 1: simpl in H0; inversion H0. rewrite enque_eq, in_app_iff in H0.
   rename IHprocess_egress_packets into IH. destruct H0.
@@ -986,49 +986,53 @@ Proof.
     + rewrite Z.eqb_neq in H. rewrite Z.div_small by lia. lia.
 Qed.
 
+Definition ingress_normal_packet_relation (pin pout: packet): Prop :=
+  exists has_sample sample ether ipv4 result payload meta,
+    (if is_tcp ipv4 then ⊫ᵥ result \: tcp_h
+     else if is_udp ipv4 then ⊫ᵥ result \: udp_h else result = ValBaseNull) /\
+      P4BitV 16 (ethernet_ether_type ether) = P4BitV 16 ETHERTYPE_IPV4 /\
+      pout ⫢ [⦑ encode_out_md 128 0 ⦒;
+              ⦑ encode (bridge_repr_val has_sample) ⦒;
+              ⦃ contains_sample has_sample ?
+                  ⦑ encode (sample_repr_val sample) ⦒| ε ⦄;
+              ⦑ encode (ethernet_repr_val ether) ⦒;
+              ⦑ encode (ipv4_repr_val ipv4) ⦒;
+              ⦃ is_tcp ipv4 ? ⦑ encode result ⦒ |
+                ⦃ is_udp ipv4 ? ⦑ encode result ⦒ | ε ⦄ ⦄; ⦑ payload ⦒] /\
+      pin ⫢ [ ⦑ meta ⦒;
+              ⦑ encode (ethernet_repr_val ether) ⦒;
+              ⦑ encode (ipv4_repr_val ipv4) ⦒;
+              ⦃ is_tcp ipv4 ? ⦑ encode result ⦒ |
+                ⦃ is_udp ipv4 ? ⦑ encode result ⦒ | ε ⦄ ⦄; ⦑ payload ⦒] /\
+      Zlength meta = 128.
+
 Definition ingress_queue_property1 (q1 q2: queue packet): Prop :=
     forall pin, In pin (list_rep q1) ->
-           exists pout has_sample sample ether ipv4 result payload meta,
-             In pout (list_rep q2) /\
-             (if is_tcp ipv4 then ⊫ᵥ result \: tcp_h
-              else if is_udp ipv4 then ⊫ᵥ result \: udp_h else result = ValBaseNull) /\
-               P4BitV 16 (ethernet_ether_type ether) = P4BitV 16 ETHERTYPE_IPV4 /\
-               pout ⫢ [⦑ encode_out_md 128 0 ⦒;
-                       ⦑ encode (bridge_repr_val has_sample) ⦒;
-                       ⦃ contains_sample has_sample ?
-                           ⦑ encode (sample_repr_val sample) ⦒| ε ⦄;
-                       ⦑ encode (ethernet_repr_val ether) ⦒;
-                       ⦑ encode (ipv4_repr_val ipv4) ⦒;
-                       ⦃ is_tcp ipv4 ? ⦑ encode result ⦒ |
-                         ⦃ is_udp ipv4 ? ⦑ encode result ⦒ | ε ⦄ ⦄; ⦑ payload ⦒] /\
-               pin ⫢ [ ⦑ meta ⦒;
-                       ⦑ encode (ethernet_repr_val ether) ⦒;
-                       ⦑ encode (ipv4_repr_val ipv4) ⦒;
-                       ⦃ is_tcp ipv4 ? ⦑ encode result ⦒ |
-                         ⦃ is_udp ipv4 ? ⦑ encode result ⦒ | ε ⦄ ⦄; ⦑ payload ⦒] /\
-               Zlength meta = 128.
+           exists pout, In pout (list_rep q2) /\ ingress_normal_packet_relation pin pout.
+
+Definition ingress_special_packet_relation (pin pout: packet): Prop :=
+  exists sample ether ipv4 result payload meta,
+    (if is_tcp ipv4 then ⊫ᵥ result \: tcp_h
+     else if is_udp ipv4 then ⊫ᵥ result \: udp_h else result = ValBaseNull) /\
+      P4BitV 16 (ethernet_ether_type ether) = P4BitV 16 ETHERTYPE_IPV4 /\
+      pout ⫢ [⦑ encode_out_md 129 123 ⦒;
+              ⦑ encode (bridge_repr_val 1) ⦒;
+              ⦑ encode (sample_repr_val sample) ⦒;
+              ⦑ encode (ethernet_repr_val ether) ⦒;
+              ⦑ encode (ipv4_repr_val ipv4) ⦒;
+              ⦃ is_tcp ipv4 ? ⦑ encode result ⦒ |
+                ⦃ is_udp ipv4 ? ⦑ encode result ⦒ | ε ⦄ ⦄; ⦑ payload ⦒] /\
+      pin ⫢ [ ⦑ meta ⦒;
+              ⦑ encode (ethernet_repr_val ether) ⦒;
+              ⦑ encode (ipv4_repr_val ipv4) ⦒;
+              ⦃ is_tcp ipv4 ? ⦑ encode result ⦒ |
+                ⦃ is_udp ipv4 ? ⦑ encode result ⦒ | ε ⦄ ⦄; ⦑ payload ⦒] /\
+      Zlength meta = 128.
 
 Definition ingress_queue_property2 (q1 q2: queue packet) (counter: Z): Prop :=
-  forall i pin, In pin (list_rep q1) -> 0 <= i < qlength q1 ->
-           Znth i (list_rep q1) = pin -> (counter + i + 1) mod 1024 = 0 ->
-           exists pout sample ether ipv4 result payload meta,
-             In pout (list_rep q2) /\
-             (if is_tcp ipv4 then ⊫ᵥ result \: tcp_h
-              else if is_udp ipv4 then ⊫ᵥ result \: udp_h else result = ValBaseNull) /\
-               P4BitV 16 (ethernet_ether_type ether) = P4BitV 16 ETHERTYPE_IPV4 /\
-               pout ⫢ [⦑ encode_out_md 129 123 ⦒;
-                       ⦑ encode (bridge_repr_val 1) ⦒;
-                       ⦑ encode (sample_repr_val sample) ⦒;
-                       ⦑ encode (ethernet_repr_val ether) ⦒;
-                       ⦑ encode (ipv4_repr_val ipv4) ⦒;
-                       ⦃ is_tcp ipv4 ? ⦑ encode result ⦒ |
-                         ⦃ is_udp ipv4 ? ⦑ encode result ⦒ | ε ⦄ ⦄; ⦑ payload ⦒] /\
-               pin ⫢ [ ⦑ meta ⦒;
-                       ⦑ encode (ethernet_repr_val ether) ⦒;
-                       ⦑ encode (ipv4_repr_val ipv4) ⦒;
-                       ⦃ is_tcp ipv4 ? ⦑ encode result ⦒ |
-                         ⦃ is_udp ipv4 ? ⦑ encode result ⦒ | ε ⦄ ⦄; ⦑ payload ⦒] /\
-               Zlength meta = 128.
+  forall i pin, 0 <= i < qlength q1 -> Znth i (list_rep q1) = pin ->
+           (counter + i + 1) mod 1024 = 0 ->
+           exists pout, In pout (list_rep q2) /\ ingress_special_packet_relation pin pout.
 
 Lemma process_ingress_packets_queue: forall inst1 inst2 q1 q2 counter,
     ingress_counter inst1 counter ->
@@ -1041,97 +1045,84 @@ Proof.
   - hnf. intros. revert H. induction H0; intros. 1: simpl in H1; contradiction.
     rewrite enque_eq, in_app_iff in H1. destruct H1.
     + specialize (IHprocess_ingress_packets H1 H2).
-      destruct IHprocess_ingress_packets as
-        (pout & has_sample & sample & ether & ipv4 & result & payload & meta & ? &?&?&?&?).
-      exists pout, has_sample, sample, ether, ipv4, result, payload, meta. split; auto.
-      rewrite concat_queue_eq, in_app_iff. left; assumption.
+      destruct IHprocess_ingress_packets as (pout & ? & ?).
+      exists pout. split; auto. rewrite concat_queue_eq, in_app_iff. left; assumption.
     + clear IHprocess_ingress_packets. hnf in H1. destruct H1; [subst p | inversion H1].
       pose proof (process_ingress_packets_counter _ _ _ _ _ H2 H0).
       eapply process_packet_ingress_tm in H; eauto. destruct H as [? ?]. hnf in H.
       remember (if (counter + qlength ps + 1) mod 1024 =? 0  then _ else _) as has_sample.
       destruct H as (sample & ether & ipv4 & result & payload & meta & ? & ? & ? & ?).
-      exists (encode_out_md 128 0 ++ p'), has_sample, sample, ether, ipv4, result, payload, meta.
-      repeat (split; auto).
+      exists (encode_out_md 128 0 ++ p'). split.
       * rewrite concat_queue_eq, in_app_iff. right. rewrite H3.
         destruct ((counter + qlength ps + 1) mod 1024 =? 0); [right|]; left; reflexivity.
-      * format_match_solve. assumption.
+      * exists has_sample, sample, ether, ipv4, result, payload, meta. repeat (split; auto).
+        format_match_solve. assumption.
   - hnf. intros. assert (0 <= i + 1 <= qlength q1) by lia.
-    destruct (process_ingress_packets_split _ _ _ _ _ _ H0 _ H5) as
+    destruct (process_ingress_packets_split _ _ _ _ _ _ H0 _ H4) as
       [qin [qin_rest [qout [qout_rest [inst3 [? [? [? [? _]]]]]]]]].
     assert (Znth i (list_rep qin) = pin). {
-      subst q1. rewrite concat_queue_eq in H3. rewrite qlength_eq in H6. list_solve. }
-    cut (exists (pout : packet) (sample : sample_rec) (ether : ethernet_rec) (ipv4 : ipv4_rec)
-           (result : Val) (payload meta : packet),
-            In pout (list_rep qout) /\
-              (if is_tcp ipv4
-               then ⊫ᵥ result \: tcp_h
-               else if is_udp ipv4 then ⊫ᵥ result \: udp_h else result = ValBaseNull) /\
-              P4BitV 16 (ethernet_ether_type ether) = P4BitV 16 ETHERTYPE_IPV4 /\
-              (pout
-                 ⫢ [⦑ encode_out_md 129 123 ⦒; ⦑ encode (bridge_repr_val 1) ⦒; ⦑ encode (sample_repr_val sample) ⦒;
-                    ⦑ encode (ethernet_repr_val ether) ⦒; ⦑ encode (ipv4_repr_val ipv4) ⦒;
-                    ⦃ is_tcp ipv4 ? ⦑ encode result ⦒ | ⦃ is_udp ipv4 ? ⦑ encode result ⦒ | ε ⦄ ⦄;
-                    ⦑ payload ⦒]) /\
-              (pin
-                 ⫢ [⦑ meta ⦒; ⦑ encode (ethernet_repr_val ether) ⦒; ⦑ encode (ipv4_repr_val ipv4) ⦒;
-                    ⦃ is_tcp ipv4 ? ⦑ encode result ⦒ | ⦃ is_udp ipv4 ? ⦑ encode result ⦒ | ε ⦄ ⦄;
-                    ⦑ payload ⦒]) /\ Zlength meta = 128). {
-      intros. destruct H11 as (pout & sample & ether & ipv4 & result & payload & meta & ? & ?).
-      exists pout, sample, ether, ipv4, result, payload, meta. split; auto. subst q2.
-      rewrite concat_queue_eq, in_app_iff. left; assumption. } destruct H2.
-    clear dependent q1. clear dependent q2. clear qin_rest qout_rest inst2.
-    revert dependent i. revert dependent counter. revert pin. inversion H9; subst; clear H9; intros.
-    1: simpl in H6; lia. rewrite qlength_enque, qlength_eq in H6. rewrite enque_eq in H10.
-    assert (p = pin) by list_solve. assert (Zlength (list_rep ps) = i) by lia. subst p. clear H6 H10.
-    pose proof (process_ingress_packets_counter _ _ _ _ _ H1 H). rewrite qlength_eq, H5 in H3.
+      subst q1. rewrite concat_queue_eq in H2. rewrite qlength_eq in H5. list_solve. }
+    cut (exists pout : packet, In pout (list_rep qout) /\
+                            ingress_special_packet_relation pin pout). {
+      intros. destruct H10 as (pout & ? & ?).
+      exists pout. split; auto. subst q2. rewrite concat_queue_eq, in_app_iff. left; assumption. }
+    destruct H1. clear dependent q1. clear dependent q2. clear qin_rest qout_rest inst2.
+    revert dependent i. revert dependent counter. revert pin. inversion H8; subst; clear H8; intros.
+    1: simpl in H5; lia. rewrite qlength_enque, qlength_eq in H5. rewrite enque_eq in H9.
+    assert (p = pin) by list_solve. assert (Zlength (list_rep ps) = i) by lia. subst p. clear H5 H9.
+    pose proof (process_ingress_packets_counter _ _ _ _ _ H1 H). rewrite qlength_eq, H6 in H4.
     eapply process_packet_ingress_tm in H0; eauto. destruct H0 as [? ?]. hnf in H0.
-    rewrite H4, Z.eqb_refl in H0, H6. destruct H0 as (sample & ether & ipv4 & result & payload & meta & ? & ? & ? & ?).
-    exists (encode_out_md 129 123 ++ p'), sample, ether, ipv4, result, payload, meta. split.
-    + rewrite concat_queue_eq, in_app_iff, H6. right. left. reflexivity.
-    + do 3 (split; auto). format_match_solve. assert (contains_sample 1 = true) by reflexivity.
+    rewrite H3, Z.eqb_refl in H0, H5. destruct H0 as (sample & ether & ipv4 & result & payload & meta & ? & ? & ? & ?).
+    exists (encode_out_md 129 123 ++ p'). split.
+    + rewrite concat_queue_eq, in_app_iff, H5. right. left. reflexivity.
+    + exists sample, ether, ipv4, result, payload, meta.
+      do 3 (split; auto). format_match_solve.
+      assert (contains_sample 1 = true) by reflexivity.
       rewrite H10 in H8. eapply format_list_equiv_match; eauto.
       apply list_equiv_cons; [apply format_equiv_refl|].
       apply list_equiv_cons; [apply format_equiv_true|].
       apply format_list_equiv_refl.
 Qed.
 
+Definition switch_normal_packet_relation (pin pout: packet) : Prop :=
+  exists ether ipv4 result payload meta,
+    (if is_tcp ipv4 then ⊫ᵥ result \: tcp_h
+     else if is_udp ipv4 then ⊫ᵥ result \: udp_h else result = ValBaseNull) /\
+      P4BitV 16 (ethernet_ether_type ether) = P4BitV 16 ETHERTYPE_IPV4 /\
+      pout ⫢ [⦑ encode (ethernet_repr_val ether) ⦒; ⦑ encode (ipv4_repr_val ipv4) ⦒;
+              ⦃ is_tcp ipv4 ? ⦑ encode result ⦒ | ⦃ is_udp ipv4 ? ⦑ encode result ⦒ | ε ⦄ ⦄;
+              ⦑ payload ⦒] /\
+      pin ⫢ [ ⦑ meta ⦒;
+              ⦑ encode (ethernet_repr_val ether) ⦒;
+              ⦑ encode (ipv4_repr_val ipv4) ⦒;
+              ⦃ is_tcp ipv4 ? ⦑ encode result ⦒ |
+                ⦃ is_udp ipv4 ? ⦑ encode result ⦒ | ε ⦄ ⦄; ⦑ payload ⦒] /\
+      Zlength meta = 128.
+
 Definition switch_queue_property1 (q1 q2: queue packet): Prop :=
     forall pin, In pin (list_rep q1) ->
-           exists pout ether ipv4 result payload meta,
-             In pout (list_rep q2) /\
-             (if is_tcp ipv4 then ⊫ᵥ result \: tcp_h
-              else if is_udp ipv4 then ⊫ᵥ result \: udp_h else result = ValBaseNull) /\
-               P4BitV 16 (ethernet_ether_type ether) = P4BitV 16 ETHERTYPE_IPV4 /\
-               pout
-                 ⫢ [⦑ encode (ethernet_repr_val ether) ⦒; ⦑ encode (ipv4_repr_val ipv4) ⦒;
-                    ⦃ is_tcp ipv4 ? ⦑ encode result ⦒ | ⦃ is_udp ipv4 ? ⦑ encode result ⦒ | ε ⦄ ⦄;
-                    ⦑ payload ⦒] /\
-               pin ⫢ [ ⦑ meta ⦒;
-                       ⦑ encode (ethernet_repr_val ether) ⦒;
-                       ⦑ encode (ipv4_repr_val ipv4) ⦒;
-                       ⦃ is_tcp ipv4 ? ⦑ encode result ⦒ |
-                         ⦃ is_udp ipv4 ? ⦑ encode result ⦒ | ε ⦄ ⦄; ⦑ payload ⦒] /\
-               Zlength meta = 128.
+           exists pout, In pout (list_rep q2) /\ switch_normal_packet_relation pin pout.
+
+Definition switch_special_packet_relation (pin pout: packet): Prop :=
+  exists sample ether ipv4 result payload meta,
+    (if is_tcp ipv4 then ⊫ᵥ result \: tcp_h
+     else if is_udp ipv4 then ⊫ᵥ result \: udp_h else result = ValBaseNull) /\
+      P4BitV 16 (ethernet_ether_type ether) = P4BitV 16 ETHERTYPE_IPV4 /\
+      pout ⫢ [⦑ encode (sample_repr_val sample) ⦒;
+              ⦃ is_tcp ipv4 ? ⦑ encode result ⦒ |
+                ⦃ is_udp ipv4 ? ⦑ encode result ⦒ | ε ⦄ ⦄; ⦑ payload ⦒] /\
+      pin ⫢ [ ⦑ meta ⦒;
+              ⦑ encode (ethernet_repr_val ether) ⦒;
+              ⦑ encode (ipv4_repr_val ipv4) ⦒;
+              ⦃ is_tcp ipv4 ? ⦑ encode result ⦒ |
+                ⦃ is_udp ipv4 ? ⦑ encode result ⦒ | ε ⦄ ⦄; ⦑ payload ⦒] /\
+      Zlength meta = 128.
 
 Definition switch_queue_property2 (q1 q2: queue packet) (counter: Z): Prop :=
-  forall i pin, In pin (list_rep q1) -> 0 <= i < qlength q1 ->
-           Znth i (list_rep q1) = pin -> (counter + i + 1) mod 1024 = 0 ->
-           exists pout sample ether ipv4 result payload meta,
-             In pout (list_rep q2) /\
-             (if is_tcp ipv4 then ⊫ᵥ result \: tcp_h
-              else if is_udp ipv4 then ⊫ᵥ result \: udp_h else result = ValBaseNull) /\
-               P4BitV 16 (ethernet_ether_type ether) = P4BitV 16 ETHERTYPE_IPV4 /\
-               pout ⫢ [⦑ encode (sample_repr_val sample) ⦒;
-                       ⦃ is_tcp ipv4 ? ⦑ encode result ⦒ |
-                         ⦃ is_udp ipv4 ? ⦑ encode result ⦒ | ε ⦄ ⦄; ⦑ payload ⦒] /\
-               pin ⫢ [ ⦑ meta ⦒;
-                       ⦑ encode (ethernet_repr_val ether) ⦒;
-                       ⦑ encode (ipv4_repr_val ipv4) ⦒;
-                       ⦃ is_tcp ipv4 ? ⦑ encode result ⦒ |
-                         ⦃ is_udp ipv4 ? ⦑ encode result ⦒ | ε ⦄ ⦄; ⦑ payload ⦒] /\
-               Zlength meta = 128.
+  forall i pin, 0 <= i < qlength q1 -> Znth i (list_rep q1) = pin -> (counter + i + 1) mod 1024 = 0 ->
+           exists pout, In pout (list_rep q2) /\ switch_special_packet_relation pin pout.
 
-(* Print packet_egress_relation. *)
+(* Print egress_packet_relation. *)
 
 Opaque encode ig_intr_tm_md ipv4_repr_val ethernet_repr_val bridge_repr_val sample_repr_val.
 
@@ -1139,6 +1130,102 @@ Ltac remember_P4BitV :=
   lazymatch goal with
   | H: context [(P4BitV ?n ?V)] |- _ => remember (P4BitV n V)
   end.
+
+Lemma normal_ingress_egress_switch: forall pin pmid pout : packet,
+    ingress_normal_packet_relation pin pmid ->
+    egress_packet_relation pmid pout -> switch_normal_packet_relation pin pout.
+Proof.
+  intros. destruct H as (has_sample & sample & ether & ipv4 & result &
+                           payload & meta & ? & ? & ? & ? & ?).
+  exists ether, ipv4, result, payload, meta. do 3 (split; auto).
+  destruct H0 as (eg_intr_md & has_sample' & sample' & ether' & ipv4' &
+                    result' & payload' & ? & ? & ? & ? & ?).
+  clear pin H3. destruct H2 as [l1 [Hc1 ?]]. destruct H6 as [l2 [Hc2 ?]].
+  inv H2. inv H10. inv H3. inv H9. simpl in Hc2.
+  eapply encode_same_type_same_val_app in Hc2; eauto. 2: apply output_is_eg_intr_md.
+  destruct Hc2. subst. clear H8. simpl in H7.
+  inv H12. inv H8. inv H11. inv H8. simpl in H3.
+  eapply encode_same_type_same_val_app in H3; [|apply ext_val_typ_bridge..|reflexivity].
+  destruct H3. assert (contains_sample has_sample = contains_sample has_sample'). {
+      Transparent bridge_repr_val. unfold bridge_repr_val in H2. do 2 remember_P4BitV.
+      inv H2. unfold contains_sample. rewrite H8. Opaque bridge_repr_val. reflexivity. }
+  rewrite <- H6 in *. clear H6 H2.
+  inv H10. inv H12. simpl in H3. assert (concat l'1 = concat l'0). {
+    clear H7 H11 H13. destruct (contains_sample has_sample).
+    - inv H8. inv H9. inv H10. inv H8.
+      eapply encode_same_type_same_val_app in H3; [|apply ext_val_typ_sample..|reflexivity].
+      destruct H3; auto.
+    - inv H8. inv H9. inv H10. inv H8. simpl in H3. assumption. }
+  clear dependent y0. clear dependent y.
+  inv H11. inv H13. inv H8. inv H9. simpl in H2.
+  eapply encode_same_type_same_val_app in H2; [|apply ext_val_typ_ethernet..|reflexivity].
+  destruct H2. rewrite H2 in *. clear H2. inv H10. inv H12. inv H8. inv H9. simpl in H3.
+  eapply encode_same_type_same_val_app in H3; [|apply ext_val_typ_ipv4..|reflexivity].
+  destruct H3. rewrite H2 in *.
+  assert (is_tcp ipv4' = is_tcp ipv4). {
+    Transparent ipv4_repr_val. unfold ipv4_repr_val in H2. unfold is_tcp.
+    Opaque ipv4_repr_val. do 24 remember_P4BitV. inversion H2. reflexivity. }
+  rewrite H6 in *. clear H6.
+  assert (is_udp ipv4' = is_udp ipv4). {
+    Transparent ipv4_repr_val. unfold ipv4_repr_val in H2. unfold is_udp.
+    Opaque ipv4_repr_val. do 24 remember_P4BitV. inversion H2. reflexivity. }
+  rewrite H6 in *. clear H6 H2. inv H11. inv H13. inv H10. inv H12. inv H14. inv H15.
+  simpl in H3. assert (result = result' /\ y0 = y). {
+    destruct (is_tcp ipv4).
+    - inv H8; inv H9; inv H12; inv H13.
+      eapply encode_same_type_same_val_app in H3; eauto. destruct H3.
+      subst. split; auto.
+    - inv H8. inv H9. destruct (is_udp ipv4); inv H12; inv H13.
+      + inv H9; inv H12. eapply encode_same_type_same_val_app in H3; eauto.
+        destruct H3. subst; split; auto.
+      + inv H9. inv H6. split; auto. } destruct H2. subst result'. subst y0.
+  apply app_inv_head in H3. inversion H11. subst p. subst y1. clear H11. inversion H10.
+  subst p. subst y2. clear H10. rewrite !app_nil_r in H3. rewrite H3 in *. assumption.
+Qed.
+
+Lemma special_ingress_egress_switch: forall pin pmid pout : packet,
+    ingress_special_packet_relation pin pmid ->
+    egress_packet_relation pmid pout -> switch_special_packet_relation pin pout.
+Proof.
+  intros. destruct H as (sample & ether & ipv4 & result & payload &
+                           meta & ? & ? & ? & ? & ?).
+  exists sample, ether, ipv4, result, payload, meta. do 3 (split; auto).
+  destruct H0 as (eg_intr_md & has_sample' & sample' & ether' & ipv4' &
+                    result' & payload' & ? & ? & ? & ? & ?). clear pin H1 H3 H4 H5.
+  destruct H2 as [l1 [Hc1 ?]]. destruct H6 as [l2 [Hc2 ?]].
+  inv H1. inv H2. inv H4. inv H5. simpl in Hc2.
+  eapply encode_same_type_same_val_app in Hc2; eauto. 2: apply output_is_eg_intr_md.
+  destruct Hc2. subst. clear H8. simpl in H7. inv H9. inv H10. inv H4. inv H5. simpl in H2.
+  eapply encode_same_type_same_val_app in H2; [|apply ext_val_typ_bridge..|reflexivity].
+  destruct H2. assert (contains_sample has_sample' = true). {
+    Transparent bridge_repr_val. unfold bridge_repr_val in H1. do 2 remember_P4BitV.
+    inv H1. unfold contains_sample. rewrite H4. Opaque bridge_repr_val. reflexivity. }
+  rewrite H3 in *. clear H1 H3. inv H6. inv H9. inv H4. inv H5. inv H6. simpl in H2.
+  eapply encode_same_type_same_val_app in H2; [|apply ext_val_typ_sample..|reflexivity].
+  destruct H2. rewrite H1 in *. clear H1. inv H8. inv H10. inv H4. inv H5. simpl in H2.
+  eapply encode_same_type_same_val_app in H2; [|apply ext_val_typ_ethernet..|reflexivity].
+  destruct H2. clear H1. inv H6. inv H9. inv H4. inv H5. simpl in H2.
+  eapply encode_same_type_same_val_app in H2; [|apply ext_val_typ_ipv4..|reflexivity].
+  destruct H2. assert (is_tcp ipv4' = is_tcp ipv4). {
+    Transparent ipv4_repr_val. unfold ipv4_repr_val in H1. unfold is_tcp.
+    Opaque ipv4_repr_val. do 24 remember_P4BitV. inversion H1. reflexivity. }
+  rewrite H3 in *. assert (is_udp ipv4' = is_udp ipv4). {
+    Transparent ipv4_repr_val. unfold ipv4_repr_val in H1. unfold is_udp.
+    Opaque ipv4_repr_val. do 24 remember_P4BitV. inversion H1. reflexivity. }
+  rewrite H4 in *. clear H1 H3 H4. inv H8. inv H10. inv H6. inv H9. inv H11. inv H12.
+  simpl in H2. assert (result = result' /\ y0 = y). {
+    destruct (is_tcp ipv4).
+    - inv H4; inv H5; inv H9; inv H10. eapply encode_same_type_same_val_app in H2; eauto.
+      destruct H2. subst. split; auto.
+    - inv H4. inv H5. destruct (is_udp ipv4); inv H9; inv H10.
+      + inv H5; inv H9. eapply encode_same_type_same_val_app in H2; eauto.
+        destruct H2. subst; split; auto.
+      + inv H3. inv H5. split; auto. } destruct H1. subst result'. subst y0.
+  apply app_inv_head in H2. inversion H8. subst p. subst y1. clear H8. inversion H6.
+  subst p. subst y2. clear H6. rewrite !app_nil_r in H2. rewrite H2 in *.
+  eapply format_list_equiv_match; eauto.
+  apply list_equiv_cons; [apply format_equiv_true | apply format_list_equiv_refl].
+Qed.
 
 Lemma switch_packets_queue: forall inst1 inst2 est1 est2 q1 q2 q3 counter,
     ingress_counter inst1 counter ->
@@ -1152,78 +1239,146 @@ Lemma switch_packets_queue: forall inst1 inst2 est1 est2 q1 q2 q3 counter,
 Proof.
   intros. eapply process_ingress_packets_queue in H0; eauto. destruct H0.
   pose proof (process_egress_packets_queue _ _ _ _ H1). split.
-  - repeat intro. specialize (H0 _ H4).
-    destruct H0 as (pmid & has_sample & sample & ether & ipv4 & result & payload & meta & ? & ? & ? & ? & ? & ?).
-    specialize (H3 pmid H0). destruct H3 as [pout [? ?]]. hnf in H10.
-    exists pout, ether, ipv4, result, payload, meta. do 4 (split; auto).
-    destruct H10 as (eg_intr_md & has_sample' & sample' & ether' & ipv4' & result' & payload' & ? & ? & ? & ? & ?).
-    clear q1 q2 q3 meta counter H H0 H1 H2 H3 H4 H6 H8 H9 H11. destruct H7 as [l1 [Hc1 ?]]. destruct H12 as [l2 [Hc2 ?]].
-    inv H. inv H0. inv H3. inv H2. simpl in Hc2. eapply encode_same_type_same_val_app in Hc2; eauto.
-    2: apply output_is_eg_intr_md. destruct Hc2. subst. clear H14. simpl in H13.
-    inv H6. inv H7. inv H2. inv H3. simpl in H0.
-    eapply encode_same_type_same_val_app in H0; [|apply ext_val_typ_bridge..|reflexivity]. destruct H0.
-    assert (contains_sample has_sample = contains_sample has_sample'). {
-      Transparent bridge_repr_val.
-      unfold bridge_repr_val in H. do 2 remember_P4BitV.
-      inv H. unfold contains_sample. rewrite H2. Opaque bridge_repr_val. reflexivity. } rewrite <- H1 in *. clear H1 H.
-    inv H4. inv H8. simpl in H0. assert (concat l'1 = concat l'0). {
-      clear H6 H7 H13. destruct (contains_sample has_sample).
-      - inv H2. inv H3. inv H4. inv H6.
-        eapply encode_same_type_same_val_app in H0; [|apply ext_val_typ_sample..|reflexivity]. destruct H0; auto.
-      - inv H2. inv H3. inv H6. inv H4. simpl in H0. assumption. } clear dependent y0. clear dependent y.
-    inv H6. inv H7. inv H2. inv H3. simpl in H.
-    eapply encode_same_type_same_val_app in H; [|apply ext_val_typ_ethernet..|reflexivity]. destruct H. rewrite H in *.
-    clear H. inv H4. inv H8. inv H2. inv H3. simpl in H0.
-    eapply encode_same_type_same_val_app in H0; [|apply ext_val_typ_ipv4..|reflexivity]. destruct H0. rewrite H in *.
-    assert (is_tcp ipv4' = is_tcp ipv4). {
-      Transparent ipv4_repr_val. unfold ipv4_repr_val in H. unfold is_tcp. Opaque ipv4_repr_val.
-      do 24 remember_P4BitV. inversion H. reflexivity. } rewrite H1 in *.
-    assert (is_udp ipv4' = is_udp ipv4). {
-      Transparent ipv4_repr_val. unfold ipv4_repr_val in H. unfold is_udp.
-      do 24 remember_P4BitV. inversion H. reflexivity. } rewrite H2 in *. inv H6. inv H7. inv H11. inv H12.
-    inv H14. inv H15. simpl in H0. assert (result = result' /\ y0 = y). {
-      destruct (is_tcp ipv4).
-      - inv H8; inv H6; inv H11; inv H12. eapply encode_same_type_same_val_app in H0; eauto. destruct H0.
-        subst. split; auto.
-      - inv H8. inv H6. destruct (is_udp ipv4); inv H12; inv H11.
-        + inv H8; inv H12. eapply encode_same_type_same_val_app in H0; eauto. destruct H0. subst; split; auto.
-        + inv H8. inv H6. split; auto. } destruct H3. subst result'. subst y0. apply app_inv_head in H0.
-    inversion H7. subst p. subst y1. clear H7. inversion H9. subst p. subst y2. clear H9. rewrite !app_nil_r in H0.
-    rewrite H0 in *. apply H13.
-  - repeat intro. specialize (H2 _ _ H4 H5 H6 H7). clear i H4 H5 H6 H7.
-    destruct H2 as (pmid & sample & ether & ipv4 & result & payload & meta & ? & ? & ? & ? & ? & ?).
-    specialize (H3 pmid H2). destruct H3 as [pout [? ?]]. hnf in H9.
-    exists pout, sample, ether, ipv4, result, payload, meta. do 4 (split; auto).
-    destruct H9 as (eg_intr_md & has_sample' & sample' & ether' & ipv4' & result' & payload' & ? & ? & ? & ? & ?).
-    clear q1 q2 q3 meta counter H H0 H1 H2 H3 H5 H7 H8 H10. destruct H6 as [l1 [Hc1 ?]]. destruct H11 as [l2 [Hc2 ?]].
-    inv H. inv H0. inv H3. inv H2. simpl in Hc2. eapply encode_same_type_same_val_app in Hc2; eauto.
-    2: apply output_is_eg_intr_md. destruct Hc2. subst. clear H13. simpl in H12.
-    inv H6. inv H7. inv H2. inv H3. simpl in H0.
-    eapply encode_same_type_same_val_app in H0; [|apply ext_val_typ_bridge..|reflexivity]. destruct H0.
-    assert (contains_sample has_sample' = true). {
-      Transparent bridge_repr_val.
-      unfold bridge_repr_val in H. do 2 remember_P4BitV.
-      inv H. unfold contains_sample. rewrite H2. Opaque bridge_repr_val. reflexivity. } rewrite H1 in *. clear H1 H.
-    inv H5. inv H8. inv H2. inv H3. inv H5. simpl in H0.
-    eapply encode_same_type_same_val_app in H0; [|apply ext_val_typ_sample..|reflexivity]. destruct H0. rewrite H in *.
-    clear H. inv H6. inv H7. inv H2. inv H3. simpl in H0.
-    eapply encode_same_type_same_val_app in H0; [|apply ext_val_typ_ethernet..|reflexivity]. destruct H0.
-    clear H. inv H5. inv H8. inv H2. inv H3. simpl in H0.
-    eapply encode_same_type_same_val_app in H0; [|apply ext_val_typ_ipv4..|reflexivity]. destruct H0.
-    assert (is_tcp ipv4' = is_tcp ipv4). {
-      Transparent ipv4_repr_val. unfold ipv4_repr_val in H. unfold is_tcp. Opaque ipv4_repr_val.
-      do 24 remember_P4BitV. inversion H. reflexivity. } rewrite H1 in *.
-    assert (is_udp ipv4' = is_udp ipv4). {
-      Transparent ipv4_repr_val. unfold ipv4_repr_val in H. unfold is_udp.
-      do 24 remember_P4BitV. inversion H. reflexivity. } rewrite H2 in *. inv H6. inv H7. inv H11. inv H13.
-    inv H14. inv H15. simpl in H0. assert (result = result' /\ y0 = y). {
-      destruct (is_tcp ipv4).
-      - inv H8; inv H6; inv H11; inv H13. eapply encode_same_type_same_val_app in H0; eauto. destruct H0.
-        subst. split; auto.
-      - inv H8. inv H6. destruct (is_udp ipv4); inv H13; inv H11.
-        + inv H8; inv H13. eapply encode_same_type_same_val_app in H0; eauto. destruct H0. subst; split; auto.
-        + inv H8. inv H6. split; auto. } destruct H3. subst result'. subst y0. apply app_inv_head in H0.
-    inversion H7. subst p. subst y1. clear H7. inversion H10. subst p. subst y2. clear H10. rewrite !app_nil_r in H0.
-    rewrite H0 in *. eapply format_list_equiv_match; eauto.
-    apply list_equiv_cons; [apply format_equiv_true | apply format_list_equiv_refl].
+  - repeat intro. specialize (H0 _ H4). destruct H0 as (pmid & ? & ?).
+    specialize (H3 pmid H0). destruct H3 as [pout [? ?]].
+    exists pout. split; auto. eapply normal_ingress_egress_switch; eauto.
+  - repeat intro. specialize (H2 _ _ H4 H5 H6). clear i H4 H5 H6.
+    destruct H2 as (pmid & ? & ?). specialize (H3 pmid H2). destruct H3 as [pout [? ?]].
+    exists pout. split; auto. eapply special_ingress_egress_switch; eauto.
 Qed.
+
+Inductive ingress_ideal_behavior (counter: Z): queue packet -> queue packet -> Prop :=
+| ingress_ideal_nil: ingress_ideal_behavior counter empty_queue empty_queue
+| ingress_ideal_normal: forall q1 q2 pin pout,
+    ingress_normal_packet_relation pin pout ->
+    (counter + qlength q1 + 1) mod 1024 <> 0 ->
+    ingress_ideal_behavior counter q1 q2 ->
+    ingress_ideal_behavior counter (enque pin q1) (enque pout q2)
+| ingress_ideal_special: forall q1 q2 pin pout1 pout2,
+    ingress_normal_packet_relation pin pout1 ->
+    ingress_special_packet_relation pin pout2 ->
+    (counter + qlength q1 + 1) mod 1024 = 0 ->
+    ingress_ideal_behavior counter q1 q2 ->
+    ingress_ideal_behavior counter (enque pin q1) (enque pout1 (enque pout2 q2)).
+
+Inductive egress_ideal_behavior: queue packet -> queue packet -> Prop :=
+| egress_ideal_nil: egress_ideal_behavior empty_queue empty_queue
+| egress_ideal_cons: forall q1 q2 pin pout,
+    egress_packet_relation pin pout ->
+    egress_ideal_behavior q1 q2 ->
+    egress_ideal_behavior (enque pin q1) (enque pout q2).
+
+Inductive switch_ideal_behavior (counter: Z): queue packet -> queue packet -> Prop :=
+| switch_ideal_nil: switch_ideal_behavior counter empty_queue empty_queue
+| switch_ideal_normal: forall q1 q2 pin pout,
+    switch_normal_packet_relation pin pout ->
+    (counter + qlength q1 + 1) mod 1024 <> 0 ->
+    switch_ideal_behavior counter q1 q2 ->
+    switch_ideal_behavior counter (enque pin q1) (enque pout q2)
+| switch_ideal_special: forall q1 q2 pin pout1 pout2,
+    switch_normal_packet_relation pin pout1 ->
+    switch_special_packet_relation pin pout2 ->
+    (counter + qlength q1 + 1) mod 1024 = 0 ->
+    switch_ideal_behavior counter q1 q2 ->
+    switch_ideal_behavior counter (enque pin q1) (enque pout1 (enque pout2 q2)).
+
+Lemma ideal_behavior_ingress_egress_switch: forall qin qmid qout counter,
+    ingress_ideal_behavior counter qin qmid ->
+    egress_ideal_behavior qmid qout ->
+    switch_ideal_behavior counter qin qout.
+Proof.
+  intros. revert dependent qout. induction H; intros.
+  - inv H0. constructor. destruct q1; simpl in H; discriminate.
+  - inv H2. 1: destruct q2; simpl in H4; discriminate.
+    apply enque_eq_inv in H3. destruct H3. subst. constructor; auto.
+    eapply normal_ingress_egress_switch; eauto.
+  - inv H3. 1: remember (enque pout2 q2) as q; destruct q; simpl in H5; discriminate.
+    apply enque_eq_inv in H4. destruct H4. subst. inv H6.
+    1: destruct q2; simpl in H4; discriminate. apply enque_eq_inv in H3. destruct H3.
+    subst. apply switch_ideal_special; auto.
+    + eapply normal_ingress_egress_switch; eauto.
+    + eapply special_ingress_egress_switch; eauto.
+Qed.
+
+Lemma switch_ideal_behavior_queue_property: forall counter qin qout,
+    switch_ideal_behavior counter qin qout ->
+    switch_queue_property1 qin qout /\ switch_queue_property2 qin qout counter.
+Proof.
+  intros. split.
+  - induction H; repeat intro.
+    + simpl in H. contradiction.
+    + rename IHswitch_ideal_behavior into IH.
+      rewrite enque_eq in *. rewrite in_app_iff in H2. destruct H2.
+      * specialize (IH pin0 H2). destruct IH as [pout' [? ?]]. exists pout'. split; auto.
+        rewrite in_app_iff. left; assumption.
+      * simpl in H2. destruct H2; [|contradiction]. subst pin0. exists pout. split; auto.
+        rewrite in_app_iff. right. left. reflexivity.
+    + rename IHswitch_ideal_behavior into IH.
+      rewrite !enque_eq in *. rewrite in_app_iff in H3. destruct H3.
+      * specialize (IH pin0 H3). destruct IH as [pout' [? ?]]. exists pout'. split; auto.
+        rewrite in_app_iff. left. rewrite in_app_iff. left. assumption.
+      * simpl in H3. destruct H3; [|contradiction]. subst pin0. exists pout1. split; auto.
+        rewrite in_app_iff. right. left. reflexivity.
+  - repeat intro.
+Abort.
+
+Opaque encode_out_md.
+
+Lemma process_ingress_packets_ideal: forall inst1 inst2 q1 q2 counter,
+    ingress_counter inst1 counter ->
+    process_ingress_packets
+      (ingress_pipeline inprsr_block ingress_block indeprsr_block parser_ingress_cond
+         ingress_deprsr_cond ingress_tm_cond) tofino_tm inst1 q1 inst2 q2 ->
+    ingress_ideal_behavior counter q1 q2.
+Proof.
+  intros. revert dependent counter. induction H0; intros. 1: constructor.
+  rename IHprocess_ingress_packets into IH. specialize (IH _ H1).
+  pose proof (process_ingress_packets_counter _ _ _ _ _ H1 H0). clear H1 H0.
+  eapply process_packet_ingress_tm in H; eauto. destruct H.
+  destruct ((counter + qlength ps + 1) mod 1024 =? 0) eqn: HS.
+  - unfold concat_queue. rewrite H0. simpl. unfold flip.
+    apply ingress_ideal_special; auto; clear -H HS.
+    + destruct H as (sample & ether & ipv4 & result & payload & meta & ? & ? & ? & ?).
+      rewrite HS in *. simpl in H1. exists 1, sample, ether, ipv4, result, payload, meta.
+      do 3 (split; auto). format_match_solve. assumption.
+    + destruct H as (sample & ether & ipv4 & result & payload & meta & ? & ? & ? & ?).
+      rewrite HS in *. simpl in H1. exists sample, ether, ipv4, result, payload, meta.
+      do 3 (split; auto). format_match_solve.
+      assert (contains_sample 1 = true) by reflexivity.
+      rewrite H3 in H1. eapply format_list_equiv_match; eauto.
+      apply list_equiv_cons; [apply format_equiv_refl|].
+      apply list_equiv_cons; [apply format_equiv_true|].
+      apply format_list_equiv_refl.
+    + rewrite Z.eqb_eq in HS. assumption.
+  - unfold concat_queue. rewrite H0. simpl. unfold flip.
+    apply ingress_ideal_normal; auto; clear -H HS.
+    + destruct H as (sample & ether & ipv4 & result & payload & meta & ? & ? & ? & ?).
+      rewrite HS in *. simpl in H1. exists 0, sample, ether, ipv4, result, payload, meta.
+      do 3 (split; auto). format_match_solve. assumption.
+    + rewrite Z.eqb_neq in HS. assumption.
+Qed.
+
+Lemma process_egress_packets_ideal: forall est1 q1 est2 q2,
+  process_egress_packets
+    (egress_pipeline eprsr_block egress_block edeprsr_block parser_egress_cond
+       egress_deprsr_cond) est1 q1 est2 q2 -> egress_ideal_behavior q1 q2.
+Proof.
+  intros. induction H; constructor; auto. apply process_packet_egress in H0. assumption.
+Qed.
+
+Lemma switch_packets_ideal_behavior: forall inst1 inst2 est1 est2 q1 q2 q3 counter,
+    ingress_counter inst1 counter ->
+    process_ingress_packets
+      (ingress_pipeline inprsr_block ingress_block indeprsr_block parser_ingress_cond
+         ingress_deprsr_cond ingress_tm_cond) tofino_tm inst1 q1 inst2 q2 ->
+    process_egress_packets
+      (egress_pipeline eprsr_block egress_block edeprsr_block parser_egress_cond
+         egress_deprsr_cond) est1 q2 est2 q3 ->
+    switch_ideal_behavior counter q1 q3.
+Proof.
+  intros. eapply process_ingress_packets_ideal in H0; eauto.
+  apply process_egress_packets_ideal in H1.
+  eapply ideal_behavior_ingress_egress_switch; eauto.
+Qed.
+
+Transparent encode ig_intr_tm_md ipv4_repr_val ethernet_repr_val bridge_repr_val sample_repr_val.

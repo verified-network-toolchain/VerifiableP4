@@ -102,10 +102,17 @@ Section SWITCH.
     | nonempty_queue front _ _ => front = []
     end.
 
-  Lemma process_egress_packets_input_form: forall st1 qin st2 qout,
+  Lemma process_ingress_packets_input_form: forall st1 qin st2 qout,
       process_ingress_packets st1 qin st2 qout -> process_queue_form qin.
   Proof.
     intros. induction H; simpl; auto. rename IHprocess_ingress_packets into IH.
+    destruct ps; simpl in *; auto.
+  Qed.
+
+  Lemma process_egress_packets_input_form: forall st1 qin st2 qout,
+      process_egress_packets st1 qin st2 qout -> process_queue_form qin.
+  Proof.
+    intros. induction H; simpl; auto. rename IHprocess_egress_packets into IH.
     destruct ps; simpl in *; auto.
   Qed.
 
@@ -138,7 +145,14 @@ Section SWITCH.
           simpl in H1, IHn. rewrite rev'_eq, rev_length in IHn. specialize (IHn H1).
           destruct IHn as (q1 & q2 & ? & ? & ? & ?). exists q1, (enque b q2).
           split; [|split; [|split]]; auto. 2: apply process_queue_form_enque; assumption.
-          destruct q1, q2; simpl in *; subst; try discriminate; inversion H2; reflexivity.
+          destruct q1, q2; simpl in *; subst; try discriminate;
+            inversion H2; try reflexivity.
+          -- unfold concat_queue in *. simpl in *. unfold Basics.flip in *.
+             rewrite rev'_eq in *. simpl in *. rewrite list_enque_app. rewrite <- H1.
+             simpl. unfold Basics.flip. simpl. reflexivity.
+          -- unfold concat_queue in *. simpl in *. unfold Basics.flip in *.
+             rewrite rev'_eq in *. simpl in *. rewrite list_enque_app. rewrite <- H1.
+             simpl. unfold Basics.flip. simpl. reflexivity.
         * assert (i = Z.of_nat (S n)) by lia. subst i. simpl in H1.
           exists (nonempty_queue [] a (b :: l)), empty_queue. split; [|simpl; auto].
           simpl qlength. rewrite Zlength_correct. simpl length. lia.
@@ -149,15 +163,19 @@ Section SWITCH.
       exists q3, ps = concat_queue q1 q3 /\ process_queue_form q3 /\ q2 = enque p q3.
   Proof.
     intros. destruct q2. 1: contradiction. simpl in H1. subst. clear H0.
-    destruct q1, ps; simpl in H; inversion H; subst; simpl.
+    unfold concat_queue in *. simpl in *. unfold Basics.flip in H.
+    rewrite rev'_eq in H. destruct q1, ps; simpl in H;
+      rewrite list_enque_nonempty, rev_involutive, ?app_nil_r in H; inv H.
     - exists empty_queue. simpl. auto.
-    - exists (nonempty_queue [] a l1). simpl. auto.
+    - exists (nonempty_queue [] a l1). simpl. unfold Basics.flip. simpl.
+      rewrite rev'_eq, list_enque_nonempty, rev_involutive, app_nil_r. auto.
     - assert (length (l0 ++ a :: l1) = length (l0 ++ a :: l1)) by reflexivity.
-      rewrite <- H3 in H0 at 1. rewrite app_length in H0. simpl in H0. lia.
+      rewrite <- H3 in H at 1. rewrite app_length in H. simpl in H. lia.
     - destruct l0.
-      + simpl in H3. inversion H3. subst. exists empty_queue. simpl. auto.
-      + rewrite <- app_comm_cons in H3. inversion H3. subst. clear H3 H.
-        exists (nonempty_queue [] a l0). simpl. auto.
+      + simpl in H3. inv H3. exists empty_queue. simpl. auto.
+      + rewrite <- app_comm_cons in H3. inv H3. exists (nonempty_queue [] a l0). simpl.
+        unfold Basics.flip. simpl.
+        rewrite rev'_eq, list_enque_nonempty, rev_involutive. auto.
   Qed.
 
   Lemma process_ingress_packets_split: forall st1 qin st2 qout,
@@ -170,7 +188,7 @@ Section SWITCH.
                  process_ingress_packets st1 q1 st3 q3 /\
                  process_ingress_packets st3 q2 st2 q4.
   Proof.
-    intros. pose proof (process_egress_packets_input_form _ _ _ _ H).
+    intros. pose proof (process_ingress_packets_input_form _ _ _ _ H).
     destruct (process_queue_form_split _ H1 _ H0) as [q1 [q2 [? [? [? ?]]]]].
     exists q1, q2. revert dependent q2. revert dependent q1. induction H; intros.
     - exists empty_queue, empty_queue, st. symmetry in H3. apply concat_queue_eq_empty in H3.
@@ -188,6 +206,39 @@ Section SWITCH.
         rewrite qlength_concat, qlength_enque in H0. assert (qlength q2 = 0) by lia.
         rewrite qlength_0_iff in H8. subst q2. rewrite concat_queue_empty in *.
         exists (concat_queue ps' (traffic_manager md p')), empty_queue, st3.
+        rewrite concat_queue_empty. subst q1. do 4 (split; auto).
+        * econstructor; eauto.
+        * constructor.
+  Qed.
+
+  Lemma process_egress_packets_split: forall st1 qin st2 qout,
+      process_egress_packets st1 qin st2 qout ->
+      forall len, 0 <= len <= qlength qin ->
+             exists q1 q2 q3 q4 st3,
+               qlength q1 = len /\
+                 qin = concat_queue q1 q2 /\
+                 qout = concat_queue q3 q4 /\
+                 process_egress_packets st1 q1 st3 q3 /\
+                 process_egress_packets st3 q2 st2 q4.
+  Proof.
+    intros. pose proof (process_egress_packets_input_form _ _ _ _ H).
+    destruct (process_queue_form_split _ H1 _ H0) as [q1 [q2 [? [? [? ?]]]]].
+    exists q1, q2. revert dependent q2. revert dependent q1. induction H; intros.
+    - exists empty_queue, empty_queue, st. symmetry in H3. apply concat_queue_eq_empty in H3.
+      destruct H3. subst. do 4 (split; auto); constructor.
+    - rename IHprocess_egress_packets into IH. destruct (Z_le_gt_dec len (qlength ps)).
+      + specialize (IH ltac:(lia) (process_queue_form_enque_inv _ _ H1) _ H3 H4).
+        destruct (empty_queue_dec q2).
+        1: subst; rewrite concat_queue_empty in H5; subst q1; rewrite qlength_enque in l; lia.
+        destruct (enque_eq_concat_form _ _ _ _ H5 n H6) as [q3 [? [? ?]]]. specialize (IH _ H7 H8).
+        destruct IH as (q4 & q5 & st4 & ? & ? & ? & ? & ?).
+        exists q4, (enque p' q5), st4. subst ps'.
+        rewrite enque_concat_queue. do 4 (split; auto). subst q2. econstructor; eauto.
+      + rewrite qlength_enque in H0. assert (len = qlength ps + 1) by lia. clear g H0 IH.
+        pose proof (@eq_refl _ (qlength (enque p ps))). rewrite H5 in H0 at 1.
+        rewrite qlength_concat, qlength_enque in H0. assert (qlength q2 = 0) by lia.
+        rewrite qlength_0_iff in H8. subst q2. rewrite concat_queue_empty in *.
+        exists (enque p' ps'), empty_queue, st3.
         rewrite concat_queue_empty. subst q1. do 4 (split; auto).
         * econstructor; eauto.
         * constructor.
