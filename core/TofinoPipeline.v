@@ -96,39 +96,39 @@ Section SWITCH.
       egress_pipe st2 p st3 p' ->
       process_egress_packets st1 (enque p ps) st3 (enque p' ps').
 
-  Definition process_queue_form {A: Type} (q: queue A) : Prop :=
+  Definition front_nil_form {A: Type} (q: queue A) : Prop :=
     match q with
     | empty_queue => True
     | nonempty_queue front _ _ => front = []
     end.
 
   Lemma process_ingress_packets_input_form: forall st1 qin st2 qout,
-      process_ingress_packets st1 qin st2 qout -> process_queue_form qin.
+      process_ingress_packets st1 qin st2 qout -> front_nil_form qin.
   Proof.
     intros. induction H; simpl; auto. rename IHprocess_ingress_packets into IH.
     destruct ps; simpl in *; auto.
   Qed.
 
   Lemma process_egress_packets_input_form: forall st1 qin st2 qout,
-      process_egress_packets st1 qin st2 qout -> process_queue_form qin.
+      process_egress_packets st1 qin st2 qout -> front_nil_form qin.
   Proof.
     intros. induction H; simpl; auto. rename IHprocess_egress_packets into IH.
     destruct ps; simpl in *; auto.
   Qed.
 
-  Lemma process_queue_form_enque: forall {A: Type} (a: A) q,
-      process_queue_form q -> process_queue_form (enque a q).
+  Lemma front_nil_form_enque: forall {A: Type} (a: A) q,
+      front_nil_form q -> front_nil_form (enque a q).
   Proof. intros. destruct q; simpl in *; auto. Qed.
 
-  Lemma process_queue_form_enque_inv: forall {A: Type} (a: A) q,
-        process_queue_form (enque a q) -> process_queue_form q.
+  Lemma front_nil_form_enque_inv: forall {A: Type} (a: A) q,
+        front_nil_form (enque a q) -> front_nil_form q.
   Proof. intros. destruct q; simpl in *; auto. Qed.
 
-  Lemma process_queue_form_split: forall {A: Type} (q: queue A),
-      process_queue_form q ->
+  Lemma front_nil_form_split: forall {A: Type} (q: queue A),
+      front_nil_form q ->
       forall i, 0 <= i <= qlength q ->
            exists q1 q2, qlength q1 = i /\ q = concat_queue q1 q2 /\
-                      process_queue_form q1 /\ process_queue_form q2.
+                      front_nil_form q1 /\ front_nil_form q2.
   Proof.
     intros. rewrite qlength_eq, Zlength_correct in H0. remember (length (list_rep q)) as n.
     revert dependent q. revert dependent n. induction n; intros.
@@ -144,7 +144,7 @@ Section SWITCH.
         * specialize (IHn ltac:(lia) (nonempty_queue [] a l) ltac:(reflexivity)).
           simpl in H1, IHn. rewrite rev'_eq, rev_length in IHn. specialize (IHn H1).
           destruct IHn as (q1 & q2 & ? & ? & ? & ?). exists q1, (enque b q2).
-          split; [|split; [|split]]; auto. 2: apply process_queue_form_enque; assumption.
+          split; [|split; [|split]]; auto. 2: apply front_nil_form_enque; assumption.
           destruct q1, q2; simpl in *; subst; try discriminate;
             inversion H2; try reflexivity.
           -- unfold concat_queue in *. simpl in *. unfold Basics.flip in *.
@@ -159,8 +159,8 @@ Section SWITCH.
   Qed.
 
   Lemma enque_eq_concat_form: forall {A: Type} (p: A) ps q1 q2,
-      enque p ps = concat_queue q1 q2 -> q2 <> empty_queue -> process_queue_form q2 ->
-      exists q3, ps = concat_queue q1 q3 /\ process_queue_form q3 /\ q2 = enque p q3.
+      enque p ps = concat_queue q1 q2 -> q2 <> empty_queue -> front_nil_form q2 ->
+      exists q3, ps = concat_queue q1 q3 /\ front_nil_form q3 /\ q2 = enque p q3.
   Proof.
     intros. destruct q2. 1: contradiction. simpl in H1. subst. clear H0.
     unfold concat_queue in *. simpl in *. unfold Basics.flip in H.
@@ -189,12 +189,12 @@ Section SWITCH.
                  process_ingress_packets st3 q2 st2 q4.
   Proof.
     intros. pose proof (process_ingress_packets_input_form _ _ _ _ H).
-    destruct (process_queue_form_split _ H1 _ H0) as [q1 [q2 [? [? [? ?]]]]].
+    destruct (front_nil_form_split _ H1 _ H0) as [q1 [q2 [? [? [? ?]]]]].
     exists q1, q2. revert dependent q2. revert dependent q1. induction H; intros.
     - exists empty_queue, empty_queue, st. symmetry in H3. apply concat_queue_eq_empty in H3.
       destruct H3. subst. do 4 (split; auto); constructor.
     - rename IHprocess_ingress_packets into IH. destruct (Z_le_gt_dec len (qlength ps)).
-      + specialize (IH ltac:(lia) (process_queue_form_enque_inv _ _ H1) _ H3 H4).
+      + specialize (IH ltac:(lia) (front_nil_form_enque_inv _ _ H1) _ H3 H4).
         destruct (empty_queue_dec q2).
         1: subst; rewrite concat_queue_empty in H5; subst q1; rewrite qlength_enque in l; lia.
         destruct (enque_eq_concat_form _ _ _ _ H5 n H6) as [q3 [? [? ?]]]. specialize (IH _ H7 H8).
@@ -222,12 +222,12 @@ Section SWITCH.
                  process_egress_packets st3 q2 st2 q4.
   Proof.
     intros. pose proof (process_egress_packets_input_form _ _ _ _ H).
-    destruct (process_queue_form_split _ H1 _ H0) as [q1 [q2 [? [? [? ?]]]]].
+    destruct (front_nil_form_split _ H1 _ H0) as [q1 [q2 [? [? [? ?]]]]].
     exists q1, q2. revert dependent q2. revert dependent q1. induction H; intros.
     - exists empty_queue, empty_queue, st. symmetry in H3. apply concat_queue_eq_empty in H3.
       destruct H3. subst. do 4 (split; auto); constructor.
     - rename IHprocess_egress_packets into IH. destruct (Z_le_gt_dec len (qlength ps)).
-      + specialize (IH ltac:(lia) (process_queue_form_enque_inv _ _ H1) _ H3 H4).
+      + specialize (IH ltac:(lia) (front_nil_form_enque_inv _ _ H1) _ H3 H4).
         destruct (empty_queue_dec q2).
         1: subst; rewrite concat_queue_empty in H5; subst q1; rewrite qlength_enque in l; lia.
         destruct (enque_eq_concat_form _ _ _ _ H5 n H6) as [q3 [? [? ?]]]. specialize (IH _ H7 H8).

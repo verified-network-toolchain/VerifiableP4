@@ -1247,45 +1247,45 @@ Proof.
     exists pout. split; auto. eapply special_ingress_egress_switch; eauto.
 Qed.
 
-Inductive ingress_ideal_behavior (counter: Z): queue packet -> queue packet -> Prop :=
-| ingress_ideal_nil: ingress_ideal_behavior counter empty_queue empty_queue
+Inductive ingress_ideal_property (counter: Z): queue packet -> queue packet -> Prop :=
+| ingress_ideal_nil: ingress_ideal_property counter empty_queue empty_queue
 | ingress_ideal_normal: forall q1 q2 pin pout,
     ingress_normal_packet_relation pin pout ->
     (counter + qlength q1 + 1) mod 1024 <> 0 ->
-    ingress_ideal_behavior counter q1 q2 ->
-    ingress_ideal_behavior counter (enque pin q1) (enque pout q2)
+    ingress_ideal_property counter q1 q2 ->
+    ingress_ideal_property counter (enque pin q1) (enque pout q2)
 | ingress_ideal_special: forall q1 q2 pin pout1 pout2,
     ingress_normal_packet_relation pin pout1 ->
     ingress_special_packet_relation pin pout2 ->
     (counter + qlength q1 + 1) mod 1024 = 0 ->
-    ingress_ideal_behavior counter q1 q2 ->
-    ingress_ideal_behavior counter (enque pin q1) (enque pout1 (enque pout2 q2)).
+    ingress_ideal_property counter q1 q2 ->
+    ingress_ideal_property counter (enque pin q1) (enque pout1 (enque pout2 q2)).
 
-Inductive egress_ideal_behavior: queue packet -> queue packet -> Prop :=
-| egress_ideal_nil: egress_ideal_behavior empty_queue empty_queue
+Inductive egress_ideal_property: queue packet -> queue packet -> Prop :=
+| egress_ideal_nil: egress_ideal_property empty_queue empty_queue
 | egress_ideal_cons: forall q1 q2 pin pout,
     egress_packet_relation pin pout ->
-    egress_ideal_behavior q1 q2 ->
-    egress_ideal_behavior (enque pin q1) (enque pout q2).
+    egress_ideal_property q1 q2 ->
+    egress_ideal_property (enque pin q1) (enque pout q2).
 
-Inductive switch_ideal_behavior (counter: Z): queue packet -> queue packet -> Prop :=
-| switch_ideal_nil: switch_ideal_behavior counter empty_queue empty_queue
+Inductive switch_ideal_property (counter: Z): queue packet -> queue packet -> Prop :=
+| switch_ideal_nil: switch_ideal_property counter empty_queue empty_queue
 | switch_ideal_normal: forall q1 q2 pin pout,
     switch_normal_packet_relation pin pout ->
     (counter + qlength q1 + 1) mod 1024 <> 0 ->
-    switch_ideal_behavior counter q1 q2 ->
-    switch_ideal_behavior counter (enque pin q1) (enque pout q2)
+    switch_ideal_property counter q1 q2 ->
+    switch_ideal_property counter (enque pin q1) (enque pout q2)
 | switch_ideal_special: forall q1 q2 pin pout1 pout2,
     switch_normal_packet_relation pin pout1 ->
     switch_special_packet_relation pin pout2 ->
     (counter + qlength q1 + 1) mod 1024 = 0 ->
-    switch_ideal_behavior counter q1 q2 ->
-    switch_ideal_behavior counter (enque pin q1) (enque pout1 (enque pout2 q2)).
+    switch_ideal_property counter q1 q2 ->
+    switch_ideal_property counter (enque pin q1) (enque pout1 (enque pout2 q2)).
 
-Lemma ideal_behavior_ingress_egress_switch: forall qin qmid qout counter,
-    ingress_ideal_behavior counter qin qmid ->
-    egress_ideal_behavior qmid qout ->
-    switch_ideal_behavior counter qin qout.
+Lemma ideal_property_ingress_egress_switch: forall qin qmid qout counter,
+    ingress_ideal_property counter qin qmid ->
+    egress_ideal_property qmid qout ->
+    switch_ideal_property counter qin qout.
 Proof.
   intros. revert dependent qout. induction H; intros.
   - inv H0. constructor. destruct q1; simpl in H; discriminate.
@@ -1300,27 +1300,103 @@ Proof.
     + eapply special_ingress_egress_switch; eauto.
 Qed.
 
-Lemma switch_ideal_behavior_queue_property: forall counter qin qout,
-    switch_ideal_behavior counter qin qout ->
-    switch_queue_property1 qin qout /\ switch_queue_property2 qin qout counter.
+Lemma switch_ideal_property_queue_property1: forall counter qin qout,
+    switch_ideal_property counter qin qout ->
+    switch_queue_property1 qin qout.
 Proof.
-  intros. split.
-  - induction H; repeat intro.
-    + simpl in H. contradiction.
-    + rename IHswitch_ideal_behavior into IH.
-      rewrite enque_eq in *. rewrite in_app_iff in H2. destruct H2.
-      * specialize (IH pin0 H2). destruct IH as [pout' [? ?]]. exists pout'. split; auto.
-        rewrite in_app_iff. left; assumption.
-      * simpl in H2. destruct H2; [|contradiction]. subst pin0. exists pout. split; auto.
-        rewrite in_app_iff. right. left. reflexivity.
-    + rename IHswitch_ideal_behavior into IH.
-      rewrite !enque_eq in *. rewrite in_app_iff in H3. destruct H3.
-      * specialize (IH pin0 H3). destruct IH as [pout' [? ?]]. exists pout'. split; auto.
-        rewrite in_app_iff. left. rewrite in_app_iff. left. assumption.
-      * simpl in H3. destruct H3; [|contradiction]. subst pin0. exists pout1. split; auto.
-        rewrite in_app_iff. right. left. reflexivity.
-  - repeat intro.
-Abort.
+  intros. induction H; repeat intro.
+  - simpl in H. contradiction.
+  - rename IHswitch_ideal_property into IH.
+    rewrite enque_eq in *. rewrite in_app_iff in H2. destruct H2.
+    + specialize (IH pin0 H2). destruct IH as [pout' [? ?]]. exists pout'. split; auto.
+      rewrite in_app_iff. left; assumption.
+    + simpl in H2. destruct H2; [|contradiction]. subst pin0. exists pout. split; auto.
+      rewrite in_app_iff. right. left. reflexivity.
+  - rename IHswitch_ideal_property into IH.
+    rewrite !enque_eq in *. rewrite in_app_iff in H3. destruct H3.
+    + specialize (IH pin0 H3). destruct IH as [pout' [? ?]]. exists pout'. split; auto.
+      rewrite in_app_iff. left. rewrite in_app_iff. left. assumption.
+    + simpl in H3. destruct H3; [|contradiction]. subst pin0. exists pout1. split; auto.
+      rewrite in_app_iff. right. left. reflexivity.
+Qed.
+
+Lemma switch_ideal_property_form: forall counter qin qout,
+    switch_ideal_property counter qin qout -> front_nil_form qin.
+Proof. intros. induction H; simpl; auto; apply front_nil_form_enque; assumption. Qed.
+
+Lemma switch_ideal_property_split: forall counter qin qout,
+    switch_ideal_property counter qin qout ->
+    forall len, 0 <= len <= qlength qin ->
+           exists q1 q2 q3 q4,
+             qlength q1 = len /\
+               qin = concat_queue q1 q2 /\
+               qout = concat_queue q3 q4 /\
+               switch_ideal_property counter q1 q3 /\
+               switch_ideal_property (counter + len) q2 q4.
+Proof.
+  intros. pose proof (switch_ideal_property_form _ _ _ H).
+  destruct (front_nil_form_split _ H1 _ H0) as [q1 [q2 [? [? [? ?]]]]].
+  exists q1, q2. revert dependent q2. revert dependent q1. induction H; intros.
+  - symmetry in H3. apply concat_queue_eq_empty in H3.
+    destruct H3. subst. exists empty_queue, empty_queue. unfold concat_queue. simpl.
+    do 3 (split; auto). split; constructor.
+  - rename IHswitch_ideal_property into IH. destruct (Z_le_gt_dec len (qlength q1)).
+    + specialize (IH ltac:(lia) (front_nil_form_enque_inv _ _ H1) _ H4 H5).
+      destruct (empty_queue_dec q3).
+      1: subst; rewrite concat_queue_empty in H6; subst q0; rewrite qlength_enque in l; lia.
+      destruct (enque_eq_concat_form _ _ _ _ H6 n H7) as [q4 [? [? ?]]].
+      specialize (IH _ H8 H9). destruct IH as (q5 & q6 & ? & ? & ? & ? & ?).
+      exists q5, (enque pout q6). subst. rewrite !enque_concat_queue.
+      do 4 (split; auto). apply switch_ideal_normal; auto.
+      rewrite qlength_concat, Z.add_assoc in H2. assumption.
+    + rewrite qlength_enque in H0. assert (len = qlength q1 + 1) by lia. clear g H0 IH.
+      pose proof (@eq_refl _ (qlength (enque pin q1))). rewrite H6 in H0 at 1.
+      rewrite qlength_concat, qlength_enque in H0. assert (qlength q3 = 0) by lia.
+      rewrite qlength_0_iff in H9. subst q3. rewrite concat_queue_empty in *.
+      exists (enque pout q2), empty_queue. rewrite concat_queue_empty. subst q0.
+      do 4 (split; auto).
+      * econstructor; eauto.
+      * constructor.
+  - rename IHswitch_ideal_property into IH. destruct (Z_le_gt_dec len (qlength q1)).
+    + specialize (IH ltac:(lia) (front_nil_form_enque_inv _ _ H1) _ H5 H6).
+      destruct (empty_queue_dec q3).
+      1: subst; rewrite concat_queue_empty in H7; subst q0; rewrite qlength_enque in l; lia.
+      destruct (enque_eq_concat_form _ _ _ _ H7 n H8) as [q4 [? [? ?]]].
+      specialize (IH _ H9 H10). destruct IH as (q5 & q6 & ? & ? & ? & ? & ?).
+      exists q5, (enque pout1 (enque pout2 q6)). subst. rewrite !enque_concat_queue.
+      do 4 (split; auto). apply switch_ideal_special; auto.
+      rewrite qlength_concat, Z.add_assoc in H3. assumption.
+    + rewrite qlength_enque in H0. assert (len = qlength q1 + 1) by lia. clear g H0 IH.
+      pose proof (@eq_refl _ (qlength (enque pin q1))). rewrite H7 in H0 at 1.
+      rewrite qlength_concat, qlength_enque in H0. assert (qlength q3 = 0) by lia.
+      rewrite qlength_0_iff in H10. subst q3. rewrite concat_queue_empty in *.
+      exists (enque pout1 (enque pout2 q2)), empty_queue. rewrite concat_queue_empty. subst q0.
+      do 4 (split; auto).
+      * apply switch_ideal_special; auto.
+      * constructor.
+Qed.
+
+Lemma switch_ideal_property_queue_property2: forall counter qin qout,
+    switch_ideal_property counter qin qout ->
+    switch_queue_property2 qin qout counter.
+Proof.
+  repeat intro. apply switch_ideal_property_split with (len := i + 1) in H. 2: lia.
+  destruct H as [q1 [q2 [q3 [q4 [? [? [? [? _]]]]]]]].
+  assert (Znth i (list_rep q1) = pin). {
+    subst qin. rewrite concat_queue_eq in H1. rewrite qlength_eq in H. list_solve. }
+  cut (exists pout : packet, In pout (list_rep q3) /\
+                          switch_special_packet_relation pin pout). {
+    intros. destruct H7 as (pout & ? & ?).
+    exists pout. split; auto. subst qout. rewrite concat_queue_eq, in_app_iff. left; assumption. }
+  destruct H0. clear dependent qin. clear dependent qout. clear q2 q4.
+  revert dependent i. revert pin. inversion H5; subst; clear H5; intros.
+  - simpl in H. lia.
+  - rewrite qlength_enque in H2. assert (qlength q0 = i) by lia. rewrite H5 in *.
+    rewrite H4 in H0. contradiction.
+  - rewrite enque_eq in H6. rewrite qlength_enque in H3. rewrite qlength_eq in H3.
+    rewrite Znth_app1 in H6 by lia. subst pin0. rewrite !enque_eq. exists pout2. split; auto.
+    rewrite !in_app_iff. left. right. simpl. left. reflexivity.
+Qed.
 
 Opaque encode_out_md.
 
@@ -1329,7 +1405,7 @@ Lemma process_ingress_packets_ideal: forall inst1 inst2 q1 q2 counter,
     process_ingress_packets
       (ingress_pipeline inprsr_block ingress_block indeprsr_block parser_ingress_cond
          ingress_deprsr_cond ingress_tm_cond) tofino_tm inst1 q1 inst2 q2 ->
-    ingress_ideal_behavior counter q1 q2.
+    ingress_ideal_property counter q1 q2.
 Proof.
   intros. revert dependent counter. induction H0; intros. 1: constructor.
   rename IHprocess_ingress_packets into IH. specialize (IH _ H1).
@@ -1361,12 +1437,12 @@ Qed.
 Lemma process_egress_packets_ideal: forall est1 q1 est2 q2,
   process_egress_packets
     (egress_pipeline eprsr_block egress_block edeprsr_block parser_egress_cond
-       egress_deprsr_cond) est1 q1 est2 q2 -> egress_ideal_behavior q1 q2.
+       egress_deprsr_cond) est1 q1 est2 q2 -> egress_ideal_property q1 q2.
 Proof.
   intros. induction H; constructor; auto. apply process_packet_egress in H0. assumption.
 Qed.
 
-Lemma switch_packets_ideal_behavior: forall inst1 inst2 est1 est2 q1 q2 q3 counter,
+Lemma switch_packets_ideal_property: forall inst1 inst2 est1 est2 q1 q2 q3 counter,
     ingress_counter inst1 counter ->
     process_ingress_packets
       (ingress_pipeline inprsr_block ingress_block indeprsr_block parser_ingress_cond
@@ -1374,11 +1450,11 @@ Lemma switch_packets_ideal_behavior: forall inst1 inst2 est1 est2 q1 q2 q3 count
     process_egress_packets
       (egress_pipeline eprsr_block egress_block edeprsr_block parser_egress_cond
          egress_deprsr_cond) est1 q2 est2 q3 ->
-    switch_ideal_behavior counter q1 q3.
+    switch_ideal_property counter q1 q3.
 Proof.
   intros. eapply process_ingress_packets_ideal in H0; eauto.
   apply process_egress_packets_ideal in H1.
-  eapply ideal_behavior_ingress_egress_switch; eauto.
+  eapply ideal_property_ingress_egress_switch; eauto.
 Qed.
 
 Transparent encode ig_intr_tm_md ipv4_repr_val ethernet_repr_val bridge_repr_val sample_repr_val.
