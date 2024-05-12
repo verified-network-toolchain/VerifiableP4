@@ -1421,6 +1421,78 @@ Proof.
     rewrite <- Z.eqb_eq in H1. rewrite H1. lia.
 Qed.
 
+Definition switch_queue_property3 (q1 q2: queue packet): Prop :=
+    forall pout, In pout (list_rep q2) ->
+            exists pin, In pin (list_rep q1) /\
+                     (switch_normal_packet_relation pin pout \/
+                        switch_special_packet_relation pin pout).
+
+Lemma switch_ideal_property_queue_property3: forall counter qin qout,
+    switch_ideal_property counter qin qout ->
+    switch_queue_property3 qin qout.
+Proof.
+  intros. induction H; repeat intro.
+  - simpl in H. contradiction.
+  - rewrite enque_eq in *. rewrite in_app_iff in H2. destruct H2.
+    + rename IHswitch_ideal_property into IH. specialize (IH _ H2).
+      destruct IH as [pin' [? ?]]. exists pin'. split; auto. rewrite in_app_iff. left; assumption.
+    + simpl in H2. destruct H2. 2: contradiction. subst pout0. exists pin. split; auto.
+      rewrite in_app_iff. right. left; reflexivity.
+  - rewrite !enque_eq in *. rewrite !in_app_iff in H3. destruct H3 as [[]|].
+    + rename IHswitch_ideal_property into IH. specialize (IH _ H3).
+      destruct IH as [pin' [? ?]]. exists pin'. split; auto. rewrite in_app_iff. left; assumption.
+    + simpl in H3. destruct H3. 2: contradiction. subst pout. exists pin. split; auto.
+      rewrite in_app_iff. right. left; reflexivity.
+    + simpl in H3. destruct H3. 2: contradiction. subst pout. exists pin. split; auto.
+      rewrite in_app_iff. right. left; reflexivity.
+Qed.
+
+Definition switch_queue_property4 (q1 q2: queue packet): Prop :=
+  forall i j, 0 <= i < j -> j < qlength q1 ->
+         exists i' j', 0 <= i' < j' /\ j' < qlength q2 /\
+                    switch_normal_packet_relation (Znth i (list_rep q1))
+                      (Znth i' (list_rep q2)) /\
+                    switch_normal_packet_relation (Znth j (list_rep q1))
+                      (Znth j' (list_rep q2)).
+
+Lemma switch_ideal_property_queue_property4: forall counter qin qout,
+    switch_ideal_property counter qin qout ->
+    switch_queue_property4 qin qout.
+Proof.
+  intros. induction H; repeat intro.
+  - simpl in H0. lia.
+  - rename IHswitch_ideal_property into IH. rewrite qlength_enque in *.
+    destruct (Z_le_gt_dec (qlength q1) j).
+    + assert (j = qlength q1) by lia. clear l H3. rewrite !enque_eq.
+      pose proof (switch_ideal_property_queue_property1 _ _ _ H1).
+      rewrite qlength_eq in H4. rewrite (Znth_app1 (list_rep q1) _ _ j) by lia.
+      subst j. pose proof (Znth_In _ _ H2). specialize (H3 _ H4).
+      destruct H3 as [pi [? ?]]. apply In_Znth in H3. destruct H3 as [i' [? ?]].
+      exists i', (qlength q2). rewrite <- qlength_eq in H3. split; auto. split; [lia|].
+      rewrite qlength_eq, (Znth_app1 (list_rep q2) _ _ (Zlength (list_rep q2))).
+      2: reflexivity. split; auto. rewrite qlength_eq in H3. rewrite !app_Znth1 by lia.
+      subst pi. assumption.
+    + apply Z.gt_lt in g. specialize (IH _ _ H2 g).
+      destruct IH as [i' [j' [? [? [? ?]]]]]. exists i', j'. split; auto. split; [lia|].
+      rewrite !enque_eq. clear H3. rewrite qlength_eq in *. rewrite !app_Znth1 by lia.
+      split; auto.
+  - rename IHswitch_ideal_property into IH. rewrite !qlength_enque in *.
+    destruct (Z_le_gt_dec (qlength q1) j).
+    + assert (j = qlength q1) by lia. clear l H4. rewrite !enque_eq.
+      pose proof (switch_ideal_property_queue_property1 _ _ _ H2).
+      rewrite qlength_eq in H5. rewrite (Znth_app1 (list_rep q1) _ _ j) by lia.
+      subst j. pose proof (Znth_In _ _ H3). specialize (H4 _ H5).
+      destruct H4 as [pi [? ?]]. apply In_Znth in H4. destruct H4 as [i' [? ?]].
+      exists i', (qlength q2 + 1). rewrite <- qlength_eq in H4. do 2 (split; [lia|]).
+      rewrite qlength_eq, (Znth_app1 _ _ _ (Zlength (list_rep q2) + 1)).
+      2: list_solve. split; auto. rewrite qlength_eq in H4. rewrite !app_Znth1 by list_solve.
+      subst pi. assumption.
+    + apply Z.gt_lt in g. specialize (IH _ _ H3 g).
+      destruct IH as [i' [j' [? [? [? ?]]]]]. exists i', j'. split; auto. split; [lia|].
+      rewrite !enque_eq. clear H4. rewrite qlength_eq in *. rewrite !app_Znth1 by list_solve.
+      split; auto.
+Qed.
+
 Opaque encode_out_md.
 
 Lemma process_ingress_packets_ideal: forall inst1 inst2 q1 q2 counter,
