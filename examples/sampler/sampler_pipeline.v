@@ -908,6 +908,25 @@ Proof.
     rewrite qlength_enque, Z.add_assoc. assumption.
 Qed.
 
+Lemma counter_mod_plus1_eq:
+  forall counter n : Z,
+    0 <= n ->
+    (counter mod 1024 + n) / 1024 + (if (counter + n + 1) mod 1024 =? 0 then 2 else 1) =
+      1 + (counter mod 1024 + n + 1) / 1024.
+Proof.
+  intros counter n H3. pose proof (Z.div_mod counter 1024 ltac:(lia)).
+  remember (counter / 1024) as q. remember (counter mod 1024) as m. rewrite H.
+  replace (1024 * q + m + n + 1) with ((m + n + 1) + q * 1024) by lia.
+  rewrite Z_mod_plus_full.
+  pose proof (Z.mod_pos_bound counter 1024 ltac:(lia)). rewrite <- Heqm in H0.
+  assert (0 <= m + n) by lia. remember (m + n) as a. clear -H1.
+  pose proof (Z.div_mod (a + 1) 1024 ltac:(lia)). remember ((a + 1) mod 1024) as r.
+  remember ((a + 1) / 1024) as q. replace a with (r - 1 + q * 1024) by lia.
+  rewrite Z.div_add by lia. pose proof (Z.mod_pos_bound (a + 1) 1024 ltac:(lia)).
+  rewrite <- Heqr in H0. clear -H0. destruct (r =? 0) eqn:?H.
+  - rewrite Z.eqb_eq in H. subst. replace ((0 - 1) / 1024) with (-1) by reflexivity. lia.
+  - rewrite Z.eqb_neq in H. rewrite Z.div_small by lia. lia.
+Qed.
 
 Lemma process_ingress_packets_queue_len: forall inst1 inst2 q1 q2 counter,
     ingress_counter inst1 counter ->
@@ -926,18 +945,7 @@ Proof.
     rewrite (process_packet_ingress_queue_len _ _ _ _ _ _ _ H2 H eq_refl).
     rewrite <- !Z.add_assoc. f_equal. rewrite !Z.add_assoc.
     remember (qlength ps) as n. pose proof (qlength_nonneg ps). rewrite <- Heqn in H3.
-    clear -Hlt H3. pose proof (Z.div_mod counter 1024 ltac:(lia)).
-    remember (counter / 1024) as q. remember (counter mod 1024) as m. rewrite H.
-    replace (1024 * q + m + n + 1) with ((m + n + 1) + q * 1024) by lia.
-    rewrite Z_mod_plus_full.
-    pose proof (Z.mod_pos_bound counter 1024 ltac:(lia)). rewrite <- Heqm in H0.
-    assert (0 <= m + n) by lia. remember (m + n) as a. clear -H1.
-    pose proof (Z.div_mod (a + 1) 1024 ltac:(lia)). remember ((a + 1) mod 1024) as r.
-    remember ((a + 1) / 1024) as q. replace a with (r - 1 + q * 1024) by lia.
-    rewrite Z.div_add by lia. pose proof (Z.mod_pos_bound (a + 1) 1024 ltac:(lia)).
-    rewrite <- Heqr in H0. clear -H0. destruct (r =? 0) eqn:?H.
-    + rewrite Z.eqb_eq in H. subst. replace ((0 - 1) / 1024) with (-1) by reflexivity. lia.
-    + rewrite Z.eqb_neq in H. rewrite Z.div_small by lia. lia.
+    apply counter_mod_plus1_eq. assumption.
 Qed.
 
 Lemma process_ingress_packets_queue_len_ugly: forall inst1 inst2 q1 q2 counter,
@@ -1396,6 +1404,21 @@ Proof.
   - rewrite enque_eq in H6. rewrite qlength_enque in H3. rewrite qlength_eq in H3.
     rewrite Znth_app1 in H6 by lia. subst pin0. rewrite !enque_eq. exists pout2. split; auto.
     rewrite !in_app_iff. left. right. simpl. left. reflexivity.
+Qed.
+
+Lemma switch_ideal_property_queue_len: forall counter qin qout,
+    switch_ideal_property counter qin qout ->
+    qlength qout = qlength qin + (counter mod 1024 + qlength qin) / 1024.
+Proof.
+  intros. induction H.
+  - simpl. rewrite Z.add_0_r. pose proof (Z.mod_pos_bound counter 1024 ltac:(lia)).
+    rewrite Z.div_small; easy.
+  - rewrite !qlength_enque, IHswitch_ideal_property, <- !(Z.add_assoc (qlength q1)).
+    f_equal. rewrite Z.add_assoc, <- counter_mod_plus1_eq. 2: apply qlength_nonneg.
+    rewrite <- Z.eqb_neq in H0. rewrite H0. lia.
+  - rewrite !qlength_enque, IHswitch_ideal_property, <- !(Z.add_assoc (qlength q1)). f_equal.
+    rewrite Z.add_assoc, <- counter_mod_plus1_eq. 2: apply qlength_nonneg.
+    rewrite <- Z.eqb_eq in H1. rewrite H1. lia.
 Qed.
 
 Opaque encode_out_md.
