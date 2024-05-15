@@ -178,17 +178,17 @@ Qed.
 
 Lemma ethernet_extract_result_hdr:
   forall (ether : ethernet_rec) (ipv4 : ipv4_rec) (result : Val),
-  exists (ethernet tcp udp : Sval) (ip4 : ipv4_rec),
+  exists (ethernet tcp udp : Sval),
     ethernet_extract_result
       (common.hdr (sample_valid_bridge hdr_init)) ether ipv4
-      result = hdr ethernet tcp udp ip4.
+      result = hdr ethernet tcp udp ipv4.
 Proof.
   intros ether ipv4 result.
   unfold ethernet_extract_result. unfold protocol_extract_result.
   unfold sample_valid_bridge, hdr_init. simpl common.hdr. unfold hdr.
-  destruct (is_tcp ipv4); [do 4 eexists; reflexivity |].
-  destruct (is_udp ipv4); [do 4 eexists; reflexivity |].
-  do 4 eexists; reflexivity.
+  destruct (is_tcp ipv4); [do 3 eexists; reflexivity |].
+  destruct (is_udp ipv4); [do 3 eexists; reflexivity |].
+  do 3 eexists; reflexivity.
 Qed.
 
 Definition empty_header : Val :=
@@ -410,10 +410,12 @@ Qed.
 
 Opaque ig_intr_tm_md ipv4_repr_val ethernet_repr_val bridge_repr_val sample_repr_val.
 
-Definition empty_sample : sample_rec := Build_sample_rec 0 0 0 0 0 0.
-
 Definition ingress_counter (st: pipeline_state) (counter: Z) : Prop :=
   extern_contains st.(control_state) ["pipe"; "ingress"] counter.
+
+Definition psample (ipv4 : ipv4_rec) (counter : Z) : sample_rec :=
+  Build_sample_rec COLLECTOR_MAC MY_MAC SAMPLE_ETYPE (ipv4_src_addr ipv4)
+    (ipv4_dst_addr ipv4) (counter + 1).
 
 Definition packet_ingress_relation (pin pout: packet) (counter: Z) : Prop :=
   let has_sample := if (counter + 1) mod 1024 =? 0 then 1 else 0 in
@@ -460,9 +462,9 @@ Proof.
   destruct H0 as [_ [_ [H0 _]]]. hnf in H0. rewrite H0 in H1.
   inv H1. inv H3. inv H2. inv H23. inv H. inv H1. inv H2.
   destruct (ethernet_extract_result_hdr ether ipv4 result) as
-    [ethernet [tcp [udp [ip4 ?H]]]]. rewrite H in H16.
+    [ethernet [tcp [udp ?H]]]. rewrite H in H16.
   eapply (proj1 ingress_body counter ethernet
-            tcp udp ip4) in H24; eauto.
+            tcp udp ipv4) in H24; eauto.
   2: { split.
        - hnf. do 2 (constructor; [assumption |]).
          constructor.
@@ -477,9 +479,9 @@ Proof.
   destruct H2 as [_ [_ [H2 _]]]. rewrite <- counter_iff in H2.
   inv H5. inv H4. inv H25. inv H1. inv H3. inv H4.
   remember (if (counter + 1) mod 1024 =? 0
-            then update_hdr ethernet tcp udp ip4 (counter + 1)
-            else hdr ethernet tcp udp ip4) as igrs_hdr.
-  assert (⊢ᵥ hdr ethernet tcp udp ip4 \: header_sample_t). {
+            then update_hdr ethernet tcp udp ipv4 (counter + 1)
+            else hdr ethernet tcp udp ipv4) as igrs_hdr.
+  assert (⊢ᵥ hdr ethernet tcp udp ipv4 \: header_sample_t). {
     rewrite <- H. apply ethernet_extract_result_typ; assumption. }
   assert (⊢ᵥ igrs_hdr \: header_sample_t). {
     subst igrs_hdr. destruct ((counter + 1) mod 1024 =? 0); [|assumption].
@@ -499,8 +501,8 @@ Proof.
                             else if is_udp ipv4 then updatev "udp" result ieh else ieh) in
                          if (counter + 1) mod 1024 =? 0 then
                            (updatev "sample"
-                              (sample_reprv (P4BitV 32 (ipv4_src_addr ip4))
-                                 (P4BitV 32 (ipv4_dst_addr ip4))
+                              (sample_reprv (P4BitV 32 (ipv4_src_addr ipv4))
+                                 (P4BitV 32 (ipv4_dst_addr ipv4))
                                  (counter + 1)) (updatev "bridge" (bridge_repr_val 1) orig_h))
                          else orig_h). {
     pose proof (ethernet_extract_result_valid_only_vb ether _ _ H11).
@@ -514,8 +516,8 @@ Proof.
       eapply updatev_struct_typ; eauto; [reflexivity | repeat constructor].
       Opaque bridge_repr_val. }
     exists (updatev "sample"
-             (sample_reprv (P4BitV 32 (ipv4_src_addr ip4))
-                (P4BitV 32 (ipv4_dst_addr ip4))
+             (sample_reprv (P4BitV 32 (ipv4_src_addr ipv4))
+                (P4BitV 32 (ipv4_dst_addr ipv4))
                 (counter + 1)) (updatev "bridge" (bridge_repr_val 1) orig_h)).
     erewrite !update_struct_valid_only; eauto; [|reflexivity..].
     rewrite H4. split; reflexivity. } destruct Hv as [h [Hv Heqh]].
@@ -534,21 +536,17 @@ Proof.
   rewrite H6 in H5. inversion H5. subst pout0. clear H5. split; [|split].
   - apply H2.
   - inv H7. assumption.
-  - exists (if (counter + 1) mod 1024 =? 0
-       then Build_sample_rec COLLECTOR_MAC MY_MAC SAMPLE_ETYPE (ipv4_src_addr ip4)
-              (ipv4_dst_addr ip4) (counter + 1)
-       else empty_sample).
+  - exists (Build_sample_rec COLLECTOR_MAC MY_MAC SAMPLE_ETYPE (ipv4_src_addr ipv4)
+              (ipv4_dst_addr ipv4) (counter + 1)).
     exists ether, ipv4, result, payload.
     cut_list_n_in H13 2%nat. rewrite format_match_app_iff_front in H13.
     destruct H13 as [p1 [p2 [? [? ?]]]]. simpl app in H13.
     exists p1. do 3 (split; auto).
     2: { split; auto. apply format_match_size in H8. simpl in H8.
          rewrite Zlength_correct. rewrite H8. reflexivity. }
-    replace (sample_repr_val _) with
-      (if (counter + 1) mod 1024 =? 0 then
-         (sample_reprv (P4BitV 32 (ipv4_src_addr ip4)) (P4BitV 32 (ipv4_dst_addr ip4))
-            (counter + 1)) else
-         (sample_repr_val empty_sample)) by (destruct ((counter + 1) mod 1024 =? 0); auto).
+    change (sample_repr_val _) with
+      (sample_reprv (P4BitV 32 (ipv4_src_addr ipv4)) (P4BitV 32 (ipv4_dst_addr ipv4))
+         (counter + 1)).
     remember (sample_reprv _ _ _) as sample_r.
     cut_list_n 8%nat. rewrite format_match_app_iff. exists (encode h), payload.
     split; [|split]; [reflexivity | | apply format_match_singleton].
