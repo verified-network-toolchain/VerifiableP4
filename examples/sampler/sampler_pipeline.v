@@ -419,12 +419,13 @@ Definition psample (ipv4 : ipv4_rec) (counter : Z) : sample_rec :=
 
 Definition packet_ingress_relation (pin pout: packet) (counter: Z) : Prop :=
   let has_sample := if (counter + 1) mod 1024 =? 0 then 1 else 0 in
-  (exists sample ether ipv4 result payload meta,
+  (exists ether ipv4 result payload meta,
       ((if is_tcp ipv4 then ⊫ᵥ result \: tcp_h
         else if is_udp ipv4 then ⊫ᵥ result \: udp_h else result = ValBaseNull)) /\
         P4BitV 16 (ethernet_ether_type ether) = P4BitV 16 ETHERTYPE_IPV4 /\
         pout ⫢ [⦑ encode (bridge_repr_val has_sample) ⦒;
-                ⦃ contains_sample has_sample ? ⦑ encode (sample_repr_val sample) ⦒| ε ⦄;
+                ⦃ contains_sample has_sample ?
+                    ⦑ encode (sample_repr_val (psample ipv4 counter)) ⦒| ε ⦄;
                 ⦑ encode (ethernet_repr_val ether) ⦒;
                 ⦑ encode (ipv4_repr_val ipv4) ⦒;
                 ⦃ is_tcp ipv4 ? ⦑ encode result ⦒ |
@@ -536,9 +537,7 @@ Proof.
   rewrite H6 in H5. inversion H5. subst pout0. clear H5. split; [|split].
   - apply H2.
   - inv H7. assumption.
-  - exists (Build_sample_rec COLLECTOR_MAC MY_MAC SAMPLE_ETYPE (ipv4_src_addr ipv4)
-              (ipv4_dst_addr ipv4) (counter + 1)).
-    exists ether, ipv4, result, payload.
+  - exists ether, ipv4, result, payload.
     cut_list_n_in H13 2%nat. rewrite format_match_app_iff_front in H13.
     destruct H13 as [p1 [p2 [? [? ?]]]]. simpl app in H13.
     exists p1. do 3 (split; auto).
@@ -1057,11 +1056,11 @@ Proof.
       pose proof (process_ingress_packets_counter _ _ _ _ _ H2 H0).
       eapply process_packet_ingress_tm in H; eauto. destruct H as [? ?]. hnf in H.
       remember (if (counter + qlength ps + 1) mod 1024 =? 0  then _ else _) as has_sample.
-      destruct H as (sample & ether & ipv4 & result & payload & meta & ? & ? & ? & ?).
+      destruct H as (ether & ipv4 & result & payload & meta & ? & ? & ? & ?).
       exists (encode_out_md 128 0 ++ p'). split.
       * rewrite concat_queue_eq, in_app_iff. right. rewrite H3.
         destruct ((counter + qlength ps + 1) mod 1024 =? 0); [right|]; left; reflexivity.
-      * exists has_sample, sample, ether, ipv4, result, payload, meta. repeat (split; auto).
+      * exists has_sample, (psample ipv4 (counter + qlength ps)), ether, ipv4, result, payload, meta. repeat (split; auto).
         format_match_solve. assumption.
   - hnf. intros. assert (0 <= i + 1 <= qlength q1) by lia.
     destruct (process_ingress_packets_split _ _ _ _ _ _ H0 _ H4) as
@@ -1078,10 +1077,10 @@ Proof.
     assert (p = pin) by list_solve. assert (Zlength (list_rep ps) = i) by lia. subst p. clear H5 H9.
     pose proof (process_ingress_packets_counter _ _ _ _ _ H1 H). rewrite qlength_eq, H6 in H4.
     eapply process_packet_ingress_tm in H0; eauto. destruct H0 as [? ?]. hnf in H0.
-    rewrite H3, Z.eqb_refl in H0, H5. destruct H0 as (sample & ether & ipv4 & result & payload & meta & ? & ? & ? & ?).
+    rewrite H3, Z.eqb_refl in H0, H5. destruct H0 as (ether & ipv4 & result & payload & meta & ? & ? & ? & ?).
     exists (encode_out_md 129 123 ++ p'). split.
     + rewrite concat_queue_eq, in_app_iff, H5. right. left. reflexivity.
-    + exists sample, ether, ipv4, result, payload, meta.
+    + exists (psample ipv4 (counter + i)), ether, ipv4, result, payload, meta.
       do 3 (split; auto). format_match_solve.
       assert (contains_sample 1 = true) by reflexivity.
       rewrite H10 in H8. eapply format_list_equiv_match; eauto.
@@ -1507,11 +1506,11 @@ Proof.
   destruct ((counter + qlength ps + 1) mod 1024 =? 0) eqn: HS.
   - unfold concat_queue. rewrite H0. simpl. unfold flip.
     apply ingress_ideal_special; auto; clear -H HS.
-    + destruct H as (sample & ether & ipv4 & result & payload & meta & ? & ? & ? & ?).
-      rewrite HS in *. simpl in H1. exists 1, sample, ether, ipv4, result, payload, meta.
+    + destruct H as (ether & ipv4 & result & payload & meta & ? & ? & ? & ?).
+      rewrite HS in *. simpl in H1. exists 1, (psample ipv4 (counter + qlength ps)), ether, ipv4, result, payload, meta.
       do 3 (split; auto). format_match_solve. assumption.
-    + destruct H as (sample & ether & ipv4 & result & payload & meta & ? & ? & ? & ?).
-      rewrite HS in *. simpl in H1. exists sample, ether, ipv4, result, payload, meta.
+    + destruct H as (ether & ipv4 & result & payload & meta & ? & ? & ? & ?).
+      rewrite HS in *. simpl in H1. exists (psample ipv4 (counter + qlength ps)), ether, ipv4, result, payload, meta.
       do 3 (split; auto). format_match_solve.
       assert (contains_sample 1 = true) by reflexivity.
       rewrite H3 in H1. eapply format_list_equiv_match; eauto.
@@ -1521,8 +1520,8 @@ Proof.
     + rewrite Z.eqb_eq in HS. assumption.
   - unfold concat_queue. rewrite H0. simpl. unfold flip.
     apply ingress_ideal_normal; auto; clear -H HS.
-    + destruct H as (sample & ether & ipv4 & result & payload & meta & ? & ? & ? & ?).
-      rewrite HS in *. simpl in H1. exists 0, sample, ether, ipv4, result, payload, meta.
+    + destruct H as (ether & ipv4 & result & payload & meta & ? & ? & ? & ?).
+      rewrite HS in *. simpl in H1. exists 0, (psample ipv4 (counter + qlength ps)), ether, ipv4, result, payload, meta.
       do 3 (split; auto). format_match_solve. assumption.
     + rewrite Z.eqb_neq in HS. assumption.
 Qed.
