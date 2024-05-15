@@ -1552,4 +1552,46 @@ Proof.
   eapply ideal_property_ingress_egress_switch; eauto.
 Qed.
 
+Lemma switch_normal_packet_relation_unique: forall pin pout1 pout2,
+    switch_normal_packet_relation pin pout1 ->
+    switch_normal_packet_relation pin pout2 -> pout1 = pout2.
+Proof.
+  intros.
+  destruct H as (ether & ipv4 & result & payload & meta & ? & ? & ? & ? & ?).
+  destruct H0 as (ether' & ipv4' & result' & payload' & meta' & ? & ? & ? & ? & ?).
+  destruct H3 as [l1 [? ?]]. destruct H7 as [l2 [? ?]].
+  inv H9. inv H10. inv H13. inv H11. simpl in H7. apply app_eq_len_eq in H7.
+  2: rewrite <- !ZtoNat_Zlength, H4, H8; reflexivity. destruct H7. subst. clear dependent y.
+  inv H15. inv H14. inv H8; inv H9. simpl in H7.
+  eapply encode_same_type_same_val_app in H7; [|apply ext_val_typ_ethernet.. | reflexivity].
+  destruct H7. rewrite H3 in *. inv H10; inv H12. inv H9; inv H10. simpl in H4.
+  eapply encode_same_type_same_val_app in H4; [|apply ext_val_typ_ipv4.. | reflexivity].
+  destruct H4. rewrite H4 in *. assert (is_tcp ipv4' = is_tcp ipv4). {
+    Transparent ipv4_repr_val. unfold ipv4_repr_val in H4. unfold is_tcp.
+    Opaque ipv4_repr_val. do 24 remember_P4BitV. inversion H4. reflexivity. }
+  rewrite H8 in *. assert (is_udp ipv4' = is_udp ipv4). {
+    Transparent ipv4_repr_val. unfold ipv4_repr_val in H4. unfold is_udp.
+    Opaque ipv4_repr_val. do 24 remember_P4BitV. inversion H4. reflexivity. }
+  rewrite H9 in *. clear H8 H9 H3 H4. inv H13. inv H14. inv H10. inv H12. inv H14. inv H15.
+  simpl in H7. assert (result = result' /\ y0 = y). {
+    destruct (is_tcp ipv4).
+    - inv H8; inv H9; inv H12; inv H13.
+      eapply encode_same_type_same_val_app in H7; eauto. destruct H7.
+      subst. split; auto.
+    - inv H8. inv H9. destruct (is_udp ipv4); inv H12; inv H13.
+      + inv H9; inv H12. eapply encode_same_type_same_val_app in H7; eauto.
+        destruct H7. subst; split; auto.
+      + inv H9. inv H4. split; auto. } destruct H3. subst result'. subst y0.
+  apply app_inv_head in H7. inversion H11. subst p. subst y1. clear H11. inversion H10.
+  subst p. subst y2. clear H10. rewrite !app_nil_r in H7. subst payload'.
+  eapply format_match_eq; eauto. reflexivity.
+Qed.
+
+Lemma switch_special_packet_relation_unique: forall pin pout1 pout2,
+    switch_special_packet_relation pin pout1 ->
+    switch_special_packet_relation pin pout2 -> pout1 = pout2.
+Proof.
+  intros. hnf in H.
+Abort.
+
 Transparent encode ig_intr_tm_md ipv4_repr_val ethernet_repr_val bridge_repr_val sample_repr_val.

@@ -824,3 +824,34 @@ Proof.
   induction l. 1: constructor. apply list_equiv_cons; auto.
   apply format_equiv_refl.
 Qed.
+
+Fixpoint contains_unspecified (f: format): bool :=
+  match f with
+  | null => false
+  | accurate _ => false
+  | unspecified _ => true
+  | guarded _ f1 f2 => contains_unspecified f1 || contains_unspecified f2
+  end.
+
+Lemma format_one_eq: forall f p1 p2,
+    contains_unspecified f = false -> match_one f p1 -> match_one f p2 -> p1 = p2.
+Proof.
+  induction f; intros.
+  - inv H0. inv H1. reflexivity.
+  - inv H0; inv H1. reflexivity.
+  - simpl in H. discriminate.
+  - simpl in H. apply orb_false_elim in H. destruct H. destruct b.
+    + apply match_one_guarded_true in H0, H1. apply IHf1; assumption.
+    + apply match_one_guarded_false in H0, H1. apply IHf2; assumption.
+Qed.
+
+Lemma format_match_eq: forall l p1 p2,
+    existsb contains_unspecified l = false -> p1 ⫢ l -> p2 ⫢ l -> p1 = p2.
+Proof.
+  induction l; intros.
+  - apply format_match_nil in H0, H1. subst. reflexivity.
+  - simpl in H. apply orb_false_elim in H. destruct H.
+    apply format_match_cons_iff in H0, H1. destruct H0 as [p1h [p1r [? []]]].
+    destruct H1 as [p2h [p2r [? []]]]. subst.
+    rewrite (format_one_eq _ _ _ H H3 H5). f_equal. erewrite IHl; eauto.
+Qed.
