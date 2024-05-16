@@ -417,7 +417,7 @@ Definition psample (ipv4 : ipv4_rec) (counter : Z) : sample_rec :=
   Build_sample_rec COLLECTOR_MAC MY_MAC SAMPLE_ETYPE (ipv4_src_addr ipv4)
     (ipv4_dst_addr ipv4) (counter + 1).
 
-Definition packet_ingress_relation (pin pout: packet) (counter: Z) : Prop :=
+Definition ingress_packet_relation (pin pout: packet) (counter: Z) : Prop :=
   let has_sample := if (counter + 1) mod 1024 =? 0 then 1 else 0 in
   (exists ether ipv4 result payload meta,
       ((if is_tcp ipv4 then ⊫ᵥ result \: tcp_h
@@ -449,7 +449,7 @@ Lemma process_packet_ingress:
            then update "mcast_grp_a" (P4Bit 16 COLLECTOR_MULTICAST_GROUP)
                   (update_outport OUT_PORT ig_intr_tm_md)
            else update_outport OUT_PORT ig_intr_tm_md) for_tm /\
-      packet_ingress_relation pin pout counter.
+      ingress_packet_relation pin pout counter.
 Proof.
   intros st st' pin pout for_tm counter Hext H. unfold ingress_counter in Hext. simpl in Hext.
   inversion H. subst. clear H.
@@ -559,7 +559,7 @@ Lemma process_packet_ingress_tm:
     ingress_pipeline
       inprsr_block ingress_block indeprsr_block parser_ingress_cond
       ingress_deprsr_cond ingress_tm_cond st pin st' pout for_tm ->
-    packet_ingress_relation pin pout counter /\
+    ingress_packet_relation pin pout counter /\
     list_rep (tofino_tm for_tm pout) =
       (if (counter + 1) mod 1024 =? 0 then
          [encode_out_md 129 123 ++ pout; encode_out_md 128 0 ++ pout]
@@ -1011,18 +1011,18 @@ Definition ingress_normal_packet_relation (pin pout: packet): Prop :=
                 ⦃ is_udp ipv4 ? ⦑ encode result ⦒ | ε ⦄ ⦄; ⦑ payload ⦒] /\
       Zlength meta = 128.
 
-Definition ingress_queue_property1 (q1 q2: queue packet): Prop :=
-    forall pin, In pin (list_rep q1) ->
-           exists pout, In pout (list_rep q2) /\ ingress_normal_packet_relation pin pout.
+(* Definition ingress_queue_property1 (q1 q2: queue packet): Prop := *)
+(*     forall pin, In pin (list_rep q1) -> *)
+(*            exists pout, In pout (list_rep q2) /\ ingress_normal_packet_relation pin pout. *)
 
-Definition ingress_special_packet_relation (pin pout: packet): Prop :=
-  exists sample ether ipv4 result payload meta,
+Definition ingress_special_packet_relation (pin pout: packet) counter: Prop :=
+  exists ether ipv4 result payload meta,
     (if is_tcp ipv4 then ⊫ᵥ result \: tcp_h
      else if is_udp ipv4 then ⊫ᵥ result \: udp_h else result = ValBaseNull) /\
       P4BitV 16 (ethernet_ether_type ether) = P4BitV 16 ETHERTYPE_IPV4 /\
       pout ⫢ [⦑ encode_out_md 129 123 ⦒;
               ⦑ encode (bridge_repr_val 1) ⦒;
-              ⦑ encode (sample_repr_val sample) ⦒;
+              ⦑ encode (sample_repr_val (psample ipv4 counter)) ⦒;
               ⦑ encode (ethernet_repr_val ether) ⦒;
               ⦑ encode (ipv4_repr_val ipv4) ⦒;
               ⦃ is_tcp ipv4 ? ⦑ encode result ⦒ |
@@ -1034,11 +1034,12 @@ Definition ingress_special_packet_relation (pin pout: packet): Prop :=
                 ⦃ is_udp ipv4 ? ⦑ encode result ⦒ | ε ⦄ ⦄; ⦑ payload ⦒] /\
       Zlength meta = 128.
 
-Definition ingress_queue_property2 (q1 q2: queue packet) (counter: Z): Prop :=
-  forall i pin, 0 <= i < qlength q1 -> Znth i (list_rep q1) = pin ->
-           (counter + i + 1) mod 1024 = 0 ->
-           exists pout, In pout (list_rep q2) /\ ingress_special_packet_relation pin pout.
+(* Definition ingress_queue_property2 (q1 q2: queue packet) (counter: Z): Prop := *)
+(*   forall i pin, 0 <= i < qlength q1 -> Znth i (list_rep q1) = pin -> *)
+(*            (counter + i + 1) mod 1024 = 0 -> *)
+(*            exists pout, In pout (list_rep q2) /\ ingress_special_packet_relation pin pout. *)
 
+(*
 Lemma process_ingress_packets_queue: forall inst1 inst2 q1 q2 counter,
     ingress_counter inst1 counter ->
     process_ingress_packets
@@ -1088,6 +1089,7 @@ Proof.
       apply list_equiv_cons; [apply format_equiv_true|].
       apply format_list_equiv_refl.
 Qed.
+*)
 
 Definition switch_normal_packet_relation (pin pout: packet) : Prop :=
   exists ether ipv4 result payload meta,
@@ -1108,12 +1110,12 @@ Definition switch_queue_property1 (q1 q2: queue packet): Prop :=
     forall pin, In pin (list_rep q1) ->
            exists pout, In pout (list_rep q2) /\ switch_normal_packet_relation pin pout.
 
-Definition switch_special_packet_relation (pin pout: packet): Prop :=
-  exists sample ether ipv4 result payload meta,
+Definition switch_special_packet_relation (pin pout: packet) counter: Prop :=
+  exists ether ipv4 result payload meta,
     (if is_tcp ipv4 then ⊫ᵥ result \: tcp_h
      else if is_udp ipv4 then ⊫ᵥ result \: udp_h else result = ValBaseNull) /\
       P4BitV 16 (ethernet_ether_type ether) = P4BitV 16 ETHERTYPE_IPV4 /\
-      pout ⫢ [⦑ encode (sample_repr_val sample) ⦒;
+      pout ⫢ [⦑ encode (sample_repr_val (psample ipv4 counter)) ⦒;
               ⦃ is_tcp ipv4 ? ⦑ encode result ⦒ |
                 ⦃ is_udp ipv4 ? ⦑ encode result ⦒ | ε ⦄ ⦄; ⦑ payload ⦒] /\
       pin ⫢ [ ⦑ meta ⦒;
@@ -1125,7 +1127,8 @@ Definition switch_special_packet_relation (pin pout: packet): Prop :=
 
 Definition switch_queue_property2 (q1 q2: queue packet) (counter: Z): Prop :=
   forall i pin, 0 <= i < qlength q1 -> Znth i (list_rep q1) = pin -> (counter + i + 1) mod 1024 = 0 ->
-           exists pout, In pout (list_rep q2) /\ switch_special_packet_relation pin pout.
+           exists pout, In pout (list_rep q2) /\
+                     switch_special_packet_relation pin pout (counter + i).
 
 (* Print egress_packet_relation. *)
 
@@ -1188,13 +1191,87 @@ Proof.
   subst p. subst y2. clear H10. rewrite !app_nil_r in H3. rewrite H3 in *. assumption.
 Qed.
 
-Lemma special_ingress_egress_switch: forall pin pmid pout : packet,
-    ingress_special_packet_relation pin pmid ->
-    egress_packet_relation pmid pout -> switch_special_packet_relation pin pout.
+(*
+Lemma switch_packets_queue: forall inst1 inst2 est1 est2 q1 q2 q3 counter,
+    ingress_counter inst1 counter ->
+    process_ingress_packets
+      (ingress_pipeline inprsr_block ingress_block indeprsr_block parser_ingress_cond
+         ingress_deprsr_cond ingress_tm_cond) tofino_tm inst1 q1 inst2 q2 ->
+    process_egress_packets
+      (egress_pipeline eprsr_block egress_block edeprsr_block parser_egress_cond
+         egress_deprsr_cond) est1 q2 est2 q3 ->
+    switch_queue_property1 q1 q3 /\ switch_queue_property2 q1 q3 counter.
 Proof.
-  intros. destruct H as (sample & ether & ipv4 & result & payload &
-                           meta & ? & ? & ? & ? & ?).
-  exists sample, ether, ipv4, result, payload, meta. do 3 (split; auto).
+  intros. eapply process_ingress_packets_queue in H0; eauto. destruct H0.
+  pose proof (process_egress_packets_queue _ _ _ _ H1). split.
+  - repeat intro. specialize (H0 _ H4). destruct H0 as (pmid & ? & ?).
+    specialize (H3 pmid H0). destruct H3 as [pout [? ?]].
+    exists pout. split; auto. eapply normal_ingress_egress_switch; eauto.
+  - repeat intro. specialize (H2 _ _ H4 H5 H6). clear i H4 H5 H6.
+    destruct H2 as (pmid & ? & ?). specialize (H3 pmid H2). destruct H3 as [pout [? ?]].
+    exists pout. split; auto. eapply special_ingress_egress_switch; eauto.
+Qed.
+*)
+
+Inductive ingress_ideal_property (counter: Z): queue packet -> queue packet -> Prop :=
+| ingress_ideal_nil: ingress_ideal_property counter empty_queue empty_queue
+| ingress_ideal_normal: forall q1 q2 pin pout,
+    ingress_normal_packet_relation pin pout ->
+    (counter + qlength q1 + 1) mod 1024 <> 0 ->
+    ingress_ideal_property counter q1 q2 ->
+    ingress_ideal_property counter (enque pin q1) (enque pout q2)
+| ingress_ideal_special: forall q1 q2 pin pout1 pout2,
+    ingress_normal_packet_relation pin pout1 ->
+    ingress_special_packet_relation pin pout2 (counter + qlength q1) ->
+    (counter + qlength q1 + 1) mod 1024 = 0 ->
+    ingress_ideal_property counter q1 q2 ->
+    ingress_ideal_property counter (enque pin q1) (enque pout1 (enque pout2 q2)).
+
+Opaque encode_out_md.
+
+Lemma process_ingress_packets_ideal: forall inst1 inst2 q1 q2 counter,
+    ingress_counter inst1 counter ->
+    process_ingress_packets
+      (ingress_pipeline inprsr_block ingress_block indeprsr_block parser_ingress_cond
+         ingress_deprsr_cond ingress_tm_cond) tofino_tm inst1 q1 inst2 q2 ->
+    ingress_ideal_property counter q1 q2.
+Proof.
+  intros. revert dependent counter. induction H0; intros. 1: constructor.
+  rename IHprocess_ingress_packets into IH. specialize (IH _ H1).
+  pose proof (process_ingress_packets_counter _ _ _ _ _ H1 H0). clear H1 H0.
+  eapply process_packet_ingress_tm in H; eauto. destruct H.
+  destruct ((counter + qlength ps + 1) mod 1024 =? 0) eqn: HS.
+  - unfold concat_queue. rewrite H0. simpl. unfold flip.
+    apply ingress_ideal_special; auto; clear -H HS.
+    + destruct H as (ether & ipv4 & result & payload & meta & ? & ? & ? & ?).
+      rewrite HS in *. simpl in H1. exists 1, (psample ipv4 (counter + qlength ps)), ether, ipv4, result, payload, meta.
+      do 3 (split; auto). format_match_solve. assumption.
+    + destruct H as (ether & ipv4 & result & payload & meta & ? & ? & ? & ?).
+      rewrite HS in *. simpl in H1. exists ether, ipv4, result, payload, meta.
+      do 3 (split; auto). format_match_solve.
+      assert (contains_sample 1 = true) by reflexivity.
+      rewrite H3 in H1. eapply format_list_equiv_match; eauto.
+      apply list_equiv_cons; [apply format_equiv_refl|].
+      apply list_equiv_cons; [apply format_equiv_true|].
+      apply format_list_equiv_refl.
+    + rewrite Z.eqb_eq in HS. assumption.
+  - unfold concat_queue. rewrite H0. simpl. unfold flip.
+    apply ingress_ideal_normal; auto; clear -H HS.
+    + destruct H as (ether & ipv4 & result & payload & meta & ? & ? & ? & ?).
+      rewrite HS in *. simpl in H1. exists 0, (psample ipv4 (counter + qlength ps)), ether, ipv4, result, payload, meta.
+      do 3 (split; auto). format_match_solve. assumption.
+    + rewrite Z.eqb_neq in HS. assumption.
+Qed.
+
+Transparent encode_out_md.
+
+Lemma special_ingress_egress_switch: forall (pin pmid pout : packet) counter,
+    ingress_special_packet_relation pin pmid counter ->
+    egress_packet_relation pmid pout ->
+    switch_special_packet_relation pin pout counter.
+Proof.
+  intros. destruct H as (ether & ipv4 & result & payload & meta & ? & ? & ? & ? & ?).
+  exists ether, ipv4, result, payload, meta. do 3 (split; auto).
   destruct H0 as (eg_intr_md & has_sample' & sample' & ether' & ipv4' &
                     result' & payload' & ? & ? & ? & ? & ?). clear pin H1 H3 H4 H5.
   destruct H2 as [l1 [Hc1 ?]]. destruct H6 as [l2 [Hc2 ?]].
@@ -1232,40 +1309,6 @@ Proof.
   apply list_equiv_cons; [apply format_equiv_true | apply format_list_equiv_refl].
 Qed.
 
-Lemma switch_packets_queue: forall inst1 inst2 est1 est2 q1 q2 q3 counter,
-    ingress_counter inst1 counter ->
-    process_ingress_packets
-      (ingress_pipeline inprsr_block ingress_block indeprsr_block parser_ingress_cond
-         ingress_deprsr_cond ingress_tm_cond) tofino_tm inst1 q1 inst2 q2 ->
-    process_egress_packets
-      (egress_pipeline eprsr_block egress_block edeprsr_block parser_egress_cond
-         egress_deprsr_cond) est1 q2 est2 q3 ->
-    switch_queue_property1 q1 q3 /\ switch_queue_property2 q1 q3 counter.
-Proof.
-  intros. eapply process_ingress_packets_queue in H0; eauto. destruct H0.
-  pose proof (process_egress_packets_queue _ _ _ _ H1). split.
-  - repeat intro. specialize (H0 _ H4). destruct H0 as (pmid & ? & ?).
-    specialize (H3 pmid H0). destruct H3 as [pout [? ?]].
-    exists pout. split; auto. eapply normal_ingress_egress_switch; eauto.
-  - repeat intro. specialize (H2 _ _ H4 H5 H6). clear i H4 H5 H6.
-    destruct H2 as (pmid & ? & ?). specialize (H3 pmid H2). destruct H3 as [pout [? ?]].
-    exists pout. split; auto. eapply special_ingress_egress_switch; eauto.
-Qed.
-
-Inductive ingress_ideal_property (counter: Z): queue packet -> queue packet -> Prop :=
-| ingress_ideal_nil: ingress_ideal_property counter empty_queue empty_queue
-| ingress_ideal_normal: forall q1 q2 pin pout,
-    ingress_normal_packet_relation pin pout ->
-    (counter + qlength q1 + 1) mod 1024 <> 0 ->
-    ingress_ideal_property counter q1 q2 ->
-    ingress_ideal_property counter (enque pin q1) (enque pout q2)
-| ingress_ideal_special: forall q1 q2 pin pout1 pout2,
-    ingress_normal_packet_relation pin pout1 ->
-    ingress_special_packet_relation pin pout2 ->
-    (counter + qlength q1 + 1) mod 1024 = 0 ->
-    ingress_ideal_property counter q1 q2 ->
-    ingress_ideal_property counter (enque pin q1) (enque pout1 (enque pout2 q2)).
-
 Inductive egress_ideal_property: queue packet -> queue packet -> Prop :=
 | egress_ideal_nil: egress_ideal_property empty_queue empty_queue
 | egress_ideal_cons: forall q1 q2 pin pout,
@@ -1282,7 +1325,7 @@ Inductive switch_ideal_property (counter: Z): queue packet -> queue packet -> Pr
     switch_ideal_property counter (enque pin q1) (enque pout q2)
 | switch_ideal_special: forall q1 q2 pin pout1 pout2,
     switch_normal_packet_relation pin pout1 ->
-    switch_special_packet_relation pin pout2 ->
+    switch_special_packet_relation pin pout2 (counter + qlength q1) ->
     (counter + qlength q1 + 1) mod 1024 = 0 ->
     switch_ideal_property counter q1 q2 ->
     switch_ideal_property counter (enque pin q1) (enque pout1 (enque pout2 q2)).
@@ -1369,8 +1412,8 @@ Proof.
       destruct (enque_eq_concat_form _ _ _ _ H7 n H8) as [q4 [? [? ?]]].
       specialize (IH _ H9 H10). destruct IH as (q5 & q6 & ? & ? & ? & ? & ?).
       exists q5, (enque pout1 (enque pout2 q6)). subst. rewrite !enque_concat_queue.
-      do 4 (split; auto). apply switch_ideal_special; auto.
-      rewrite qlength_concat, Z.add_assoc in H3. assumption.
+      do 4 (split; auto). rewrite qlength_concat, Z.add_assoc in *.
+      apply switch_ideal_special; auto.
     + rewrite qlength_enque in H0. assert (len = qlength q1 + 1) by lia. clear g H0 IH.
       pose proof (@eq_refl _ (qlength (enque pin q1))). rewrite H7 in H0 at 1.
       rewrite qlength_concat, qlength_enque in H0. assert (qlength q3 = 0) by lia.
@@ -1390,7 +1433,7 @@ Proof.
   assert (Znth i (list_rep q1) = pin). {
     subst qin. rewrite concat_queue_eq in H1. rewrite qlength_eq in H. list_solve. }
   cut (exists pout : packet, In pout (list_rep q3) /\
-                          switch_special_packet_relation pin pout). {
+                          switch_special_packet_relation pin pout (counter + i)). {
     intros. destruct H7 as (pout & ? & ?).
     exists pout. split; auto. subst qout. rewrite concat_queue_eq, in_app_iff. left; assumption. }
   destruct H0. clear dependent qin. clear dependent qout. clear q2 q4.
@@ -1398,7 +1441,8 @@ Proof.
   - simpl in H. lia.
   - rewrite qlength_enque in H2. assert (qlength q0 = i) by lia. rewrite H5 in *.
     rewrite H4 in H0. contradiction.
-  - rewrite enque_eq in H6. rewrite qlength_enque in H3. rewrite qlength_eq in H3.
+  - rewrite enque_eq in H6. rewrite qlength_enque, Z.add_cancel_r in H3.
+    rewrite H3 in H0. rewrite qlength_eq in H3.
     rewrite Znth_app1 in H6 by lia. subst pin0. rewrite !enque_eq. exists pout2. split; auto.
     rewrite !in_app_iff. left. right. simpl. left. reflexivity.
 Qed.
@@ -1422,7 +1466,7 @@ Definition switch_queue_property3 (q1 q2: queue packet): Prop :=
     forall pout, In pout (list_rep q2) ->
             exists pin, In pin (list_rep q1) /\
                      (switch_normal_packet_relation pin pout \/
-                        switch_special_packet_relation pin pout).
+                        (exists counter, switch_special_packet_relation pin pout counter)).
 
 Lemma switch_ideal_property_queue_property3: forall counter qin qout,
     switch_ideal_property counter qin qout ->
@@ -1432,14 +1476,16 @@ Proof.
   - simpl in H. contradiction.
   - rewrite enque_eq in *. rewrite in_app_iff in H2. destruct H2.
     + rename IHswitch_ideal_property into IH. specialize (IH _ H2).
-      destruct IH as [pin' [? ?]]. exists pin'. split; auto. rewrite in_app_iff. left; assumption.
+      destruct IH as [pin' [? ?]]. exists pin'. split; auto.
+      rewrite in_app_iff. left; assumption.
     + simpl in H2. destruct H2. 2: contradiction. subst pout0. exists pin. split; auto.
       rewrite in_app_iff. right. left; reflexivity.
   - rewrite !enque_eq in *. rewrite !in_app_iff in H3. destruct H3 as [[]|].
     + rename IHswitch_ideal_property into IH. specialize (IH _ H3).
       destruct IH as [pin' [? ?]]. exists pin'. split; auto. rewrite in_app_iff. left; assumption.
     + simpl in H3. destruct H3. 2: contradiction. subst pout. exists pin. split; auto.
-      rewrite in_app_iff. right. left; reflexivity.
+      * rewrite in_app_iff. right. left; reflexivity.
+      * right. exists (counter + qlength q1). assumption.
     + simpl in H3. destruct H3. 2: contradiction. subst pout. exists pin. split; auto.
       rewrite in_app_iff. right. left; reflexivity.
 Qed.
@@ -1488,42 +1534,6 @@ Proof.
       destruct IH as [i' [j' [? [? [? ?]]]]]. exists i', j'. split; auto. split; [lia|].
       rewrite !enque_eq. clear H4. rewrite qlength_eq in *. rewrite !app_Znth1 by list_solve.
       split; auto.
-Qed.
-
-Opaque encode_out_md.
-
-Lemma process_ingress_packets_ideal: forall inst1 inst2 q1 q2 counter,
-    ingress_counter inst1 counter ->
-    process_ingress_packets
-      (ingress_pipeline inprsr_block ingress_block indeprsr_block parser_ingress_cond
-         ingress_deprsr_cond ingress_tm_cond) tofino_tm inst1 q1 inst2 q2 ->
-    ingress_ideal_property counter q1 q2.
-Proof.
-  intros. revert dependent counter. induction H0; intros. 1: constructor.
-  rename IHprocess_ingress_packets into IH. specialize (IH _ H1).
-  pose proof (process_ingress_packets_counter _ _ _ _ _ H1 H0). clear H1 H0.
-  eapply process_packet_ingress_tm in H; eauto. destruct H.
-  destruct ((counter + qlength ps + 1) mod 1024 =? 0) eqn: HS.
-  - unfold concat_queue. rewrite H0. simpl. unfold flip.
-    apply ingress_ideal_special; auto; clear -H HS.
-    + destruct H as (ether & ipv4 & result & payload & meta & ? & ? & ? & ?).
-      rewrite HS in *. simpl in H1. exists 1, (psample ipv4 (counter + qlength ps)), ether, ipv4, result, payload, meta.
-      do 3 (split; auto). format_match_solve. assumption.
-    + destruct H as (ether & ipv4 & result & payload & meta & ? & ? & ? & ?).
-      rewrite HS in *. simpl in H1. exists (psample ipv4 (counter + qlength ps)), ether, ipv4, result, payload, meta.
-      do 3 (split; auto). format_match_solve.
-      assert (contains_sample 1 = true) by reflexivity.
-      rewrite H3 in H1. eapply format_list_equiv_match; eauto.
-      apply list_equiv_cons; [apply format_equiv_refl|].
-      apply list_equiv_cons; [apply format_equiv_true|].
-      apply format_list_equiv_refl.
-    + rewrite Z.eqb_eq in HS. assumption.
-  - unfold concat_queue. rewrite H0. simpl. unfold flip.
-    apply ingress_ideal_normal; auto; clear -H HS.
-    + destruct H as (ether & ipv4 & result & payload & meta & ? & ? & ? & ?).
-      rewrite HS in *. simpl in H1. exists 0, (psample ipv4 (counter + qlength ps)), ether, ipv4, result, payload, meta.
-      do 3 (split; auto). format_match_solve. assumption.
-    + rewrite Z.eqb_neq in HS. assumption.
 Qed.
 
 Lemma process_egress_packets_ideal: forall est1 q1 est2 q2,
@@ -1584,11 +1594,45 @@ Proof.
   eapply format_match_eq; eauto. reflexivity.
 Qed.
 
-Lemma switch_special_packet_relation_unique: forall pin pout1 pout2,
-    switch_special_packet_relation pin pout1 ->
-    switch_special_packet_relation pin pout2 -> pout1 = pout2.
+Lemma switch_special_packet_relation_unique: forall pin pout1 pout2 counter,
+    switch_special_packet_relation pin pout1 counter ->
+    switch_special_packet_relation pin pout2 counter -> pout1 = pout2.
 Proof.
-  intros. hnf in H.
-Abort.
+  intros.
+  destruct H as (ether & ipv4 & result & payload & meta & ? & ? & ? & ? & ?).
+  destruct H0 as (ether' & ipv4' & result' & payload' & meta' & ? & ? & ? & ? & ?).
+  destruct H3 as [l1 [? ?]]. destruct H7 as [l2 [? ?]].
+  inv H9. inv H10. inv H13. inv H11. simpl in H7. apply app_eq_len_eq in H7.
+  2: rewrite <- !ZtoNat_Zlength, H4, H8; reflexivity. destruct H7. subst. clear dependent y.
+  inv H15. inv H14. inv H8; inv H9. simpl in H7.
+  eapply encode_same_type_same_val_app in H7; [|apply ext_val_typ_ethernet.. | reflexivity].
+  destruct H7. inv H10; inv H12. inv H9; inv H10. simpl in H4.
+  eapply encode_same_type_same_val_app in H4; [|apply ext_val_typ_ipv4.. | reflexivity].
+  destruct H4. assert (is_tcp ipv4' = is_tcp ipv4). {
+    Transparent ipv4_repr_val. unfold ipv4_repr_val in H4. unfold is_tcp.
+    Opaque ipv4_repr_val. do 24 remember_P4BitV. inversion H4. reflexivity. }
+  rewrite H8 in *. assert (is_udp ipv4' = is_udp ipv4). {
+    Transparent ipv4_repr_val. unfold ipv4_repr_val in H4. unfold is_udp.
+    Opaque ipv4_repr_val. do 24 remember_P4BitV. inversion H4. reflexivity. }
+  rewrite H9 in *. assert (sample_repr_val (psample ipv4' counter) =
+                             sample_repr_val (psample ipv4 counter)). {
+    Transparent ipv4_repr_val sample_repr_val. unfold ipv4_repr_val in H4.
+    unfold sample_repr_val, psample. simpl. Opaque ipv4_repr_val sample_repr_val.
+    do 24 remember_P4BitV. inversion H4. reflexivity. }
+  rewrite H10 in *. clear H8 H9 H10 H3 H4. inv H13.
+  inv H14. inv H10. inv H12. inv H14. inv H15.
+  simpl in H7. assert (result = result' /\ y0 = y). {
+    destruct (is_tcp ipv4).
+    - inv H8; inv H9; inv H12; inv H13.
+      eapply encode_same_type_same_val_app in H7; eauto. destruct H7.
+      subst. split; auto.
+    - inv H8. inv H9. destruct (is_udp ipv4); inv H12; inv H13.
+      + inv H9; inv H12. eapply encode_same_type_same_val_app in H7; eauto.
+        destruct H7. subst; split; auto.
+      + inv H9. inv H4. split; auto. } destruct H3. subst result'. subst y0.
+  apply app_inv_head in H7. inversion H11. subst p. subst y1. clear H11. inversion H10.
+  subst p. subst y2. clear H10. rewrite !app_nil_r in H7. subst payload'.
+  eapply format_match_eq; eauto. reflexivity.
+Qed.
 
 Transparent encode ig_intr_tm_md ipv4_repr_val ethernet_repr_val bridge_repr_val sample_repr_val.
