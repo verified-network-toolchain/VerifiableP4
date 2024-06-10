@@ -20,6 +20,7 @@ Require Import ProD3.core.PacketFormat.
 Require Import Poulet4.P4light.Syntax.P4Notations.
 Require Import Hammer.Plugin.Hammer.
 Require Export Coq.Program.Program.
+Require Import Coq.Sorting.Permutation.
 Import ListNotations.
 
 Definition extern_contains (es: extern_state) (p: path) (counter: Z): Prop :=
@@ -1706,9 +1707,6 @@ Proof.
   eapply format_match_eq; eauto. reflexivity.
 Qed.
 
-Definition switch_queue_property8 (qin qout: queue packet) (counter: Z) : Prop :=
-  forall q, switch_ideal_property counter qin q -> SubQueue qout q.
-
 Lemma switch_ideal_property_unique: forall counter qin qout1 qout2,
     switch_ideal_property counter qin qout1 ->
     switch_ideal_property counter qin qout2 -> qout1 = qout2.
@@ -1729,6 +1727,24 @@ Proof.
       erewrite IH; eauto.
 Qed.
 
+Definition switch_queue_property7 (qin qout: queue packet) (counter: Z) : Prop :=
+  forall q, switch_ideal_property counter qin q ->
+       exists sub, SubQueue sub q /\ Permutation (list_rep sub) (list_rep qout).
+
+Lemma switch_ideal_property_queue_property7: forall counter qin qout,
+    switch_ideal_property counter qin qout ->
+    switch_queue_property7 qin qout counter.
+Proof.
+  repeat intro.
+  pose proof (switch_ideal_property_unique _ _ _ _ H0 H); auto. subst. clear H0.
+  exists qout. split.
+  - apply SubQueue_refl.
+  - apply Permutation_refl.
+Qed.
+
+Definition switch_queue_property8 (qin qout: queue packet) (counter: Z) : Prop :=
+  forall q, switch_ideal_property counter qin q -> SubQueue qout q.
+
 Lemma switch_ideal_property_queue_property8: forall counter qin qout,
     switch_ideal_property counter qin qout ->
     switch_queue_property8 qin qout counter.
@@ -1737,5 +1753,10 @@ Proof.
   rewrite (switch_ideal_property_unique counter qin qout q); auto.
   apply SubQueue_refl.
 Qed.
+
+Lemma switch_ideal_property_8_to_7: forall counter qin qout,
+    switch_queue_property8 qin qout counter ->
+    switch_queue_property7 qin qout counter.
+Proof. repeat intro. specialize (H _ H0). exists qout. split; auto. Qed.
 
 Transparent encode ig_intr_tm_md ipv4_repr_val ethernet_repr_val bridge_repr_val sample_repr_val.
