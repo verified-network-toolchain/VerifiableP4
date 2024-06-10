@@ -1706,4 +1706,36 @@ Proof.
   eapply format_match_eq; eauto. reflexivity.
 Qed.
 
+Definition switch_queue_property8 (qin qout: queue packet) (counter: Z) : Prop :=
+  forall q, switch_ideal_property counter qin q -> SubQueue qout q.
+
+Lemma switch_ideal_property_unique: forall counter qin qout1 qout2,
+    switch_ideal_property counter qin qout1 ->
+    switch_ideal_property counter qin qout2 -> qout1 = qout2.
+Proof.
+  intros. revert dependent qout2. induction H.
+  - intros. inversion H0; auto; exfalso; revert H; apply enque_not_eq_empty.
+  - rename IHswitch_ideal_property into IH. intros. inversion H2.
+    + symmetry in H4. exfalso. revert H4. apply enque_not_eq_empty.
+    + subst. clear H2. apply enque_eq_inv in H3. destruct H3. subst. erewrite IH; eauto.
+      rewrite (switch_normal_packet_relation_unique pin pout pout0); easy.
+    + subst. clear H2. apply enque_eq_inv in H3. destruct H3. subst. contradiction.
+  - rename IHswitch_ideal_property into IH. intros. inversion H3.
+    + symmetry in H5. exfalso. revert H5. apply enque_not_eq_empty.
+    + subst. clear H3. apply enque_eq_inv in H4. destruct H4. subst. contradiction.
+    + subst. clear H3. apply enque_eq_inv in H4. destruct H4. subst.
+      rewrite (switch_normal_packet_relation_unique pin pout0 pout1); auto.
+      erewrite (switch_special_packet_relation_unique pin pout2 pout3); eauto.
+      erewrite IH; eauto.
+Qed.
+
+Lemma switch_ideal_property_queue_property8: forall counter qin qout,
+    switch_ideal_property counter qin qout ->
+    switch_queue_property8 qin qout counter.
+Proof.
+  repeat intro.
+  rewrite (switch_ideal_property_unique counter qin qout q); auto.
+  apply SubQueue_refl.
+Qed.
+
 Transparent encode ig_intr_tm_md ipv4_repr_val ethernet_repr_val bridge_repr_val sample_repr_val.
