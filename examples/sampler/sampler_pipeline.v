@@ -1106,7 +1106,7 @@ Definition switch_normal_packet_relation (pin pout: packet) : Prop :=
                 ⦃ is_udp ipv4 ? ⦑ encode result ⦒ | ε ⦄ ⦄; ⦑ payload ⦒] /\
       Zlength meta = 128.
 
-Definition switch_queue_property1 (q1 q2: queue packet): Prop :=
+Definition switch_queue_property2 (q1 q2: queue packet): Prop :=
     forall pin, In pin (list_rep q1) ->
            exists pout, In pout (list_rep q2) /\ switch_normal_packet_relation pin pout.
 
@@ -1125,7 +1125,7 @@ Definition switch_special_packet_relation (pin pout: packet) counter: Prop :=
                 ⦃ is_udp ipv4 ? ⦑ encode result ⦒ | ε ⦄ ⦄; ⦑ payload ⦒] /\
       Zlength meta = 128.
 
-Definition switch_queue_property2 (q1 q2: queue packet) (counter: Z): Prop :=
+Definition switch_queue_property3 (q1 q2: queue packet) (counter: Z): Prop :=
   forall i pin, 0 <= i < qlength q1 -> Znth i (list_rep q1) = pin -> (counter + i + 1) mod 1024 = 0 ->
            exists pout, In pout (list_rep q2) /\
                      switch_special_packet_relation pin pout (counter + i).
@@ -1348,9 +1348,9 @@ Proof.
     + eapply special_ingress_egress_switch; eauto.
 Qed.
 
-Lemma switch_ideal_property_queue_property1: forall counter qin qout,
+Lemma switch_ideal_property_queue_property2: forall counter qin qout,
     switch_ideal_property counter qin qout ->
-    switch_queue_property1 qin qout.
+    switch_queue_property2 qin qout.
 Proof.
   intros. induction H; repeat intro.
   - simpl in H. contradiction.
@@ -1424,9 +1424,9 @@ Proof.
       * constructor.
 Qed.
 
-Lemma switch_ideal_property_queue_property2: forall counter qin qout,
+Lemma switch_ideal_property_queue_property3: forall counter qin qout,
     switch_ideal_property counter qin qout ->
-    switch_queue_property2 qin qout counter.
+    switch_queue_property3 qin qout counter.
 Proof.
   repeat intro. apply switch_ideal_property_split with (len := i + 1) in H. 2: lia.
   destruct H as [q1 [q2 [q3 [q4 [? [? [? [? _]]]]]]]].
@@ -1466,14 +1466,14 @@ Definition switch_normal_or_special_packet_relation (pin pout: packet): Prop :=
   switch_normal_packet_relation pin pout \/
     exists counter, switch_special_packet_relation pin pout counter.
 
-Definition switch_queue_property3 (q1 q2: queue packet): Prop :=
+Definition switch_queue_property1 (q1 q2: queue packet): Prop :=
   forall pout, In pout (list_rep q2) ->
           exists pin, In pin (list_rep q1) /\
                    switch_normal_or_special_packet_relation pin pout.
 
-Lemma switch_ideal_property_queue_property3: forall counter qin qout,
+Lemma switch_ideal_property_queue_property1: forall counter qin qout,
     switch_ideal_property counter qin qout ->
-    switch_queue_property3 qin qout.
+    switch_queue_property1 qin qout.
 Proof.
   intros. induction H; repeat intro.
   - simpl in H. contradiction.
@@ -1512,7 +1512,7 @@ Proof.
   - rename IHswitch_ideal_property into IH. rewrite qlength_enque in *.
     destruct (Z_le_gt_dec (qlength q1) j).
     + assert (j = qlength q1) by lia. clear l H3. rewrite !enque_eq.
-      pose proof (switch_ideal_property_queue_property1 _ _ _ H1).
+      pose proof (switch_ideal_property_queue_property2 _ _ _ H1).
       rewrite qlength_eq in H4. rewrite (Znth_app1 (list_rep q1) _ _ j) by lia.
       subst j. pose proof (Znth_In _ _ H2). specialize (H3 _ H4).
       destruct H3 as [pi [? ?]]. apply In_Znth in H3. destruct H3 as [i' [? ?]].
@@ -1527,7 +1527,7 @@ Proof.
   - rename IHswitch_ideal_property into IH. rewrite !qlength_enque in *.
     destruct (Z_le_gt_dec (qlength q1) j).
     + assert (j = qlength q1) by lia. clear l H4. rewrite !enque_eq.
-      pose proof (switch_ideal_property_queue_property1 _ _ _ H2).
+      pose proof (switch_ideal_property_queue_property2 _ _ _ H2).
       rewrite qlength_eq in H5. rewrite (Znth_app1 (list_rep q1) _ _ j) by lia.
       subst j. pose proof (Znth_In _ _ H3). specialize (H4 _ H5).
       destruct H4 as [pi [? ?]]. apply In_Znth in H4. destruct H4 as [i' [? ?]].
@@ -1558,7 +1558,7 @@ Proof.
   - rename IHswitch_ideal_property into IH. rewrite qlength_enque in *.
     destruct (Z_le_gt_dec (qlength q2) j).
     + assert (j = qlength q2) by lia. clear l H3. rewrite !enque_eq.
-      pose proof (switch_ideal_property_queue_property3 _ _ _ H1).
+      pose proof (switch_ideal_property_queue_property1 _ _ _ H1).
       rewrite qlength_eq in H4. rewrite (Znth_app1 (list_rep q2) _ _ j) by lia.
       subst j. pose proof (Znth_In _ _ H2). specialize (H3 _ H4).
       destruct H3 as [pi [? ?]]. apply In_Znth in H3. destruct H3 as [i' [? ?]].
@@ -1573,7 +1573,7 @@ Proof.
   - rename IHswitch_ideal_property into IH. rewrite !qlength_enque in *.
     destruct (Z_le_gt_dec (qlength q2 + 1) j).
     + assert (j = qlength q2 + 1) by lia. clear l H4. rewrite !enque_eq.
-      pose proof (switch_ideal_property_queue_property3 _ _ _ H2).
+      pose proof (switch_ideal_property_queue_property1 _ _ _ H2).
       rewrite qlength_eq in H5. rewrite (Znth_app1 (list_rep q2 ++ [pout2]) _ _ j) by
         list_solve. subst j. destruct (Z_le_gt_dec (qlength q2) i).
       * rewrite <- qlength_eq in H3. assert (i = qlength q2) by lia.
@@ -1592,7 +1592,7 @@ Proof.
         subst pi. split; auto. left. assumption.
     + destruct (Z_le_gt_dec (qlength q2) j).
       * assert (j = qlength q2) by lia. clear l g H4. rewrite !enque_eq.
-        pose proof (switch_ideal_property_queue_property3 _ _ _ H2).
+        pose proof (switch_ideal_property_queue_property1 _ _ _ H2).
         rewrite qlength_eq in H5. rewrite <- app_assoc. simpl.
         rewrite (Znth_app1 (list_rep q2) _ _ j) by auto. subst j.
         pose proof (Znth_In _ _ H3). specialize (H4 _ H5). destruct H4 as [pi [? ?]].
