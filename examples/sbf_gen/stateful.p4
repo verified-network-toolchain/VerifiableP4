@@ -535,9 +535,9 @@ control SwitchIngress(inout header_t hdr,
             bf2_act_set_clear_key();
         }
         const entries = {
-            GENERATOR_PORT, _ : bf2_act_set_clear_key();
-            _, 2154823680 &&& 4294901760 : bf2_act_set_insert_key(INSERT);
-            _, _ : bf2_act_set_query_key(QUERY);
+            (GENERATOR_PORT, _) : bf2_act_set_clear_key();
+            (_, 2154823680 &&& 4294901760) : bf2_act_set_insert_key(INSERT);
+            (_, _) : bf2_act_set_query_key(QUERY);
         }
         default_action = bf2_act_set_clear_key();
         size = 2;
