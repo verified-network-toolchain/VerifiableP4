@@ -1,6 +1,7 @@
 Require Import Coq.Strings.String.
 Require Import Coq.Setoids.Setoid.
 Require Import Coq.Relations.Relation_Definitions.
+Require Import Coq.Sorting.Permutation.
 Require Import Poulet4.P4light.Syntax.Typed.
 Require Import Poulet4.P4light.Syntax.Syntax.
 Require Import Poulet4.P4light.Semantics.Semantics.
@@ -104,6 +105,11 @@ Proof.
   auto.
 Qed.
 
+Lemma mem_denote_perm: forall l1 l2 m, Permutation l1 l2 -> mem_denote l1 m -> mem_denote l2 m.
+Proof.
+  intros. hnf in H1 |- *. rewrite <- fold_right_and_map, <- Forall_fold_right in H1 |- *.
+  eapply Permutation_Forall; eauto.
+Qed.
 
 Lemma ext_pred_and_cons : forall ep1 ep2 eps,
   ext_assertion_equiv

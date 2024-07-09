@@ -138,3 +138,7 @@ Ltac cut_list_n n :=
   | nat => rewrite list_head_app; cut_list_n0 n
   | _ => idtac "Error: n must be a nat."
   end.
+
+Lemma fold_right_and_map: forall [A : Type] (P : A -> Prop) (l : list A),
+    fold_right (fun x : A => and (P x)) True l <-> fold_right and True (map P l).
+Proof. intros. induction l; simpl; intuition. Qed.

@@ -1728,8 +1728,8 @@ Proof.
 Qed.
 
 Definition switch_queue_property7 (qin qout: queue packet) (counter: Z) : Prop :=
-  forall q, switch_ideal_property counter qin q ->
-       exists sub, SubQueue sub q /\ Permutation (list_rep sub) (list_rep qout).
+  forall qideal, switch_ideal_property counter qin qideal ->
+       exists sub, SubQueue sub qideal /\ Permutation (list_rep sub) (list_rep qout).
 
 Lemma switch_ideal_property_queue_property7: forall counter qin qout,
     switch_ideal_property counter qin qout ->

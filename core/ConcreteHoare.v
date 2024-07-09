@@ -199,6 +199,25 @@ Proof.
   eapply hoare_stmt_if; eauto with hoare.
 Qed.
 
+Lemma hoare_stmt_post_perm :
+  forall [p pre stmt cpost_mem1 cpost_mem2 rpost_mem1 rpost_mem2 cpost_ext rpost_ext vret],
+    Permutation.Permutation cpost_mem1 cpost_mem2 ->
+    Permutation.Permutation rpost_mem1 rpost_mem2 ->
+    hoare_stmt ge p pre stmt {|
+                 post_continue := MEM cpost_mem1 (EXT cpost_ext);
+                 post_return := RET vret (MEM rpost_mem1 (EXT rpost_ext)) |} ->
+    hoare_stmt ge p pre stmt {|
+                 post_continue := MEM cpost_mem2 (EXT cpost_ext);
+                 post_return := RET vret (MEM rpost_mem2 (EXT rpost_ext)) |}.
+Proof.
+  unfold hoare_stmt. intros. specialize (H2 st st' sig H3 H4). destruct H2; [left | right].
+  - destruct H2. split; auto. simpl in H5 |- *. clear -H0 H5. destruct st'.
+    simpl in *. destruct H5; split; auto. eapply mem_denote_perm; eauto.
+  - clear -H1 H2. simpl in *. unfold satisfies_ret_assertion in *. destruct sig; auto.
+    unfold RET in *. destruct H2. split; auto. destruct st'. simpl in *.
+    destruct H2; split; auto. eapply mem_denote_perm; eauto.
+Qed.
+
 Lemma hoare_call_builtin' : forall p pre_mem pre_ext tags tags' dir' expr fname tparams params typ
     args typ' dir post_mem retv lv argvals,
   is_no_dup (map fst pre_mem) ->
