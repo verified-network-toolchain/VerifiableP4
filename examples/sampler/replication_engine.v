@@ -3,7 +3,7 @@ Require Import Poulet4.P4light.Syntax.P4defs.
 Require Import Poulet4.P4light.Semantics.Semantics.
 Require Import ProD3.core.Core.
 Require Import Poulet4.P4light.Architecture.Tofino.
-Require Import Poulet4.P4light.Architecture.TrafficManager.
+Require Import Poulet4.P4light.Architecture.ReplicationEngine.
 Require Import ProD3.core.Tofino.
 Require Import ProD3.core.TofinoPipeline.
 Require Import ProD3.examples.sampler.ModelRepr.
@@ -68,16 +68,16 @@ Proof.
   split; [ repeat constructor | reflexivity].
 Qed.
 
-Definition tofino_tm (ig_intr_tm_md: Sval) (pkt: packet) :=
+Definition tofino_pre (ig_intr_tm_md: Sval) (pkt: packet) :=
   qmap encode_tm_output
-    (traffic_manager mcast_tbl excl_table (intr_tm_md_to_input_md ig_intr_tm_md, pkt)).
+    (replication_engine mcast_tbl excl_table (intr_tm_md_to_input_md ig_intr_tm_md, pkt)).
 
 Lemma tofino_tm_output: forall md pkt p,
-    In p (list_rep (tofino_tm md pkt)) ->
+    In p (list_rep (tofino_pre md pkt)) ->
     exists eg_md, ⊫ᵥ eg_md \: egress_intrinsic_metadata_t /\ p ⫢ [⦑ encode eg_md ⦒; ⦑ pkt ⦒].
 Proof.
-  intros. unfold tofino_tm in H. rewrite qmap_map in H. rewrite in_map_iff in H.
-  destruct H as [x [? ?]]. apply traffic_manager_output_snd in H0. simpl in H0.
+  intros. unfold tofino_pre in H. rewrite qmap_map in H. rewrite in_map_iff in H.
+  destruct H as [x [? ?]]. apply replication_engine_output_snd in H0. simpl in H0.
   clear md. destruct x as [md out]. simpl in H0. subst out. unfold encode_tm_output in H.
   exists (output_md_to_egress_intr_md md). split.
   - apply output_is_eg_intr_md.

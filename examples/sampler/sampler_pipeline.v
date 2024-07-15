@@ -3,7 +3,7 @@ Require Import Poulet4.P4light.Semantics.Semantics.
 Require Import ProD3.core.Core.
 Require Import Poulet4.P4light.Architecture.Tofino.
 Require Import Poulet4.P4light.Architecture.Queue.
-Require Import Poulet4.P4light.Architecture.TrafficManager.
+Require Import Poulet4.P4light.Architecture.ReplicationEngine.
 Require Import ProD3.core.Tofino.
 Require Import ProD3.core.TofinoPipeline.
 Require Import ProD3.examples.sampler.ModelRepr.
@@ -14,7 +14,7 @@ Require Import ProD3.examples.sampler.verif_ingress_deparser.
 Require Import ProD3.examples.sampler.verif_egress_parser.
 Require Import ProD3.examples.sampler.verif_egress.
 Require Import ProD3.examples.sampler.verif_egress_deparser.
-Require Import ProD3.examples.sampler.traffic_manager.
+Require Import ProD3.examples.sampler.replication_engine.
 Require Import ProD3.core.ProgNotations.
 Require Import ProD3.core.PacketFormat.
 Require Import Poulet4.P4light.Syntax.P4Notations.
@@ -335,7 +335,7 @@ Definition encode_out_md (port rid: Z): packet :=
 
 Opaque encode.
 
-Lemma sampler_tofino_tm:
+Lemma sampler_tofino_pre:
   forall (for_tm : Sval) (counter : Z) (pkt : packet),
     sval_refine
       (if (counter + 1) mod 1024 =? 0
@@ -343,7 +343,7 @@ Lemma sampler_tofino_tm:
          update "mcast_grp_a" (P4Bit 16 COLLECTOR_MULTICAST_GROUP)
            (update_outport OUT_PORT ig_intr_tm_md)
        else update_outport OUT_PORT ig_intr_tm_md) for_tm ->
-    list_rep (tofino_tm for_tm pkt) =
+    list_rep (tofino_pre for_tm pkt) =
       if (counter + 1) mod 1024 =? 0 then
         [encode_out_md 129 123 ++ pkt; encode_out_md 128 0 ++ pkt]
       else [encode_out_md 128 0 ++ pkt].
@@ -369,7 +369,7 @@ Proof.
         change (ValBaseBit _) with (ValBaseBit (map Some (repeat false 16))) in H.
         remember (repeat false 16) as l. inv H.
         apply Forall2_bit_refine_Some_same' in H2. subst lb'. reflexivity. }
-    unfold tofino_tm. rewrite H0. simpl. rewrite rev'_eq. reflexivity.
+    unfold tofino_pre. rewrite H0. simpl. rewrite rev'_eq. reflexivity.
   - assert (intr_tm_md_to_input_md for_tm =
               Build_InputMetadata (Some OUT_PORT) None None 0 0 0). {
       unfold intr_tm_md_to_input_md. f_equal.
@@ -389,12 +389,12 @@ Proof.
         change (ValBaseBit _) with (ValBaseBit (map Some (repeat false 16))) in H.
         remember (repeat false 16) as l. inv H.
         apply Forall2_bit_refine_Some_same' in H2. subst lb'. reflexivity. }
-    unfold tofino_tm. rewrite H0. simpl. reflexivity.
+    unfold tofino_pre. rewrite H0. simpl. reflexivity.
 Qed.
 
 Transparent encode.
 
-Lemma sampler_tofino_tm_qlen:
+Lemma sampler_tofino_pre_qlen:
   forall (for_tm : Sval) (counter : Z) (pkt : packet),
     sval_refine
       (if (counter + 1) mod 1024 =? 0
@@ -402,10 +402,10 @@ Lemma sampler_tofino_tm_qlen:
          update "mcast_grp_a" (P4Bit 16 COLLECTOR_MULTICAST_GROUP)
            (update_outport OUT_PORT ig_intr_tm_md)
        else update_outport OUT_PORT ig_intr_tm_md) for_tm ->
-    qlength (tofino_tm for_tm pkt) =
+    qlength (tofino_pre for_tm pkt) =
       (if (counter + 1) mod 1024 =? 0 then 2 else 1).
 Proof.
-  intros. apply sampler_tofino_tm with (pkt := pkt) in H.
+  intros. apply sampler_tofino_pre with (pkt := pkt) in H.
   rewrite qlength_eq, H. destruct ((counter + 1) mod 1024 =? 0); reflexivity.
 Qed.
 
@@ -561,13 +561,13 @@ Lemma process_packet_ingress_tm:
       inprsr_block ingress_block indeprsr_block parser_ingress_cond
       ingress_deprsr_cond ingress_tm_cond st pin st' pout for_tm ->
     ingress_packet_relation pin pout counter /\
-    list_rep (tofino_tm for_tm pout) =
+    list_rep (tofino_pre for_tm pout) =
       (if (counter + 1) mod 1024 =? 0 then
          [encode_out_md 129 123 ++ pout; encode_out_md 128 0 ++ pout]
        else [encode_out_md 128 0 ++ pout]).
 Proof.
   intros. eapply process_packet_ingress in H0; eauto. destruct H0 as [? [? ?]].
-  split; auto. apply sampler_tofino_tm. assumption.
+  split; auto. apply sampler_tofino_pre. assumption.
 Qed.
 
 Transparent ig_intr_tm_md ipv4_repr_val ethernet_repr_val bridge_repr_val sample_repr_val.
@@ -578,11 +578,11 @@ Lemma process_packet_ingress_queue_len:
     ingress_pipeline
       inprsr_block ingress_block indeprsr_block parser_ingress_cond
       ingress_deprsr_cond ingress_tm_cond st pin st' pout for_tm ->
-    que = tofino_tm for_tm pout ->
+    que = tofino_pre for_tm pout ->
     qlength que = if ((counter + 1) mod 1024 =? 0) then 2 else 1.
 Proof.
   intros. eapply process_packet_ingress in H0; eauto. destruct H0 as [? [? _]].
-  subst que. apply sampler_tofino_tm_qlen. assumption.
+  subst que. apply sampler_tofino_pre_qlen. assumption.
 Qed.
 
 Inductive eprsr_block: programmable_block_sem :=
@@ -896,7 +896,7 @@ Lemma process_ingress_packets_counter: forall inst1 inst2 q1 q2 counter,
     ingress_counter inst1 counter ->
     process_ingress_packets
       (ingress_pipeline inprsr_block ingress_block indeprsr_block parser_ingress_cond
-         ingress_deprsr_cond ingress_tm_cond) tofino_tm inst1 q1 inst2 q2 ->
+         ingress_deprsr_cond ingress_tm_cond) tofino_pre inst1 q1 inst2 q2 ->
     ingress_counter inst2 (counter + qlength q1).
 Proof.
   intros. revert H. induction H0; intros.
@@ -930,7 +930,7 @@ Lemma process_ingress_packets_queue_len: forall inst1 inst2 q1 q2 counter,
     ingress_counter inst1 counter ->
     process_ingress_packets
       (ingress_pipeline inprsr_block ingress_block indeprsr_block parser_ingress_cond
-         ingress_deprsr_cond ingress_tm_cond) tofino_tm inst1 q1 inst2 q2 ->
+         ingress_deprsr_cond ingress_tm_cond) tofino_pre inst1 q1 inst2 q2 ->
     qlength q2 = qlength q1 + (counter mod 1024 + qlength q1) / 1024.
 Proof.
   intros. assert (Hlt: 0 <= counter) by (destruct H; assumption).
@@ -950,7 +950,7 @@ Lemma process_ingress_packets_queue_len_ugly: forall inst1 inst2 q1 q2 counter,
     ingress_counter inst1 counter ->
     process_ingress_packets
       (ingress_pipeline inprsr_block ingress_block indeprsr_block parser_ingress_cond
-         ingress_deprsr_cond ingress_tm_cond) tofino_tm inst1 q1 inst2 q2 ->
+         ingress_deprsr_cond ingress_tm_cond) tofino_pre inst1 q1 inst2 q2 ->
     qlength q2 = if qlength q1 =? 0 then 0 else
                    qlength q1 + ((counter + 1) mod 1024 + qlength q1 - 1) / 1024 +
                      Z.b2z ((counter + 1) mod 1024 =? 0).
@@ -1045,7 +1045,7 @@ Lemma process_ingress_packets_queue: forall inst1 inst2 q1 q2 counter,
     ingress_counter inst1 counter ->
     process_ingress_packets
       (ingress_pipeline inprsr_block ingress_block indeprsr_block parser_ingress_cond
-         ingress_deprsr_cond ingress_tm_cond) tofino_tm inst1 q1 inst2 q2 ->
+         ingress_deprsr_cond ingress_tm_cond) tofino_pre inst1 q1 inst2 q2 ->
     ingress_queue_property1 q1 q2 /\ ingress_queue_property2 q1 q2 counter.
 Proof.
   intros. split.
@@ -1197,7 +1197,7 @@ Lemma switch_packets_queue: forall inst1 inst2 est1 est2 q1 q2 q3 counter,
     ingress_counter inst1 counter ->
     process_ingress_packets
       (ingress_pipeline inprsr_block ingress_block indeprsr_block parser_ingress_cond
-         ingress_deprsr_cond ingress_tm_cond) tofino_tm inst1 q1 inst2 q2 ->
+         ingress_deprsr_cond ingress_tm_cond) tofino_pre inst1 q1 inst2 q2 ->
     process_egress_packets
       (egress_pipeline eprsr_block egress_block edeprsr_block parser_egress_cond
          egress_deprsr_cond) est1 q2 est2 q3 ->
@@ -1234,7 +1234,7 @@ Lemma process_ingress_packets_ideal: forall inst1 inst2 q1 q2 counter,
     ingress_counter inst1 counter ->
     process_ingress_packets
       (ingress_pipeline inprsr_block ingress_block indeprsr_block parser_ingress_cond
-         ingress_deprsr_cond ingress_tm_cond) tofino_tm inst1 q1 inst2 q2 ->
+         ingress_deprsr_cond ingress_tm_cond) tofino_pre inst1 q1 inst2 q2 ->
     ingress_ideal_property counter q1 q2.
 Proof.
   intros. revert dependent counter. induction H0; intros. 1: constructor.
@@ -1620,7 +1620,7 @@ Lemma switch_packets_ideal_property: forall inst1 inst2 est1 est2 q1 q2 q3 count
     ingress_counter inst1 counter ->
     process_ingress_packets
       (ingress_pipeline inprsr_block ingress_block indeprsr_block parser_ingress_cond
-         ingress_deprsr_cond ingress_tm_cond) tofino_tm inst1 q1 inst2 q2 ->
+         ingress_deprsr_cond ingress_tm_cond) tofino_pre inst1 q1 inst2 q2 ->
     process_egress_packets
       (egress_pipeline eprsr_block egress_block edeprsr_block parser_egress_cond
          egress_deprsr_cond) est1 q2 est2 q3 ->
