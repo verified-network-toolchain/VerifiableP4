@@ -523,6 +523,7 @@ control SwitchIngress(inout header_t hdr,
     }
     action bf2_act_set_clear_key() {
         ig_md.bf2_api = CLEAR;
+        ig_md.bf2_key = 0;
     }
     table bf2_tbl_set_key {
         key = {

@@ -14292,7 +14292,33 @@ Definition SwitchIngress := DeclControl NoInfo
                                             width_signed := None |})
                                         TypInteger Directionless))
                               (TypBit 8%N) Directionless)) StmUnit)
-               (BlockEmpty NoInfo)));
+               (BlockCons
+                    (MkStatement NoInfo
+                         (StatAssignment
+                              (MkExpression NoInfo
+                                   (ExpExpressionMember
+                                        (MkExpression NoInfo
+                                             (ExpName
+                                              (BareName
+                                               {| stags := NoInfo;
+                                                  str := "ig_md" |})
+                                              (LInstance ["ig_md"]))
+                                             (TypTypeName
+                                              {| stags := NoInfo;
+                                                 str := "metadata_t" |})
+                                             InOut)
+                                        {| stags := NoInfo;
+                                           str := "bf2_key" |}) (TypBit 64%N)
+                                   Directionless)
+                              (MkExpression NoInfo
+                                   (ExpCast (TypBit 64%N)
+                                        (MkExpression NoInfo
+                                             (ExpInt
+                                              {| itags := NoInfo; value := 0;
+                                                 width_signed := None |})
+                                             TypInteger Directionless))
+                                   (TypBit 64%N) Directionless)) StmUnit)
+                    (BlockEmpty NoInfo))));
      (DeclTable NoInfo {| stags := NoInfo; str := "bf2_tbl_set_key" |}
           [(MkTableKey NoInfo
                 (MkExpression NoInfo
