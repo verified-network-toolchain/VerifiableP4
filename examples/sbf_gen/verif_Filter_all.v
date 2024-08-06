@@ -240,13 +240,13 @@ Definition Filter_clear_spec : func_spec :=
   WITH (* p *),
     PATH p
     MOD None [p]
-    WITH (h : header_type) (tstamp : Z) (f : filter),
+    WITH (h : header_type) (tstamp : Z) (r: Z) (f : filter),
       PRE
-        (ARG [eval_val_to_sval (header_to_val h); P4Bit 8 CLEAR; P4Bit 48 tstamp; P4Bit_ 8]
+        (ARG [eval_val_to_sval (header_to_val h); P4Bit 8 CLEAR; P4Bit 48 tstamp; P4Bit 8 r]
         (MEM []
         (EXT [filter_repr p f])))
       POST
-        (ARG_RET [P4Bit_ 8] ValBaseNull
+        (ARG_RET [P4Bit 8 r] ValBaseNull
         (MEM []
         (EXT [filter_repr p (filter_clear f tstamp)]))).
 

@@ -124,13 +124,13 @@ Definition Filter_clear_spec : func_spec :=
   WITH (* p *),
     PATH p
     MOD None [p]
-    WITH (key : Val) (tstamp : Z) (cf : filter num_frames num_rows num_slots),
+    WITH (key : Val) (tstamp : Z) (r: Z) (cf : filter num_frames num_rows num_slots),
       PRE
-        (ARG [eval_val_to_sval key; P4Bit 8 CLEAR; P4Bit 48 tstamp; P4Bit_ 8]
+        (ARG [eval_val_to_sval key; P4Bit 8 CLEAR; P4Bit 48 tstamp; P4Bit 8 r]
         (MEM []
         (EXT [filter_repr p index_w panes rows cf])))
       POST
-        (ARG_RET [P4Bit_ 8] ValBaseNull
+        (ARG_RET [P4Bit 8 r] ValBaseNull
         (MEM []
         (EXT [filter_repr p index_w panes rows (filter_clear cf (Z.odd (tstamp/2097152)))]))).
 

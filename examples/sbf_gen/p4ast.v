@@ -14547,6 +14547,21 @@ Definition SwitchIngress := DeclControl NoInfo
                           (MkExpression NoInfo
                                (ExpName
                                 (BareName
+                                 {| stags := NoInfo; str := "ig_intr_md" |})
+                                (LInstance ["ig_intr_md"]))
+                               (TypTypeName
+                                {| stags := NoInfo;
+                                   str := "ingress_intrinsic_metadata_t" |})
+                               In)
+                          {| stags := NoInfo; str := "ingress_port" |})
+                     (TypBit 9%N) Directionless)
+                {| stags := NoInfo; str := "exact" |});
+           (MkTableKey NoInfo
+                (MkExpression NoInfo
+                     (ExpExpressionMember
+                          (MkExpression NoInfo
+                               (ExpName
+                                (BareName
                                  {| stags := NoInfo; str := "ig_md" |})
                                 (LInstance ["ig_md"]))
                                (TypTypeName
@@ -14569,6 +14584,25 @@ Definition SwitchIngress := DeclControl NoInfo
            [(MkTableEntry NoInfo
                  [(MkMatch NoInfo
                        (MatchCast
+                        (TypSet (TypBit 9%N)) (MkExpression NoInfo
+                                                   (ExpInt
+                                                    {| itags := NoInfo;
+                                                       value := 196;
+                                                       width_signed := 
+                                                       None |}) TypInteger
+                                                   Directionless))
+                       (TypBit 9%N));
+                  (MkMatch NoInfo MatchDontCare (TypBit 8%N))]
+                 (MkTableActionRef NoInfo
+                      (MkTablePreActionRef
+                           (BareName
+                            {| stags := NoInfo;
+                               str := "act_for_tbl_3_action_0" |}) nil)
+                      (TypAction nil nil)));
+            (MkTableEntry NoInfo
+                 [(MkMatch NoInfo MatchDontCare (TypBit 9%N));
+                  (MkMatch NoInfo
+                       (MatchCast
                         (TypSet (TypBit 8%N)) (MkExpression NoInfo
                                                    (ExpInt
                                                     {| itags := NoInfo;
@@ -14584,7 +14618,8 @@ Definition SwitchIngress := DeclControl NoInfo
                                str := "act_for_tbl_3_action_0" |}) nil)
                       (TypAction nil nil)));
             (MkTableEntry NoInfo
-                 [(MkMatch NoInfo MatchDontCare (TypBit 8%N))]
+                 [(MkMatch NoInfo MatchDontCare (TypBit 9%N));
+                  (MkMatch NoInfo MatchDontCare (TypBit 8%N))]
                  (MkTableActionRef NoInfo
                       (MkTablePreActionRef
                            (BareName

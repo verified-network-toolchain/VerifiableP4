@@ -140,7 +140,7 @@ Proof.
   }
   unfold process in H_drop_ctl |- *.
   destruct (is_gen port) eqn: H_is_gen.
-  - simpl in H_drop_ctl |- *. destruct drop_ctl. constructor; auto. admit.
+  - simpl in H_drop_ctl |- *. inv H_drop_ctl. constructor. assumption.
   - destruct (is_internal (fst h)) eqn:H_is_internal.
     + inv H_drop_ctl.
       constructor; auto.

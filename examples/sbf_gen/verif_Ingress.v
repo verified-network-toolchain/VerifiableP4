@@ -33,7 +33,7 @@ Definition is_internal (ip_addr : Z) : bool :=
 (* The bool in the return value means the packet is dropped. *)
 Definition process (f : filter) '((timestamp, ipv4, port) : Z * ipv4_header * Z) : filter * option bool :=
   if is_gen port then
-    (filter_clear f timestamp, None)
+    (filter_clear f timestamp, Some true)
   else if is_internal (fst ipv4) then
     (filter_insert f (timestamp, ipv4), Some false)
   else
@@ -360,49 +360,62 @@ Definition tbl_for_stmt_3_spec :=
   WITH (* p *),
     PATH p
     MOD (Some [["ig_intr_dprsr_md"]]) []
-    WITH solicited,
+    WITH solicited port,
       PRE
         (ARG []
         (MEM [(["ig_md"], update "solicited" (P4Bit_option 8 (option_map Z.b2z solicited))
-                (force ValBaseNull (uninit_sval_of_typ None metadata_t)));
+                            (force ValBaseNull (uninit_sval_of_typ None metadata_t)));
+              (["ig_intr_md"], update "ingress_port" (P4Bit 9 port)
+                                 (force ValBaseNull
+                                    (uninit_sval_of_typ (Some true)
+                                       ingress_intrinsic_metadata_t)));
               (["ig_intr_dprsr_md"],
                 (force ValBaseNull (uninit_sval_of_typ None ingress_intrinsic_metadata_for_deparser_t)))]
         (EXT [])))
       POST
       (EX retv,
         (ARG_RET [] retv
-        (MEM [(["ig_intr_dprsr_md"], update "drop_ctl" (P4Bit_option 3 (option_map Z.b2z (option_map negb solicited)))
-                (force ValBaseNull (uninit_sval_of_typ None ingress_intrinsic_metadata_for_deparser_t)))]
+           (MEM [(["ig_intr_dprsr_md"],
+                   update "drop_ctl"
+                     (if is_gen port then P4Bit 3 1 else
+                        P4Bit_option 3 (option_map Z.b2z (option_map negb solicited)))
+                     (force ValBaseNull (uninit_sval_of_typ None
+                                           ingress_intrinsic_metadata_for_deparser_t)))]
         (EXT []))))%arg_ret_assr.
 
 Lemma tbl_for_stmt_3_body :
   func_sound ge tbl_for_stmt_3_fd nil tbl_for_stmt_3_spec.
 Proof.
   start_function.
-  - table_action act_for_tbl_3_action_0_body.
+  - rewrite <- is_gen_port_mod in H. rewrite H.
+    table_action act_for_tbl_3_action_0_body.
+    entailer. entailer.
+  - rewrite <- is_gen_port_mod in H. hnf in H. rewrite Bool.negb_true_iff in H. rewrite H.
+    table_action act_for_tbl_3_action_0_body.
     { entailer. }
     { entailer.
       destruct solicited as [[] | ].
-      - simpl in H2.
-        revert H.
+      - simpl in H1.
+        revert H0.
         simpl_sval_to_val.
-        intro H.
-        simpl_match_cond H.
-        inv H.
+        intro Hs.
+        simpl_match_cond Hs.
+        inv Hs.
       - repeat constructor.
       - repeat constructor.
     }
-  - table_action act_for_tbl_3_action_1_body.
+  - rewrite <- is_gen_port_mod in H. hnf in H. rewrite Bool.negb_true_iff in H. rewrite H.
+    table_action act_for_tbl_3_action_1_body.
     { entailer. }
     { entailer.
       destruct solicited as [[] | ].
       - repeat constructor.
-      - simpl in H2.
-        revert H.
+      - simpl in H1.
+        revert H0.
         simpl_sval_to_val.
-        intro H.
-        simpl_match_cond H.
-        inv H.
+        intro Hs.
+        simpl_match_cond Hs.
+        inv Hs.
       - repeat constructor.
     }
   - elim_trivial_cases.
@@ -460,9 +473,10 @@ Proof.
   Intros _.
   destruct (is_gen port) eqn: H_is_gen.
   - step_call Filter_clear_body (0, 0) tstamp.
-    { entailer. repeat constructor. }
-    step_call tbl_for_stmt_3_body None.
+    { entailer. }
+    step_call tbl_for_stmt_3_body (Some true).
     { entailer.
+      repeat constructor.
       repeat constructor.
     }
     Intros _.
@@ -477,6 +491,7 @@ Proof.
       { entailer. }
       step_call tbl_for_stmt_3_body (Some true).
       { entailer.
+        repeat constructor.
         repeat constructor.
       }
       Intros _.
@@ -495,6 +510,7 @@ Proof.
       { entailer.
         repeat constructor.
         apply sval_refine_refl.
+        repeat constructor.
       }
       Intros _.
       step.

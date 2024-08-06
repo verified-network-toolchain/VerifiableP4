@@ -552,6 +552,7 @@ control SwitchIngress(inout header_t hdr,
     }
     table tbl_for_stmt_3 {
         key = {
+            ig_intr_md.ingress_port : exact;
             ig_md.solicited : ternary;
         }
         actions = {
@@ -559,8 +560,9 @@ control SwitchIngress(inout header_t hdr,
             act_for_tbl_3_action_1();
         }
         const entries = {
-            0 : act_for_tbl_3_action_0();
-            _ : act_for_tbl_3_action_1();
+            (GENERATOR_PORT, _) : act_for_tbl_3_action_0();
+            (_, 0) : act_for_tbl_3_action_0();
+            (_, _) : act_for_tbl_3_action_1();
         }
         default_action = act_for_tbl_3_action_1();
         size = 2;

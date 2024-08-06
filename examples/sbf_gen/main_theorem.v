@@ -12,8 +12,8 @@ Require Import ProD3.examples.sbf_gen.verif_switch.
 
 Definition abs_flow_wf (ps : list Packet) : Prop :=
   forall i : Z, 0 <= i < Zlength ps ->
-  0 <= fst (snd (fst (Znth i ps))) < Z.pow 2 32
-    /\ 0 <= snd (snd (fst (Znth i ps))) < Z.pow 2 32.
+  0 <= fst (snd (fst (fst (Znth i ps)))) < Z.pow 2 32
+    /\ 0 <= snd (snd (fst (fst (Znth i ps)))) < Z.pow 2 32.
 
 Lemma process_packets_trans_fw : forall es f ps es' rs,
   filter_repr f es ->
@@ -32,7 +32,8 @@ Proof.
       replace (Znth (i + 1) (p :: ps)) with (Znth i ps) in * by list_solve.
       lia.
     }
-    assert (H2 : 0 <= fst (snd (fst p)) < Z.pow 2 32 /\ 0 <= snd (snd (fst p)) < Z.pow 2 32). {
+    assert (H2 : 0 <= fst (snd (fst (fst p))) < Z.pow 2 32 /\
+                   0 <= snd (snd (fst (fst p))) < Z.pow 2 32). {
       clear -H0. unfold abs_flow_wf in *.
       specialize (H0 0 ltac:(list_solve)).
       list_solve.
